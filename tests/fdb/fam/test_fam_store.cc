@@ -71,7 +71,7 @@ CASE("FamStore: metadata and identity") {
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
 
     fdb5::FamStore fam_store(store_key, config);
-    auto& store = static_cast<fdb5::Store&>(fam_store);
+    fdb5::Store& store = fam_store;
 
     EXPECT_EQUAL(store.type(), std::string("fam"));
     EXPECT_EQUAL(store.uri().scheme(), std::string("fam"));
@@ -95,7 +95,7 @@ CASE("FamStore: archive, retrieve, flush") {
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
 
     fdb5::FamStore fam_store(store_key, config);
-    auto& store = static_cast<fdb5::Store&>(fam_store);
+    fdb5::Store& store = fam_store;
 
     //------------------------------------------------------------------------------------------------------------------
 
@@ -200,7 +200,7 @@ CASE("FamStore: URI-based construction") {
     // Construct from URI instead of Key
     const eckit::URI root_uri(test_fdb_fam_uri);
     fdb5::FamStore fam_store(root_uri, config);
-    auto& store = static_cast<fdb5::Store&>(fam_store);
+    fdb5::Store& store = fam_store;
 
     EXPECT_EQUAL(store.type(), std::string("fam"));
     EXPECT(store.exists());
@@ -242,7 +242,7 @@ CASE("FamStore: asCollocatedDataURIs validates URIs") {
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
 
     fdb5::FamStore fam_store(store_key, config);
-    auto& store = static_cast<fdb5::Store&>(fam_store);
+    fdb5::Store& store = fam_store;
 
     // Archive to get a valid URI
     const char* data = "collocated-test-data";
@@ -323,7 +323,7 @@ CASE("FamStore: remove deallocates archived object") {
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
 
     fdb5::FamStore fam_store(store_key, config);
-    auto& store = static_cast<fdb5::Store&>(fam_store);
+    fdb5::Store& store = fam_store;
 
     const char* data = "data-to-remove";
     const auto data_length = std::char_traits<char>::length(data);
@@ -400,7 +400,7 @@ CASE("FamStore: doWipeUnknowns removes matching objects") {
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
 
     fdb5::FamStore fam_store(store_key, config);
-    auto& store = static_cast<fdb5::Store&>(fam_store);
+    fdb5::Store& store = fam_store;
 
     const char* data = "unknown-wipe-data";
     const auto data_length = std::char_traits<char>::length(data);
@@ -438,7 +438,7 @@ CASE("FamStore: doWipeURIs removes included and auxiliary URIs") {
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
 
     fdb5::FamStore fam_store(store_key, config);
-    auto& store = static_cast<fdb5::Store&>(fam_store);
+    fdb5::Store& store = fam_store;
 
     const char* data = "wipe-uris-data";
     const auto data_length = std::char_traits<char>::length(data);
@@ -490,7 +490,7 @@ CASE("FamStore: finaliseWipeState with existing URI") {
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
 
     fdb5::FamStore fam_store(store_key, config);
-    auto& store = static_cast<fdb5::Store&>(fam_store);
+    fdb5::Store& store = fam_store;
 
     const char* data = "finalise-data";
     const auto data_length = std::char_traits<char>::length(data);

@@ -124,7 +124,7 @@ CASE("FamCatalogueWriter/Reader: direct OpenFAM metadata roundtrip") {
 
     // Archive data into the store first
     fdb5::FamStore fam_store(db_key, config);
-    auto& store = static_cast<fdb5::Store&>(fam_store);
+    fdb5::Store& store = fam_store;
     auto location = store.archive(datum_key, data, eckit::Length(data_length));
     EXPECT(location);
 
@@ -145,7 +145,6 @@ CASE("FamCatalogueWriter/Reader: direct OpenFAM metadata roundtrip") {
     const eckit::URI cat_uri = writer.uri();
     fdb5::FamCatalogueReader reader(cat_uri, config);
     fdb5::Catalogue& reader_cat = reader;
-
     EXPECT(reader.open());
     EXPECT_EQUAL(reader_cat.type(), std::string("fam"));
     EXPECT_EQUAL(reader_cat.uri().scheme(), std::string("fam"));
@@ -307,7 +306,7 @@ CASE("FamCatalogueWriter: multiple indexes in one catalogue") {
     const auto data2_length = std::char_traits<char>::length(data2);
 
     fdb5::FamStore fam_store(db_key, config);
-    auto& store = static_cast<fdb5::Store&>(fam_store);
+    fdb5::Store& store = fam_store;
     auto loc1 = store.archive(datum_key1, data1, eckit::Length(data1_length));
     auto loc2 = store.archive(datum_key2, data2, eckit::Length(data2_length));
 
@@ -363,7 +362,7 @@ CASE("FamEngine: canHandle and visitableLocations") {
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
     // Access through the Engine base class (canHandle/visitableLocations are public there)
-    fdb5::Engine& engine = fdb5::Engine::backend("fam");
+    auto& engine = fdb5::Engine::backend("fam");
     const eckit::URI root_uri(test_fdb_fam_uri);
     EXPECT(engine.canHandle(root_uri, config));
 
@@ -532,7 +531,7 @@ CASE("FamCatalogue: wipe methods work correctly") {
     fdb5::FamCatalogueWriter writer(db_key, config);
     fdb5::Catalogue& cat = writer;
 
-    // doUnsafeFullWipe clears catalogue + registry, returns true
+    // doUnsafeFullWipe clears catalogue + registry
     EXPECT(cat.doUnsafeFullWipe());
 
     // doWipeEmptyDatabase is a no-op when cleanupEmptyDatabase_ is false
@@ -543,8 +542,8 @@ CASE("FamCatalogue: wipe methods work correctly") {
     EXPECT(cat.doWipeUnknowns(unknowns));
 
     // doWipeURIs returns true
-    fdb5::CatalogueWipeState wipeState(db_key);
-    EXPECT(cat.doWipeURIs(wipeState));
+    fdb5::CatalogueWipeState wipe_state(db_key);
+    EXPECT(cat.doWipeURIs(wipe_state));
 
     // markIndexForWipe returns true for index belonging to same region
     auto idx_key =
@@ -553,7 +552,7 @@ CASE("FamCatalogue: wipe methods work correctly") {
     writer_iface.createIndex(idx_key, 3);
     writer_iface.selectIndex(idx_key);
     auto index = writer_iface.currentIndex();
-    EXPECT(cat.markIndexForWipe(index, true, wipeState));
+    EXPECT(cat.markIndexForWipe(index, true, wipe_state));
 }
 
 CASE("FamCatalogue: wipeInit returns db key") {
@@ -588,15 +587,15 @@ CASE("FamCatalogue: finaliseWipeState with non-empty safeURIs marks safe") {
     fdb5::Catalogue& cat = writer;
 
     // With safeURIs present, finalise marks cat URI as safe
-    fdb5::CatalogueWipeState wipeState(db_key);
-    wipeState.markAsSafe({eckit::URI("fam://host:1234/safe_object")});
-    cat.finaliseWipeState(wipeState);
-    EXPECT(!wipeState.safeURIs().empty());
+    fdb5::CatalogueWipeState wipe_state(db_key);
+    wipe_state.markAsSafe({eckit::URI("fam://host:1234/safe_object")});
+    cat.finaliseWipeState(wipe_state);
+    EXPECT(!wipe_state.safeURIs().empty());
 
     // With empty safeURIs (full wipe), marks cat for deletion
-    fdb5::CatalogueWipeState fullWipe(db_key);
-    cat.finaliseWipeState(fullWipe);
-    EXPECT(fullWipe.countURIsToDelete() > 0);
+    fdb5::CatalogueWipeState full_wipe(db_key);
+    cat.finaliseWipeState(full_wipe);
+    EXPECT(full_wipe.countURIsToDelete() > 0);
 }
 
 CASE("FamCatalogue: NOTIMP methods, enabled, and control") {
@@ -706,8 +705,7 @@ CASE("FamCatalogueReader: NOTIMP, print, and inline methods") {
 
 CASE("FamEngine: NOTIMP methods and name") {
 
-    fdb5::Engine& engine = fdb5::Engine::backend("fam");
-
+    auto& engine = fdb5::Engine::backend("fam");
     EXPECT_EQUAL(engine.name(), std::string("fam"));
     EXPECT_THROWS(engine.location(fdb5::Key(), fdb5::Config()));
     EXPECT_THROWS(engine.dbType());
@@ -726,7 +724,7 @@ CASE("FamEngine: visitableLocations with MarsRequest") {
     // Seed the catalogue
     { fdb5::FamCatalogueWriter writer(db_key, config); }
 
-    fdb5::Engine& engine = fdb5::Engine::backend("fam");
+    auto& engine = fdb5::Engine::backend("fam");
 
     // Build a MarsRequest that matches
     metkit::mars::MarsRequest request("retrieve");
@@ -823,7 +821,7 @@ CASE("FamFieldLocation: print and make_shared") {
 
     // Archive to get a real FamFieldLocation
     fdb5::FamStore fam_store(store_key, config);
-    auto& store = static_cast<fdb5::Store&>(fam_store);
+    fdb5::Store& store = fam_store;
 
     const char* data = "field-location-test";
     const auto data_length = std::char_traits<char>::length(data);
@@ -869,10 +867,9 @@ CASE("FamIndexLocation: uri, clone, print, encode") {
     EXPECT_EQUAL(loc.uri(), test_uri);
 
     // clone
-    auto* cloned = loc.clone();
+    auto cloned = std::unique_ptr<fdb5::IndexLocation>(loc.clone());
     EXPECT(cloned);
     EXPECT_EQUAL(cloned->uri(), test_uri);
-    delete cloned;
 
     // print
     std::ostringstream out;
@@ -976,7 +973,7 @@ CASE("FamCatalogueWriter: selectIndex cache hit path") {
                                        {"fam3c", "r"}});
 
     fdb5::FamStore fam_store(db_key, config);
-    auto& store = static_cast<fdb5::Store&>(fam_store);
+    fdb5::Store& store = fam_store;
 
     const char* data = "cache-hit-data";
     const auto data_length = std::char_traits<char>::length(data);
@@ -1068,7 +1065,7 @@ CASE("FamEngine: visitableLocations with non-existent region") {
     const fam::FamSetup setup(fam::test_schema, alt_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
-    fdb5::Engine& engine = fdb5::Engine::backend("fam");
+    auto& engine = fdb5::Engine::backend("fam");
 
     // Key overload: region doesn't exist → returns empty
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -1098,7 +1095,7 @@ CASE("FamEngine: visitableLocations with empty registry") {
     const fam::FamSetup setup(fam::test_schema, alt_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
-    fdb5::Engine& engine = fdb5::Engine::backend("fam");
+    auto& engine = fdb5::Engine::backend("fam");
 
     // Key overload: region exists but no registry map → returns empty via outer catch or empty map
     const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
@@ -1117,7 +1114,7 @@ CASE("FamEngine: canHandle with invalid FAM URI") {
     const fam::FamSetup setup(fam::test_schema, test_config);
     const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
 
-    fdb5::Engine& engine = fdb5::Engine::backend("fam");
+    auto& engine = fdb5::Engine::backend("fam");
 
     // URI with fam scheme but pointing to a non-existent region → canHandle returns false
     const eckit::URI bad_fam("fam://" + fam::test_fdb_fam_endpoint + "/definitely_nonexistent_region");
@@ -1190,7 +1187,7 @@ CASE("FamFieldLocation: visit dispatches to visitor") {
     const auto store_key = fdb5::Key({{"fam1a", "v1a"}, {"fam1b", "v1b"}, {"fam1c", "v1c"}});
 
     fdb5::FamStore fam_store(store_key, config);
-    auto& store = static_cast<fdb5::Store&>(fam_store);
+    fdb5::Store& store = fam_store;
 
     const char* data = "visit-test-data";
     const auto data_length = std::char_traits<char>::length(data);
@@ -1244,7 +1241,7 @@ CASE("FamCatalogue: maskIndexEntries removes index from catalogue") {
                                       {"fam3c", "i"}});
 
     fdb5::FamStore fam_store(db_key, config);
-    auto& store = static_cast<fdb5::Store&>(fam_store);
+    fdb5::Store& store = fam_store;
     auto loc = store.archive(datum_key, data, eckit::Length(data_length));
 
     fdb5::FamCatalogueWriter writer(db_key, config);
@@ -1305,7 +1302,7 @@ CASE("FamIndex: dataURIs returns field locations after archive") {
                                        {"fam3c", "z"}});
 
     fdb5::FamStore fam_store(db_key, config);
-    auto& store = static_cast<fdb5::Store&>(fam_store);
+    fdb5::Store& store = fam_store;
     auto loc1 = store.archive(datum_key1, data1, eckit::Length(data1_length));
     auto loc2 = store.archive(datum_key2, data2, eckit::Length(data2_length));
 
@@ -1357,7 +1354,7 @@ CASE("FamCatalogue: end-to-end wipe removes catalogue and data") {
 
     // 1. Archive data and metadata
     fdb5::FamStore fam_store(db_key, config);
-    auto& store = static_cast<fdb5::Store&>(fam_store);
+    fdb5::Store& store = fam_store;
     auto loc = store.archive(datum_key, data, eckit::Length(data_length));
     EXPECT(loc);
     EXPECT(fam_store.uriExists(loc->uri()));
@@ -1374,7 +1371,7 @@ CASE("FamCatalogue: end-to-end wipe removes catalogue and data") {
     EXPECT_EQUAL(cat.indexes().size(), 1U);
 
     // 2. Verify the engine can discover this DB
-    fdb5::Engine& engine = fdb5::Engine::backend("fam");
+    auto& engine = fdb5::Engine::backend("fam");
     EXPECT(!engine.visitableLocations(db_key, config).empty());
 
     // 3. Perform doUnsafeFullWipe (clears all maps + deregisters from registry)

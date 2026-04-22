@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include <signal.h>
 #include <sys/mman.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -41,7 +40,6 @@
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
-#include "eckit/io/fam/FamPath.h"
 #include "eckit/log/Log.h"
 #include "eckit/testing/ProcessFork.h"
 
@@ -78,7 +76,7 @@ inline const std::string test_fdb_fam_endpoint = []() -> std::string {
 
     // Real OpenFAM: use the endpoint as-is.
     if (ep && *ep) {
-        return std::string(ep);
+        return ep;
     }
 
     // Mock OpenFAM: append "_<pid>" to produce a unique POSIX shm path per process.

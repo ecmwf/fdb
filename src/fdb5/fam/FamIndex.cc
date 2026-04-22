@@ -16,6 +16,7 @@
 #include "fdb5/fam/FamIndex.h"
 
 #include <climits>
+#include <mutex>
 #include <utility>
 
 #include "eckit/io/MemoryHandle.h"
@@ -236,27 +237,21 @@ void FamIndex::flush() {
     if (axes_.dirty()) {
         const Map::key_type axes_key{FamCommon::axes_keyword};
 
-        data_.lock();
-        try {
-            IndexAxis merged;
-            if (auto iter = data_.find(axes_key); iter != data_.end()) {
-                auto buf = (*iter).value;
-                eckit::MemoryStream stream{buf};
-                merged.decode(stream, IndexAxis::currentVersion());
-            }
-            merged.merge(axes_);
-            merged.sort();
+        std::lock_guard guard(data_);
 
-            auto payload = serialize(static_cast<std::size_t>(PATH_MAX), [&merged](eckit::HandleStream& stream) {
-                merged.encode(stream, IndexAxis::currentVersion());
-            });
-            data_.insertOrAssign(axes_key, payload);
-            data_.unlock();
+        IndexAxis merged;
+        if (auto iter = data_.find(axes_key); iter != data_.end()) {
+            auto buf = (*iter).value;
+            eckit::MemoryStream stream{buf};
+            merged.decode(stream, IndexAxis::currentVersion());
         }
-        catch (...) {
-            data_.unlock();
-            throw;
-        }
+        merged.merge(axes_);
+        merged.sort();
+
+        auto payload = serialize(static_cast<std::size_t>(PATH_MAX), [&merged](eckit::HandleStream& stream) {
+            merged.encode(stream, IndexAxis::currentVersion());
+        });
+        data_.insertOrAssign(axes_key, payload);
 
         axes_.clean();
     }
