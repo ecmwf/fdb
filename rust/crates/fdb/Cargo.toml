@@ -9,7 +9,7 @@ readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
 description = "Safe Rust wrapper for ECMWF's FDB (Fields DataBase)"
-links = "fdb_rpath"
+links = "fdb_rs"
 build = "build.rs"
 
 [features]
