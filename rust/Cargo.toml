@@ -21,7 +21,7 @@ eckit-sys = { path = "../../rust-wrappers-playground/crates/eckit-sys", default-
 eckit = { path = "../../rust-wrappers-playground/crates/eckit" }
 metkit-sys = { path = "../../rust-wrappers-playground/crates/metkit-sys", default-features = false }
 metkit = { path = "../../rust-wrappers-playground/crates/metkit" }
-eccodes-sys = { path = "../../rust-wrappers-playground/eccodes/crates/eccodes-sys", default-features = false }
+eccodes-sys = { path = "../../rust-wrappers-playground/crates/eccodes-sys", default-features = false }
 
 # Build tools
 bindman = { path = "../../bindman/bindman" }
