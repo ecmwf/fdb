@@ -52,8 +52,8 @@ try cd $test_name
 try grib_set -s packingType=grid_simple,gridType=regular_ll,Ni=10,Nj=10,iDirectionIncrementInDegrees=36,jDirectionIncrementInDegrees=18,bitsPerValue=8 "$src_data" od.oper.small.grib
 src_data="od.oper.small.grib"
 
-# Create the FAM region (8 MB — repacked data is ~3 KB per file, 6 files × 2 loops)
-try fdb-fam --endpoint="$fam_endpoint" --create --size=8388608 --perm=0640 "/$test_region"
+# Create the FAM region (32 MB — real OpenFAM has ~128-byte minimum allocation + per-dataitem metadata overhead)
+try fdb-fam --endpoint="$fam_endpoint" --create --size=33554432 --perm=0640 "/$test_region"
 
 cleanup() {
     echo "cleanup"

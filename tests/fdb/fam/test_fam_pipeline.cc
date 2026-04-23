@@ -45,7 +45,7 @@ namespace {
 
 constexpr eckit::fam::size_t test_region_size = 1024 * 1024;  // 1 MB
 constexpr eckit::fam::perm_t test_region_perm = 0640;
-const auto test_fdb_fam_region = eckit::FamPath("test_fdb_catalogue");
+const auto test_fdb_fam_region = eckit::FamPath("test_fdb_pipeline");
 const auto test_fdb_fam_uri = "fam://" + fam::test_fdb_fam_endpoint + "/" + test_fdb_fam_region.asString();
 
 const std::string test_config = fam::make_test_config(test_fdb_fam_uri);

@@ -42,7 +42,7 @@ try grib_set -s packingType=grid_simple,gridType=regular_ll,Ni=10,Nj=10,iDirecti
 src_data="od.oper.small.grib"
 
 # Create the FAM region (4 MB — repacked data is ~3 KB, 1 write)
-try fdb-fam --endpoint="$fam_endpoint" --create --size=4194304 --perm=0640 "/$test_region"
+try fdb-fam --endpoint="$fam_endpoint" --create --size=33554432 --perm=0640 "/$test_region"
 
 cleanup() {
     echo "cleanup"

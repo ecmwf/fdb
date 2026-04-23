@@ -19,6 +19,7 @@
 
 #include "test_fam_common.h"
 
+#include <cstdlib>
 #include <memory>
 #include <set>
 #include <sstream>
@@ -28,11 +29,11 @@
 #include "eckit/io/Length.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/io/fam/FamRegionName.h"
+#include "eckit/runtime/Main.h"
 #include "eckit/serialisation/HandleStream.h"
 #include "eckit/testing/Test.h"
 
 #include "fdb5/config/Config.h"
-#include "fdb5/database/Field.h"
 #include "fdb5/database/IndexLocation.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/fam/FamCatalogue.h"
@@ -52,7 +53,7 @@ namespace {
 
 constexpr eckit::fam::size_t test_region_size = 1024 * 1024;  // 1 MB
 constexpr eckit::fam::perm_t test_region_perm = 0640;
-const auto test_fdb_fam_region = eckit::FamPath("test_fdb_catalogue");
+const auto test_fdb_fam_region = eckit::FamPath("test_fdb_index");
 const auto test_fdb_fam_uri = "fam://" + fam::test_fdb_fam_endpoint + "/" + test_fdb_fam_region.asString();
 
 const std::string test_config = fam::make_test_config(test_fdb_fam_uri);
@@ -238,47 +239,13 @@ CASE("FamIndex: concurrent writers flush axes without data loss") {
     const auto idx_key =
         fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}, {"fam2a", "d"}, {"fam2b", "e"}, {"fam2c", "f"}};
 
-    // Mock OpenFAM has 4096 objects/region.  Each archive + flush cycle creates
-    // several objects (data, FamMap/FamList nodes, axes entries).  With overhead
-    // from catalogue/store infrastructure, 4 × 50 = 200 fields stays well within
-    // the mock's capacity while still exercising concurrent flush races.
     constexpr int num_writers = 4;
     constexpr int fields_per_writer = 50;
-    constexpr int flush_interval = 10;  // flush every N fields — maximises concurrent flush races
 
-    const char* data = "concurrent-stress-payload";
-    const auto data_length = std::char_traits<char>::length(data);
-
-    bool ok = fork_and_run(num_writers, [&](int writer_id) {
-        fdb5::FamStore fam_store(db_key, config);
-        fdb5::Store& store = fam_store;
-        fdb5::FamCatalogueWriter writer(db_key, config);
-        fdb5::CatalogueWriter& cat_writer = writer;
-
-        cat_writer.createIndex(idx_key, /*datumKeySize=*/3);
-
-        for (int i = 0; i < fields_per_writer; ++i) {
-            std::string fam3a_val = "w" + std::to_string(writer_id) + "f" + std::to_string(i);
-            std::string fam3b_val = "lev" + std::to_string(i % 10);     // 10 shared levels
-            std::string fam3c_val = "par" + std::to_string(writer_id);  // 1 per writer
-
-            fdb5::Key datum_key{{"fam1a", "a"},       {"fam1b", "b"},       {"fam1c", "c"},
-                                {"fam2a", "d"},       {"fam2b", "e"},       {"fam2c", "f"},
-                                {"fam3a", fam3a_val}, {"fam3b", fam3b_val}, {"fam3c", fam3c_val}};
-
-            auto location = store.archive(datum_key, data, eckit::Length(data_length));
-            cat_writer.archive(idx_key, datum_key, location->make_shared());
-
-            // Flush periodically — this is where the race condition matters.
-            // Multiple processes flushing simultaneously must merge axes correctly.
-            if ((i + 1) % flush_interval == 0) {
-                cat_writer.flush(1);
-            }
-        }
-
-        // Final flush for remaining fields.
-        cat_writer.flush(1);
-    });
+    bool ok = fork_and_exec(num_writers, {
+                                             "--config-path=" + setup.configPath.asString(),
+                                             "--fields-per-writer=" + std::to_string(fields_per_writer),
+                                         });
 
     EXPECT(ok);
 
@@ -339,8 +306,7 @@ CASE("FamIndex: concurrent writers flush axes without data loss") {
 
     eckit::Log::info() << "Concurrent stress test PASSED: " << found_fam3a.size() << " unique fam3a values, "
                        << found_fam3b.size() << " fam3b values, " << found_fam3c.size() << " fam3c values from "
-                       << num_writers << " writers (" << fields_per_writer << " fields each, flush every "
-                       << flush_interval << ")" << std::endl;
+                       << num_writers << " writers (" << fields_per_writer << " fields each)" << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -459,6 +425,69 @@ CASE("FamFieldLocation: visit dispatches to visitor") {
 
 }  // namespace fdb::test
 
+//----------------------------------------------------------------------------------------------------------------------
+// Child worker for fork_and_exec (concurrent writers test)
+//----------------------------------------------------------------------------------------------------------------------
+
+namespace {
+
+int child_worker_main(int argc, char** argv) {
+    eckit::Main::initialise(argc, argv);
+
+    try {
+        auto args = eckit::testing::parse_worker_args(argc, argv);
+        const int writer_id = std::stoi(eckit::testing::get_worker_arg(args, "worker-id"));
+        const std::string cfg_path = eckit::testing::get_worker_arg(args, "config-path");
+        const int fields_per_writer = std::stoi(eckit::testing::get_worker_arg(args, "fields-per-writer"));
+        constexpr int flush_interval = 10;
+
+        const auto config = fdb5::Config{eckit::YAMLConfiguration(eckit::PathName(cfg_path))};
+        const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
+        const auto idx_key =
+            fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}, {"fam2a", "d"}, {"fam2b", "e"}, {"fam2c", "f"}};
+
+        const char* data = "concurrent-stress-payload";
+        const auto data_length = std::char_traits<char>::length(data);
+
+        fdb5::FamStore fam_store(db_key, config);
+        fdb5::Store& store = fam_store;
+        fdb5::FamCatalogueWriter writer(db_key, config);
+        fdb5::CatalogueWriter& cat_writer = writer;
+
+        cat_writer.createIndex(idx_key, /*datumKeySize=*/3);
+
+        for (int i = 0; i < fields_per_writer; ++i) {
+            std::string fam3a_val = "w" + std::to_string(writer_id) + "f" + std::to_string(i);
+            std::string fam3b_val = "lev" + std::to_string(i % 10);
+            std::string fam3c_val = "par" + std::to_string(writer_id);
+
+            fdb5::Key datum_key{{"fam1a", "a"},       {"fam1b", "b"},       {"fam1c", "c"},
+                                {"fam2a", "d"},       {"fam2b", "e"},       {"fam2c", "f"},
+                                {"fam3a", fam3a_val}, {"fam3b", fam3b_val}, {"fam3c", fam3c_val}};
+
+            auto location = store.archive(datum_key, data, eckit::Length(data_length));
+            cat_writer.archive(idx_key, datum_key, location->make_shared());
+
+            if ((i + 1) % flush_interval == 0) {
+                cat_writer.flush(1);
+            }
+        }
+
+        cat_writer.flush(1);
+        return 0;
+    }
+    catch (const std::exception& e) {
+        eckit::Log::error() << "Child worker FAILED: " << e.what() << std::endl;
+        return 1;
+    }
+}
+
+}  // namespace
+
 int main(int argc, char** argv) {
-    return run_tests(argc, argv);
+    auto args = eckit::testing::parse_worker_args(argc, argv);
+    if (!args.empty()) {
+        return child_worker_main(argc, argv);
+    }
+    return eckit::testing::run_tests(argc, argv);
 }
