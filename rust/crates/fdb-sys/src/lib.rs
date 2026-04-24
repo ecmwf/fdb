@@ -286,6 +286,100 @@ mod ffi {
         fn name(self: &FdbHandle) -> String;
 
         // =====================================================================
+        // FdbHandle operations
+        // =====================================================================
+
+        /// Archive data with an explicit key.
+        fn archive(self: Pin<&mut FdbHandle>, key: &KeyData, data: &[u8]) -> Result<()>;
+
+        /// Archive raw GRIB data (key is extracted from the message).
+        fn archive_raw(self: Pin<&mut FdbHandle>, data: &[u8]) -> Result<()>;
+
+        /// Archive raw GRIB data streamed from a Rust `std::io::Read`.
+        fn archive_reader(self: Pin<&mut FdbHandle>, reader: Box<ReaderBox>) -> Result<()>;
+
+        /// Retrieve data matching a request.
+        fn retrieve(self: Pin<&mut FdbHandle>, request: &str) -> Result<UniquePtr<DataHandle>>;
+
+        /// Read data from a single URI.
+        fn read_uri(self: Pin<&mut FdbHandle>, uri: &str) -> Result<UniquePtr<DataHandle>>;
+
+        /// Read data from a list of URIs.
+        fn read_uris(
+            self: Pin<&mut FdbHandle>,
+            uris: &Vec<String>,
+            in_storage_order: bool,
+        ) -> Result<UniquePtr<DataHandle>>;
+
+        /// Read data from a list iterator (most efficient).
+        fn read_list_iterator(
+            self: Pin<&mut FdbHandle>,
+            iterator: Pin<&mut ListIteratorHandle>,
+            in_storage_order: bool,
+        ) -> Result<UniquePtr<DataHandle>>;
+
+        /// List data matching a request.
+        fn list(
+            self: Pin<&mut FdbHandle>,
+            request: &str,
+            deduplicate: bool,
+            level: i32,
+        ) -> Result<UniquePtr<ListIteratorHandle>>;
+
+        /// Get axes for a request.
+        fn axes(self: Pin<&mut FdbHandle>, request: &str, level: i32) -> Result<Vec<AxisEntry>>;
+
+        /// Dump database structure.
+        fn dump(
+            self: Pin<&mut FdbHandle>,
+            request: &str,
+            simple: bool,
+        ) -> Result<UniquePtr<DumpIteratorHandle>>;
+
+        /// Get database status.
+        fn status(
+            self: Pin<&mut FdbHandle>,
+            request: &str,
+        ) -> Result<UniquePtr<StatusIteratorHandle>>;
+
+        /// Wipe data matching a request.
+        fn wipe(
+            self: Pin<&mut FdbHandle>,
+            request: &str,
+            doit: bool,
+            porcelain: bool,
+            unsafe_wipe_all: bool,
+        ) -> Result<UniquePtr<WipeIteratorHandle>>;
+
+        /// Purge duplicate data.
+        fn purge(
+            self: Pin<&mut FdbHandle>,
+            request: &str,
+            doit: bool,
+            porcelain: bool,
+        ) -> Result<UniquePtr<PurgeIteratorHandle>>;
+
+        /// Get statistics iterator.
+        fn stats_iterator(
+            self: Pin<&mut FdbHandle>,
+            request: &str,
+        ) -> Result<UniquePtr<StatsIteratorHandle>>;
+
+        /// Control database features.
+        fn control(
+            self: Pin<&mut FdbHandle>,
+            request: &str,
+            action: ControlAction,
+            identifiers: &[ControlIdentifier],
+        ) -> Result<UniquePtr<ControlIteratorHandle>>;
+
+        /// Register a flush callback.
+        fn register_flush_callback(self: Pin<&mut FdbHandle>, callback: Box<FlushCallbackBox>);
+
+        /// Register an archive callback.
+        fn register_archive_callback(self: Pin<&mut FdbHandle>, callback: Box<ArchiveCallbackBox>);
+
+        // =====================================================================
         // eckit::DataHandle - For reading retrieved data
         // =====================================================================
 
@@ -472,153 +566,6 @@ mod ffi {
             path: &str,
             user_config: &str,
         ) -> Result<UniquePtr<FdbHandle>>;
-
-        // =====================================================================
-        // Archive operations (free functions)
-        // =====================================================================
-
-        /// Archive data with an explicit key.
-        fn archive(handle: Pin<&mut FdbHandle>, key: &KeyData, data: &[u8]) -> Result<()>;
-
-        /// Archive raw GRIB data (key is extracted from the message).
-        fn archive_raw(handle: Pin<&mut FdbHandle>, data: &[u8]) -> Result<()>;
-
-        /// Archive raw GRIB data streamed from an arbitrary Rust
-        /// `std::io::Read` source. The C++ side wraps the [`ReaderBox`]
-        /// in an `eckit::DataHandle` subclass and hands it to
-        /// `fdb5::FDB::archive(eckit::DataHandle&)`, which extracts the
-        /// metadata from each GRIB message as it streams.
-        fn archive_reader(handle: Pin<&mut FdbHandle>, reader: Box<ReaderBox>) -> Result<()>;
-
-        // =====================================================================
-        // Retrieve operations (free functions)
-        // =====================================================================
-
-        /// Retrieve data matching a request.
-        fn retrieve(handle: Pin<&mut FdbHandle>, request: &str) -> Result<UniquePtr<DataHandle>>;
-
-        // =====================================================================
-        // Read operations (by URI)
-        // =====================================================================
-
-        /// Read data from a single URI.
-        fn read_uri(handle: Pin<&mut FdbHandle>, uri: &str) -> Result<UniquePtr<DataHandle>>;
-
-        /// Read data from a list of URIs.
-        fn read_uris(
-            handle: Pin<&mut FdbHandle>,
-            uris: &Vec<String>,
-            in_storage_order: bool,
-        ) -> Result<UniquePtr<DataHandle>>;
-
-        /// Read data from a list iterator (most efficient).
-        fn read_list_iterator(
-            handle: Pin<&mut FdbHandle>,
-            iterator: Pin<&mut ListIteratorHandle>,
-            in_storage_order: bool,
-        ) -> Result<UniquePtr<DataHandle>>;
-
-        // =====================================================================
-        // List operations (free functions)
-        // =====================================================================
-
-        /// List data matching a request.
-        fn list(
-            handle: Pin<&mut FdbHandle>,
-            request: &str,
-            deduplicate: bool,
-            level: i32,
-        ) -> Result<UniquePtr<ListIteratorHandle>>;
-
-        // =====================================================================
-        // Axes query (free functions)
-        // =====================================================================
-
-        /// Get axes (available metadata dimensions) for a request.
-        fn axes(handle: Pin<&mut FdbHandle>, request: &str, level: i32) -> Result<Vec<AxisEntry>>;
-
-        // =====================================================================
-        // Dump operations (free functions)
-        // =====================================================================
-
-        /// Dump database structure.
-        fn dump(
-            handle: Pin<&mut FdbHandle>,
-            request: &str,
-            simple: bool,
-        ) -> Result<UniquePtr<DumpIteratorHandle>>;
-
-        // =====================================================================
-        // Status operations (free functions)
-        // =====================================================================
-
-        /// Get database status.
-        fn status(
-            handle: Pin<&mut FdbHandle>,
-            request: &str,
-        ) -> Result<UniquePtr<StatusIteratorHandle>>;
-
-        // =====================================================================
-        // Wipe operations (free functions)
-        // =====================================================================
-
-        /// Wipe (delete) data matching a request.
-        fn wipe(
-            handle: Pin<&mut FdbHandle>,
-            request: &str,
-            doit: bool,
-            porcelain: bool,
-            unsafe_wipe_all: bool,
-        ) -> Result<UniquePtr<WipeIteratorHandle>>;
-
-        // =====================================================================
-        // Purge operations (free functions)
-        // =====================================================================
-
-        /// Purge duplicate data.
-        fn purge(
-            handle: Pin<&mut FdbHandle>,
-            request: &str,
-            doit: bool,
-            porcelain: bool,
-        ) -> Result<UniquePtr<PurgeIteratorHandle>>;
-
-        // =====================================================================
-        // Stats operations (free functions)
-        // =====================================================================
-
-        /// Get statistics iterator.
-        fn stats_iterator(
-            handle: Pin<&mut FdbHandle>,
-            request: &str,
-        ) -> Result<UniquePtr<StatsIteratorHandle>>;
-
-        // =====================================================================
-        // Control operations (free functions)
-        // =====================================================================
-
-        /// Control database features.
-        fn control(
-            handle: Pin<&mut FdbHandle>,
-            request: &str,
-            action: ControlAction,
-            identifiers: &[ControlIdentifier],
-        ) -> Result<UniquePtr<ControlIteratorHandle>>;
-
-        // =====================================================================
-        // Callback registration (free functions)
-        // =====================================================================
-
-        /// Register a flush callback.
-        /// The callback will be invoked when flush() is called.
-        fn register_flush_callback(handle: Pin<&mut FdbHandle>, callback: Box<FlushCallbackBox>);
-
-        /// Register an archive callback.
-        /// The callback will be invoked for each field archived.
-        fn register_archive_callback(
-            handle: Pin<&mut FdbHandle>,
-            callback: Box<ArchiveCallbackBox>,
-        );
 
         // =====================================================================
         // Test functions (for verifying exception handling)

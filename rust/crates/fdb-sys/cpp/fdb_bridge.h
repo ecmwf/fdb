@@ -89,6 +89,18 @@ struct DbStatsData;
 struct StatsElementData;
 struct ControlElementData;
 
+// Forward declarations for types used by FdbHandle methods.
+class ListIteratorHandle;
+class DumpIteratorHandle;
+class StatusIteratorHandle;
+class WipeIteratorHandle;
+class PurgeIteratorHandle;
+class StatsIteratorHandle;
+class ControlIteratorHandle;
+struct ReaderBox;
+struct FlushCallbackBox;
+struct ArchiveCallbackBox;
+
 // ============================================================================
 // Wrapper classes for opaque C++ types
 // ============================================================================
@@ -142,6 +154,32 @@ public:
 
     /// Get the FDB type name.
     rust::String name() const;
+
+    // -------------------------------------------------------------------------
+    // Operations (exposed to Rust as methods via cxx)
+    // -------------------------------------------------------------------------
+
+    void archive(const KeyData& key, rust::Slice<const uint8_t> data);
+    void archive_raw(rust::Slice<const uint8_t> data);
+    void archive_reader(rust::Box<ReaderBox> reader);
+
+    std::unique_ptr<eckit::DataHandle> retrieve(rust::Str request);
+    std::unique_ptr<eckit::DataHandle> read_uri(rust::Str uri);
+    std::unique_ptr<eckit::DataHandle> read_uris(const rust::Vec<rust::String>& uris, bool in_storage_order);
+    std::unique_ptr<eckit::DataHandle> read_list_iterator(ListIteratorHandle& iterator, bool in_storage_order);
+
+    std::unique_ptr<ListIteratorHandle> list(rust::Str request, bool deduplicate, int32_t level);
+    rust::Vec<AxisEntry> axes(rust::Str request, int32_t level);
+    std::unique_ptr<DumpIteratorHandle> dump(rust::Str request, bool simple);
+    std::unique_ptr<StatusIteratorHandle> status(rust::Str request);
+    std::unique_ptr<WipeIteratorHandle> wipe(rust::Str request, bool doit, bool porcelain, bool unsafe_wipe_all);
+    std::unique_ptr<PurgeIteratorHandle> purge(rust::Str request, bool doit, bool porcelain);
+    std::unique_ptr<StatsIteratorHandle> stats_iterator(rust::Str request);
+    std::unique_ptr<ControlIteratorHandle> control(rust::Str request, fdb5::ControlAction action,
+                                                   rust::Slice<const fdb5::ControlIdentifier> identifiers);
+
+    void register_flush_callback(rust::Box<FlushCallbackBox> callback);
+    void register_archive_callback(rust::Box<ArchiveCallbackBox> callback);
 
 private:
 
@@ -374,49 +412,6 @@ std::unique_ptr<FdbHandle> new_fdb_from_path(rust::Str path);
 std::unique_ptr<FdbHandle> new_fdb_from_path_with_user_config(rust::Str path, rust::Str user_config);
 
 // ============================================================================
-// Archive functions
-// ============================================================================
-
-/// Archive data with an explicit key.
-void archive(FdbHandle& handle, const KeyData& key, rust::Slice<const uint8_t> data);
-
-/// Archive raw GRIB data (key is extracted from the message).
-void archive_raw(FdbHandle& handle, rust::Slice<const uint8_t> data);
-
-// Forward declaration for the opaque Rust reader box used by
-// `archive_reader`. Defined on the Rust side; cxx generates the symbol
-// in the same namespace.
-struct ReaderBox;
-
-/// Archive raw GRIB data streamed from a Rust `std::io::Read` source.
-/// Wraps the Rust reader in an `eckit::DataHandle` subclass and hands it
-/// to `fdb5::FDB::archive(eckit::DataHandle&)`, which extracts the key
-/// from each GRIB message as it streams.
-void archive_reader(FdbHandle& handle, rust::Box<ReaderBox> reader);
-
-// ============================================================================
-// Retrieve functions
-// ============================================================================
-
-/// Retrieve data matching a request.
-std::unique_ptr<eckit::DataHandle> retrieve(FdbHandle& handle, rust::Str request);
-
-// ============================================================================
-// Read functions (by URI)
-// ============================================================================
-
-/// Read data from a single URI.
-std::unique_ptr<eckit::DataHandle> read_uri(FdbHandle& handle, rust::Str uri);
-
-/// Read data from a list of URIs.
-std::unique_ptr<eckit::DataHandle> read_uris(FdbHandle& handle, const rust::Vec<rust::String>& uris,
-                                             bool in_storage_order);
-
-/// Read data from a list iterator (most efficient - avoids URI conversion).
-std::unique_ptr<eckit::DataHandle> read_list_iterator(FdbHandle& handle, ListIteratorHandle& iterator,
-                                                      bool in_storage_order);
-
-// ============================================================================
 // eckit::DataHandle shim functions
 // ============================================================================
 
@@ -438,81 +433,9 @@ uint64_t data_handle_size(eckit::DataHandle& handle);
 /// Close the handle. Safe to call more than once.
 void data_handle_close(eckit::DataHandle& handle);
 
-// ============================================================================
-// List functions
-// ============================================================================
-
-/// List data matching a request.
-std::unique_ptr<ListIteratorHandle> list(FdbHandle& handle, rust::Str request, bool deduplicate, int32_t level);
-
 /// Drain a `ListIteratorHandle` via `fdb5::ListIterator::dumpCompact` and
 /// return the aggregated MARS-request text plus the two counters.
 CompactListingData list_iterator_dump_compact(ListIteratorHandle& iterator);
-
-// ============================================================================
-// Axes query functions
-// ============================================================================
-
-/// Get axes for a request.
-rust::Vec<AxisEntry> axes(FdbHandle& handle, rust::Str request, int32_t level);
-
-// ============================================================================
-// Dump functions
-// ============================================================================
-
-/// Dump database structure.
-std::unique_ptr<DumpIteratorHandle> dump(FdbHandle& handle, rust::Str request, bool simple);
-
-// ============================================================================
-// Status functions
-// ============================================================================
-
-/// Get database status.
-std::unique_ptr<StatusIteratorHandle> status(FdbHandle& handle, rust::Str request);
-
-// ============================================================================
-// Wipe functions
-// ============================================================================
-
-/// Wipe data matching a request.
-std::unique_ptr<WipeIteratorHandle> wipe(FdbHandle& handle, rust::Str request, bool doit, bool porcelain,
-                                         bool unsafe_wipe_all);
-
-// ============================================================================
-// Purge functions
-// ============================================================================
-
-/// Purge duplicate data.
-std::unique_ptr<PurgeIteratorHandle> purge(FdbHandle& handle, rust::Str request, bool doit, bool porcelain);
-
-// ============================================================================
-// Stats functions
-// ============================================================================
-
-/// Get statistics iterator.
-std::unique_ptr<StatsIteratorHandle> stats_iterator(FdbHandle& handle, rust::Str request);
-
-// ============================================================================
-// Control functions
-// ============================================================================
-
-/// Control database features.
-std::unique_ptr<ControlIteratorHandle> control(FdbHandle& handle, rust::Str request, fdb5::ControlAction action,
-                                               rust::Slice<const fdb5::ControlIdentifier> identifiers);
-
-// ============================================================================
-// Callback registration functions
-// ============================================================================
-
-// Forward declare Rust callback box types
-struct FlushCallbackBox;
-struct ArchiveCallbackBox;
-
-/// Register a flush callback.
-void register_flush_callback(FdbHandle& handle, rust::Box<FlushCallbackBox> callback);
-
-/// Register an archive callback.
-void register_archive_callback(FdbHandle& handle, rust::Box<ArchiveCallbackBox> callback);
 
 // ============================================================================
 // Test functions (for verifying exception handling)

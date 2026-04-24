@@ -588,13 +588,13 @@ std::unique_ptr<FdbHandle> new_fdb_from_path_with_user_config(rust::Str path, ru
 // Archive functions
 // ============================================================================
 
-void archive(FdbHandle& handle, const KeyData& key, rust::Slice<const uint8_t> data) {
+void FdbHandle::archive(const KeyData& key, rust::Slice<const uint8_t> data) {
     fdb5::Key fdb_key = to_fdb_key(key);
-    handle.inner().archive(fdb_key, data.data(), data.size());
+    inner().archive(fdb_key, data.data(), data.size());
 }
 
-void archive_raw(FdbHandle& handle, rust::Slice<const uint8_t> data) {
-    handle.inner().archive(data.data(), data.size());
+void FdbHandle::archive_raw(rust::Slice<const uint8_t> data) {
+    inner().archive(data.data(), data.size());
 }
 
 namespace {
@@ -645,54 +645,52 @@ private:
 
 }  // namespace
 
-void archive_reader(FdbHandle& handle, rust::Box<ReaderBox> reader) {
+void FdbHandle::archive_reader(rust::Box<ReaderBox> reader) {
     RustReaderHandle adapter(std::move(reader));
-    handle.inner().archive(adapter);
+    inner().archive(adapter);
 }
 
 // ============================================================================
 // Retrieve functions
 // ============================================================================
 
-std::unique_ptr<eckit::DataHandle> retrieve(FdbHandle& handle, rust::Str request) {
+std::unique_ptr<eckit::DataHandle> FdbHandle::retrieve(rust::Str request) {
     auto mars = parse_to_mars_request(std::string(request));
-    return std::unique_ptr<eckit::DataHandle>(handle.inner().retrieve(mars));
+    return std::unique_ptr<eckit::DataHandle>(inner().retrieve(mars));
 }
 
 // ============================================================================
 // Read functions (by URI)
 // ============================================================================
 
-std::unique_ptr<eckit::DataHandle> read_uri(FdbHandle& handle, rust::Str uri) {
+std::unique_ptr<eckit::DataHandle> FdbHandle::read_uri(rust::Str uri) {
     std::string uri_str{uri};
     eckit::URI eckit_uri{uri_str};
-    return std::unique_ptr<eckit::DataHandle>(handle.inner().read(eckit_uri));
+    return std::unique_ptr<eckit::DataHandle>(inner().read(eckit_uri));
 }
 
-std::unique_ptr<eckit::DataHandle> read_uris(FdbHandle& handle, const rust::Vec<rust::String>& uris,
-                                             bool in_storage_order) {
+std::unique_ptr<eckit::DataHandle> FdbHandle::read_uris(const rust::Vec<rust::String>& uris, bool in_storage_order) {
     std::vector<eckit::URI> eckit_uris;
     eckit_uris.reserve(uris.size());
     for (const auto& uri : uris) {
         eckit_uris.emplace_back(std::string(uri));
     }
-    return std::unique_ptr<eckit::DataHandle>(handle.inner().read(eckit_uris, in_storage_order));
+    return std::unique_ptr<eckit::DataHandle>(inner().read(eckit_uris, in_storage_order));
 }
 
-std::unique_ptr<eckit::DataHandle> read_list_iterator(FdbHandle& handle, ListIteratorHandle& iterator,
-                                                      bool in_storage_order) {
+std::unique_ptr<eckit::DataHandle> FdbHandle::read_list_iterator(ListIteratorHandle& iterator, bool in_storage_order) {
     // Calls FDB::read(ListIterator&, bool) directly - most efficient path
-    return std::unique_ptr<eckit::DataHandle>(handle.inner().read(iterator.inner(), in_storage_order));
+    return std::unique_ptr<eckit::DataHandle>(inner().read(iterator.inner(), in_storage_order));
 }
 
 // ============================================================================
 // List functions
 // ============================================================================
 
-std::unique_ptr<ListIteratorHandle> list(FdbHandle& handle, rust::Str request, bool deduplicate, int32_t level) {
+std::unique_ptr<ListIteratorHandle> FdbHandle::list(rust::Str request, bool deduplicate, int32_t level) {
     std::string request_str{request};
     auto tool_request = make_tool_request(request_str);
-    auto it = handle.inner().list(tool_request, deduplicate, level);
+    auto it = inner().list(tool_request, deduplicate, level);
     return std::make_unique<ListIteratorHandle>(std::move(it));
 }
 
@@ -710,10 +708,10 @@ CompactListingData list_iterator_dump_compact(ListIteratorHandle& iterator) {
 // Axes query functions
 // ============================================================================
 
-rust::Vec<AxisEntry> axes(FdbHandle& handle, rust::Str request, int32_t level) {
+rust::Vec<AxisEntry> FdbHandle::axes(rust::Str request, int32_t level) {
     std::string request_str{request};
     auto tool_request = make_tool_request(request_str);
-    auto index_axis = handle.inner().axes(tool_request, level);
+    auto index_axis = inner().axes(tool_request, level);
 
     rust::Vec<AxisEntry> result;
     // Iterate over all axes using map() instead of hardcoded list
@@ -733,10 +731,10 @@ rust::Vec<AxisEntry> axes(FdbHandle& handle, rust::Str request, int32_t level) {
 // Dump functions
 // ============================================================================
 
-std::unique_ptr<DumpIteratorHandle> dump(FdbHandle& handle, rust::Str request, bool simple) {
+std::unique_ptr<DumpIteratorHandle> FdbHandle::dump(rust::Str request, bool simple) {
     std::string request_str{request};
     auto tool_request = make_tool_request(request_str);
-    auto it = handle.inner().dump(tool_request, simple);
+    auto it = inner().dump(tool_request, simple);
     return std::make_unique<DumpIteratorHandle>(std::move(it));
 }
 
@@ -744,10 +742,10 @@ std::unique_ptr<DumpIteratorHandle> dump(FdbHandle& handle, rust::Str request, b
 // Status functions
 // ============================================================================
 
-std::unique_ptr<StatusIteratorHandle> status(FdbHandle& handle, rust::Str request) {
+std::unique_ptr<StatusIteratorHandle> FdbHandle::status(rust::Str request) {
     std::string request_str{request};
     auto tool_request = make_tool_request(request_str);
-    auto it = handle.inner().status(tool_request);
+    auto it = inner().status(tool_request);
     return std::make_unique<StatusIteratorHandle>(std::move(it));
 }
 
@@ -755,11 +753,11 @@ std::unique_ptr<StatusIteratorHandle> status(FdbHandle& handle, rust::Str reques
 // Wipe functions
 // ============================================================================
 
-std::unique_ptr<WipeIteratorHandle> wipe(FdbHandle& handle, rust::Str request, bool doit, bool porcelain,
-                                         bool unsafe_wipe_all) {
+std::unique_ptr<WipeIteratorHandle> FdbHandle::wipe(rust::Str request, bool doit, bool porcelain,
+                                                    bool unsafe_wipe_all) {
     std::string request_str{request};
     auto tool_request = make_tool_request(request_str);
-    auto it = handle.inner().wipe(tool_request, doit, porcelain, unsafe_wipe_all);
+    auto it = inner().wipe(tool_request, doit, porcelain, unsafe_wipe_all);
     return std::make_unique<WipeIteratorHandle>(std::move(it));
 }
 
@@ -767,10 +765,10 @@ std::unique_ptr<WipeIteratorHandle> wipe(FdbHandle& handle, rust::Str request, b
 // Purge functions
 // ============================================================================
 
-std::unique_ptr<PurgeIteratorHandle> purge(FdbHandle& handle, rust::Str request, bool doit, bool porcelain) {
+std::unique_ptr<PurgeIteratorHandle> FdbHandle::purge(rust::Str request, bool doit, bool porcelain) {
     std::string request_str{request};
     auto tool_request = make_tool_request(request_str);
-    auto it = handle.inner().purge(tool_request, doit, porcelain);
+    auto it = inner().purge(tool_request, doit, porcelain);
     return std::make_unique<PurgeIteratorHandle>(std::move(it));
 }
 
@@ -778,10 +776,10 @@ std::unique_ptr<PurgeIteratorHandle> purge(FdbHandle& handle, rust::Str request,
 // Stats functions
 // ============================================================================
 
-std::unique_ptr<StatsIteratorHandle> stats_iterator(FdbHandle& handle, rust::Str request) {
+std::unique_ptr<StatsIteratorHandle> FdbHandle::stats_iterator(rust::Str request) {
     std::string request_str{request};
     auto tool_request = make_tool_request(request_str);
-    auto it = handle.inner().stats(tool_request);
+    auto it = inner().stats(tool_request);
     return std::make_unique<StatsIteratorHandle>(std::move(it));
 }
 
@@ -789,8 +787,8 @@ std::unique_ptr<StatsIteratorHandle> stats_iterator(FdbHandle& handle, rust::Str
 // Control functions
 // ============================================================================
 
-std::unique_ptr<ControlIteratorHandle> control(FdbHandle& handle, rust::Str request, fdb5::ControlAction action,
-                                               rust::Slice<const fdb5::ControlIdentifier> identifiers) {
+std::unique_ptr<ControlIteratorHandle> FdbHandle::control(rust::Str request, fdb5::ControlAction action,
+                                                          rust::Slice<const fdb5::ControlIdentifier> identifiers) {
     std::string request_str{request};
     auto tool_request = make_tool_request(request_str);
 
@@ -799,7 +797,7 @@ std::unique_ptr<ControlIteratorHandle> control(FdbHandle& handle, rust::Str requ
         ctrl_ids |= id;
     }
 
-    auto it = handle.inner().control(tool_request, action, ctrl_ids);
+    auto it = inner().control(tool_request, action, ctrl_ids);
     return std::make_unique<ControlIteratorHandle>(std::move(it));
 }
 
@@ -807,16 +805,16 @@ std::unique_ptr<ControlIteratorHandle> control(FdbHandle& handle, rust::Str requ
 // Callback registration functions
 // ============================================================================
 
-void register_flush_callback(FdbHandle& handle, rust::Box<FlushCallbackBox> callback) {
+void FdbHandle::register_flush_callback(rust::Box<FlushCallbackBox> callback) {
     // Create a shared_ptr to hold the callback box so it can be captured by the lambda
     auto callback_ptr = std::make_shared<rust::Box<FlushCallbackBox>>(std::move(callback));
 
     fdb5::FlushCallback cpp_callback = [callback_ptr]() { invoke_flush_callback(**callback_ptr); };
 
-    handle.inner().registerFlushCallback(std::move(cpp_callback));
+    inner().registerFlushCallback(std::move(cpp_callback));
 }
 
-void register_archive_callback(FdbHandle& handle, rust::Box<ArchiveCallbackBox> callback) {
+void FdbHandle::register_archive_callback(rust::Box<ArchiveCallbackBox> callback) {
     // Create a shared_ptr to hold the callback box so it can be captured by the lambda
     auto callback_ptr = std::make_shared<rust::Box<ArchiveCallbackBox>>(std::move(callback));
 
@@ -859,7 +857,7 @@ void register_archive_callback(FdbHandle& handle, rust::Box<ArchiveCallbackBox> 
                                 location_length);
     };
 
-    handle.inner().registerArchiveCallback(std::move(cpp_callback));
+    inner().registerArchiveCallback(std::move(cpp_callback));
 }
 
 // ============================================================================
