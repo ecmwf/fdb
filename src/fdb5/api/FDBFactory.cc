@@ -28,22 +28,8 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-FDBBase::FDBBase(const Config& config, const std::string& name) : name_(name), config_(config) {
-
-    bool writable = config.getBool("writable", true);
-    bool visitable = config.getBool("visitable", true);
-    if (!config.getBool("list", visitable)) {
-        controlIdentifiers_ |= ControlIdentifier::List;
-    }
-    if (!config.getBool("retrieve", visitable)) {
-        controlIdentifiers_ |= ControlIdentifier::Retrieve;
-    }
-    if (!config.getBool("archive", writable)) {
-        controlIdentifiers_ |= ControlIdentifier::Archive;
-    }
-    if (!config.getBool("wipe", writable)) {
-        controlIdentifiers_ |= ControlIdentifier::Wipe;
-    }
+FDBBase::FDBBase(const Config& config, const std::string& name) :
+    name_(name), config_(config), controlIdentifiers_(config) {
 
     LOG_DEBUG_LIB(LibFdb5) << "FDBBase: " << config << std::endl;
 }
