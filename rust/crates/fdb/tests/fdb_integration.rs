@@ -174,17 +174,12 @@ fn test_fdb_list_no_results() {
 fn test_fdb_archive_simple() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
-    println!("Temp dir: {}", tmpdir.path().display());
-    println!("Config:\n{config}");
 
     let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
-    // Read test GRIB data
     let grib_path = fixtures_dir().join("template.grib");
     let grib_data = fs::read(&grib_path).expect("failed to read template.grib");
-    println!("GRIB data size: {} bytes", grib_data.len());
 
-    // Create key matching schema: class, expver, stream, date, time, type, levtype, step, param
     let key = Key::new()
         .with("class", "rd")
         .with("expver", "xxxx")
@@ -196,15 +191,8 @@ fn test_fdb_archive_simple() {
         .with("step", "0")
         .with("param", "151130");
 
-    println!("Archiving...");
-    let result = fdb.archive(&key, &grib_data);
-    println!("Archive result: {result:?}");
-
-    if result.is_ok() {
-        println!("Flushing...");
-        fdb.flush().expect("flush failed");
-        println!("Done!");
-    }
+    fdb.archive(&key, &grib_data).expect("archive failed");
+    fdb.flush().expect("flush failed");
 }
 
 #[test]
