@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+
+set -euxo pipefail
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+try() { "$@" || die "Errored HERE => '$*'"; }
+
+line_count() {
+  [[ $# -eq 1 ]] || die "line_count requires 1 argument; expected line count"
+  val=$(wc -l < out) && val=$((val + 0))
+  [[ $val -eq $1 ]] || die "Incorrect count => [$val != $1]"
+}
+
+########################################################################################################################
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+test_name=fam_ranges
+src_data="../../../od.oper.grib"
+src_dir=@CMAKE_CURRENT_SOURCE_DIR@
+bin_dir=@CMAKE_CURRENT_BINARY_DIR@
+
+fam_endpoint="${ECKIT_FAM_TEST_ENDPOINT:-172.26.0.2:8880}"
+test_region="fdb_list_fam_ranges_$$"
+fam_uri="fam://${fam_endpoint}/${test_region}"
+
+########################################################################################################################
+
+echo "running test '$test_name' on $(hostname)"
+
+try cd $bin_dir
+
+try rm -rf $test_name
+try mkdir -p $test_name/localroot
+
+try cd $test_name
+
+# Repack source data to a tiny grid to reduce FAM memory footprint (76 MB → ~3 KB)
+try grib_set -s packingType=grid_simple,gridType=regular_ll,Ni=10,Nj=10,iDirectionIncrementInDegrees=36,jDirectionIncrementInDegrees=18,bitsPerValue=8 "$src_data" od.oper.small.grib
+src_data="od.oper.small.grib"
+
+# Create the FAM region (4 MB — repacked data is ~3 KB per file, 3 writes)
+try fdb-fam --endpoint="$fam_endpoint" --create --size=4194304 --perm=0640 "/$test_region"
+
+cleanup() {
+    echo "cleanup"
+    fdb-fam --endpoint="$fam_endpoint" --delete "/$test_region" 2>/dev/null || true
+    rm -rf "$bin_dir/$test_name" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+schema_src="$FDB_HOME/etc/fdb/schema"
+
+cat > local.yaml <<EOF
+---
+type: local
+engine: fam
+schema: ${schema_src}
+store: fam
+catalogue: fam
+spaces:
+- handler: Default
+  roots:
+  - path: $(pwd)/localroot
+fam_roots:
+- uri: ${fam_uri}
+  writable: true
+  visit: true
+EOF
+
+export FDB5_CONFIG_FILE="$(pwd)/local.yaml"
+
+work_dir=$(pwd)
+echo "Working directory: $work_dir"
+
+########################################################################################################################
+
+# Ensure that we can wipe specified databases with ranges in the requests
+# --> Ensures the MARS requests are working correctly
+
+try grib_set -s class=rd,expver=xxxx "$src_data" data.xxxx.d1.grib
+try grib_set -s class=rd,expver=xxxx,date=20240912 "$src_data" data.xxxx.d2.grib
+try grib_set -s class=rd,expver=xxxx,date=20241001 "$src_data" data.xxxx.d3.grib
+try grib_ls -m data.xxxx.d1.grib
+
+try fdb-write data.xxxx.d1.grib
+try fdb-write data.xxxx.d2.grib
+try fdb-write data.xxxx.d3.grib
+
+try fdb-list --all --minimum-keys="" --porcelain --full | tee out
+line_count 72
+
+try fdb-list class=rd,expver=xxxx --porcelain | tee out
+line_count 72
+
+try fdb-list class=rd,expver=xxxx,date=20240911 --porcelain | tee out
+line_count 24
+
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912 --porcelain | tee out
+line_count 48
+
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001 --porcelain | tee out
+line_count 72
+
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001/20060101,stream=oper,type=an,levtype=pl,param=60 --porcelain | tee out
+line_count 0
+
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001,stream=oper,type=an,levtype=pl,param=155 --porcelain | tee out
+line_count 36
+
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001,stream=oper,type=an,levtype=pl,param=60/155 --porcelain | tee out
+line_count 36
+
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001,stream=oper,type=an,levtype=pl,param=60/155/138 --porcelain | tee out
+line_count 72
+
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001,stream=oper,type=an,levtype=pl,param=60/155/138,levelist=300/400/500/700/850/1000 --porcelain | tee out
+line_count 72
+
+try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001,stream=oper,type=an,levtype=pl,param=60/155/138,levelist=300/123/1000 --porcelain | tee out
+line_count 24

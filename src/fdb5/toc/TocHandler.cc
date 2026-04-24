@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/toc/TocHandler.h"
+
 #include <fcntl.h>
 #include <pwd.h>
 #include <sys/types.h>
@@ -32,7 +34,6 @@
 #include "fdb5/io/LustreSettings.h"
 #include "fdb5/toc/TocCommon.h"
 #include "fdb5/toc/TocFieldLocation.h"
-#include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
 

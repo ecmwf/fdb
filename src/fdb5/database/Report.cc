@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/database/Report.h"
+
 #include <algorithm>
 
 #include "eckit/exception/Exceptions.h"
@@ -15,7 +17,6 @@
 #include "eckit/log/Statistics.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/database/Report.h"
 
 using eckit::Log;
 using eckit::Statistics;

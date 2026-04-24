@@ -497,7 +497,8 @@ store: file)";
     // std::string remoteSeparateServersConfig{};
 
     std::map<std::string, std::string> configurations{
-        {"localSingleRoot", localSingleRootConfig}, {"localSeparateRoots", localSeparateRootsConfig},
+        {"localSingleRoot", localSingleRootConfig},
+        {"localSeparateRoots", localSeparateRootsConfig},
         // {"localCatalogueRemoteStore", localCatalogueRemoteStoreConfig},
         // ...
     };
