@@ -276,31 +276,33 @@ fn test_fdb_axes() {
 
     let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
-    // Archive some data first
     let grib_path = fixtures_dir().join("template.grib");
     let grib_data = fs::read(&grib_path).expect("failed to read template.grib");
 
-    let key = Key::new()
-        .with("class", "rd")
-        .with("expver", "xxxx")
-        .with("stream", "oper")
-        .with("date", "20230508")
-        .with("time", "1200")
-        .with("type", "fc")
-        .with("levtype", "sfc")
-        .with("step", "0")
-        .with("param", "151130");
-
-    fdb.archive(&key, &grib_data).expect("failed to archive");
+    // Archive four fields that share every key except `step`, so the
+    // axes query returns a real span for at least one keyword.
+    let steps = ["0", "3", "6", "9"];
+    for step in &steps {
+        let key = Key::new()
+            .with("class", "rd")
+            .with("expver", "xxxx")
+            .with("stream", "oper")
+            .with("date", "20230508")
+            .with("time", "1200")
+            .with("type", "fc")
+            .with("levtype", "sfc")
+            .with("step", step)
+            .with("param", "151130");
+        fdb.archive(&key, &grib_data).expect("failed to archive");
+    }
     fdb.flush().expect("flush failed");
 
-    // Query axes
     let request = Request::new().with("class", "rd").with("expver", "xxxx");
     let axes = fdb.axes(&request, 3).expect("failed to get axes");
 
-    // We archived exactly one field, so each axis the schema covers
-    // should be present with exactly the value from the key.
-    let expected: &[(&str, &str)] = &[
+    // Single-valued axes: each must contain exactly one value matching
+    // the key we archived (no extra crud allowed).
+    let single_valued: &[(&str, &str)] = &[
         ("class", "rd"),
         ("expver", "xxxx"),
         ("stream", "oper"),
@@ -308,19 +310,30 @@ fn test_fdb_axes() {
         ("time", "1200"),
         ("type", "fc"),
         ("levtype", "sfc"),
-        ("step", "0"),
         ("param", "151130"),
     ];
 
-    for (axis, value) in expected {
+    for (axis, value) in single_valued {
         let values = axes
             .get(*axis)
             .unwrap_or_else(|| panic!("axis {axis:?} missing from axes() result: {axes:#?}"));
-        assert!(
-            values.iter().any(|v| v == value),
-            "axis {axis:?} does not contain expected value {value:?} (got {values:?})"
+        assert_eq!(
+            values,
+            &[value.to_string()],
+            "axis {axis:?}: expected exactly [{value:?}], got {values:?}"
         );
     }
+
+    // Multi-valued axis: `step` should contain exactly the four values
+    // we archived, in any order.
+    let step_values = axes
+        .get("step")
+        .unwrap_or_else(|| panic!("axis \"step\" missing from axes() result: {axes:#?}"));
+    let mut got: Vec<&str> = step_values.iter().map(String::as_str).collect();
+    got.sort_unstable();
+    let mut want: Vec<&str> = steps.to_vec();
+    want.sort_unstable();
+    assert_eq!(got, want, "step axis: expected {want:?}, got {got:?}");
 }
 
 #[test]
