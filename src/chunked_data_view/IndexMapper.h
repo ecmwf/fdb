@@ -16,6 +16,8 @@
 
 namespace chunked_data_view::index_mapping {
 
-size_t axis_index_to_buffer_index(const std::vector<size_t>& indices, const std::vector<Axis>& axes);
+size_t axis_index_to_buffer_index(const std::vector<size_t>& indices, const std::vector<Axis>& axes,
+                                  size_t extensionAxisIdx = SIZE_MAX, size_t combinedExtSize = 0,
+                                  size_t extensionOffset = 0);
 std::vector<size_t> to_axis_parameter_index(const size_t& index, const Axis& axis);
 }  // namespace chunked_data_view::index_mapping

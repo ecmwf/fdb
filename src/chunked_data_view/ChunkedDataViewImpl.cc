@@ -75,10 +75,28 @@ void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, 
         }
     }
 
+    if (!parts_[0].isAxisChunked(extensionAxisIndex_)) {
+        // NoChunking: single chunk spans all parts on the extension axis.
+        // Each part writes directly into the combined buffer. The extension axis
+        // parameters tell computeBufferIndex to use the combined size for strides
+        // and offset each part's indices on the extension axis.
+        size_t totalExtSize = shape_[extensionAxisIndex_];
+        size_t extOffset = 0;
+
+        for (const auto& part : parts_) {
+            size_t partFields = countFieldsForPart(part);
+
+            part.at(chunkIndex, ptr, len, partFields, extensionAxisIndex_, totalExtSize, extOffset);
+
+            extOffset += part.shape()[extensionAxisIndex_];
+        }
+        return;
+    }
+
+    // IndividualChunking: route to the single part that owns this chunk index
     auto idx(chunkIndex);
 
     for (const auto& part : parts_) {
-        // Skip parts which the index isn't part of
         if (idx[extensionAxisIndex_] >= part.shape()[extensionAxisIndex_]) {
             idx[extensionAxisIndex_] -= part.shape()[extensionAxisIndex_];
             continue;

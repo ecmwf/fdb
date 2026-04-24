@@ -27,8 +27,9 @@ public:
 
     DataLayout layout(eckit::DataHandle& handle) const override;
 
-    void writeInto(const metkit::mars::MarsRequest& request, std::unique_ptr<ListIteratorInterface> list_iterator,
-                   const std::vector<Axis>& axes, const DataLayout& layout, float* ptr, size_t len,
-                   size_t expected_msg_count) const override;
+    size_t writeInto(const metkit::mars::MarsRequest& request, std::unique_ptr<ListIteratorInterface> list_iterator,
+                     const std::vector<Axis>& axes, const DataLayout& layout, float* ptr, size_t len,
+                     size_t extensionAxisIdx, size_t combinedExtSize,
+                     size_t extensionOffset) const override;
 };
 }  // namespace chunked_data_view
