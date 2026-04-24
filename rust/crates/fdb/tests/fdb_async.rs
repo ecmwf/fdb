@@ -42,15 +42,6 @@ spaces:
     )
 }
 
-/// Build a Request from a Key.
-fn request_from_key(key: &Key) -> Request {
-    let mut request = Request::new();
-    for (k, v) in key.entries() {
-        request = request.with(k, v);
-    }
-    request
-}
-
 /// Archive test data and return the key used.
 fn archive_test_data(fdb: &Fdb, step: &str) -> Key {
     let grib_data = fs::read(fixtures_dir().join("synth11.grib")).expect("failed to read GRIB");
@@ -139,7 +130,7 @@ async fn test_fdb_concurrent_retrieve() {
         let fdb = Arc::clone(&fdb);
 
         tasks.spawn(async move {
-            let key = Key::new()
+            let request = Request::new()
                 .with("class", "rd")
                 .with("expver", "xxxx")
                 .with("stream", "oper")
@@ -149,8 +140,6 @@ async fn test_fdb_concurrent_retrieve() {
                 .with("levtype", "sfc")
                 .with("step", &i.to_string())
                 .with("param", "151130");
-
-            let request = request_from_key(&key);
 
             // Retrieve returns a DataReader that owns the data
             let mut reader = fdb.retrieve(&request).expect("retrieve failed");
@@ -261,7 +250,7 @@ async fn test_fdb_spawn_blocking_pattern() {
     // Retrieve using spawn_blocking
     let fdb_clone = Arc::clone(&fdb);
     let result = tokio::task::spawn_blocking(move || {
-        let key = Key::new()
+        let request = Request::new()
             .with("class", "rd")
             .with("expver", "xxxx")
             .with("stream", "oper")
@@ -272,7 +261,6 @@ async fn test_fdb_spawn_blocking_pattern() {
             .with("step", "1")
             .with("param", "151130");
 
-        let request = request_from_key(&key);
         let mut reader = fdb_clone.retrieve(&request).expect("retrieve failed");
 
         let mut buf = Vec::new();
