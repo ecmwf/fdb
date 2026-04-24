@@ -69,46 +69,14 @@ the filesystem TOC backend, and remote FDB client support.
 
 Binaries and `cargo run` work out of the box on both macOS and Linux —
 no `LD_LIBRARY_PATH` / `DYLD_LIBRARY_PATH` setup required. The build
-script stamps an RPATH onto the final binary so the dynamic linker can
-find the FDB / eckit / metkit / eccodes libraries at runtime:
-
-- **Vendored** (default): binary-relative entries (`@executable_path/fdb_libs`
-  and `@executable_path/eccodes_libs` on macOS; `$ORIGIN/fdb_libs` and
-  `$ORIGIN/eccodes_libs` on Linux). The vendored build copies the
-  libraries into those subdirectories next to the compiled binary.
-- **System** (`--features system`): absolute entries pointing at the
-  `lib` directory that `find_package` resolved for each dependency.
-
-### Redistributable vendored binaries
-
-For a self-contained distribution (no assumption that libfdb5 is
-available on the target machine), ship the binary together with the
-two library directories the vendored build emits:
-
-```
-my_app/
-├── my-fdb-app           # Your binary
-├── fdb_libs/            # FDB, eckit, metkit libraries
-└── eccodes_libs/        # eccodes, libaec libraries
-```
-
-The eccodes definition/sample tables are baked into `libeccodes` itself
-via the default `memfs` feature, so there's no `eccodes_resources/`
-directory to ship. (If you opt out of `memfs`, you'd also need to ship
-`eccodes_resources/{definitions,samples}/` next to the binary and point
-`ECCODES_DEFINITION_PATH`/`ECCODES_SAMPLES_PATH` at it.)
-
-The binary-relative RPATH means users can drop this tree anywhere on
-disk and the binary keeps loading the libraries from alongside itself
-— no wrapper script and no environment variables needed on either
-platform.
+script stamps RPATH entries onto the final binary so the dynamic linker
+finds the libraries at runtime automatically.
 
 ### System / FHS-packaged installs (e.g. RPM, deb)
 
 When the target system already provides FDB and its dependencies —
 typically via separate distro packages installed under `/usr/lib{,64}`
-with headers under `/usr/include` — you don't need the colocated
-layout at all. Build against the system libraries with:
+— build against them with:
 
 ```bash
 cargo build --release --no-default-features --features system
@@ -116,23 +84,23 @@ cargo build --release --no-default-features --features system
 
 The build script calls `find_package(fdb5)` (and the same for eckit /
 metkit / eccodes), links the Rust binary against those system
-libraries, and stamps absolute RPATH entries pointing at the lib
-directories the CMake search resolved. A downstream package can then
-install the binary to a standard location such as `/usr/bin` and rely
-on the distro's own `libfdb5` / `libeckit` / `libmetkit` / `libeccodes`
-packages for the shared libraries — no need to copy any directories
-around or set environment variables.
+libraries, and stamps absolute RPATH entries pointing at the resolved
+lib directories. Install the binary to `/usr/bin` (or any standard
+location) and rely on the distro's own packages for the shared
+libraries — no need to copy anything extra.
 
-Typical packaging setups:
+### Vendored / self-contained builds
 
-- **RPM / deb**: depend on the distro's FDB `-devel` packages at build
-  time, depend on the runtime packages at install time, and build with
-  `--features system`. Binary goes to `/usr/bin`, libs stay where the
-  distro packages put them.
-- **Custom prefix**: point `CMAKE_PREFIX_PATH` at your install tree
-  before running cargo (e.g.
-  `CMAKE_PREFIX_PATH=/opt/ecmwf cargo build --features system`).
-  Everything else is automatic.
+With the default `vendored` feature the build compiles FDB and all its
+dependencies from source and copies the resulting shared libraries next
+to the binary. The RPATH is set to find them there, so the binary is
+portable as-is.
+
+The eccodes definition/sample tables are baked into `libeccodes` via
+the default `memfs` feature, so there are no extra resource directories
+to ship. (If you opt out of `memfs`, you also need to ship
+`eccodes_resources/{definitions,samples}/` and point
+`ECCODES_DEFINITION_PATH`/`ECCODES_SAMPLES_PATH` at them.)
 
 ## License
 
