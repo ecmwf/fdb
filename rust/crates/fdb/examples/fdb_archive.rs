@@ -55,7 +55,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Flush to persist
-    let () = fdb.flush()?;
+    fdb.flush()?;
     println!("Data archived and flushed successfully");
 
     // Show stats
