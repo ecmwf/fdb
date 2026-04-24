@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <atomic>
 #include <cstddef>
 #include <memory>
 #include <ostream>
@@ -46,10 +47,9 @@ class FamStore : protected FamCommon, public Store {
 
 private:  // types
 
-    // NOTE: Stats is mutated from const methods (retrieve) and is not thread-safe.
     struct Stats {
-        size_t archived{0};
-        size_t retrieved{0};
+        std::atomic<size_t> archived{0};
+        std::atomic<size_t> retrieved{0};
     };
 
 public:  // methods

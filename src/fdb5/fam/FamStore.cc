@@ -78,9 +78,7 @@ bool FamStore::uriExists(const eckit::URI& uri) const {
 
 size_t FamStore::flush() {
     LOG_DEBUG_LIB(LibFdb5) << "FamStore::flush() nothing to do!" << '\n';
-    auto archived = stats_.archived;
-    stats_.archived = 0;
-    return archived;
+    return stats_.archived.exchange(0);
 }
 
 void FamStore::close() {
@@ -110,12 +108,12 @@ std::vector<eckit::URI> FamStore::getAuxiliaryURIs(const eckit::URI& uri, bool /
 eckit::FamObjectName FamStore::makeObject(const Key& key) const {
     // withUUID() derives a deterministic UUID from the full path (region + object name)
     // and replaces the object name with it, so the human-readable stem is not persisted.
-    const auto object_name = toString(key) + "-data" + std::to_string(stats_.archived);
+    const auto object_name = toString(key) + "-data" + std::to_string(stats_.archived.load());
     return root_.object(object_name).withUUID();
 }
 
 eckit::DataHandle* FamStore::retrieve(Field& field) const {
-    stats_.retrieved++;
+    stats_.retrieved.fetch_add(1, std::memory_order_relaxed);
     return field.dataHandle();
 }
 
@@ -134,7 +132,7 @@ std::unique_ptr<const FieldLocation> FamStore::archive(const Key& key, const voi
         ASSERT(written == static_cast<long>(length));
     }
 
-    stats_.archived++;
+    stats_.archived.fetch_add(1, std::memory_order_relaxed);
 
     return std::make_unique<FamFieldLocation>(object.uri(), 0, length, fdb5::Key());
 }
