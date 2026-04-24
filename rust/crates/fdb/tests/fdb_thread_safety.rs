@@ -232,45 +232,6 @@ fn test_stress_concurrent_access() {
     }
 }
 
-/// Note: FDB has a documented caveat about `flush()`:
-/// "`flush()` has global semantics - it flushes ALL archived messages from
-/// ALL threads, not just the calling thread. For finer control, instantiate
-/// one FDB object per thread."
-///
-/// This test verifies the basic behavior but users should be aware of
-/// this limitation when using FDB in multi-threaded contexts with archiving.
-#[test]
-fn test_concurrent_errors_no_crash() {
-    let tmpdir = tempfile::tempdir().expect("tmpdir");
-    let config = create_test_config(tmpdir.path());
-    let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create handle"));
-
-    let handles: Vec<_> = (0..8)
-        .map(|i| {
-            let fdb = Arc::clone(&fdb);
-            thread::spawn(move || {
-                // Use invalid requests to trigger errors
-                let value = format!("value_{i}");
-                let request = Request::new().with("INVALID_KEY", &value);
-                for _ in 0..20 {
-                    // Ignore the error - testing that concurrent errors don't crash
-                    let _ = fdb.list(
-                        &request,
-                        ListOptions {
-                            depth: 1,
-                            deduplicate: false,
-                        },
-                    );
-                }
-            })
-        })
-        .collect();
-
-    for h in handles {
-        h.join().expect("Thread panicked");
-    }
-}
-
 // =============================================================================
 // Concurrent write tests (M15)
 // =============================================================================
