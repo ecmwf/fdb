@@ -265,7 +265,7 @@ impl Fdb {
     ///
     /// Returns an error if archiving fails.
     pub fn archive(&self, key: &Key, data: &[u8]) -> Result<()> {
-        self.with_handle(|h| fdb_sys::archive(h, key.to_cxx(), data))?;
+        self.with_handle(|h| h.archive(key.to_cxx(), data))?;
         Ok(())
     }
 
@@ -283,8 +283,7 @@ impl Fdb {
     /// Returns an error if listing fails.
     pub fn list(&self, request: &Request, options: ListOptions) -> Result<ListIterator> {
         let ListOptions { depth, deduplicate } = options;
-        let it = self
-            .with_handle(|h| fdb_sys::list(h, &request.to_request_string(), deduplicate, depth))?;
+        let it = self.with_handle(|h| h.list(&request.to_request_string(), deduplicate, depth))?;
         Ok(ListIterator::new(it))
     }
 
@@ -298,7 +297,7 @@ impl Fdb {
     ///
     /// Returns an error if retrieval fails.
     pub fn retrieve(&self, request: &Request) -> Result<DataReader> {
-        let handle = self.with_handle(|h| fdb_sys::retrieve(h, &request.to_request_string()))?;
+        let handle = self.with_handle(|h| h.retrieve(&request.to_request_string()))?;
         DataReader::new(handle)
     }
 
@@ -315,7 +314,7 @@ impl Fdb {
     ///
     /// Returns an error if reading fails.
     pub fn read_uri(&self, uri: &str) -> Result<DataReader> {
-        let handle = self.with_handle(|h| fdb_sys::read_uri(h, uri))?;
+        let handle = self.with_handle(|h| h.read_uri(uri))?;
         DataReader::new(handle)
     }
 
@@ -335,7 +334,7 @@ impl Fdb {
     /// Returns an error if reading fails.
     pub fn read_uris(&self, uris: &[String], in_storage_order: bool) -> Result<DataReader> {
         let uris_vec: Vec<String> = uris.to_vec();
-        let handle = self.with_handle(|h| fdb_sys::read_uris(h, &uris_vec, in_storage_order))?;
+        let handle = self.with_handle(|h| h.read_uris(&uris_vec, in_storage_order))?;
         DataReader::new(handle)
     }
 
@@ -357,8 +356,8 @@ impl Fdb {
         mut list: ListIterator,
         in_storage_order: bool,
     ) -> Result<DataReader> {
-        let handle = self
-            .with_handle(|h| fdb_sys::read_list_iterator(h, list.inner_mut(), in_storage_order))?;
+        let handle =
+            self.with_handle(|h| h.read_list_iterator(list.inner_mut(), in_storage_order))?;
         DataReader::new(handle)
     }
 
@@ -416,7 +415,7 @@ impl Fdb {
     /// Returns an error if archiving fails.
     pub fn archive_raw(&self, data: &[u8]) -> Result<()> {
         let _lexer = LEXER_LOCK.lock();
-        self.with_handle(|h| fdb_sys::archive_raw(h, data))?;
+        self.with_handle(|h| h.archive_raw(data))?;
         Ok(())
     }
 
@@ -441,7 +440,7 @@ impl Fdb {
     {
         let _lexer = LEXER_LOCK.lock();
         let boxed = fdb_sys::make_reader_box(reader);
-        self.with_handle(|h| fdb_sys::archive_reader(h, boxed))?;
+        self.with_handle(|h| h.archive_reader(boxed))?;
         Ok(())
     }
 
@@ -458,7 +457,7 @@ impl Fdb {
     ///
     /// Returns an error if the query fails.
     pub fn axes(&self, request: &Request, depth: i32) -> Result<HashMap<String, Vec<String>>> {
-        let axes = self.with_handle(|h| fdb_sys::axes(h, &request.to_request_string(), depth))?;
+        let axes = self.with_handle(|h| h.axes(&request.to_request_string(), depth))?;
         Ok(axes.into_iter().map(|a| (a.key, a.values)).collect())
     }
 
@@ -475,7 +474,7 @@ impl Fdb {
     /// Returns an error if the dump fails.
     pub fn dump(&self, request: &Request, options: DumpOptions) -> Result<DumpIterator> {
         let DumpOptions { simple } = options;
-        let it = self.with_handle(|h| fdb_sys::dump(h, &request.to_request_string(), simple))?;
+        let it = self.with_handle(|h| h.dump(&request.to_request_string(), simple))?;
         Ok(DumpIterator::new(it))
     }
 
@@ -489,7 +488,7 @@ impl Fdb {
     ///
     /// Returns an error if the status query fails.
     pub fn status(&self, request: &Request) -> Result<StatusIterator> {
-        let it = self.with_handle(|h| fdb_sys::status(h, &request.to_request_string()))?;
+        let it = self.with_handle(|h| h.status(&request.to_request_string()))?;
         Ok(StatusIterator::new(it))
     }
 
@@ -512,8 +511,7 @@ impl Fdb {
             unsafe_wipe_all,
         } = options;
         let it = self.with_handle(|h| {
-            fdb_sys::wipe(
-                h,
+            h.wipe(
                 &request.to_request_string(),
                 doit,
                 porcelain,
@@ -537,8 +535,7 @@ impl Fdb {
     /// Returns an error if the purge fails.
     pub fn purge(&self, request: &Request, options: PurgeOptions) -> Result<PurgeIterator> {
         let PurgeOptions { doit, porcelain } = options;
-        let it =
-            self.with_handle(|h| fdb_sys::purge(h, &request.to_request_string(), doit, porcelain))?;
+        let it = self.with_handle(|h| h.purge(&request.to_request_string(), doit, porcelain))?;
         Ok(PurgeIterator::new(it))
     }
 
@@ -552,7 +549,7 @@ impl Fdb {
     ///
     /// Returns an error if the stats query fails.
     pub fn stats_iter(&self, request: &Request) -> Result<StatsIterator> {
-        let it = self.with_handle(|h| fdb_sys::stats_iterator(h, &request.to_request_string()))?;
+        let it = self.with_handle(|h| h.stats_iterator(&request.to_request_string()))?;
         Ok(StatsIterator::new(it))
     }
 
@@ -574,9 +571,8 @@ impl Fdb {
         action: ControlAction,
         identifiers: &[ControlIdentifier],
     ) -> Result<ControlIterator> {
-        let it = self.with_handle(|h| {
-            fdb_sys::control(h, &request.to_request_string(), action, identifiers)
-        })?;
+        let it =
+            self.with_handle(|h| h.control(&request.to_request_string(), action, identifiers))?;
         Ok(ControlIterator::new(it))
     }
 
@@ -597,7 +593,7 @@ impl Fdb {
         F: Fn() + Send + 'static,
     {
         self.with_handle(|h| {
-            fdb_sys::register_flush_callback(h, fdb_sys::make_flush_callback(callback));
+            h.register_flush_callback(fdb_sys::make_flush_callback(callback));
         });
     }
 
@@ -607,7 +603,7 @@ impl Fdb {
         F: Fn(ArchiveCallbackData) + Send + 'static,
     {
         self.with_handle(|h| {
-            fdb_sys::register_archive_callback(h, fdb_sys::make_archive_callback(callback));
+            h.register_archive_callback(fdb_sys::make_archive_callback(callback));
         });
     }
 }
