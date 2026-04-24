@@ -32,7 +32,7 @@ namespace fdb5 {
 /// FAM-backed index using FamMap<FamMapEntry<128>>.
 ///
 /// Each entry in the data map is keyed by the datum key values string and stores
-/// the serialised timestamp + Key (with keyword names) + FieldLocation.
+/// the serialised timestamp + FieldLocation + Key (with keyword names).
 /// This allows both fast point lookups and full iteration for list/wipe operations.
 class FamIndex : public IndexBase {
 

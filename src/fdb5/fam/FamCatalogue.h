@@ -101,7 +101,7 @@ protected:  // methods
     const std::string& name() const { return name_; }
 
     /// Return the cached catalogue.
-    /// FamMap construction costs 2 FAM RPCs (table + count objects).
+    /// FamMap construction costs 3 FAM RPCs (table + count + lock objects).
     Map& catalogue() const {
         if (!catalogue_) {
             catalogue_.emplace(name_, getRegion());

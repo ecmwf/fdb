@@ -108,8 +108,8 @@ std::vector<eckit::URI> FamStore::getAuxiliaryURIs(const eckit::URI& uri, bool /
 }
 
 eckit::FamObjectName FamStore::makeObject(const Key& key) const {
-    // The human-readable stem is used only as a debugging hint; withUUID() replaces
-    // the region+object path entirely with a UUID, so the stem is not persisted.
+    // withUUID() derives a deterministic UUID from the full path (region + object name)
+    // and replaces the object name with it, so the human-readable stem is not persisted.
     const auto object_name = toString(key) + "-data" + std::to_string(stats_.archived);
     return root_.object(object_name).withUUID();
 }
