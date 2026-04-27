@@ -42,7 +42,7 @@ mod key;
 mod options;
 
 pub use error::{Error, Result};
-pub use handle::{ArchiveCallbackData, Fdb, FdbStats};
+pub use handle::{ArchiveCallbackData, Fdb, FdbStats, MessageArchiver};
 pub use iterator::{
     CompactSummary, ControlElement, ControlIterator, DbStats, DumpElement, DumpIterator,
     IndexStats, ListElement, ListIterator, PurgeElement, PurgeIterator, StatsElement,

@@ -528,3 +528,56 @@ pub struct FdbStats {
 
 /// Re-export callback data type.
 pub use fdb_sys::ArchiveCallbackData;
+
+/// Wrapper for `fdb5::MessageArchiver` — the same class used by
+/// mars-client-cpp's `FDBBase::archive`. Use this when you want a literal
+/// port of the C++ archiving call path (filters, modifiers, etc.) rather
+/// than going through `Fdb::archive_raw` / `Fdb::archive_reader` which use
+/// `fdb5::FDB::archive`.
+pub struct MessageArchiver {
+    inner: Mutex<UniquePtr<fdb_sys::MessageArchiverWrapper>>,
+}
+
+impl MessageArchiver {
+    /// Construct an archiver. `key` is the modifier key applied to every
+    /// message (use `Key::new()` for none, matching C++ FDBBase).
+    /// `complete_transfers` and `verbose` map directly to the
+    /// `fdb5::MessageArchiver` ctor flags (mars-client-cpp uses `false`).
+    pub fn new(
+        key: &Key,
+        complete_transfers: bool,
+        verbose: bool,
+        config: &eckit::Config,
+    ) -> Result<Self> {
+        initialize();
+        let inner = fdb_sys::new_message_archiver(
+            key.to_cxx(),
+            complete_transfers,
+            verbose,
+            config.as_sys(),
+        )?;
+        Ok(Self {
+            inner: Mutex::new(inner),
+        })
+    }
+
+    /// `fdb5::MessageArchiver::archive(eckit::DataHandle&)` — returns total
+    /// bytes archived.
+    pub fn archive(&self, source: &mut eckit::DataHandle<eckit::Reading>) -> Result<i64> {
+        let mut guard = self.inner.lock();
+        let bytes = guard.pin_mut().archive(source.inner_mut()?)?;
+        Ok(bytes)
+    }
+
+    /// `fdb5::MessageArchiver::flush()`.
+    pub fn flush(&self) -> Result<()> {
+        let mut guard = self.inner.lock();
+        guard.pin_mut().flush()?;
+        Ok(())
+    }
+}
+
+// SAFETY: cxx UniquePtr is `!Send` by default; the Mutex serialises every
+// access to the underlying C++ object so moving the wrapper between threads
+// is safe.
+unsafe impl Send for MessageArchiver {}

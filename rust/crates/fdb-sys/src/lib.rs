@@ -440,6 +440,31 @@ mod ffi {
         fn archive_reader(handle: Pin<&mut FdbHandle>, reader: Box<ReaderBox>) -> Result<()>;
 
         // =====================================================================
+        // MessageArchiver — direct wrapper of `fdb5::MessageArchiver`
+        // =====================================================================
+
+        type MessageArchiverWrapper;
+
+        /// Construct an `fdb5::MessageArchiver` with the given key
+        /// modifier, flags, and configuration.
+        fn new_message_archiver(
+            key: &KeyData,
+            complete_transfers: bool,
+            verbose: bool,
+            config: &ConfigWrapper,
+        ) -> Result<UniquePtr<MessageArchiverWrapper>>;
+
+        /// `fdb5::MessageArchiver::archive(eckit::DataHandle&)` — returns
+        /// total bytes archived.
+        fn archive(
+            self: Pin<&mut MessageArchiverWrapper>,
+            source: Pin<&mut DataHandleWrapper>,
+        ) -> Result<i64>;
+
+        /// `fdb5::MessageArchiver::flush()`.
+        fn flush(self: Pin<&mut MessageArchiverWrapper>) -> Result<()>;
+
+        // =====================================================================
         // Retrieve operations
         // =====================================================================
 
