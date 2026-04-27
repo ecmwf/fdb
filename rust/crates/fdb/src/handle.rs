@@ -83,7 +83,7 @@ impl Fdb {
     /// # Examples
     ///
     /// ```no_run
-    /// use fdb::Fdb;
+    /// use fdb::{Fdb, UserConfig};
     ///
     /// // Default config from environment:
     /// let fdb = Fdb::open(None, None)?;
@@ -96,19 +96,23 @@ impl Fdb {
     /// let cfg: eckit::Config = "type: local\nspaces: []".parse()?;
     /// let fdb = Fdb::open(Some(&cfg), None)?;
     ///
-    /// // With user config overlay:
+    /// // With user config:
     /// let cfg = eckit::Config::from_path("/etc/fdb/config.yaml")?;
-    /// let user: eckit::Config = "useSubToc: true".parse()?;
-    /// let fdb = Fdb::open(Some(&cfg), Some(&user))?;
+    /// let fdb = Fdb::open(
+    ///     Some(&cfg),
+    ///     Some(UserConfig { use_sub_toc: true, ..Default::default() }),
+    /// )?;
     /// # Ok::<(), fdb::Error>(())
     /// ```
     pub fn open(
         config: Option<&eckit::Config>,
-        user_config: Option<&eckit::Config>,
+        user_config: Option<crate::UserConfig>,
     ) -> Result<Self> {
         initialize();
 
-        let handle = match (config, user_config) {
+        let user_eckit = user_config.map(eckit::Config::from);
+
+        let handle = match (config, user_eckit.as_ref()) {
             (None, None) => fdb_sys::new_fdb()?,
             (Some(cfg), None) => fdb_sys::new_fdb_from_config(cfg.as_sys())?,
             (Some(cfg), Some(user)) => {

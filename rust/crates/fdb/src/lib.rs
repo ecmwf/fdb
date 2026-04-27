@@ -49,7 +49,7 @@ pub use iterator::{
     StatsIterator, StatusElement, StatusIterator, WipeElement, WipeIterator,
 };
 pub use key::Key;
-pub use options::{DumpOptions, ListOptions, PurgeOptions, WipeOptions};
+pub use options::{DumpOptions, ListOptions, PurgeOptions, UserConfig, WipeOptions};
 
 // Re-export control enums from the cxx bindings
 pub use fdb_sys::{ControlAction, ControlIdentifier};

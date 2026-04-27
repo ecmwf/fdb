@@ -1994,8 +1994,14 @@ fn test_fdb_subtoc_user_config() {
     let tmpdir_off = tempfile::tempdir().expect("failed to create temp dir");
     let config_off = create_test_config(tmpdir_off.path());
     {
-        let user_cfg_off: eckit::Config = "useSubToc: false".parse().expect("parse user config");
-        let fdb_off = Fdb::open(Some(&config_off), Some(&user_cfg_off)).expect("from_yaml off");
+        let fdb_off = Fdb::open(
+            Some(&config_off),
+            Some(fdb::UserConfig {
+                use_sub_toc: false,
+                ..Default::default()
+            }),
+        )
+        .expect("from_yaml off");
         archive_one_record(&fdb_off);
     } // drop handle so the TOC is fully closed before we walk the dir
 
@@ -2009,8 +2015,14 @@ fn test_fdb_subtoc_user_config() {
     let tmpdir_on = tempfile::tempdir().expect("failed to create temp dir");
     let config_on = create_test_config(tmpdir_on.path());
     {
-        let user_cfg_on: eckit::Config = "useSubToc: true".parse().expect("parse user config");
-        let fdb_on = Fdb::open(Some(&config_on), Some(&user_cfg_on)).expect("from_yaml on");
+        let fdb_on = Fdb::open(
+            Some(&config_on),
+            Some(fdb::UserConfig {
+                use_sub_toc: true,
+                ..Default::default()
+            }),
+        )
+        .expect("from_yaml on");
         archive_one_record(&fdb_on);
     }
 
@@ -2030,15 +2042,18 @@ fn test_fdb_subtoc_user_config() {
 /// the C++ side and that an archive + list round-trip succeeds in each mode.
 #[test]
 fn test_fdb_preload_toc_btree_user_config() {
-    for preload in ["true", "false"] {
+    for preload in [true, false] {
         let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
         let config = create_test_config(tmpdir.path());
-        let user_config_yaml = format!("preloadTocBTree: {preload}");
-        let user_config: eckit::Config = user_config_yaml.parse().expect("parse user config");
 
-        let fdb = Fdb::open(Some(&config), Some(&user_config)).unwrap_or_else(|e| {
-            panic!("from_yaml_with_user_config({user_config_yaml:?}) failed: {e}")
-        });
+        let fdb = Fdb::open(
+            Some(&config),
+            Some(fdb::UserConfig {
+                preload_toc_btree: preload,
+                ..Default::default()
+            }),
+        )
+        .unwrap_or_else(|e| panic!("preloadTocBTree={preload} failed: {e}"));
 
         archive_one_record(&fdb);
 
