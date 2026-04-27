@@ -28,8 +28,16 @@ expect_match() {
 
 export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
 
-fam_endpoint="${FDB_FAM_TEST_ENDPOINT:-172.26.0.2:8880}"
+# When ECKIT_FAM_TEST_ENDPOINT is set (real OpenFAM), use it verbatim.
+# Otherwise (mock), embed PID in hostname so each test gets its own shm segment.
+fam_endpoint="${ECKIT_FAM_TEST_ENDPOINT:-localhost_$$:8880}"
 test_region="fdb_fam_cli_test_$$"
+
+# Clean up per-process mock shm on exit (no-op when using real OpenFAM).
+if [[ -z "${ECKIT_FAM_TEST_ENDPOINT:-}" ]]; then
+    _shm_name="/eckit_fam_mock_localhost_$$"
+    trap 'rm -f "/dev/shm${_shm_name}" 2>/dev/null || true' EXIT
+fi
 
 echo "=== fdb-fam CLI test ==="
 echo "endpoint : $fam_endpoint"

@@ -93,6 +93,8 @@ inline const std::string test_fdb_fam_endpoint = []() -> std::string {
     }
     static std::string shm_name = shm_name_from_endpoint(endpoint);
     std::atexit([] { ::shm_unlink(shm_name.c_str()); });
+    // Export the computed endpoint so fork_and_exec'd children use the same shm segment.
+    ::setenv("ECKIT_FAM_TEST_ENDPOINT", endpoint.c_str(), 1);
     return endpoint;
 }();
 

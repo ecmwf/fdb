@@ -28,7 +28,9 @@ src_data="../../../od.oper.grib"
 src_dir=@CMAKE_CURRENT_SOURCE_DIR@
 bin_dir=@CMAKE_CURRENT_BINARY_DIR@
 
-fam_endpoint="${ECKIT_FAM_TEST_ENDPOINT:-172.26.0.2:8880}"
+# When ECKIT_FAM_TEST_ENDPOINT is set (real OpenFAM), use it verbatim.
+# Otherwise (mock), embed PID in hostname so each test gets its own shm segment.
+fam_endpoint="${ECKIT_FAM_TEST_ENDPOINT:-localhost_$$:8880}"
 test_region="fdb_list_fam_all_full_$$"
 fam_uri="fam://${fam_endpoint}/${test_region}"
 
@@ -54,6 +56,8 @@ cleanup() {
     echo "cleanup"
     fdb-fam --endpoint="$fam_endpoint" --delete "/$test_region" 2>/dev/null || true
     rm -rf "$bin_dir/$test_name" 2>/dev/null || true
+    # Remove per-process mock shm segment (no-op when using real OpenFAM)
+    [[ -z "${ECKIT_FAM_TEST_ENDPOINT:-}" ]] && rm -f "/dev/shm/eckit_fam_mock_localhost_$$" 2>/dev/null || true
 }
 trap cleanup EXIT
 
