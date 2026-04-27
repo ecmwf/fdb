@@ -22,6 +22,7 @@
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/message/MessageArchiver.h"
 #include "fdb5/api/helpers/DumpIterator.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/PurgeIterator.h"
@@ -337,6 +338,31 @@ struct ReaderBox;
 /// to `fdb5::FDB::archive(eckit::DataHandle&)`, which extracts the key
 /// from each GRIB message as it streams.
 void archive_reader(FdbHandle& handle, rust::Box<ReaderBox> reader);
+
+/// Wraps `fdb5::MessageArchiver` — the class used by mars-client-cpp's
+/// `FDBBase::archive`. The C++ ctor takes `(key, completeTransfers, verbose,
+/// config)`; the wrapper exposes all four so the caller picks values
+/// (mars-client-cpp uses an empty key + both flags `false`).
+class MessageArchiverWrapper {
+    fdb5::MessageArchiver archiver_;
+
+public:
+
+    MessageArchiverWrapper(const KeyData& key, bool complete_transfers, bool verbose,
+                           const eckit_bridge::ConfigWrapper& config);
+
+    /// `fdb5::MessageArchiver::archive(eckit::DataHandle&)` — returns bytes
+    /// archived (eckit::Length cast to int64).
+    int64_t archive(eckit_bridge::DataHandleWrapper& source);
+
+    /// `fdb5::MessageArchiver::flush()`.
+    void flush();
+};
+
+/// Construct a `MessageArchiverWrapper`.
+std::unique_ptr<MessageArchiverWrapper> new_message_archiver(
+    const KeyData& key, bool complete_transfers, bool verbose,
+    const eckit_bridge::ConfigWrapper& config);
 
 // ============================================================================
 // Retrieve functions
