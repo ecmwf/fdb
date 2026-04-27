@@ -22,10 +22,10 @@
 #include <optional>
 #include <string>
 
-#include "eckit/io/fam/FamCommon.h"
 #include "eckit/io/fam/FamMap.h"
 #include "eckit/io/fam/FamRegion.h"
 #include "eckit/io/fam/FamRegionName.h"
+#include "eckit/io/fam/FamTypes.h"
 #include "eckit/serialisation/MemoryStream.h"
 
 namespace fdb5 {

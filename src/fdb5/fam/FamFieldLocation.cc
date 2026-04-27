@@ -18,7 +18,7 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/FieldLocation.h"
 
-#include "eckit/io/fam/FamCommon.h"
+#include "eckit/io/fam/FamTypes.h"
 
 namespace fdb5 {
 

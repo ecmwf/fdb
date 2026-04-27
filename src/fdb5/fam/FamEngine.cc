@@ -17,7 +17,6 @@
 
 #include <climits>
 
-#include "eckit/io/fam/FamMap.h"
 #include "eckit/io/fam/FamRegionName.h"
 #include "eckit/log/Log.h"
 #include "eckit/serialisation/MemoryStream.h"

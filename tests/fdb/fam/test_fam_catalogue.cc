@@ -26,7 +26,6 @@
 #include <string>
 
 #include "eckit/config/YAMLConfiguration.h"
-#include "eckit/exception/Exceptions.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/io/fam/FamRegionName.h"
