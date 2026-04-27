@@ -38,7 +38,7 @@ use clap::Parser;
 use crossbeam_channel::{Receiver, Sender, bounded};
 use rand::Rng;
 
-use fdb::{Fdb, Key, ListOptions};
+use fdb::{Fdb, Key, ListOptions, UserConfig};
 use metkit::CodesHandle;
 
 // =============================================================================
@@ -1388,19 +1388,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Create FDB handle with optional subtoc configuration
+    let user_config = if args.disable_subtocs {
+        Some(UserConfig {
+            use_sub_toc: false,
+            ..Default::default()
+        })
+    } else {
+        None
+    };
+
     let fdb = if let Some(config_path) = &args.config {
         let cfg = eckit::Config::from_path(config_path)?;
-        if args.disable_subtocs {
-            let user: eckit::Config = "useSubToc: false".parse()?;
-            Fdb::open(Some(&cfg), Some(&user))?
-        } else {
-            Fdb::open(Some(&cfg), None)?
-        }
-    } else if args.disable_subtocs {
-        let cfg: eckit::Config = "useSubToc: false".parse()?;
-        Fdb::open(Some(&cfg), None)?
+        Fdb::open(Some(&cfg), user_config)?
     } else {
-        Fdb::open_default()?
+        Fdb::open(None, user_config)?
     };
 
     println!("FDB handle created: {}", fdb.name());
