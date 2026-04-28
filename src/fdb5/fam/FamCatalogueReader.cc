@@ -84,18 +84,18 @@ void FamCatalogueReader::dumpSchema(std::ostream& stream) const {
 }
 
 std::optional<Axis> FamCatalogueReader::computeAxis(const std::string& keyword) const {
+    // only the currently selected index is consulted
+    // The Catalogue framework calls invalidateAxis() on selection changes, and
+    // CatalogueReader::axis() caches the result per keyword.
+    if (current_.null()) {
+        return std::nullopt;
+    }
+    if (!current_.axes().has(keyword)) {
+        return std::nullopt;
+    }
     Axis axis;
-    bool found = false;
-    for (const auto& [key, index] : indexes_) {
-        if (index.axes().has(keyword)) {
-            axis.merge(index.axes().values(keyword));
-            found = true;
-        }
-    }
-    if (found) {
-        return axis;
-    }
-    return {};
+    axis.merge(current_.axes().values(keyword));
+    return axis;
 }
 
 bool FamCatalogueReader::retrieve(const Key& key, Field& field) const {
