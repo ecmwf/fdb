@@ -103,11 +103,11 @@ std::string FamCatalogue::type() const {
 }
 
 bool FamCatalogue::exists() const {
-    return root_.object(name_ + FamCommon::table_suffix).exists();
+    return tableObject(name_).exists();
 }
 
 eckit::URI FamCatalogue::uri() const {
-    return root_.object(name_ + FamCommon::table_suffix).uri();
+    return tableObject(name_).uri();
 }
 
 const Schema& FamCatalogue::schema() const {
@@ -127,7 +127,7 @@ void FamCatalogue::loadSchema() {
 }
 
 bool FamCatalogue::uriBelongs(const eckit::URI& uri) const {
-    return root_.uriBelongs(uri);
+    return FamCommon::uriBelongs(uri);
 }
 
 bool FamCatalogue::selectIndex(const Key& key) {

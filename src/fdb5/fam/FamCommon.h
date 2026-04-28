@@ -24,6 +24,7 @@
 #include <string>
 
 #include "eckit/io/fam/FamMap.h"
+#include "eckit/io/fam/FamObjectName.h"
 #include "eckit/io/fam/FamRegion.h"
 #include "eckit/io/fam/FamRegionName.h"
 #include "eckit/io/fam/FamTypes.h"
@@ -87,6 +88,13 @@ struct FamCommon {
     bool exists() const;
 
     eckit::URI uri() const;
+
+    /// True iff @p uri belongs to the configured root region.
+    bool uriBelongs(const eckit::URI& uri) const;
+
+    /// Return the FAM object that backs the table of a FamMap-like data structure
+    /// named @p name (i.e. with the canonical FamMap table suffix).
+    eckit::FamObjectName tableObject(const std::string& name) const;
 
     /// @note Throws if the region does not exist
     const eckit::FamRegion& getRegion() const;

@@ -77,6 +77,14 @@ eckit::URI FamCommon::uri() const {
     return root_.uri();
 }
 
+bool FamCommon::uriBelongs(const eckit::URI& uri) const {
+    return root_.uriBelongs(uri);
+}
+
+eckit::FamObjectName FamCommon::tableObject(const std::string& name) const {
+    return root_.object(name + Map::table_suffix);
+}
+
 const eckit::FamRegion& FamCommon::getRegion() const {
     std::call_once(region_once_, [this] { region_.emplace(root_.lookup()); });
     return *region_;

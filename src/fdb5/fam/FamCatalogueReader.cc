@@ -51,7 +51,7 @@ bool FamCatalogueReader::selectIndex(const Key& key) {
     const auto index_name = indexName(key);
 
     // Check the index map exists: the table object must be present in the region.
-    if (!root_.object(index_name + FamCommon::table_suffix).exists()) {
+    if (!tableObject(index_name).exists()) {
         return false;
     }
 

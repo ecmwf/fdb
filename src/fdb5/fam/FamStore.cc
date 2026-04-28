@@ -68,7 +68,7 @@ bool FamStore::exists() const {
 }
 
 bool FamStore::uriBelongs(const eckit::URI& uri) const {
-    return root_.uriBelongs(uri);
+    return FamCommon::uriBelongs(uri);
 }
 
 bool FamStore::uriExists(const eckit::URI& uri) const {
