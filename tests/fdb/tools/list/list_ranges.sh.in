@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-set -ux
+set -eux
 
 yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
 die() { yell "$*"; exit 1; }
-try() { "$@" || die "Errored HERE => '$*'"; }
+
 
 line_count() {
   [[ $# -eq 1 ]] || die "line_count requires 1 argument; expected line count"
@@ -27,14 +27,14 @@ bin_dir=@CMAKE_CURRENT_BINARY_DIR@
 
 echo "running test '$test_name' on $(hostname)"
 
-try cd $bin_dir
+cd $bin_dir
 
-try rm -rf $test_name
-try mkdir -p $test_name/localroot
+rm -rf $test_name
+mkdir -p $test_name/localroot
 
-try cd $test_name
+cd $test_name
 
-try cp "$src_dir/local.yaml" ./
+cp "$src_dir/local.yaml" ./
 
 work_dir=$(pwd)
 echo "Working directory: $work_dir"
@@ -44,47 +44,47 @@ echo "Working directory: $work_dir"
 # Ensure that we can wipe specified databases with ranges in the requests
 # --> Ensures the MARS requests are working correctly
 
-try grib_set -s class=rd,expver=xxxx "$src_data" data.xxxx.d1.grib
-try grib_set -s class=rd,expver=xxxx,date=20240912 "$src_data" data.xxxx.d2.grib
-try grib_set -s class=rd,expver=xxxx,date=20241001 "$src_data" data.xxxx.d3.grib
-try grib_ls -m data.xxxx.d1.grib
+grib_set -s class=rd,expver=xxxx "$src_data" data.xxxx.d1.grib
+grib_set -s class=rd,expver=xxxx,date=20240912 "$src_data" data.xxxx.d2.grib
+grib_set -s class=rd,expver=xxxx,date=20241001 "$src_data" data.xxxx.d3.grib
+grib_ls -m data.xxxx.d1.grib
 
-try fdb-write data.xxxx.d1.grib
-try fdb-write data.xxxx.d2.grib
-try fdb-write data.xxxx.d3.grib
+fdb-write data.xxxx.d1.grib
+fdb-write data.xxxx.d2.grib
+fdb-write data.xxxx.d3.grib
 
-try fdb-list --all --minimum-keys="" --porcelain --full | tee out
+fdb-list --all --minimum-keys="" --porcelain --full | tee out
 line_count 72
 
-try fdb-list class=rd,expver=xxxx --porcelain | tee out
+fdb-list class=rd,expver=xxxx --porcelain | tee out
 line_count 72
 
-try fdb-list class=rd,expver=xxxx,date=20240911 --porcelain | tee out
+fdb-list class=rd,expver=xxxx,date=20240911 --porcelain | tee out
 line_count 24
 
-try fdb-list class=rd,expver=xxxx,date=20240911/20240912 --porcelain | tee out
+fdb-list class=rd,expver=xxxx,date=20240911/20240912 --porcelain | tee out
 line_count 48
 
-try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001 --porcelain | tee out
+fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001 --porcelain | tee out
 line_count 72
 
-try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001/20060101,stream=oper,type=an,levtype=pl,param=60 --porcelain | tee out
+fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001/20060101,stream=oper,type=an,levtype=pl,param=60 --porcelain | tee out
 line_count 0
 
-try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001,stream=oper,type=an,levtype=pl,param=155 --porcelain | tee out
+fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001,stream=oper,type=an,levtype=pl,param=155 --porcelain | tee out
 line_count 36
 
-try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001,stream=oper,type=an,levtype=pl,param=60/155 --porcelain | tee out
+fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001,stream=oper,type=an,levtype=pl,param=60/155 --porcelain | tee out
 line_count 36
 
-try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001,stream=oper,type=an,levtype=pl,param=60/155/138 --porcelain | tee out
+fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001,stream=oper,type=an,levtype=pl,param=60/155/138 --porcelain | tee out
 line_count 72
 
-try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001,stream=oper,type=an,levtype=pl,param=60/155/138,levelist=300/400/500/700/850/1000 --porcelain | tee out
+fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001,stream=oper,type=an,levtype=pl,param=60/155/138,levelist=300/400/500/700/850/1000 --porcelain | tee out
 line_count 72
 
-try fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001,stream=oper,type=an,levtype=pl,param=60/155/138,levelist=300/123/1000 --porcelain | tee out
+fdb-list class=rd,expver=xxxx,date=20240911/20240912/20241001,stream=oper,type=an,levtype=pl,param=60/155/138,levelist=300/123/1000 --porcelain | tee out
 line_count 24
 
 echo "cleanup"
-try rm -rf "$work_dir/localroot" "$work_dir"/data.*.grib
+rm -rf "$work_dir/localroot" "$work_dir"/data.*.grib

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-set -ux
+set -eux
 
 yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
 die() { yell "$*"; exit 1; }
-try() { "$@" || die "Errored HERE => '$*'"; }
+
 
 line_count() {
   [[ $# -eq 1 ]] || die "line_count requires 1 argument; expected line count"
@@ -14,7 +14,7 @@ line_count() {
 
 grep_count() {
   [[ $# -eq 2 ]] || die "grep_count requires 2; regex and expected count"
-  val=$(grep -cE "$1" out)
+  val=$(grep -cE "$1" out || true)
   [[ $val -eq $2 ]] || die "Incorrect count [$val != $2] for regex [$1]"
 }
 
@@ -33,14 +33,14 @@ bin_dir=@CMAKE_CURRENT_BINARY_DIR@
 
 echo "running test '$test_name' on $(hostname)"
 
-try cd $bin_dir
+cd $bin_dir
 
-try rm -rf $test_name
-try mkdir -p $test_name/localroot
+rm -rf $test_name
+mkdir -p $test_name/localroot
 
-try cd $test_name
+cd $test_name
 
-try cp "$src_dir/local.yaml" ./
+cp "$src_dir/local.yaml" ./
 
 work_dir=$(pwd)
 echo "Working directory: $work_dir"
@@ -51,12 +51,12 @@ echo "Working directory: $work_dir"
 
 # Set up the data for the test
 
-try grib_set -s class=rd,expver=xxxx,type=fc,step=0 "$src_data" data.xxxx.0.grib
-try grib_set -s class=rd,expver=xxxx,type=fc,step=1 "$src_data" data.xxxx.1.grib
-try grib_set -s class=rd,expver=xxxx,type=fc,step=2 "$src_data" data.xxxx.2.grib
-try grib_set -s class=rd,expver=xxxy,type=fc,step=0 "$src_data" data.xxxy.0.grib
-try grib_set -s class=rd,expver=xxxy,type=fc,step=1 "$src_data" data.xxxy.1.grib
-try grib_set -s class=rd,expver=xxxy,type=fc,step=2 "$src_data" data.xxxy.2.grib
+grib_set -s class=rd,expver=xxxx,type=fc,step=0 "$src_data" data.xxxx.0.grib
+grib_set -s class=rd,expver=xxxx,type=fc,step=1 "$src_data" data.xxxx.1.grib
+grib_set -s class=rd,expver=xxxx,type=fc,step=2 "$src_data" data.xxxx.2.grib
+grib_set -s class=rd,expver=xxxy,type=fc,step=0 "$src_data" data.xxxy.0.grib
+grib_set -s class=rd,expver=xxxy,type=fc,step=1 "$src_data" data.xxxy.1.grib
+grib_set -s class=rd,expver=xxxy,type=fc,step=2 "$src_data" data.xxxy.2.grib
 
 # Set up some regexes for later testing
 
@@ -75,8 +75,8 @@ for i in 1 2; do
 
   echo "============ Loop $i ============"
 
-  try fdb-write data.xxxx.0.grib
-  try fdb-list --all --minimum-keys="" --porcelain | tee out
+  fdb-write data.xxxx.0.grib
+  fdb-list --all --minimum-keys="" --porcelain | tee out
   if [[ $i = 1 ]]; then
     sum=$((sum + 24))
     line_count $sum
@@ -88,8 +88,8 @@ for i in 1 2; do
   fi
   grep_count "$regex_x0" 24
 
-  try fdb-write data.xxxy.0.grib
-  try fdb-list --all --minimum-keys="" --porcelain | tee out
+  fdb-write data.xxxy.0.grib
+  fdb-list --all --minimum-keys="" --porcelain | tee out
   if [[ $i = 1 ]]; then
     sum=$((sum + 24))
     line_count $sum
@@ -102,8 +102,8 @@ for i in 1 2; do
   grep_count "$regex_y0" 24
 
 
-  try fdb-write data.xxxx.1.grib
-  try fdb-list --all --minimum-keys="" --porcelain | tee out
+  fdb-write data.xxxx.1.grib
+  fdb-list --all --minimum-keys="" --porcelain | tee out
   if [[ $i = 1 ]]; then
     sum=$((sum + 24))
     line_count $sum
@@ -115,8 +115,8 @@ for i in 1 2; do
   grep_count "$regex_y0" 24
   grep_count "$regex_x1" 24
 
-  try fdb-write data.xxxy.1.grib
-  try fdb-list --all --minimum-keys="" --porcelain | tee out
+  fdb-write data.xxxy.1.grib
+  fdb-list --all --minimum-keys="" --porcelain | tee out
   if [[ $i = 1 ]]; then
     sum=$((sum + 24))
     line_count $sum
@@ -129,8 +129,8 @@ for i in 1 2; do
   grep_count "$regex_y1" 24
 
 
-  try fdb-write data.xxxx.2.grib
-  try fdb-list --all --minimum-keys="" --porcelain | tee out
+  fdb-write data.xxxx.2.grib
+  fdb-list --all --minimum-keys="" --porcelain | tee out
   if [[ $i = 1 ]]; then
     sum=$((sum + 24))
     line_count $sum
@@ -142,8 +142,8 @@ for i in 1 2; do
   grep_count "$regex_y1" 24
   grep_count "$regex_x2" 24
 
-  try fdb-write data.xxxy.2.grib
-  try fdb-list --all --minimum-keys="" --porcelain | tee out
+  fdb-write data.xxxy.2.grib
+  fdb-list --all --minimum-keys="" --porcelain | tee out
   [[ $i = 1 ]] && sum=$((sum + 24))
   line_count $sum
   grep_count "$regex_x0" 24
@@ -156,4 +156,4 @@ for i in 1 2; do
 done
 
 echo "cleanup"
-try rm -rf "$work_dir/localroot" "$work_dir"/data.*.grib
+rm -rf "$work_dir/localroot" "$work_dir"/data.*.grib
