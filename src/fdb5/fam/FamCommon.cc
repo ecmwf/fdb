@@ -77,6 +77,11 @@ eckit::URI FamCommon::uri() const {
     return root_.uri();
 }
 
+const eckit::FamRegion& FamCommon::getRegion() const {
+    std::call_once(region_once_, [this] { region_.emplace(root_.lookup()); });
+    return *region_;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

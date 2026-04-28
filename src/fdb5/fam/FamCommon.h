@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <mutex>
 #include <optional>
 #include <string>
 
@@ -88,12 +89,7 @@ struct FamCommon {
     eckit::URI uri() const;
 
     /// @note Throws if the region does not exist
-    const eckit::FamRegion& getRegion() const {
-        if (!region_) {
-            region_.emplace(root_.lookup());
-        }
-        return *region_;
-    }
+    const eckit::FamRegion& getRegion() const;
 
     eckit::FamRegionName root_;
 
@@ -101,6 +97,7 @@ private:
 
     explicit FamCommon(const Config& config);
 
+    mutable std::once_flag region_once_;
     mutable std::optional<eckit::FamRegion> region_;
 };
 
