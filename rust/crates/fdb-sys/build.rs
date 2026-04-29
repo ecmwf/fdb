@@ -9,6 +9,8 @@
 use std::env;
 use std::path::PathBuf;
 
+const FDB_VERSION: &str = "5.19.1";
+
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src/lib.rs");
@@ -45,7 +47,8 @@ fn build_system() {
     let eccodes_include = env::var("DEP_ECCODES_INCLUDE")
         .expect("DEP_ECCODES_INCLUDE not set - eccodes-sys must be a dependency");
 
-    let (root, fdb_include, lib_dir) = bindman_utils::cmake_find_package("fdb5", "5.10.0");
+    let (root, fdb_include, lib_dir) =
+        bindman_utils::cmake_find_package("fdb5", FDB_VERSION, Some("FDB_DIR"));
 
     println!("cargo:rustc-link-search=native={}", lib_dir.display());
     println!("cargo:rustc-link-lib=dylib=fdb5");
@@ -109,7 +112,6 @@ fn build_vendored() {
     const ECBUILD_TAG: &str = "3.13.1";
 
     const FDB_REPO: &str = "https://github.com/ecmwf/fdb.git";
-    const FDB_TAG: &str = "5.19.1";
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
     let src_dir = out_dir.join("src");
@@ -129,7 +131,7 @@ fn build_vendored() {
 
     // Clone sources
     let ecbuild_src = bindman_utils::git_clone(ECBUILD_REPO, ECBUILD_TAG, &src_dir.join("ecbuild"));
-    let fdb_src = bindman_utils::git_clone(FDB_REPO, FDB_TAG, &src_dir.join("fdb"));
+    let fdb_src = bindman_utils::git_clone(FDB_REPO, FDB_VERSION, &src_dir.join("fdb"));
 
     // Patch CMakeLists.txt to remove tests subdirectory (buggy when ENABLE_TESTS=OFF)
     let cmakelists = fdb_src.join("CMakeLists.txt");
