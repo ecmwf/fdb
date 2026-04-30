@@ -1,0 +1,35 @@
+[workspace]
+resolver = "2"
+members = ["crates/fdb-sys", "crates/fdb", "tools/fdb-hammer"]
+
+[workspace.package]
+edition = "2024"
+license = "Apache-2.0"
+repository = "https://github.com/ecmwf/fdb"
+rust-version = "1.90"
+readme = "README.md"
+keywords = ["ecmwf", "weather", "meteorology", "grib", "climate"]
+categories = ["science", "database"]
+
+[workspace.dependencies]
+# Internal
+fdb-sys = { path = "crates/fdb-sys" }
+fdb = { path = "crates/fdb" }
+
+# Foundation crates
+eckit-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", default-features = false }
+metkit-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", default-features = false }
+eccodes-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", default-features = false }
+
+# Build tools
+bindman = { git = "ssh://git@github.com/ecmwf/bindman.git" }
+bindman-build = { git = "ssh://git@github.com/ecmwf/bindman.git" }
+bindman-utils = { git = "ssh://git@github.com/ecmwf/bindman.git" }
+
+# External
+thiserror = "2"
+cxx = "1.0"
+cxx-build = "1.0"
+parking_lot = "0.12"
+tempfile = "3"
+indexmap = "2"
