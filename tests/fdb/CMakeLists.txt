@@ -68,6 +68,7 @@ endforeach()
 
 add_subdirectory( api )
 add_subdirectory( database )
+add_subdirectory( toc )
 add_subdirectory( type )
 add_subdirectory( daos )
 
