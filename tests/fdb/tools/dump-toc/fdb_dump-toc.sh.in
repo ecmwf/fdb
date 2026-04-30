@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
 
-set -eu
+set -eux
 
-yell() { echo "$(basename "$0"): $*" >&2; }
-die() { yell "$*"; exit 1; }
-try() { "$@" || die "Errored HERE => '$*'"; }
-cleanup() { echo "cleanup"; try rm -rf "$@"; }
+cleanup() { echo "cleanup"; rm -rf "$@"; }
 
 export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
 export FDB5_CONFIG_FILE="local.yaml"
@@ -18,12 +15,12 @@ fdbstore="$bindir/$tname/localroot"
 
 ########################################################################################################################
 
-try cd $bindir
+cd $bindir
 
 rm -rf $tname || true
 mkdir -p $tname/localroot
 
-try cd $tname
+cd $tname
 
 for f in local.yaml x.grib; do
   cp "$srcdir/$f" ./
@@ -32,22 +29,22 @@ done
 ########################################################################################################################
 # Create a grib file with 4 steps and populate FDB
 
-try grib_set -s step=0 x.grib 0.grib
-try grib_set -s step=6 x.grib 6.grib
-try grib_set -s step=9 x.grib 9.grib
+grib_set -s step=0 x.grib 0.grib
+grib_set -s step=6 x.grib 6.grib
+grib_set -s step=9 x.grib 9.grib
 
 for f in *.grib; do
-  try grib_set -s type=an "$f" "cf.$f"
+  grib_set -s type=an "$f" "cf.$f"
 done
 
 for f in *.grib; do
-  try cat "$f" >> "$tname.grib"
+  cat "$f" >> "$tname.grib"
 done
 
 ########################################################################################################################
 echo "Running tests on dump-toc for simple toc..."
 
-try fdb-write "$tname.grib"
+fdb-write "$tname.grib"
 
 args="--structure $fdbstore/rd:xxxx:oper:20201102:0000:g/toc"
 out=$(fdb-dump-toc $args)
@@ -62,7 +59,7 @@ TOC_INDEX 2048 1024 toc
 EOF
 )
 
-try test "$exp" = "$parsed"
+test "$exp" = "$parsed"
 
 
 ########################################################################################################################
@@ -73,7 +70,7 @@ cleanup "$fdbstore/*"
 echo "Running tests on dump-toc for tocs with subtoc..."
 
 
-try env FDB5_SUB_TOCS=1 fdb-write "$tname.grib"
+env FDB5_SUB_TOCS=1 fdb-write "$tname.grib"
 
 args="--structure --walk $fdbstore/rd:xxxx:oper:20201102:0000:g/toc"
 out=$(fdb-dump-toc $args)
@@ -108,6 +105,6 @@ TOC_CLEAR 6144 1024 toc
 EOF
 )
 
-try test "$exp" = "$normalised"
+test "$exp" = "$normalised"
 
 cleanup "$fdbstore/*"

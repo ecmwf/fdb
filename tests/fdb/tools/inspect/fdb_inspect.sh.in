@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 
-set -eu
-
-yell() { echo "$(basename "$0"): $*" >&2; }
-die() { yell "$*"; exit 1; }
-try() { "$@" || die "Errored HERE => '$*'"; }
+set -eux
 
 export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
 export FDB5_CONFIG_FILE="local.yaml"
@@ -16,12 +12,12 @@ bindir=@CMAKE_CURRENT_BINARY_DIR@
 
 ########################################################################################################################
 
-try cd $bindir
+cd $bindir
 
 rm -rf $tname || true
 mkdir -p $tname/localroot
 
-try cd $tname
+cd $tname
 
 for f in local.yaml x.grib; do
   cp "$srcdir/$f" ./
@@ -30,19 +26,19 @@ done
 ########################################################################################################################
 # Create a grib file with 4 steps and populate FDB
 
-try grib_set -s step=0 x.grib 0.grib
-try grib_set -s step=6 x.grib 6.grib
-try grib_set -s step=9 x.grib 9.grib
+grib_set -s step=0 x.grib 0.grib
+grib_set -s step=6 x.grib 6.grib
+grib_set -s step=9 x.grib 9.grib
 
 for f in *.grib; do
-  try grib_set -s type=an "$f" "cf.$f"
+  grib_set -s type=an "$f" "cf.$f"
 done
 
 for f in *.grib; do
-  try cat "$f" >> "$tname.grib"
+  cat "$f" >> "$tname.grib"
 done
 
-try fdb-write "$tname.grib"
+fdb-write "$tname.grib"
 
 ########################################################################################################################
 # test all
@@ -61,4 +57,4 @@ out=$(fdb-inspect $requests)
 exp="Number of requests: 8
 Number of elements: 8"
 
-try test "$exp" = "$out"
+test "$exp" = "$out"
