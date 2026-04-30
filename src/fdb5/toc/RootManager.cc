@@ -532,8 +532,24 @@ FileSpaceTable RootManager::fileSpaces() {
                 }
             }
 
-            table.emplace_back(
-                FileSpace(name, space.getString("regex", ".*"), space.getString("handler", "Default"), spaceRoots));
+            const auto hasMatch = space.has("match");
+            const auto hasRegex = space.has("regex");
+            if (hasMatch && hasRegex) {
+                std::ostringstream oss;
+                oss << "FDB roots config: file space '" << name
+                    << "' specifies both 'regex' and 'match'; only one is allowed";
+                throw eckit::UserError(oss.str(), Here());
+            }
+
+            if (hasMatch) {
+                // FDB-331: missing keywords in a partial request will not silently exclude this file space.
+                FileSpace::MatchSelector matcher(space.getSubConfiguration("match"));
+                table.emplace_back(FileSpace(name, matcher, space.getString("handler", "Default"), spaceRoots));
+            }
+            else {
+                table.emplace_back(
+                    FileSpace(name, space.getString("regex", ".*"), space.getString("handler", "Default"), spaceRoots));
+            }
         }
         return table;
     }
@@ -608,10 +624,8 @@ TocPath RootManager::directory(const Key& key) {
 
     // returns the first filespace that matches
 
-    std::string keystr = key.valuesToString();
-
     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end(); ++i) {
-        if (i->match(keystr)) {
+        if (i->match(key)) {
             TocPath db = i->filesystem(config_, key, dbpath);
             LOG_DEBUG_LIB(LibFdb5) << "Database directory " << db.directory_ << std::endl;
             return db;
@@ -619,7 +633,7 @@ TocPath RootManager::directory(const Key& key) {
     }
 
     std::ostringstream oss;
-    oss << "No FDB file space for " << key << " (" << keystr << ")";
+    oss << "No FDB file space for " << key << " (" << key.valuesToString() << ")";
     throw eckit::SeriousBug(oss.str());
 }
 
@@ -627,18 +641,20 @@ std::vector<PathName> RootManager::visitableRoots(const std::set<Key>& keys) {
 
     eckit::StringSet roots;
 
-    std::set<std::string> keystrings;
-    for (const auto& key : keys) {
-        keystrings.insert(key.valuesToString());
+    if (LibFdb5::instance().debug()) {
+        std::set<std::string> keystrings;
+        for (const auto& key : keys) {
+            keystrings.insert(key.valuesToString());
+        }
+        eckit::Log::debug<LibFdb5>() << "RootManager::visitableRoots() trying to match keys " << keystrings
+                                     << std::endl;
     }
-
-    LOG_DEBUG_LIB(LibFdb5) << "RootManager::visitableRoots() trying to match keys " << keystrings << std::endl;
 
     for (const auto& space : spacesTable_) {
 
         bool matched = false;
-        for (const std::string& k : keystrings) {
-            if (space.match(k) || k.empty()) {
+        for (const Key& key : keys) {
+            if (space.match(key) || key.empty()) {
                 LOG_DEBUG_LIB(LibFdb5) << "MATCH space " << space << std::endl;
                 space.enabled(ControlIdentifier::List, roots);
                 matched = true;
@@ -677,11 +693,8 @@ std::vector<eckit::PathName> RootManager::canArchiveRoots(const Key& key) {
 
     eckit::StringSet roots;
 
-    std::string k = key.valuesToString();
-
     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end(); ++i) {
-        if (i->match(k)) {
-
+        if (i->match(key)) {
             i->enabled(ControlIdentifier::Archive, roots);
         }
     }
@@ -695,11 +708,8 @@ std::vector<eckit::PathName> RootManager::canMoveToRoots(const Key& key) {
 
     eckit::StringSet roots;
 
-    std::string k = key.valuesToString();
-
     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end(); ++i) {
-        if (i->match(k)) {
-
+        if (i->match(key)) {
             i->enabled(ControlIdentifier::Wipe, roots);
         }
     }
