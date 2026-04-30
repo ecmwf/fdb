@@ -32,6 +32,33 @@ eckit::Stream& operator>>(eckit::Stream& s, ControlAction& a) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+std::ostream& operator<<(std::ostream& s, const ControlIdentifier& i) {
+    switch (i) {
+        case ControlIdentifier::None:
+            s << "None";
+            break;
+        case ControlIdentifier::List:
+            s << "List";
+            break;
+        case ControlIdentifier::Retrieve:
+            s << "Retrieve";
+            break;
+        case ControlIdentifier::Archive:
+            s << "Archive";
+            break;
+        case ControlIdentifier::Wipe:
+            s << "Wipe";
+            break;
+        case ControlIdentifier::UniqueRoot:
+            s << "UniqueRoot";
+            break;
+    }
+    s << "(" << static_cast<typename std::underlying_type<ControlIdentifier>::type>(i) << ")";
+    return s;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
 ControlIdentifierIterator::ControlIdentifierIterator(const ControlIdentifiers& identifiers) :
     value_(0), remaining_(identifiers.value_) {
 
@@ -84,6 +111,24 @@ ControlIdentifiers::ControlIdentifiers(const ControlIdentifier& val) : value_(st
 
 ControlIdentifiers::ControlIdentifiers(eckit::Stream& s) {
     s >> value_;
+}
+
+ControlIdentifiers::ControlIdentifiers(const eckit::LocalConfiguration& config) : value_(0) {
+
+    bool writable = config.getBool("writable", true);
+    bool visitable = config.getBool("visitable", true);
+    if (!config.getBool("list", visitable)) {
+        value_ |= static_cast<value_type>(ControlIdentifier::List);
+    }
+    if (!config.getBool("retrieve", visitable)) {
+        value_ |= static_cast<value_type>(ControlIdentifier::Retrieve);
+    }
+    if (!config.getBool("archive", writable)) {
+        value_ |= static_cast<value_type>(ControlIdentifier::Archive);
+    }
+    if (!config.getBool("wipe", writable)) {
+        value_ |= static_cast<value_type>(ControlIdentifier::Wipe);
+    }
 }
 
 ControlIdentifiers& ControlIdentifiers::operator|=(const ControlIdentifier& val) {
