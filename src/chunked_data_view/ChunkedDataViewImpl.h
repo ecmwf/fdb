@@ -50,6 +50,19 @@ public:
         return result;
     }
 
+    size_t countFieldsForPart(const ViewPart& part) const {
+        size_t result = 1;
+        for (size_t i = 0; i < chunkShape_.size() - 1; ++i) {
+            if (i == extensionAxisIndex_) {
+                result *= part.shape()[i];
+            }
+            else {
+                result *= chunkShape_[i];
+            }
+        }
+        return result;
+    }
+
 private:
 
     std::vector<size_t> chunkShape_{};

@@ -106,28 +106,19 @@ struct FakeExtractor : public cdv::Extractor {
         return layout;
     }
 
-    void writeInto(const metkit::mars::MarsRequest& request,
-                   std::unique_ptr<chunked_data_view::ListIteratorInterface> list_iterator,
-                   const std::vector<chunked_data_view::Axis>& axes, const chunked_data_view::DataLayout& layout,
-                   float* ptr, size_t len, size_t expected_msg_count) const override {
-        cdv::DataLayout readLayout{};
-
-
+    size_t writeInto(const metkit::mars::MarsRequest& request,
+                     std::unique_ptr<chunked_data_view::ListIteratorInterface> list_iterator,
+                     const std::vector<chunked_data_view::Axis>& axes, const chunked_data_view::DataLayout& layout,
+                     float* ptr, size_t len, size_t extensionAxisIdx, size_t combinedExtSize,
+                     size_t extensionOffset) const override {
+        size_t count = 0;
         while (auto res = list_iterator->next()) {
-
             if (!res) {
                 break;
             }
-
-            const auto& key = std::get<0>(*res);
-            auto& data_handle = std::get<1>(*res);
-            data_handle->openForRead();
-
-            EXPECT_EQUAL(data_handle->read(&readLayout.countValues, sizeof(layout.countValues)), 8l);
-            EXPECT_EQUAL(data_handle->read(&readLayout.bytesPerValue, sizeof(layout.bytesPerValue)), 4l);
-            const size_t totalBytes = layout.countValues * layout.bytesPerValue;
-            EXPECT_EQUAL(data_handle->read(ptr, totalBytes), totalBytes);
+            count++;
         }
+        return count;
     };
 };
 
@@ -201,6 +192,52 @@ CASE("ChunkedDataView | View from 2 requests | Can compute shape") {
             .build();
     // Expect to get: 4 dates, 4 times, 2*2 fields (2 per request), 10 values per field (implicit axis)
     EXPECT_EQUAL(view->shape(), (std::vector<size_t>{4, 4, 4, 10}));
+}
+
+CASE("ChunkedDataView | View from 2 requests | NoChunking on extension axis") {
+    const std::string keys{
+        "type=an,"
+        "domain=g,"
+        "expver=0001,"
+        "stream=oper,"
+        "date=2020-01-01/to/2020-01-04,"
+        "levtype=sfc,"
+        "param=v/u,"
+        "time=0/6/12/18"};
+
+    const auto view =
+        cdv::ChunkedDataViewBuilder(
+            std::make_unique<MockFdb>(
+                [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
+                [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
+                    // MockListIterator skips first entry, so provide N+1 entries to return N messages
+                    return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
+                        std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
+                        std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
+                        std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
+                    });
+                }))
+            .addPart(keys,
+                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
+                     std::make_unique<FakeExtractor>())
+            .addPart(keys,
+                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
+                     std::make_unique<FakeExtractor>())
+            .extendOnAxis(2)
+            .build();
+
+    // 4 dates, 4 times, 2+2=4 params (NoChunking), 10 values per field
+    EXPECT_EQUAL(view->shape(), (std::vector<size_t>{4, 4, 4, 10}));
+    EXPECT_EQUAL(view->chunks(), (std::vector<size_t>{4, 4, 1, 1}));
+    EXPECT_EQUAL(view->chunkShape(), (std::vector<size_t>{1, 1, 4, 10}));
+
+    // at() should succeed — each part contributes 2 params × 10 values = 20 floats
+    std::vector<float> buf(view->countChunkValues());
+    EXPECT_NO_THROW(view->at({0, 0, 0, 0}, buf.data(), buf.size()));
 }
 
 CASE("ChunkedDataView | View from 2 requests | Can compute shape, combined axis") {
@@ -298,8 +335,10 @@ CASE("ChunkedDataView | at | Wrong index dimension throws") {
             std::make_unique<MockFdb>([](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
                                       [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
                                           return std::make_unique<MockListIterator>(
-                                              std::vector<std::tuple<fdb5::Key, std::vector<double>>>{std::make_tuple(
-                                                  fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})});
+                                              std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
+                                                  std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
+                                                  std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
+                                                  std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})});
                                       }))
             .addPart(keys,
                      {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
@@ -329,8 +368,10 @@ CASE("ChunkedDataView | at | Out-of-bounds chunk index throws") {
             std::make_unique<MockFdb>([](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
                                       [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
                                           return std::make_unique<MockListIterator>(
-                                              std::vector<std::tuple<fdb5::Key, std::vector<double>>>{std::make_tuple(
-                                                  fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})});
+                                              std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
+                                                  std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
+                                                  std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
+                                                  std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})});
                                       }))
             .addPart(keys,
                      {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
@@ -356,6 +397,116 @@ CASE("ChunkedDataView | at | Out-of-bounds chunk index throws") {
 
     // Value chunk index out of bounds (1 >= 1)
     EXPECT_THROWS(view->at({0, 0, 0, 1}, buf.data(), buf.size()));
+}
+
+CASE("ChunkedDataView | at | Partial read throws") {
+    const std::string keys{
+        "type=an,domain=g,expver=0001,stream=oper,"
+        "date=2020-01-01/to/2020-01-04,levtype=sfc,"
+        "param=v/u,time=0/6/12/18"};
+
+    const auto view =
+        cdv::ChunkedDataViewBuilder(
+            std::make_unique<MockFdb>([](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
+                                      [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
+                                          // MockListIterator skips first entry: 2 entries → returns 1 message.
+                                          // View expects 2 (2 params, NoChunking) → partial read.
+                                          return std::make_unique<MockListIterator>(
+                                              std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
+                                                  std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
+                                                  std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})});
+                                      }))
+            .addPart(keys,
+                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
+                     std::make_unique<FakeExtractor>())
+            .build();
+
+    std::vector<float> buf(view->countChunkValues());
+    EXPECT_THROWS(view->at({0, 0, 0, 0}, buf.data(), buf.size()));
+}
+
+CASE("ChunkedDataView | at | Partial read in multi-part extension throws") {
+    const std::string keys{
+        "type=an,domain=g,expver=0001,stream=oper,"
+        "date=2020-01-01/to/2020-01-04,levtype=sfc,"
+        "param=v/u,time=0/6/12/18"};
+
+    const auto view =
+        cdv::ChunkedDataViewBuilder(
+            std::make_unique<MockFdb>(
+                [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
+                [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
+                    // Returns 1 message, but each part expects 2 (2 params, NoChunking)
+                    return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
+                        std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
+                        std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})});
+                }))
+            .addPart(keys,
+                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
+                     std::make_unique<FakeExtractor>())
+            .addPart(keys,
+                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
+                     std::make_unique<FakeExtractor>())
+            .extendOnAxis(2)
+            .build();
+
+    std::vector<float> buf(view->countChunkValues());
+    EXPECT_THROWS(view->at({0, 0, 0, 0}, buf.data(), buf.size()));
+}
+
+CASE("ChunkedDataView | View from 3 requests | Can compute shape and access") {
+    const std::string keys{
+        "type=an,"
+        "domain=g,"
+        "expver=0001,"
+        "stream=oper,"
+        "date=2020-01-01/to/2020-01-04,"
+        "levtype=sfc,"
+        "param=v/u,"
+        "time=0/6/12/18"};
+
+    const auto view =
+        cdv::ChunkedDataViewBuilder(
+            std::make_unique<MockFdb>(
+                [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
+                [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
+                    return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
+                        std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
+                        std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
+                        std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
+                    });
+                }))
+            .addPart(keys,
+                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
+                     std::make_unique<FakeExtractor>())
+            .addPart(keys,
+                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
+                     std::make_unique<FakeExtractor>())
+            .addPart(keys,
+                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::IndividualChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
+                     std::make_unique<FakeExtractor>())
+            .extendOnAxis(2)
+            .build();
+
+    // 4 dates, 4 times, 2+2+2=6 params (NoChunking), 10 values per field
+    EXPECT_EQUAL(view->shape(), (std::vector<size_t>{4, 4, 6, 10}));
+    EXPECT_EQUAL(view->chunks(), (std::vector<size_t>{4, 4, 1, 1}));
+    EXPECT_EQUAL(view->chunkShape(), (std::vector<size_t>{1, 1, 6, 10}));
+
+    std::vector<float> buf(view->countChunkValues());
+    EXPECT_NO_THROW(view->at({0, 0, 0, 0}, buf.data(), buf.size()));
 }
 
 int main(int argc, char** argv) {

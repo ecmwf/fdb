@@ -88,6 +88,64 @@ CASE("index_mapping | 3 axes 2/1 param | Chunked/Non-Chunked| Valid access") {
 }
 
 
+CASE("index_mapping | axis_index_to_buffer_index | extension axis remaps stride and offset") {
+
+    // 3 unchunked axes: [A(size=3), B(size=2, extension), C(size=4)]
+    // Without extension: flat index = a * 2*4 + b * 4 + c = a*8 + b*4 + c
+    // With extension (combinedExtSize=5, offset=2):
+    //   flat index = a * 5*4 + (b+2) * 4 + c = a*20 + (b+2)*4 + c
+
+    std::vector<std::string> a_vals = {"a0", "a1", "a2"};
+    std::vector<std::string> b_vals = {"b0", "b1"};
+    std::vector<std::string> c_vals = {"c0", "c1", "c2", "c3"};
+
+    chunked_data_view::Parameter a_param = {"a", a_vals};
+    chunked_data_view::Parameter b_param = {"b", b_vals};
+    chunked_data_view::Parameter c_param = {"c", c_vals};
+
+    const std::vector<chunked_data_view::Axis> axes = {
+        {{a_param}, false}, {{b_param}, false}, {{c_param}, false}};
+
+    // Without extension params: a=1, b=1, c=2 → 1*8 + 1*4 + 2 = 14
+    EXPECT_EQUAL(chunked_data_view::index_mapping::axis_index_to_buffer_index({1, 1, 2}, axes), 14);
+
+    // With extension on axis 1 (combinedExtSize=5, offset=2):
+    // a=1, b=1, c=2 → 1*20 + (1+2)*4 + 2 = 20 + 12 + 2 = 34
+    EXPECT_EQUAL(chunked_data_view::index_mapping::axis_index_to_buffer_index({1, 1, 2}, axes, 1, 5, 2), 34);
+
+    // a=0, b=0, c=0 with offset=2 → 0*20 + (0+2)*4 + 0 = 8
+    EXPECT_EQUAL(chunked_data_view::index_mapping::axis_index_to_buffer_index({0, 0, 0}, axes, 1, 5, 2), 8);
+
+    // a=0, b=0, c=0 with offset=0 → 0 (same as no extension)
+    EXPECT_EQUAL(chunked_data_view::index_mapping::axis_index_to_buffer_index({0, 0, 0}, axes, 1, 5, 0), 0);
+}
+
+CASE("index_mapping | axis_index_to_buffer_index | extension axis with chunked neighbours") {
+
+    // Axes: [A(chunked), B(unchunked, size=3, extension), C(unchunked, size=4)]
+    // Chunked axes are skipped in index computation.
+    // Without extension: flat = b * 4 + c
+    // With extension (combinedExtSize=7, offset=3): flat = (b+3) * 4 + c
+
+    std::vector<std::string> a_vals = {"a0", "a1"};
+    std::vector<std::string> b_vals = {"b0", "b1", "b2"};
+    std::vector<std::string> c_vals = {"c0", "c1", "c2", "c3"};
+
+    chunked_data_view::Parameter a_param = {"a", a_vals};
+    chunked_data_view::Parameter b_param = {"b", b_vals};
+    chunked_data_view::Parameter c_param = {"c", c_vals};
+
+    const std::vector<chunked_data_view::Axis> axes = {
+        {{a_param}, true}, {{b_param}, false}, {{c_param}, false}};
+
+    // Without extension: a=0 (chunked, ignored), b=2, c=3 → 2*4 + 3 = 11
+    EXPECT_EQUAL(chunked_data_view::index_mapping::axis_index_to_buffer_index({0, 2, 3}, axes), 11);
+
+    // With extension on axis 1 (combinedExtSize=7, offset=3):
+    // b=2, c=3 → (2+3)*4 + 3 = 23
+    EXPECT_EQUAL(chunked_data_view::index_mapping::axis_index_to_buffer_index({0, 2, 3}, axes, 1, 7, 3), 23);
+}
+
 int main(int argc, char** argv) {
     return ::eckit::testing::run_tests(argc, argv);
 }

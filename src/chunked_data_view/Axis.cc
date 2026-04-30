@@ -82,5 +82,4 @@ size_t Axis::index(const fdb5::Key& key) const {
     return index;
 }
 
-
 }  // namespace chunked_data_view

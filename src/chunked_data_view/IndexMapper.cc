@@ -28,7 +28,9 @@ namespace chunked_data_view {
  * @param axes the axes
  * @return index in the buffer (an offset)
  */
-size_t index_mapping::axis_index_to_buffer_index(const std::vector<size_t>& indices, const std::vector<Axis>& axes) {
+size_t index_mapping::axis_index_to_buffer_index(const std::vector<size_t>& indices, const std::vector<Axis>& axes,
+                                                  size_t extensionAxisIdx, size_t combinedExtSize,
+                                                  size_t extensionOffset) {
 
     ASSERT(indices.size() == axes.size());
 
@@ -38,8 +40,14 @@ size_t index_mapping::axis_index_to_buffer_index(const std::vector<size_t>& indi
     for (int i = axes.size() - 1; i >= 0; --i) {
 
         if (!axes[i].isChunked()) {
-            index += indices[i] * prod;
-            prod *= axes[i].size();
+            if (static_cast<size_t>(i) == extensionAxisIdx) {
+                index += (indices[i] + extensionOffset) * prod;
+                prod *= combinedExtSize;
+            }
+            else {
+                index += indices[i] * prod;
+                prod *= axes[i].size();
+            }
         }
     }
 
