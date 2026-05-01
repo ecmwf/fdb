@@ -18,6 +18,11 @@
 #include "fdb5/daos/DaosCatalogueReader.h"
 #include "fdb5/daos/DaosIndex.h"
 
+#include "fdb5/LibFdb5.h"
+#include "fdb5/daos/DaosIndex.h"
+#include "fdb5/daos/DaosName.h"
+#include "fdb5/daos/DaosSession.h"
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------

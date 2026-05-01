@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+
+set -eu
+
+yell() { echo "$(basename "$0"): $*" >&2; }
+die() { yell "$*"; exit 1; }
+try() { "$@" || die "Errored HERE => '$*'"; }
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+tname=fam_inspect_test
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+# When ECKIT_FAM_TEST_ENDPOINT is set (real OpenFAM), use it verbatim.
+# Otherwise (mock), embed PID in hostname so each test gets its own shm segment.
+fam_endpoint="${ECKIT_FAM_TEST_ENDPOINT:-localhost_$$:8880}"
+test_region="fdb_inspect_fam_$$"
+fam_uri="fam://${fam_endpoint}/${test_region}"
+
+########################################################################################################################
+
+try cd $bindir
+
+rm -rf $tname || true
+mkdir -p $tname/localroot
+
+try cd $tname
+
+# Create the FAM region (10 MB)
+try fdb-fam --endpoint="$fam_endpoint" --create --size=10485760 --perm=0640 "/$test_region"
+
+cleanup() {
+    echo "cleanup"
+    fdb-fam --endpoint="$fam_endpoint" --delete "/$test_region" 2>/dev/null || true
+    rm -rf "$bindir/$tname" 2>/dev/null || true
+    # Remove per-process mock shm segment (no-op when using real OpenFAM)
+    [[ -z "${ECKIT_FAM_TEST_ENDPOINT:-}" ]] && rm -f "/dev/shm/eckit_fam_mock_localhost_$$" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+schema_src="$FDB_HOME/etc/fdb/schema"
+
+cat > local.yaml <<EOF
+---
+type: local
+engine: fam
+schema: ${schema_src}
+store: fam
+catalogue: fam
+spaces:
+- handler: Default
+  roots:
+  - path: $(pwd)/localroot
+fam_roots:
+- uri: ${fam_uri}
+  writable: true
+  visit: true
+EOF
+
+export FDB5_CONFIG_FILE="$(pwd)/local.yaml"
+
+for f in x.grib; do
+  cp "$srcdir/$f" ./
+done
+
+########################################################################################################################
+# Create a grib file with 4 steps and populate FDB
+
+try grib_set -s step=0 x.grib 0.grib
+try grib_set -s step=6 x.grib 6.grib
+try grib_set -s step=9 x.grib 9.grib
+
+for f in *.grib; do
+  try grib_set -s type=an "$f" "cf.$f"
+done
+
+for f in *.grib; do
+  try cat "$f" >> "$tname.grib"
+done
+
+try fdb-write "$tname.grib"
+
+########################################################################################################################
+# test all
+
+requests="class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=fc,levtype=sfc,step=0,param=166 \
+class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=fc,levtype=sfc,step=12,param=166 \
+class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=fc,levtype=sfc,step=6,param=166 \
+class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=fc,levtype=sfc,step=9,param=166 \
+class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=an,levtype=sfc,step=0,param=166 \
+class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=an,levtype=sfc,step=12,param=166 \
+class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=an,levtype=sfc,step=6,param=166 \
+class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=an,levtype=sfc,step=9,param=166"
+
+out=$(fdb-inspect $requests)
+
+exp="Number of requests: 8
+Number of elements: 8"
+
+try test "$exp" = "$out"

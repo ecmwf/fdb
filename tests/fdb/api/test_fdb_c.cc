@@ -16,9 +16,9 @@
 #include "eckit/io/Buffer.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/testing/Test.h"
-#include "fdb5/database/Key.h"
 
 #include "fdb5/api/fdb_c.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/fdb5_config.h"
 
 using namespace eckit::testing;

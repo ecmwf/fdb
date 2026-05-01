@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/daos/DaosSession.h"
+
 #include <sstream>
 
 #include "eckit/runtime/Main.h"

@@ -8,9 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/types/TypeGrid.h"
+
 #include <algorithm>
 
 #include "eckit/utils/StringTools.h"
+
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/types/TypeGrid.h"

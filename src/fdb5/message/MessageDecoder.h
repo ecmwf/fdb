@@ -21,6 +21,10 @@
 #include "eckit/io/Buffer.h"
 #include "metkit/mars/MarsRequest.h"
 
+#include "eckit/io/Buffer.h"
+
+#include "metkit/mars/MarsRequest.h"
+
 struct grib_handle;
 
 namespace eckit {

@@ -1,12 +1,12 @@
 
 
-#include "fdb5/database/IndexAxis.h"
-#include "fdb5/database/Key.h"
-
 #include "eckit/io/Buffer.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/serialisation/ResizableMemoryStream.h"
 #include "eckit/testing/Test.h"
+
+#include "fdb5/database/IndexAxis.h"
+#include "fdb5/database/Key.h"
 
 namespace {
 

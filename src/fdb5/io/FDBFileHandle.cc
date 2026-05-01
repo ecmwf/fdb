@@ -8,7 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/io/FDBFileHandle.h"
+
 #include <unistd.h>
+
 #include <cstdio>
 
 #include "eckit/config/Resource.h"
@@ -17,7 +20,6 @@
 #include "eckit/log/Log.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/io/FDBFileHandle.h"
 
 using namespace eckit;
 

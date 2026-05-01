@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/types/TypeParam.h"
+
 #include <algorithm>
 
 #include "metkit/mars/Param.h"
@@ -15,7 +17,6 @@
 
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Notifier.h"
-#include "fdb5/types/TypeParam.h"
 #include "fdb5/types/TypesFactory.h"
 
 using metkit::Param;
