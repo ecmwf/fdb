@@ -444,6 +444,11 @@ void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t req
     ASSERT(!dummy_secret.empty());
 
     uint64_t expected_hash = inState.hash(dummy_secret);
+    Log::debug<LibFdb5>() << "Validating wipe state signature - secret: " << dummy_secret << std::endl
+        << "    dataURI:       " << inState.includedDataURIs() << std::endl
+        << "    safeURI:       " << inState.safeURIs() << std::endl
+        << "    signature:     " << inState.signature().sig_ << std::endl
+        << "    expected_hash: " << expected_hash << std::endl;
     ASSERT(inState.signature().validSignature(expected_hash));
 
     // -- From here on, we can trust the state came from the catalogue. --
