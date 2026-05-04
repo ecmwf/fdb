@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-/// Unit tests for FDB-331: keyword-based file-space matching.
+/// Unit tests for FDB-331: keyword-based file-space matching using metkit::mars::Matcher.
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
@@ -41,70 +41,75 @@ eckit::LocalConfiguration makeMatchConfig() {
     return cfg;
 }
 
+fdb5::FileSpace makeMatchSpace() {
+    auto cfg = makeMatchConfig();
+    return fdb5::FileSpace("kw", fdb5::MatchSelector::buildMatcher(cfg), "Default", {});
+}
+
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
+// Matcher-backed FileSpace: full key with allowed value matches
 
-CASE("FileSpace::MatchSelector: full key with allowed value matches") {
-    fdb5::FileSpace::MatchSelector selector{makeMatchConfig()};
+CASE("Matcher: full key with allowed value matches") {
+    auto space = makeMatchSpace();
 
     fdb5::Key key{{{"class", "od"}, {"expver", "0001"}, {"stream", "oper"}, {"date", "20241118"}}};
-    EXPECT(selector.match(key));
+    EXPECT(space.match(key));
 }
 
-CASE("FileSpace::MatchSelector: present keyword with disallowed value does not match") {
-    fdb5::FileSpace::MatchSelector selector{makeMatchConfig()};
+CASE("Matcher: present keyword with disallowed value does not match") {
+    auto space = makeMatchSpace();
 
     fdb5::Key key{{{"class", "od"}, {"expver", "0001"}, {"stream", "eefo"}, {"date", "20241118"}}};
-    EXPECT(!selector.match(key));
+    EXPECT(!space.match(key));
 }
 
-CASE("FileSpace::MatchSelector: missing keyword does not disqualify the space (FDB-331)") {
-    fdb5::FileSpace::MatchSelector selector{makeMatchConfig()};
+CASE("Matcher: missing keyword does not disqualify the space (FDB-331, MatchOnMissing)") {
+    auto space = makeMatchSpace();
 
     // No 'stream' keyword at all -- the partial request that broke fdb-list.
     fdb5::Key key{{{"class", "od"}, {"expver", "0001"}, {"date", "20241118"}, {"time", "0000"}}};
-    EXPECT(selector.match(key));
+    EXPECT(space.match(key));
 }
 
-CASE("FileSpace::MatchSelector: empty keyword value is treated as absent (FDB-331)") {
+CASE("Matcher: missing keyword disqualifies with DontMatchOnMissing") {
+    auto space = makeMatchSpace();
+
+    // The same partial key, but with DontMatchOnMissing — the absent
+    // 'stream' keyword now causes the space to be excluded.
+    fdb5::Key key{{{"class", "od"}, {"expver", "0001"}, {"date", "20241118"}, {"time", "0000"}}};
+    EXPECT(!space.match(key));
+}
+
+CASE("Matcher: empty keyword value is treated as absent (FDB-331)") {
     // Schema::matchDatabase() produces partial Keys whose absent dimensions
-    // are present-but-empty. The matcher must treat such placeholders as
-    // "absent", otherwise it would silently exclude the FileSpace.
-    fdb5::FileSpace::MatchSelector selector{makeMatchConfig()};
+    // are present-but-empty. The KeyAccessor treats such placeholders as
+    // "absent", so MatchOnMissing lets them through.
+    auto space = makeMatchSpace();
 
     fdb5::Key key;
     key.set("class", "od");
     key.set("expver", "0001");
     key.set("stream", "");  // <-- placeholder, not a real value
-    EXPECT(selector.match(key));
+    EXPECT(space.match(key));
 }
 
-CASE("FileSpace::MatchSelector: scalar value mismatch fails") {
-    fdb5::FileSpace::MatchSelector selector{makeMatchConfig()};
+CASE("Matcher: scalar value mismatch fails") {
+    auto space = makeMatchSpace();
 
     fdb5::Key key;
     key.set("class", "rd");
     key.set("expver", "0001");
-    EXPECT(!selector.match(key));
+    EXPECT(!space.match(key));
 }
 
-CASE("FileSpace::MatchSelector: empty key matches (no constraints can be violated)") {
-    fdb5::FileSpace::MatchSelector selector{makeMatchConfig()};
+CASE("Matcher: empty key matches with MatchOnMissing (no constraints can be violated)") {
+    auto space = makeMatchSpace();
 
     fdb5::Key key;
-    EXPECT(selector.match(key));
+    EXPECT(space.match(key));
 }
-
-// CASE("FileSpace::MatchSelector: empty matcher matches everything") {
-//     fdb5::FileSpace::MatchSelector selector;
-//     EXPECT(selector.empty());
-//
-//     fdb5::Key key;
-//     key.set("class", "od");
-//     key.set("stream", "oper");
-//     EXPECT(selector.match(key));
-// }
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -118,9 +123,8 @@ CASE("FileSpace: regex backend still works on stringified key") {
     EXPECT(!space.match(kRd));
 }
 
-CASE("FileSpace: match selector backend recovers partial requests") {
-    fdb5::FileSpace::MatchSelector match{makeMatchConfig()};
-    fdb5::FileSpace space("kw", match, "Default", {});
+CASE("FileSpace: matcher backend recovers partial requests") {
+    auto space = makeMatchSpace();
 
     fdb5::Key kFull{{{"class", "od"}, {"expver", "0001"}, {"stream", "oper"}}};
     EXPECT(space.match(kFull));
@@ -134,28 +138,31 @@ CASE("FileSpace: match selector backend recovers partial requests") {
 //----------------------------------------------------------------------------------------------------------------------
 // Input validation
 
-CASE("FileSpace::MatchSelector: keyword with empty value list throws UserError") {
+CASE("buildMatcher: keyword with empty value list throws UserError") {
     eckit::LocalConfiguration cfg;
     cfg.set("stream", std::vector<std::string>{});
-    EXPECT_THROWS_AS(fdb5::FileSpace::MatchSelector{cfg}, eckit::UserError);
+    EXPECT_THROWS_AS(fdb5::MatchSelector::buildMatcher(cfg), eckit::UserError);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 // Read YAML
 
-CASE("FileSpace::MatchSelector: builds correctly from YAML (mixed scalar + list)") {
+CASE("buildMatcher: builds correctly from YAML (mixed scalar + list)") {
     const std::string yaml =
         "class: od\n"
         "expver: '0001'\n"
         "stream: [scda, scwv, oper]\n";
-    eckit::YAMLConfiguration cfg{yaml};
-    fdb5::FileSpace::MatchSelector selector{eckit::LocalConfiguration{cfg}};
+    eckit::YAMLConfiguration yamlCfg{yaml};
+    eckit::LocalConfiguration cfg{yamlCfg};
+
+    auto matcher = fdb5::MatchSelector::buildMatcher(cfg);
+    fdb5::FileSpace space("yaml_test", std::move(matcher), "Default", {});
 
     fdb5::Key key{{{"class", "od"}, {"expver", "0001"}, {"stream", "oper"}}};
-    EXPECT(selector.match(key));
+    EXPECT(space.match(key));
 
     fdb5::Key keyOther{{{"class", "od"}, {"expver", "0001"}, {"stream", "eefo"}}};
-    EXPECT(!selector.match(keyOther));
+    EXPECT(!space.match(keyOther));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
