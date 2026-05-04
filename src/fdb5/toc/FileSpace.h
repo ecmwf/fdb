@@ -17,16 +17,15 @@
 #define fdb5_FileSpace_H
 
 #include <iosfwd>
-#include <map>
-#include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "eckit/types/Types.h"
-#include "eckit/utils/Regex.h"
-
 #include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/toc/FileSpaceSelector.h"
 #include "fdb5/toc/Root.h"
+#include "metkit/mars/Matcher.h"
 
 namespace eckit {
 class LocalConfiguration;
@@ -49,57 +48,12 @@ struct TocPath {
 
 class FileSpace {
 
-public:  // types
-
-    /// Keyword-based selector for FileSpace matching.
-    /// Unlike `regex:`, this allows partial requests (missing keywords) to match.
-    /// Configured from a YAML `match:` block.
-    ///
-    /// Example YAML:
-    ///   match:
-    ///     class: od
-    ///     expver: '0001'
-    ///     stream: [scda, scwv, oper, wave, enfo, waef]
-    ///
-    /// For each configured keyword:
-    ///   - If the input Key has that keyword (with a non-empty value), its value must match one of the configured
-    ///   values.
-    ///   - If the keyword is absent or empty in the Key, it is treated as a match.
-    ///
-    class MatchSelector {
-    public:  // methods
-
-        // MatchSelector() = default;
-
-        explicit MatchSelector(const eckit::LocalConfiguration& cfg);
-
-        bool empty() const { return entries_.empty(); }
-
-        /// @returns true if @p key is compatible with the configured constraints.
-        bool match(const Key& key) const;
-
-        void print(std::ostream& s) const;
-
-        friend std::ostream& operator<<(std::ostream& s, const MatchSelector& m) {
-            m.print(s);
-            return s;
-        }
-
-    private:  // members
-
-        std::map<std::string, std::vector<std::string>> entries_;
-    };
-
 public:  // methods
 
-    /// Construct a FileSpace using a regex to match the (stringified) key.
-    FileSpace(const std::string& name, const std::string& re, const std::string& handler,
+    FileSpace(const std::string& name, const std::string& regex, const std::string& handler,
               const std::vector<Root>& roots);
 
-    /// Construct a FileSpace using a keyword-based selector (FDB-331).
-    /// Prefer this form whenever the request may be partial: a missing
-    /// keyword in the incoming Key will not disqualify the FileSpace.
-    FileSpace(const std::string& name, const MatchSelector& matcher, const std::string& handler,
+    FileSpace(const std::string& name, metkit::mars::Matcher matcher, const std::string& handler,
               const std::vector<Root>& roots);
 
     /// Selects the filesystem from where this Key will be inserted
@@ -135,8 +89,7 @@ private:  // members
 
     std::string handler_;
 
-    eckit::Regex re_;
-    std::optional<MatchSelector> matcher_;
+    std::variant<RegexSelector, MatchSelector> selector_;
 
     RootVec roots_;
 };

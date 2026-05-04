@@ -543,8 +543,9 @@ FileSpaceTable RootManager::fileSpaces() {
 
             if (hasMatch) {
                 // FDB-331: missing keywords in a partial request will not silently exclude this file space.
-                FileSpace::MatchSelector matcher(space.getSubConfiguration("match"));
-                table.emplace_back(FileSpace(name, matcher, space.getString("handler", "Default"), spaceRoots));
+                auto matcher = MatchSelector::buildMatcher(space.getSubConfiguration("match"));
+                table.emplace_back(
+                    FileSpace(name, std::move(matcher), space.getString("handler", "Default"), spaceRoots));
             }
             else {
                 table.emplace_back(
@@ -623,6 +624,7 @@ TocPath RootManager::directory(const Key& key) {
     }
 
     // returns the first filespace that matches
+    // Write routing uses a full key — require all matcher keywords to be present.
 
     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end(); ++i) {
         if (i->match(key)) {
@@ -693,6 +695,7 @@ std::vector<eckit::PathName> RootManager::canArchiveRoots(const Key& key) {
 
     eckit::StringSet roots;
 
+    // Archive uses a full key — require all matcher keywords to be present.
     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end(); ++i) {
         if (i->match(key)) {
             i->enabled(ControlIdentifier::Archive, roots);
@@ -708,6 +711,7 @@ std::vector<eckit::PathName> RootManager::canMoveToRoots(const Key& key) {
 
     eckit::StringSet roots;
 
+    // Wipe uses a full key — require all matcher keywords to be present.
     for (FileSpaceTable::const_iterator i = spacesTable_.begin(); i != spacesTable_.end(); ++i) {
         if (i->match(key)) {
             i->enabled(ControlIdentifier::Wipe, roots);
