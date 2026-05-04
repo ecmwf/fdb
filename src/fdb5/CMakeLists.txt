@@ -296,6 +296,8 @@ if( HAVE_TOCFDB )
         toc/FieldRef.h
         toc/FileSpaceHandler.cc
         toc/FileSpaceHandler.h
+        toc/FileSpaceSelector.cc
+        toc/FileSpaceSelector.h
         toc/FileSpace.cc
         toc/FileSpace.h
         toc/ExpverFileSpaceHandler.cc

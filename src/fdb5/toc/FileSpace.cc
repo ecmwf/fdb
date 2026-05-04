@@ -33,82 +33,14 @@ struct VectorPrintSelector<fdb5::Root> {
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
-// MatchSelector
 
-FileSpace::MatchSelector::MatchSelector(const eckit::LocalConfiguration& cfg) {
-    for (const auto& keyword : cfg.keys()) {
-        std::vector<std::string> values;
-        if (cfg.isList(keyword)) {
-            values = cfg.getStringVector(keyword);
-        }
-        else {
-            values.emplace_back(cfg.getString(keyword));
-        }
-        // empty values would be meaningless (would never match a present keyword)
-        if (values.empty()) {
-            std::ostringstream oss;
-            oss << "FileSpace match: keyword '" << keyword << "' has no values";
-            throw eckit::UserError(oss.str(), Here());
-        }
-        entries_.emplace(keyword, std::move(values));
-    }
-}
-
-bool FileSpace::MatchSelector::match(const Key& key) const {
-    for (const auto& [keyword, allowed] : entries_) {
-        const auto [iter, found] = key.find(keyword);
-        if (!found || iter->second.empty()) {
-            // FDB-331: a keyword absent from the request is simply ambiguous on that dimension
-            // and we let the caller visit the space.
-            continue;
-        }
-        const auto& value = iter->second;
-        bool ok = false;
-        for (const auto& candidate : allowed) {
-            if (candidate == value) {
-                ok = true;
-                break;
-            }
-        }
-        if (!ok) {
-            return false;
-        }
-    }
-    return true;
-}
-
-void FileSpace::MatchSelector::print(std::ostream& s) const {
-    s << "{";
-    const char* sep = "";
-    for (const auto& [keyword, allowed] : entries_) {
-        s << sep << keyword << "=";
-        if (allowed.size() == 1) {
-            s << allowed.front();
-        }
-        else {
-            s << "[";
-            const char* vsep = "";
-            for (const auto& value : allowed) {
-                s << vsep << value;
-                vsep = ",";
-            }
-            s << "]";
-        }
-        sep = ",";
-    }
-    s << "}";
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-// FileSpace
-
-FileSpace::FileSpace(const std::string& name, const std::string& re, const std::string& handler,
+FileSpace::FileSpace(const std::string& name, const std::string& regex, const std::string& handler,
                      const std::vector<Root>& roots) :
-    name_(name), handler_(handler), re_(re), roots_(roots) {}
+    name_{name}, handler_{handler}, selector_{RegexSelector{eckit::Regex{regex}}}, roots_{roots} {}
 
-FileSpace::FileSpace(const std::string& name, const MatchSelector& matcher, const std::string& handler,
+FileSpace::FileSpace(const std::string& name, metkit::mars::Matcher matcher, const std::string& handler,
                      const std::vector<Root>& roots) :
-    name_(name), handler_(handler), matcher_(matcher), roots_(roots) {}
+    name_{name}, handler_{handler}, selector_{MatchSelector{std::move(matcher)}}, roots_{roots} {}
 
 TocPath FileSpace::filesystem(const Config& config, const Key& key, const eckit::PathName& db) const {
     // check that the database isn't present already
@@ -153,14 +85,10 @@ void FileSpace::enabled(const ControlIdentifier& controlIdentifier, eckit::Strin
 }
 
 bool FileSpace::match(const Key& key) const {
-    if (matcher_) {
-        return matcher_->match(key);
-    }
-    return re_.match(key.valuesToString());
+    return std::visit([&](const auto& s) { return s.match(key); }, selector_);
 }
 
 eckit::PathName getFullDB(const eckit::PathName& path, const std::string& db) {
-
     static bool searchCaseSensitiveDB =
         eckit::Resource<bool>("fdbSearchCaseSensitiveDB;$FDB_SEARCH_CASESENSITIVE_DB", true);
 
@@ -233,12 +161,7 @@ bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, TocPath& exi
 void FileSpace::print(std::ostream& out) const {
     out << "FileSpace("
         << "name=" << name_ << ",handler=" << handler_;
-    if (matcher_) {
-        out << ",match=" << *matcher_;
-    }
-    else {
-        out << ",regex=" << re_;
-    }
+    std::visit([&out](const auto& s) { out << ",selector=" << s; }, selector_);
     out << ",roots=" << roots_ << ")";
 }
 
