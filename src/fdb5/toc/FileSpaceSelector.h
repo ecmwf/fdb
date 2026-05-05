@@ -16,7 +16,6 @@
 
 #include <iosfwd>
 
-#include "eckit/config/LocalConfiguration.h"
 #include "eckit/utils/Regex.h"
 #include "metkit/mars/Matcher.h"
 
@@ -27,15 +26,16 @@ class Key;
 //----------------------------------------------------------------------------------------------------------------------
 
 class FileSpaceSelector {
-
 public:  // methods
 
     virtual ~FileSpaceSelector() = default;
+
     virtual bool match(const Key& key) const = 0;
 
 private:  // methods
 
     virtual void print(std::ostream& out) const = 0;
+
     friend std::ostream& operator<<(std::ostream& out, const FileSpaceSelector& selector) {
         selector.print(out);
         return out;
@@ -44,9 +44,8 @@ private:  // methods
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// A FileSpaceSelector that uses a regex to match against the serialised key.
+/// uses a regex to match against the serialised key.
 class RegexSelector : public FileSpaceSelector {
-
 public:  // methods
 
     RegexSelector(eckit::Regex regex);
@@ -63,13 +62,8 @@ private:  // members
 };
 
 //----------------------------------------------------------------------------------------------------------------------
-// A FileSpaceSelector that uses a metkit::mars::Matcher to match against the key. This allows for more structured
-// matching based on the individual key components, rather than the serialised key as a whole (as with RegexSelector).
+// uses a metkit::mars::Matcher to match against the fdb5::Key.
 class MatchSelector : public FileSpaceSelector {
-public:  // factory
-
-    static metkit::mars::Matcher buildMatcher(const eckit::LocalConfiguration& cfg);
-
 public:  // methods
 
     MatchSelector(metkit::mars::Matcher matcher);

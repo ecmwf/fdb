@@ -462,7 +462,10 @@ static FileSpaceTable parseFileSpacesFile(const eckit::PathName& fdbHome) {
                     throw UserError(oss.str(), Here());
                 }
 
-                table.push_back(FileSpace(filespace, regex, handler, roots));
+                eckit::LocalConfiguration cfg;
+                cfg.set("regex", regex);
+                cfg.set("handler", handler);
+                table.push_back(FileSpace(filespace, cfg, roots));
                 break;
             }
 
@@ -504,7 +507,7 @@ FileSpaceTable RootManager::fileSpaces() {
         spaceRoots.emplace_back(Root(fdbRootDirectory, "", true, true, true, true));
 
         FileSpaceTable table;
-        table.emplace_back(FileSpace("", ".*", "Default", spaceRoots));
+        table.emplace_back("", eckit::LocalConfiguration{}, spaceRoots);
 
         return table;
     }
@@ -532,25 +535,14 @@ FileSpaceTable RootManager::fileSpaces() {
                 }
             }
 
-            const auto hasMatch = space.has("match");
-            const auto hasRegex = space.has("regex");
-            if (hasMatch && hasRegex) {
+            if (space.has("match") && space.has("regex")) {
                 std::ostringstream oss;
                 oss << "FDB roots config: file space '" << name
                     << "' specifies both 'regex' and 'match'; only one is allowed";
                 throw eckit::UserError(oss.str(), Here());
             }
 
-            if (hasMatch) {
-                // FDB-331: missing keywords in a partial request will not silently exclude this file space.
-                auto matcher = MatchSelector::buildMatcher(space.getSubConfiguration("match"));
-                table.emplace_back(
-                    FileSpace(name, std::move(matcher), space.getString("handler", "Default"), spaceRoots));
-            }
-            else {
-                table.emplace_back(
-                    FileSpace(name, space.getString("regex", ".*"), space.getString("handler", "Default"), spaceRoots));
-            }
+            table.emplace_back(name, space, spaceRoots);
         }
         return table;
     }
