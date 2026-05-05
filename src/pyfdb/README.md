@@ -42,7 +42,7 @@ export FDB_HOME=<path_to_fdb_home>
 
 ## Documentation
 
-For implementation details and tooling, see the [FDB project pages](https://fields-database.readthedocs.io/en/latest/index.html).
+For implementation details and tooling, see the [FDB project pages](https://sites.ecmwf.int/docs/fdb).
 
 To build the latest documentation locally, follow the guide at [FDB](https://github.com/ecmwf/fdb).
 
