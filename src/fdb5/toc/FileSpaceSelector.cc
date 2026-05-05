@@ -23,8 +23,7 @@ namespace fdb5 {
 namespace {
 
 /// Adapts fdb5::Key to metkit::mars::RequestLike for use with Matcher.
-/// Empty values are treated as absent so that Schema::matchDatabase()
-/// placeholders do not accidentally disqualify a FileSpace.
+/// Empty values are treated as absent.
 class PartialKeyAdapter : public metkit::mars::RequestLike {
 public:
 
@@ -59,38 +58,7 @@ void RegexSelector::print(std::ostream& out) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-metkit::mars::Matcher MatchSelector::buildMatcher(const eckit::LocalConfiguration& cfg) {
-    std::map<std::string, eckit::Regex> regexMap;
-    for (const auto& keyword : cfg.keys()) {
-        std::string pattern;
-        if (cfg.isList(keyword)) {
-            auto values = cfg.getStringVector(keyword);
-            if (values.empty()) {
-                std::ostringstream oss;
-                oss << "FileSpace match: keyword '" << keyword << "' has no values";
-                throw eckit::UserError(oss.str(), Here());
-            }
-            pattern = "^(";
-            const char* sep = "";
-            for (const auto& v : values) {
-                pattern += sep;
-                pattern += v;
-                sep = "|";
-            }
-            pattern += ")$";
-        }
-        else {
-            pattern = "^(" + cfg.getString(keyword) + ")$";
-        }
-        regexMap.emplace(keyword, eckit::Regex(pattern));
-    }
-
-    return metkit::mars::Matcher(std::move(regexMap), metkit::mars::Matcher::Policy::All);
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
-MatchSelector::MatchSelector(Matcher matcher) : matcher_{std::move(matcher)} {}
+MatchSelector::MatchSelector(metkit::mars::Matcher matcher) : matcher_{std::move(matcher)} {}
 
 bool MatchSelector::match(const Key& key) const {
     return matcher_.match(PartialKeyAdapter(key), Matcher::MatchOnMissing);
