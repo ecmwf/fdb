@@ -21,15 +21,11 @@
 #include <variant>
 #include <vector>
 
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/types/Types.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/toc/FileSpaceSelector.h"
 #include "fdb5/toc/Root.h"
-#include "metkit/mars/Matcher.h"
-
-namespace eckit {
-class LocalConfiguration;
-}
 
 namespace fdb5 {
 
@@ -50,11 +46,7 @@ class FileSpace {
 
 public:  // methods
 
-    FileSpace(const std::string& name, const std::string& regex, const std::string& handler,
-              const std::vector<Root>& roots);
-
-    FileSpace(const std::string& name, metkit::mars::Matcher matcher, const std::string& handler,
-              const std::vector<Root>& roots);
+    FileSpace(const std::string& name, const eckit::LocalConfiguration& space, const std::vector<Root>& roots);
 
     /// Selects the filesystem from where this Key will be inserted
     /// @note This method must be idempotent -- it returns always the same value after the first call

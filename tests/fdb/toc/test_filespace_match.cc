@@ -31,19 +31,21 @@ namespace {
 
 eckit::LocalConfiguration makeMatchConfig() {
     // Equivalent YAML:
-    //   class: od
-    //   expver: '0001'
-    //   stream: [scda, scwv, oper, wave, enfo, waef]
+    //   match:
+    //     class: od
+    //     expver: '0001'
+    //     stream: [scda, scwv, oper, wave, enfo, waef]
+    eckit::LocalConfiguration match;
+    match.set("class", "od");
+    match.set("expver", std::string{"0001"});
+    match.set("stream", std::vector<std::string>{"scda", "scwv", "oper", "wave", "enfo", "waef"});
     eckit::LocalConfiguration cfg;
-    cfg.set("class", "od");
-    cfg.set("expver", std::string{"0001"});
-    cfg.set("stream", std::vector<std::string>{"scda", "scwv", "oper", "wave", "enfo", "waef"});
+    cfg.set("match", match);
     return cfg;
 }
 
 fdb5::FileSpace makeMatchSpace() {
-    auto cfg = makeMatchConfig();
-    return fdb5::FileSpace("kw", fdb5::MatchSelector::buildMatcher(cfg), "Default", {});
+    return fdb5::FileSpace("kw", makeMatchConfig(), {});
 }
 
 }  // namespace
@@ -114,7 +116,10 @@ CASE("Matcher: empty key matches with MatchOnMissing (no constraints can be viol
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("FileSpace: regex backend still works on stringified key") {
-    fdb5::FileSpace space("regex_only", "^od:(0001):.*", "Default", {});
+    eckit::LocalConfiguration cfg;
+    cfg.set("regex", std::string{"^od:(0001):.*"});
+    cfg.set("handler", std::string{"Default"});
+    fdb5::FileSpace space("regex_only", cfg, {});
 
     fdb5::Key key{{{"class", "od"}, {"expver", "0001"}, {"stream", "oper"}}};
     EXPECT(space.match(key));
@@ -139,9 +144,11 @@ CASE("FileSpace: matcher backend recovers partial requests") {
 // Input validation
 
 CASE("buildMatcher: keyword with empty value list throws UserError") {
+    eckit::LocalConfiguration match;
+    match.set("stream", std::vector<std::string>{});
     eckit::LocalConfiguration cfg;
-    cfg.set("stream", std::vector<std::string>{});
-    EXPECT_THROWS_AS(fdb5::MatchSelector::buildMatcher(cfg), eckit::UserError);
+    cfg.set("match", match);
+    EXPECT_THROWS_AS(fdb5::FileSpace("test", cfg, {}), eckit::UserError);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -149,14 +156,14 @@ CASE("buildMatcher: keyword with empty value list throws UserError") {
 
 CASE("buildMatcher: builds correctly from YAML (mixed scalar + list)") {
     const std::string yaml =
-        "class: od\n"
-        "expver: '0001'\n"
-        "stream: [scda, scwv, oper]\n";
+        "match:\n"
+        "  class: od\n"
+        "  expver: '0001'\n"
+        "  stream: [scda, scwv, oper]\n";
     eckit::YAMLConfiguration yamlCfg{yaml};
     eckit::LocalConfiguration cfg{yamlCfg};
 
-    auto matcher = fdb5::MatchSelector::buildMatcher(cfg);
-    fdb5::FileSpace space("yaml_test", std::move(matcher), "Default", {});
+    fdb5::FileSpace space("yaml_test", cfg, {});
 
     fdb5::Key key{{{"class", "od"}, {"expver", "0001"}, {"stream", "oper"}}};
     EXPECT(space.match(key));
