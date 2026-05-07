@@ -32,8 +32,8 @@ public:  // methods
 
     std::string toKey(const std::string& value) const override;
 
-    virtual void getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                           eckit::StringList& values, const Notifier& wind, const CatalogueReader* cat) const override;
+    void getValues(const metkit::mars::MarsRequest& request, const std::string& keyword, eckit::StringList& values,
+                   const CatalogueReader* cat) const override;
 
 private:  // methods
 

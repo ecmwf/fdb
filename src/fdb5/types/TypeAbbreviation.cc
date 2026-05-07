@@ -30,7 +30,7 @@ std::string TypeAbbreviation::toKey(const std::string& value) const {
 }
 
 void TypeAbbreviation::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                                 eckit::StringList& values, const Notifier&, const CatalogueReader*) const {
+                                 eckit::StringList& values, const CatalogueReader*) const {
     std::vector<std::string> vals;
 
     request.getValues(keyword, vals, true);

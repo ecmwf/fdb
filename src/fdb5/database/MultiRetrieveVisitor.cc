@@ -26,9 +26,9 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-MultiRetrieveVisitor::MultiRetrieveVisitor(const Notifier& wind, InspectIterator& iterator,
-                                           eckit::CacheLRU<Key, CatalogueReader*>& databases, const Config& config) :
-    ReadVisitor(wind), databases_(databases), iterator_(iterator), config_(config) {}
+MultiRetrieveVisitor::MultiRetrieveVisitor(InspectIterator& iterator, eckit::CacheLRU<Key, CatalogueReader*>& databases,
+                                           const Config& config) :
+    databases_(databases), iterator_(iterator), config_(config) {}
 
 MultiRetrieveVisitor::~MultiRetrieveVisitor() {}
 

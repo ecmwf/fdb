@@ -16,3 +16,7 @@ compile_commands.json
 __pycache__/
 
 *.swp
+
+# Rust
+rust/target/
+rust/Cargo.lock
