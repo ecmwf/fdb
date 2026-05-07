@@ -65,15 +65,23 @@ if (HAVE_PYTHON_FDB_INTERFACE)
         "${CMAKE_CURRENT_SOURCE_DIR}/pyfdb"
         "${PYFDB_STAGING}/pyfdb" SYMBOLIC
     )
-    file(COPY
-        "${CMAKE_CURRENT_SOURCE_DIR}/pyfdb/README.md"
-        DESTINATION
-        ${PYFDB_STAGING} 
+    # Copy README.md and LICENSE at build time so changes are picked up
+    # without needing to re-run cmake configure
+    add_custom_command(
+        OUTPUT ${PYFDB_STAGING}/README.md
+        COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_CURRENT_SOURCE_DIR}/pyfdb/README.md"
+            "${PYFDB_STAGING}/README.md"
+        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/pyfdb/README.md"
+        COMMENT "Copying pyfdb README.md to staging..."
     )
-    file(COPY
-        "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
-        DESTINATION
-        ${PYFDB_STAGING}
+    add_custom_command(
+        OUTPUT ${PYFDB_STAGING}/LICENSE
+        COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
+            "${PYFDB_STAGING}/LICENSE"
+        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
+        COMMENT "Copying LICENSE to staging..."
     )
     configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/pyfdb_setup.py.in
@@ -92,7 +100,7 @@ if (HAVE_PYTHON_FDB_INTERFACE)
         "pyfdb/_internal/*.py"
     )
     list(APPEND _pyfdb_package_files
-        "${CMAKE_CURRENT_SOURCE_DIR}/../README.md"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pyfdb/README.md"
         "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
     )
     add_custom_command(
@@ -101,6 +109,7 @@ if (HAVE_PYTHON_FDB_INTERFACE)
         COMMAND ${CMAKE_COMMAND} -E touch pyfdb.wheel.stamp
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         DEPENDS ${_pyfdb_package_files} pyfdb_bindings
+                ${PYFDB_STAGING}/README.md ${PYFDB_STAGING}/LICENSE
         COMMENT "Building Python wheel for pyfdb..."
     )
     add_custom_target(pyfdb-wheel ALL DEPENDS ${CMAKE_BINARY_DIR}/pyfdb.wheel.stamp)
