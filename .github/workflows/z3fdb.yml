@@ -29,7 +29,7 @@ jobs:
       - name: Install dependencies
         run: |
           mkdir cxx-dependencies-build
-          BUILD_PATH=cxx-dependencies-build INSTALL_PREFIX=dependencies cxx-dependencies-src/build.sh
+          cxx-dependencies-src/build.sh --build-path cxx-dependencies-build --install-path dependencies  --with-deps libaec,pybind11
       - name: Get eccodes
         uses: actions/checkout@v5
         with:
