@@ -16,12 +16,13 @@
 
 #include "fdb5/api/FDBFactory.h"
 
+#include "eckit/config/Resource.h"
 #include "eckit/log/Log.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/Mutex.h"
 
 #include "fdb5/LibFdb5.h"
-
+#include "fdb5/remote/client/ReadLimiter.h"
 
 namespace fdb5 {
 
@@ -46,6 +47,16 @@ FDBBase::FDBBase(const Config& config, const std::string& name) : name_(name), c
     }
 
     LOG_DEBUG_LIB(LibFdb5) << "FDBBase: " << config << std::endl;
+
+
+    /// @note: We must instantiate the ReadLimiter before any RemoteStores due to their static initialisation.
+    /// @todo: this may change in future.
+    static size_t memoryLimit = eckit::Resource<size_t>(
+        "$FDB_READ_LIMIT;fdbReadLimit",
+        config_.userConfig().getUnsigned("limits.read", size_t(1) * 1024 * 1024 * 1024));  // 1GiB
+    remote::ReadLimiter::init(memoryLimit);
+
+    LOG_DEBUG_LIB(LibFdb5) << "ReadLimiter initialized: " << memoryLimit << std::endl;
 }
 
 const std::string& FDBBase::name() const {
