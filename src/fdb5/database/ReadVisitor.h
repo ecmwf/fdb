@@ -38,7 +38,7 @@ class ReadVisitor {
 
 public:  // methods
 
-    ReadVisitor(const Notifier& wind) : wind_(wind) {}
+    ReadVisitor() {}
 
     ReadVisitor(const ReadVisitor&) = delete;
     ReadVisitor& operator=(const ReadVisitor&) = delete;
@@ -66,10 +66,6 @@ protected:  // methods
 protected:  // members
 
     CatalogueReader* catalogue_{};
-
-private:  // members
-
-    const Notifier& wind_;
 
     friend std::ostream& operator<<(std::ostream& s, const ReadVisitor& x) {
         x.print(s);

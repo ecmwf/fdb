@@ -15,7 +15,7 @@ void ReadVisitor::values(const metkit::mars::MarsRequest& request, const std::st
                          const TypesRegistry& registry, eckit::StringList& values) {
     const auto& type = registry.lookupType(keyword);
     eckit::StringList list;
-    type.getValues(request, keyword, list, wind_, catalogue_);
+    type.getValues(request, keyword, list, catalogue_);
 
     std::optional<std::reference_wrapper<const eckit::DenseSet<std::string>>> filter;
     if (catalogue_) {
