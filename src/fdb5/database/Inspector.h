@@ -40,7 +40,6 @@ class Key;
 class Op;
 class CatalogueReader;
 class Schema;
-class Notifier;
 class FDBToolRequest;
 class EntryVisitor;
 
@@ -79,12 +78,6 @@ public:  // methods
 
     ListIterator inspect(const metkit::mars::MarsRequest& request) const;
 
-    /// Retrieves the data selected by the MarsRequest to the provided DataHandle
-    /// @param notifyee is an object that handles notifications for the client, e.g. wind conversion
-    /// @returns  data handle to read from
-
-    ListIterator inspect(const metkit::mars::MarsRequest& request, const Notifier& notifyee) const;
-
     /// Give read access to a range of entries according to a request
 
     void visitEntries(const FDBToolRequest& request, EntryVisitor& visitor) const;
@@ -97,9 +90,6 @@ public:  // methods
 private:  // methods
 
     void print(std::ostream& out) const;
-
-    ListIterator inspect(const metkit::mars::MarsRequest& request, const Schema& schema,
-                         const Notifier& notifyee) const;
 
 private:  // data
 
