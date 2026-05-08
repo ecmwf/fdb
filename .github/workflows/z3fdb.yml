@@ -18,18 +18,18 @@ jobs:
           repository: ecmwf/ecbuild
           ref: develop
           path: ecbuild
-      - name: Get cxx-dependencies
+      - name: Get stack-dependencies
         uses: actions/checkout@v5
         with:
-          repository: ecmwf/cxx-dependencies
+          repository: ecmwf/stack-dependencies
           ref: master
-          path: cxx-dependencies-src
+          path: stack-dependencies-src
           token: ${{ secrets.GH_REPO_READ_TOKEN }}
           submodules: recursive
       - name: Install dependencies
         run: |
-          mkdir cxx-dependencies-build
-          cxx-dependencies-src/build.sh --build-path cxx-dependencies-build --install-path dependencies  --with-deps libaec,pybind11
+          mkdir stack-dependencies-build
+          stack-dependencies-src/build.sh --build-path stack-dependencies-build --install-path dependencies  --with-deps libaec,pybind11
       - name: Get eccodes
         uses: actions/checkout@v5
         with:
