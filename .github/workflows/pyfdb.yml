@@ -1,12 +1,28 @@
 name: Build and Test PyFDB
 
 on:
-  pull_request:
-  workflow_dispatch:  # Allows manual trigger
+  # Trigger the workflow on push to master or develop, except tag creation
+  push:
+    branches:
+      - 'master'
+      - 'develop'
+    tags-ignore:
+      - '**'
+
+  # Trigger the workflow on pull request
+  pull_request: ~
+
+  # Trigger the workflow manually
+  workflow_dispatch: ~
+
+  # Trigger after public PR approved for CI
+  pull_request_target:
+    types: [labeled]
 
 jobs:
   prepare-deps:
     runs-on: ubuntu-latest
+    if: ${{ (success() || failure()) && (!github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci') }}
     steps:
       - name: Get ecbuild
         uses: actions/checkout@v5
@@ -90,6 +106,7 @@ jobs:
   build-wheels:
     needs: prepare-deps
     runs-on: ubuntu-latest
+    if: ${{ (success() || failure()) && (!github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci') }}
     strategy:
       matrix:
         python-version: ['3.11', '3.12', '3.13'] # eccodes does not yet support 3.14
