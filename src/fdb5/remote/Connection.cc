@@ -1,9 +1,16 @@
+#include "eckit/exception/Exceptions.h"
 #include "eckit/io/Buffer.h"
+#include "eckit/log/CodeLocation.h"
 #include "eckit/log/Log.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <mutex>
+#include <ostream>
+#include <sstream>
 #include <string_view>
+#include "eckit/net/TCPSocket.h"
+#include "eckit/types/FixedString.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
@@ -15,9 +22,8 @@ namespace fdb5::remote {
 Connection::Connection() : single_(false) {}
 
 void Connection::teardown() {
-    closingSocket_ = true;
-
-    if (!valid()) {
+    // mark and bail out (avoid multiple exits)
+    if (closingSocket_.exchange(true)) {
         return;
     }
 
@@ -77,21 +83,24 @@ bool Connection::readUnsafe(const eckit::net::TCPSocket& socket, void* data, siz
 }
 
 eckit::Buffer Connection::read(bool control, MessageHeader& hdr) const {
-    const auto& socket = getSocket(control);
-    eckit::FixedString<4> tail;
-    hdr.payloadSize = 0;
-    if (readUnsafe(socket, &hdr, sizeof(hdr))) {
-        ASSERT(hdr.marker == MessageHeader::StartMarker);
-        ASSERT(hdr.version == MessageHeader::currentVersion);
-        ASSERT(single_ || hdr.control() == control);
 
-        eckit::Buffer payload{hdr.payloadSize};
-        if ((hdr.payloadSize == 0 || readUnsafe(socket, payload, hdr.payloadSize))
-            // Ensure we have consumed exactly the correct amount from the socket.
-            && readUnsafe(socket, &tail, sizeof(tail))) {
+    if (isValid_) {
+        const auto& socket = getSocket(control);
+        eckit::FixedString<4> tail;
+        hdr.payloadSize = 0;
+        if (readUnsafe(socket, &hdr, sizeof(hdr))) {
+            ASSERT(hdr.marker == MessageHeader::StartMarker);
+            ASSERT(hdr.version == MessageHeader::currentVersion);
+            ASSERT(single_ || hdr.control() == control);
 
-            ASSERT(tail == MessageHeader::EndMarker);
-            return payload;
+            eckit::Buffer payload{hdr.payloadSize};
+            if ((hdr.payloadSize == 0 || readUnsafe(socket, payload, hdr.payloadSize))
+                // Ensure we have consumed exactly the correct amount from the socket.
+                && readUnsafe(socket, &tail, sizeof(tail))) {
+
+                ASSERT(tail == MessageHeader::EndMarker);
+                return payload;
+            }
         }
     }
 
@@ -118,6 +127,9 @@ void Connection::write(const Message msg, const bool control, const uint32_t cli
                            << ",requestID=" << requestID << ",payloadsSize=" << payloads.size()
                            << ",payloadLength=" << payloadLength << "]" << std::endl;
 
+    if (!isValid_) {
+        throw TCPException("Connection is no longer valid", Here());
+    }
 
     writeUnsafe(socket, &message, sizeof(message));
 
