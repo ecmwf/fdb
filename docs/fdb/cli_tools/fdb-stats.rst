@@ -77,7 +77,7 @@ The --details flag prints a report per database that is visited, as well as the 
   Size of fields                  : 20,784,601,728 (19.3572 Gbytes)
   Duplicated fields               : 6,240
   Size of duplicates              : 20,469,683,520 (19.0639 Gbytes)
-  Reachable fields               : 96
+  Reachable fields                : 96
   Reachable size                  : 314,918,208 (300.329 Mbytes)
   TOC records                     : 268
   Size of TOC files               : 274,432 (268 Kbytes)
