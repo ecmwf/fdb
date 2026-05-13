@@ -186,6 +186,7 @@ private:  // members
     // complete, errored or otherwise killed, it needs to be removed from the map.
     // The shared_ptr allows this removal to be asynchronous with the actual task
     // cleaning up and returning to the client.
+    /// @note `messageQueues_` is never populated; it's a dead code.
     std::map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
     std::map<uint32_t, std::shared_ptr<MessageQueue>> retrieveMessageQueues_;
 
