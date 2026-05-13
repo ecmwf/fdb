@@ -69,8 +69,14 @@ void Client::refreshConnection() {
     connection_->add(*this);
 }
 
+void Client::deregister() {
+    if (!deregistered_.exchange(true)) {
+        connection_->remove(id_);
+    }
+}
+
 Client::~Client() {
-    connection_->remove(id_);
+    deregister();
 }
 
 void Client::controlWriteCheckResponse(const Message msg, const uint32_t requestID, const bool dataListener,
