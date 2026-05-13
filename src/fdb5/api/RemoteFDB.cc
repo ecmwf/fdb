@@ -226,6 +226,10 @@ RemoteFDB::~RemoteFDB() {
     deregister();
 }
 
+RemoteFDB::~RemoteFDB() {
+    deregister();
+}
+
 // -----------------------------------------------------------------------------------------------------
 
 // forwardApiCall captures the asynchronous behaviour:
