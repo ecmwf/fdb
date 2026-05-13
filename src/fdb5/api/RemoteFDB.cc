@@ -226,6 +226,10 @@ RemoteFDB::RemoteFDB(const Configuration& config, const std::string& name) : Loc
     ReadLimiter::init(memoryLimit);
 }
 
+RemoteFDB::~RemoteFDB() {
+    deregister();
+}
+
 // -----------------------------------------------------------------------------------------------------
 
 // forwardApiCall captures the asynchronous behaviour:

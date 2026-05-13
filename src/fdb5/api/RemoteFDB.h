@@ -41,7 +41,7 @@ public:  // types
 public:  // method
 
     RemoteFDB(const eckit::Configuration& config, const std::string& name);
-    ~RemoteFDB() override {}
+    ~RemoteFDB() override;
 
     ListIterator inspect(const metkit::mars::MarsRequest& request) override;
 
