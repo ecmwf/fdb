@@ -4,8 +4,12 @@ Introduction
 
 |Licence|
 
-FDB (Fields DataBase) is a domain-specific object store developed at ECMWF for storing, indexing and retrieving meteorological data. The data objects to be stored should be self-describing (messages), and are stored and indexed according to their semantic metadata (such as 'atmospheric level' or 'physical parameter').
-A set of fields can be retrieved specifying a request using a specific language developed for accessing :doc:`mars` Archive.
+The FDB (Fields DataBase) is a domain-specific object store developed at ECMWF for storing,
+indexing and retrieving meteorological data. The data objects to be stored should be
+self-describing (messages), and are stored and indexed according to their semantic
+metadata (such as 'atmospheric level' or 'physical parameter'). A set of messages can
+be retrieved specifying a request using a specific language developed for accessing
+the MARS Archive.
 
 FDB exposes a C++ API as well as CLI :doc:`../cli_tools/index`.
 

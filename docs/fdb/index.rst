@@ -5,11 +5,12 @@ Fields DataBase - FDB Documentation
 
 :Version: |version|
 
-The FDB is a domain-specific object store developed at ECMWF for
-storing, indexing and retrieving GRIB data. Each GRIB message is stored as a
-field and indexed through semantic metadata (i.e. physical variables such as
-temperature, pressure, …). A set of fields can be retrieved specifying a
-request using a specific language developed for accessing MARS Archive.
+The FDB (Fields DataBase) is a domain-specific object store developed at ECMWF for storing,
+indexing and retrieving meteorological data. The data objects to be stored should be
+self-describing (messages), and are stored and indexed according to their semantic
+metadata (such as 'atmospheric level' or 'physical parameter'). A set of messages can
+be retrieved specifying a request using a specific language developed for accessing
+the MARS Archive.
 
 .. index:: Contents
 
