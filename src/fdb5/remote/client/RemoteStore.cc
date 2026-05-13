@@ -234,6 +234,8 @@ RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
 }
 
 RemoteStore::~RemoteStore() {
+    deregister();
+
     // If we have launched a thread with an async and we manage to get here, this is
     // an error. n.b. if we don't do something, we will block in the destructor
     // of std::future.

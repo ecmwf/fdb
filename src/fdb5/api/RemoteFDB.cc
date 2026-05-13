@@ -231,6 +231,10 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
     ReadLimiter::init(memoryLimit);
 }
 
+RemoteFDB::~RemoteFDB() {
+    deregister();
+}
+
 // -----------------------------------------------------------------------------------------------------
 
 // forwardApiCall captures the asynchronous behaviour:
