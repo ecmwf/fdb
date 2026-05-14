@@ -30,9 +30,9 @@ namespace local {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue, const metkit::mars::MarsRequest& request, bool doit,
-                           bool porcelain) :
-    QueryVisitor<PurgeElement>(queue, request),
+PurgeVisitor::PurgeVisitor(eckit::Queue<PurgeElement>& queue, const metkit::mars::MarsRequest& request,
+                           const std::string& tracingID, bool doit, bool porcelain) :
+    QueryVisitor<PurgeElement>(queue, request, tracingID),
     out_(new QueueStringLogTarget(queue)),
     doit_(doit),
     porcelain_(porcelain) {}

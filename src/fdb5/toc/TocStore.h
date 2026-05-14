@@ -51,7 +51,7 @@ public:  // methods
     std::set<eckit::URI> asCollocatedDataURIs(const std::set<eckit::URI>&) const override;
 
     bool open() override { return true; }
-    size_t flush() override;
+    size_t flush(const std::string& tracingID) override;
     void close() override;
 
     void checkUID() const override { TocCommon::checkUID(); }

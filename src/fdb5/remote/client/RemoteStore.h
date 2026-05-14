@@ -125,7 +125,7 @@ public:  // methods
     static eckit::URI uri(const eckit::URI& dataURI);
 
     bool open() override;
-    size_t flush() override;
+    size_t flush(const std::string& tracingID) override;
     void close() override;
 
     void checkUID() const override {}

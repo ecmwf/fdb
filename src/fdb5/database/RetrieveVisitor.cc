@@ -21,7 +21,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RetrieveVisitor::RetrieveVisitor(HandleGatherer& gatherer) : gatherer_(gatherer) {}
+RetrieveVisitor::RetrieveVisitor(HandleGatherer& gatherer, const std::string& tracingID) :
+    ReadVisitor(tracingID), gatherer_(gatherer) {}
 
 // From Visitor
 
@@ -63,7 +64,7 @@ bool RetrieveVisitor::selectDatum(const Key& datumKey, const Key& /*fullKey*/) {
 
     Field field;
     eckit::DataHandle* dh = nullptr;
-    if (catalogue_->retrieve(datumKey, field)) {
+    if (catalogue_->retrieve(datumKey, field, tracingID_)) {
         dh = store().retrieve(field);
     }
 

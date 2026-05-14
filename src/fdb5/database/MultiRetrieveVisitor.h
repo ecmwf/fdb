@@ -37,7 +37,7 @@ class MultiRetrieveVisitor : public ReadVisitor {
 public:  // methods
 
     MultiRetrieveVisitor(InspectIterator& queue, eckit::CacheLRU<Key, CatalogueReader*>& databases,
-                         const Config& config);
+                         const Config& config, const std::string& tracingID);
 
     ~MultiRetrieveVisitor();
 

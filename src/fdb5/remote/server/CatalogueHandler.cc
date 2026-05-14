@@ -189,7 +189,7 @@ template <typename ValueType>
 struct BaseHelper {
     virtual size_t encodeBufferSize(const ValueType&) const { return 4096; }
     void extraDecode(eckit::Stream&) {}
-    ValueType apiCall(FDB&, const FDBToolRequest&) const { NOTIMP; }
+    ValueType apiCall(FDB&, const FDBToolRequest&, const std::string&) const { NOTIMP; }
 
     struct Encoded {
         size_t position;
@@ -205,7 +205,9 @@ struct BaseHelper {
 };
 
 struct ListHelper : public BaseHelper<ListElement> {
-    ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const { return fdb.list(request, false, depth_); }
+    ListIterator apiCall(FDB& fdb, const FDBToolRequest& request, const std::string& tracingID) const {
+        return fdb.list(request, ListMode::Full, tracingID, depth_);
+    }
 
     void extraDecode(eckit::Stream& s) { s >> depth_; }
 
@@ -218,7 +220,9 @@ struct AxesHelper : public BaseHelper<AxesElement> {
     virtual size_t encodeBufferSize(const AxesElement& el) const { return el.encodeSize(); }
 
     void extraDecode(eckit::Stream& s) { s >> level_; }
-    AxesIterator apiCall(FDB& fdb, const FDBToolRequest& request) const { return fdb.axesIterator(request, level_); }
+    AxesIterator apiCall(FDB& fdb, const FDBToolRequest& request, const std::string& tracingID) const {
+        return fdb.axesIterator(request, tracingID, level_);
+    }
 
 private:
 
@@ -264,10 +268,10 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
         s >> unsafeWipeAll_;
     }
 
-    WipeStateIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+    WipeStateIterator apiCall(FDB& fdb, const FDBToolRequest& request, const std::string& tracingID) const {
         // XXX: I'm inclined to say that in a multi-server scenario, unsafe wipe all is a bad idea.
         ASSERT(!unsafeWipeAll_);
-        return fdb.internal_->wipe(request, doit_, false, unsafeWipeAll_);
+        return fdb.internal_->wipe(request, tracingID, doit_, false, unsafeWipeAll_);
     }
 
 private:
@@ -277,11 +281,15 @@ private:
 };
 
 struct InspectHelper : public BaseHelper<ListElement> {
-    ListIterator apiCall(FDB& fdb, const FDBToolRequest& request) const { return fdb.inspect(request.request()); }
+    ListIterator apiCall(FDB& fdb, const FDBToolRequest& request, const std::string& tracingID) const {
+        return fdb.inspect(request.request(), tracingID);
+    }
 };
 
 struct StatsHelper : public BaseHelper<StatsElement> {
-    StatsIterator apiCall(FDB& fdb, const FDBToolRequest& request) const { return fdb.stats(request); }
+    StatsIterator apiCall(FDB& fdb, const FDBToolRequest& request, const std::string& tracingID) const {
+        return fdb.stats(request, tracingID);
+    }
 };
 
 template <typename HelperClass>
@@ -290,7 +298,15 @@ void CatalogueHandler::handleApiCall(uint32_t clientID, uint32_t requestID, ecki
 
     MemoryStream s(payload);
 
+    std::string tracingID;
     FDBToolRequest request(s);
+    if (tracingEnabled_) {
+        s >> tracingID;
+    }
+    if (tracingEnabled_ && !tracingID.empty()) {
+        Log::info() << "Received request: " << tracingID << "  " << request << std::endl;
+    }
+
     helper.extraDecode(s);
 
     // Construct worker thread to feed responses back to client
@@ -304,7 +320,8 @@ void CatalogueHandler::handleApiCall(uint32_t clientID, uint32_t requestID, ecki
         }
     }
 
-    workerThreads_.emplace(requestID, std::async(std::launch::async, [request, clientID, requestID, helper, this]() {
+    workerThreads_.emplace(requestID,
+                           std::async(std::launch::async, [request, clientID, requestID, helper, tracingID, this]() {
                                try {
                                    FDB* fdb = nullptr;
                                    {
@@ -314,7 +331,7 @@ void CatalogueHandler::handleApiCall(uint32_t clientID, uint32_t requestID, ecki
                                        fdb = &it->second;
                                        ASSERT(fdb);
                                    }
-                                   auto iterator = helper.apiCall(*fdb, request);
+                                   auto iterator = helper.apiCall(*fdb, request, tracingID);
 
                                    typename decltype(iterator)::value_type elem;
                                    while (iterator.next(elem)) {
@@ -464,8 +481,13 @@ void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffe
 
     ASSERT(payload.size() > 0);
 
+    std::string tracingID;
     size_t numArchived = 0;
+
     MemoryStream s(payload);
+    if (true /* agreedConf().tracingEnabled()*/) {
+        s >> tracingID;
+    }
     s >> numArchived;
 
     if (numArchived == 0) {
@@ -493,10 +515,10 @@ void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffe
         it->second.locationsArchived = 0;
     }
 
-    it->second.catalogue->flush(numArchived);
+    it->second.catalogue->flush(numArchived, tracingID);
 
-    Log::info() << "Flush complete" << std::endl;
-    Log::status() << "Flush complete" << std::endl;
+    Log::info() << "tracingID: " << tracingID << " - Flush complete" << std::endl;
+    Log::status() << "tracingID: " << tracingID << " - Flush complete" << std::endl;
 }
 
 // A helper function to make archiveThreadLoop a bit cleaner

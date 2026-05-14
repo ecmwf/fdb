@@ -126,7 +126,7 @@ void TocCatalogueWriter::clean() {
 
     LOG_DEBUG_LIB(LibFdb5) << "Closing path " << directory_ << std::endl;
 
-    flush(archivedLocations_);  // closes the TOC entries & indexes but not data files
+    flush(archivedLocations_, "");  // closes the TOC entries & indexes but not data files
 
     compactSubTocIndexes();
 
@@ -351,7 +351,7 @@ void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
     }
 }
 
-void TocCatalogueWriter::flush(size_t archivedFields) {
+void TocCatalogueWriter::flush(size_t archivedFields, const std::string& tracingID) {
     ASSERT(archivedFields == archivedLocations_);
 
     if (archivedLocations_ == 0) {

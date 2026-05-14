@@ -313,7 +313,7 @@ bool RemoteStore::open() {
     return true;
 }
 
-size_t RemoteStore::flush() {
+size_t RemoteStore::flush(const std::string& tracingID) {
 
     // Flush only does anything if there is an ongoing archive();
     if (locations_.archived() == 0) {
@@ -330,7 +330,13 @@ size_t RemoteStore::flush() {
     MemoryStream s(sendBuf);
     s << locations;
 
-    LOG_DEBUG_LIB(LibFdb5) << " RemoteStore::flush - flushing " << locations << " fields" << std::endl;
+    // check if the server supports the tracingID, if so include it in the payload
+    if (tracingEnabled()) {
+        s << "tracingID: " << tracingID;
+    }
+
+    LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID << " - RemoteStore::flush - flushing " << locations
+                           << " fields" << std::endl;
     // The flush call is blocking
     controlWriteCheckResponse(Message::Flush, generateRequestID(), false, sendBuf, s.position());
 

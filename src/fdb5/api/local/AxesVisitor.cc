@@ -21,8 +21,9 @@ namespace fdb5::api::local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-AxesVisitor::AxesVisitor(eckit::Queue<AxesElement>& queue, const metkit::mars::MarsRequest& request, int level) :
-    QueryVisitor<AxesElement>(queue, request), level_(level) {}
+AxesVisitor::AxesVisitor(eckit::Queue<AxesElement>& queue, const metkit::mars::MarsRequest& request,
+                         const std::string& tracingID, int level) :
+    QueryVisitor<AxesElement>(queue, request, tracingID), level_(level) {}
 
 bool AxesVisitor::preVisitDatabase(const eckit::URI& uri, const Schema& schema) {
     // If level == 1, avoid constructing the Catalogue/Store objects, so just interrogate the URIs

@@ -321,6 +321,7 @@ eckit::SessionID ClientConnection::verifyServerStartupResponse() {
     if (serverFunctionality.has("NumberOfConnections") && serverFunctionality.getInt("NumberOfConnections") == 1) {
         single_ = true;
     }
+    tracingEnabled_ = serverFunctionality.has("TracingEnabled");
 
     if (single_ && !(dataEndpoint_ == controlEndpoint_)) {
         eckit::Log::warning() << "Returned control interface does not match. " << dataEndpoint_

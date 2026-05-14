@@ -242,11 +242,16 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
 void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buffer& payload) {
 
     size_t numArchived = 0;
-
+    std::string tracingID;
 
     if (requestID != 0) {
         ASSERT(payload.size() > 0);
         MemoryStream stream(payload);
+
+        if (true /* agreedConf().tracingEnabled()*/) {
+            std::string tracingID;
+            stream >> tracingID;
+        }
         stream >> numArchived;
     }
 
@@ -256,13 +261,13 @@ void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buf
         std::lock_guard<std::mutex> lock(handlerMutex_);
         auto it = stores_.find(clientID);
         ASSERT(it != stores_.end());
-        it->second.store->flush();
+        it->second.store->flush(tracingID);
 
         flushCallback_();
     }
 
-    Log::info() << "Flush complete" << std::endl;
-    Log::status() << "Flush complete" << std::endl;
+    Log::info() << "tracingID: " << tracingID << " - Flush complete" << std::endl;
+    Log::status() << "tracingID: " << tracingID << " - Flush complete" << std::endl;
 }
 
 bool StoreHandler::remove(bool control, uint32_t clientID) {

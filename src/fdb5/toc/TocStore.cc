@@ -155,7 +155,7 @@ std::unique_ptr<const FieldLocation> TocStore::archive(const Key& idxKey, const 
     return std::make_unique<TocFieldLocation>(dataPath, position, length, Key());
 }
 
-size_t TocStore::flush() {
+size_t TocStore::flush(const std::string& tracingID) {
     if (archivedFields_ == 0) {
         return 0;
     }

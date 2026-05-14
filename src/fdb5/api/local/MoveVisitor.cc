@@ -36,8 +36,8 @@ namespace local {
 //----------------------------------------------------------------------------------------------------------------------
 
 MoveVisitor::MoveVisitor(eckit::Queue<MoveElement>& queue, const metkit::mars::MarsRequest& request,
-                         const eckit::URI& dest) :
-    QueryVisitor<MoveElement>(queue, request), dest_(dest) {}
+                         const std::string& tracingID, const eckit::URI& dest) :
+    QueryVisitor<MoveElement>(queue, request, tracingID), dest_(dest) {}
 
 bool MoveVisitor::visitDatabase(const Catalogue& catalogue) {
     if (catalogue.key().match(request_)) {

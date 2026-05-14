@@ -47,7 +47,7 @@ private:  // types
 
         FDBBase& get();
 
-        void flush();
+        void flush(const std::string& tracingID);
 
         template <typename T>  // T is either a mars request or a Key
         bool matches(const T& vals, metkit::mars::Matcher::MatchMissingPolicy matchOnMissing) const;
@@ -60,30 +60,34 @@ public:  // methods
 
     ~SelectFDB() override;
 
-    void archive(const Key& key, const void* data, size_t length) override;
+    void archive(const Key& key, const void* data, size_t length, const std::string& tracingID) override;
 
-    ListIterator inspect(const metkit::mars::MarsRequest& request) override;
+    ListIterator inspect(const metkit::mars::MarsRequest& request, const std::string& tracingID) override;
 
-    ListIterator list(const FDBToolRequest& request, int level) override;
+    ListIterator list(const FDBToolRequest& request, const std::string& tracingID, int level) override;
 
-    DumpIterator dump(const FDBToolRequest& request, bool simple) override;
+    DumpIterator dump(const FDBToolRequest& request, const std::string& tracingID, bool simple) override;
 
-    StatusIterator status(const FDBToolRequest& request) override;
+    StatusIterator status(const FDBToolRequest& request, const std::string& tracingID) override;
 
-    WipeStateIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
+    WipeStateIterator wipe(const FDBToolRequest& request, const std::string& tracingID, bool doit, bool porcelain,
+                           bool unsafeWipeAll) override;
 
-    PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override;
+    PurgeIterator purge(const FDBToolRequest& request, const std::string& tracingID, bool doit,
+                        bool porcelain) override;
 
-    StatsIterator stats(const FDBToolRequest& request) override;
+    StatsIterator stats(const FDBToolRequest& request, const std::string& tracingID) override;
 
-    ControlIterator control(const FDBToolRequest& request, ControlAction action,
+    ControlIterator control(const FDBToolRequest& request, const std::string& tracingID, ControlAction action,
                             ControlIdentifiers identifiers) override;
 
-    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override { NOTIMP; }
+    MoveIterator move(const FDBToolRequest& request, const std::string& tracingID, const eckit::URI& dest) override {
+        NOTIMP;
+    }
 
-    AxesIterator axesIterator(const FDBToolRequest& request, int level) override;
+    AxesIterator axesIterator(const FDBToolRequest& request, const std::string& tracingID, int level) override;
 
-    void flush() override;
+    void flush(const std::string& tracingID) override;
 
 private:  // methods
 

@@ -241,7 +241,7 @@ RemoteFDB::RemoteFDB(const eckit::Configuration& config, const std::string& name
 
 
 template <typename HelperClass>
-auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& request)
+auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& request, const std::string& tracingID)
     -> APIIterator<typename HelperClass::ValueType> {
 
     using ValueType = typename HelperClass::ValueType;
@@ -264,6 +264,9 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     Buffer encodeBuffer(HelperClass::bufferSize());
     MemoryStream s(encodeBuffer);
     s << request;
+    if (tracingEnabled()) {
+        s << tracingID;
+    }
     helper.encodeExtra(s);
 
     controlWriteCheckResponse(HelperClass::message(), id, true, encodeBuffer, s.position());
@@ -274,7 +277,7 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     return IteratorType(
         // n.b. Don't worry about catching exceptions in lambda, as
         // this is handled in the AsyncIterator.
-        new AsyncIterator(shared_from_this(), [messageQueue, remoteFDB](eckit::Queue<ValueType>& queue) {
+        new AsyncIterator(shared_from_this(), [messageQueue, remoteFDB, tracingID](eckit::Queue<ValueType>& queue) {
             eckit::Buffer msg{0};
             while (true) {
                 if (messageQueue->pop(msg) == -1) {
@@ -289,24 +292,25 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
         }));
 }
 
-ListIterator RemoteFDB::list(const FDBToolRequest& request, const int depth) {
-    return forwardApiCall(ListHelper(depth), request);
+ListIterator RemoteFDB::list(const FDBToolRequest& request, const std::string& tracingID, const int depth) {
+    return forwardApiCall(ListHelper(depth), request, tracingID);
 }
 
-AxesIterator RemoteFDB::axesIterator(const FDBToolRequest& request, const int depth) {
-    return forwardApiCall(AxesHelper(depth), request);
+AxesIterator RemoteFDB::axesIterator(const FDBToolRequest& request, const std::string& tracingID, const int depth) {
+    return forwardApiCall(AxesHelper(depth), request, tracingID);
 }
 
-ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {
-    return forwardApiCall(InspectHelper(), request);
+ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request, const std::string& tracingID) {
+    return forwardApiCall(InspectHelper(), request, tracingID);
 }
 
-StatsIterator RemoteFDB::stats(const FDBToolRequest& request) {
-    return forwardApiCall(StatsHelper(), request);
+StatsIterator RemoteFDB::stats(const FDBToolRequest& request, const std::string& tracingID) {
+    return forwardApiCall(StatsHelper(), request, tracingID);
 }
 
-WipeStateIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
-    return forwardApiCall(WipeHelper(doit, porcelain, unsafeWipeAll), request);
+WipeStateIterator RemoteFDB::wipe(const FDBToolRequest& request, const std::string& tracingID, bool doit,
+                                  bool porcelain, bool unsafeWipeAll) {
+    return forwardApiCall(WipeHelper(doit, porcelain, unsafeWipeAll), request, tracingID);
 }
 
 void RemoteFDB::print(std::ostream& s) const {

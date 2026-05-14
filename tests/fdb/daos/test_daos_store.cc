@@ -186,7 +186,7 @@ CASE("DaosStore tests") {
         /// @todo: two cont create with label happen here
         /// @todo: again, daos_fini happening before cont and pool close
 
-        dstore.flush();  // not necessary for DAOS store
+        dstore.flush("test_daos_store_tracingID");  // not necessary for DAOS store
 
         // retrieve
         fdb5::Field field(std::move(loc), std::time(nullptr));
@@ -275,7 +275,7 @@ CASE("DaosStore tests") {
             static_cast<fdb5::CatalogueWriter&>(tcat).archive(index_key, field_key, std::move(loc));
 
             /// flush store before flushing catalogue
-            dstore.flush();  // not necessary if using a DAOS store
+            dstore.flush("test_daos_store_tracingID");  // not necessary if using a DAOS store
         }
 
         // find data
@@ -285,7 +285,7 @@ CASE("DaosStore tests") {
             fdb5::TocCatalogueReader tcat{db_key, config};
             fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);
             cat.selectIndex(index_key);
-            static_cast<fdb5::CatalogueReader&>(tcat).retrieve(field_key, field);
+            static_cast<fdb5::CatalogueReader&>(tcat).retrieve(field_key, field, "test_daos_store_tracingID");
         }
         std::cout << "Read location: " << field.location() << std::endl;
 
@@ -318,7 +318,7 @@ CASE("DaosStore tests") {
             fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);
             metkit::mars::MarsRequest r = db_key.request("retrieve");
             eckit::Queue<fdb5::CatalogueWipeState> queue(100);
-            fdb5::api::local::WipeCatalogueVisitor wv{queue, r, true};
+            fdb5::api::local::WipeCatalogueVisitor wv{queue, r, "test_daos_store_tracingID", true};
             cat.visitEntries(wv, false);
         }
 
