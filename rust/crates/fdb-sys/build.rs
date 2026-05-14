@@ -21,11 +21,31 @@ fn main() {
 
     bindman_utils::validate_build_mode(cfg!(feature = "system"), cfg!(feature = "vendored"));
 
+    generate_exceptions();
+
     if cfg!(feature = "system") {
         build_system();
     } else {
         build_vendored();
     }
+}
+
+/// Generate `fdb_exceptions.{h,rs}` for fdb-sys's cxx bridge.
+///
+/// fdb-sys does not introduce its own exception subclasses (the higher-level
+/// `fdb` crate maps `cxx::Exception` directly), so the `own` list is empty
+/// and we inherit C++ catch blocks from upstream `-sys` crates (eckit-sys,
+/// metkit-sys) via [`bindman_build::collect_dep_exception_sources`].
+fn generate_exceptions() {
+    let out_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR not set"));
+    let inherited = bindman_build::collect_dep_exception_sources();
+
+    bindman_build::generate_exception_bridge(&bindman_build::ExceptionBridgeConfig {
+        primary_namespace: "fdb",
+        out_dir: &out_dir,
+        own: &[],
+        inherited: &inherited,
+    });
 }
 
 /// Build using system-installed fdb5 via `CMake` `find_package`
@@ -40,8 +60,6 @@ fn build_system() {
     // Get dependency paths from -sys crates
     let eckit_include = env::var("DEP_ECKIT_SYS_INCLUDE")
         .expect("DEP_ECKIT_SYS_INCLUDE not set - eckit-sys must be a dependency");
-    let eckit_out_dir = env::var("DEP_ECKIT_SYS_OUT_DIR")
-        .expect("DEP_ECKIT_SYS_OUT_DIR not set - eckit-sys must be a dependency");
     let eckit_cpp_dir = env::var("DEP_ECKIT_SYS_CPP_DIR")
         .expect("DEP_ECKIT_SYS_CPP_DIR not set - eckit-sys must be a dependency");
     let metkit_include = env::var("DEP_METKIT_SYS_INCLUDE")
@@ -50,6 +68,7 @@ fn build_system() {
         .expect("DEP_METKIT_SYS_CPP_DIR not set - metkit-sys must be a dependency");
     let eccodes_include = env::var("DEP_ECCODES_SYS_INCLUDE")
         .expect("DEP_ECCODES_SYS_INCLUDE not set - eccodes-sys must be a dependency");
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
 
     let (root, fdb_include, lib_dir) = bindman_utils::cmake_find_package("fdb5", "5.10.0");
 
@@ -61,12 +80,12 @@ fn build_system() {
         .file(crate_dir.join("cpp/fdb_bridge.cpp"))
         .include(&fdb_include)
         .include(&eckit_include)
-        .include(&eckit_out_dir) // for eckit_exceptions.h
         .include(&eckit_cpp_dir) // for eckit_bridge.h
         .include(&metkit_include)
         .include(&metkit_cpp_dir) // for metkit_bridge.h
         .include(&eccodes_include)
         .include(crate_dir.join("cpp"))
+        .include(&out_dir) // for fdb_exceptions.h (generated)
         .flag_if_supported("-std=c++17")
         .compile("fdb_sys_bridge");
 
@@ -247,8 +266,6 @@ fn build_vendored() {
     // FDB source directory contains private headers that may be needed
     let fdb_src_include = fdb_src.join("src");
 
-    let eckit_out_dir = env::var("DEP_ECKIT_SYS_OUT_DIR")
-        .expect("DEP_ECKIT_SYS_OUT_DIR not set - eckit-sys must be a dependency");
     let eckit_cpp_dir = env::var("DEP_ECKIT_SYS_CPP_DIR")
         .expect("DEP_ECKIT_SYS_CPP_DIR not set - eckit-sys must be a dependency");
     let metkit_cpp_dir = env::var("DEP_METKIT_SYS_CPP_DIR")
@@ -260,12 +277,12 @@ fn build_vendored() {
         .include(&include_dir)
         .include(&fdb_src_include)
         .include(format!("{eckit_root}/include"))
-        .include(&eckit_out_dir) // for eckit_exceptions.h
         .include(&eckit_cpp_dir) // for eckit_bridge.h
         .include(format!("{metkit_root}/include"))
         .include(&metkit_cpp_dir) // for metkit_bridge.h
         .include(format!("{eccodes_root}/include"))
         .include(crate_dir.join("cpp"))
+        .include(&out_dir) // for fdb_exceptions.h (generated)
         .flag_if_supported("-std=c++17")
         .compile("fdb_sys_bridge");
 
