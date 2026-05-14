@@ -18,8 +18,8 @@
 
 namespace fdb5 {
 
-BaseArchiveVisitor::BaseArchiveVisitor(Archiver& owner, const Key& initialFieldKey) :
-    WriteVisitor(owner.prev_), owner_(owner), initialFieldKey_(initialFieldKey) {
+BaseArchiveVisitor::BaseArchiveVisitor(Archiver& owner, const Key& initialFieldKey, const std::string& tracingID) :
+    WriteVisitor(owner.prev_), tracingID_(tracingID), owner_(owner), initialFieldKey_(initialFieldKey) {
     checkMissingKeysOnWrite_ = eckit::Resource<bool>("checkMissingKeysOnWrite", true);
 }
 

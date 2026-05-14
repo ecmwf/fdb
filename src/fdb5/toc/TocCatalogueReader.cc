@@ -110,9 +110,10 @@ void TocCatalogueReader::close() {
     }
 }
 
-bool TocCatalogueReader::retrieve(const Key& key, Field& field) const {
-    LOG_DEBUG_LIB(LibFdb5) << "Trying to retrieve key " << key << "  " << key.names() << std::endl;
-    LOG_DEBUG_LIB(LibFdb5) << "Scanning indexes " << matching_.size() << std::endl;
+bool TocCatalogueReader::retrieve(const Key& key, Field& field, const std::string& tracingID) const {
+    LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID << " - Trying to retrieve key " << key << "  " << key.names()
+                           << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID << " - Scanning indexes " << matching_.size() << std::endl;
 
     for (const auto& m : matching_) {
         const Index& idx(m->first);

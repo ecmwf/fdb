@@ -65,11 +65,13 @@ struct readLocationElem {
     uint32_t clientID;
     uint32_t requestID;
     std::unique_ptr<eckit::DataHandle> readLocation;
+    std::optional<std::string> tracingID;
 
-    readLocationElem() : clientID(0), requestID(0), readLocation(nullptr) {}
+    readLocationElem() : clientID(0), requestID(0), readLocation(nullptr), tracingID(std::nullopt) {}
 
-    readLocationElem(uint32_t clientID, uint32_t requestID, std::unique_ptr<eckit::DataHandle> readLocation) :
-        clientID(clientID), requestID(requestID), readLocation(std::move(readLocation)) {}
+    readLocationElem(uint32_t clientID, uint32_t requestID, std::unique_ptr<eckit::DataHandle> readLocation,
+                     std::optional<std::string> tracingID) :
+        clientID(clientID), requestID(requestID), readLocation(std::move(readLocation)), tracingID(tracingID) {}
 };
 
 struct ArchiveElem {

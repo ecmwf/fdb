@@ -29,13 +29,13 @@ std::ostream& operator<<(std::ostream& s, const Store& x) {
     return s;
 }
 
-void Store::archiveCb(const Key& key, const void* data, eckit::Length length,
+void Store::archiveCb(const Key& idxKey, const std::string& tracingID, const void* data, eckit::Length length,
                       std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
-    catalogue_archive(archive(key, data, length));
+    catalogue_archive(archive(idxKey, tracingID, data, length));
 }
 
-std::unique_ptr<const FieldLocation> Store::archive(const Key& /*key*/, const void* /*data*/,
-                                                    eckit::Length /*length*/) {
+std::unique_ptr<const FieldLocation> Store::archive(const Key& /*idxKey*/, const std::string& /*tracingID*/,
+                                                    const void* /*data*/, eckit::Length /*length*/) {
     NOTIMP;
 }
 

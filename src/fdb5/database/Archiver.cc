@@ -28,21 +28,23 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Archiver::Archiver(const Config& dbConfig, const ArchiveCallback& callback) :
-    dbConfig_(dbConfig), db_(nullptr), callback_(callback) {}
+Archiver::Archiver(const std::string& tracingID, const Config& dbConfig, const ArchiveCallback& callback) :
+    tracingID_(tracingID), dbConfig_(dbConfig), db_(nullptr), callback_(callback) {}
 
 Archiver::~Archiver() {
-    flush();  // certify that all sessions are flushed before closing them
+    flush(tracingID_);  // certify that all sessions are flushed before closing them
 }
 
-void Archiver::archive(const Key& key, const void* data, size_t len) {
-    auto visitor = ArchiveVisitor::create(*this, key, data, len, callback_);
-    archive(key, *visitor);
+void Archiver::archive(const Key& key, const void* data, size_t len, const std::string& tracingID) {
+    tracingID_ = tracingID;
+    auto visitor = ArchiveVisitor::create(*this, key, tracingID, data, len, callback_);
+    archive(key, *visitor, tracingID);
 }
 
-void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
+void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor, const std::string& tracingID) {
 
     std::lock_guard<std::recursive_mutex> lock(flushMutex_);
+    tracingID_ = tracingID;
     visitor.rule(nullptr);
 
     dbConfig_.schema().expand(key, visitor);
@@ -57,15 +59,15 @@ void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
     rule->check(key);
 }
 
-void Archiver::flushDatabase(Database& db) {
+void Archiver::flushDatabase(Database& db, const std::string& tracingID) {
     // flush the store, pass the number of flushed fields to the catalogue
-    db.catalogue_->flush(db.store_->flush());
+    db.catalogue_->flush(db.store_->flush(tracingID), tracingID);
 }
 
-void Archiver::flush() {
+void Archiver::flush(const std::string& tracingID) {
     std::lock_guard<std::recursive_mutex> lock(flushMutex_);
     for (auto i = databases_.begin(); i != databases_.end(); ++i) {
-        flushDatabase(i->second);
+        flushDatabase(i->second, tracingID);
     }
 }
 
@@ -98,7 +100,7 @@ void Archiver::selectDatabase(const Key& dbKey) {
                 // flushing before evicting from cache
                 std::lock_guard<std::recursive_mutex> lock(flushMutex_);
 
-                flushDatabase(databases_[oldK]);
+                flushDatabase(databases_[oldK], tracingID_);
 
                 eckit::Log::info() << "Closing database " << *databases_[oldK].catalogue_ << std::endl;
                 databases_.erase(oldK);

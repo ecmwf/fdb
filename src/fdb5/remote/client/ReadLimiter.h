@@ -13,8 +13,9 @@
 #include "eckit/io/Buffer.h"
 #include "eckit/serialisation/MemoryStream.h"
 
+#include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/remote/RemoteFieldLocation.h"
+#include "fdb5/remote/client/RemoteStore.h"
 
 #include <cstdint>
 #include <deque>
@@ -49,7 +50,8 @@ public:
     ReadLimiter& operator=(ReadLimiter&&) = delete;
 
     // Add a new request to the queue of requests to be sent. Will not be sent until we know we have buffer space.
-    void add(RemoteStore* client, uint32_t id, const FieldLocation& fieldLocation,
+    void add(RemoteStore* client, uint32_t id, std::optional<std::reference_wrapper<const std::string>> tracingID,
+             const FieldLocation& fieldLocation,
              const Key& remapKey);  // use const *?
 
     // Attempt to send the next request in the queue. Returns true if a request was sent.

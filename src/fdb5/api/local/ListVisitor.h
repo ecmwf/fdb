@@ -48,8 +48,9 @@ struct ListVisitor : public QueryVisitor<ListElement> {
 
 public:
 
-    ListVisitor(eckit::Queue<ListElement>& queue, const metkit::mars::MarsRequest& request, int level) :
-        QueryVisitor<ListElement>(queue, request), level_(level) {}
+    ListVisitor(eckit::Queue<ListElement>& queue, const metkit::mars::MarsRequest& request,
+                const std::string& tracingID, int level) :
+        QueryVisitor<ListElement>(queue, request, tracingID), level_(level) {}
 
     /// @todo remove this with better logic
     bool preVisitDatabase(const eckit::URI& uri, const Schema& schema) override {

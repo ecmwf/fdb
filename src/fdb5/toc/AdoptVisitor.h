@@ -34,8 +34,8 @@ class AdoptVisitor : public BaseArchiveVisitor {
 
 public:  // methods
 
-    AdoptVisitor(Archiver& owner, const Key& initialFieldKey, const eckit::PathName& path, eckit::Offset offset,
-                 eckit::Length length);
+    AdoptVisitor(Archiver& owner, const Key& initialFieldKey, const std::string& tracingID, const eckit::PathName& path,
+                 eckit::Offset offset, eckit::Length length);
 
 protected:  // methods
 

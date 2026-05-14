@@ -40,7 +40,7 @@ std::shared_ptr<const FieldLocation> DaosFieldLocation::make_shared() const {
     return std::make_shared<DaosFieldLocation>(std::move(*this));
 }
 
-eckit::DataHandle* DaosFieldLocation::dataHandle() const {
+eckit::DataHandle* DaosFieldLocation::dataHandle(const std::string& tracingID) const {
 
     return fdb5::DaosArrayName(uri_).dataHandle(offset(), length());
 }

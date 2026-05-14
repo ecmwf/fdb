@@ -37,7 +37,8 @@ namespace api::local {
 class AxesVisitor : public QueryVisitor<AxesElement> {
 public:
 
-    AxesVisitor(eckit::Queue<AxesElement>& queue, const metkit::mars::MarsRequest& request, int level);
+    AxesVisitor(eckit::Queue<AxesElement>& queue, const metkit::mars::MarsRequest& request,
+                const std::string& tracingID, int level);
 
     bool visitIndexes() override { return true; }
 

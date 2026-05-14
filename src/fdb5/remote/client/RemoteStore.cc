@@ -238,7 +238,6 @@ RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
 }
 
 RemoteStore::~RemoteStore() {
-    deregister();
 
     // If we have launched a thread with an async and we manage to get here, this is
     // an error. n.b. if we don't do something, we will block in the destructor
@@ -249,6 +248,8 @@ RemoteStore::~RemoteStore() {
     }
 
     ReadLimiter::evictClient(id());
+
+    deregister();
 }
 
 eckit::URI RemoteStore::uri() const {
@@ -277,15 +278,15 @@ bool RemoteStore::exists() const {
     return result;
 }
 
-eckit::DataHandle* RemoteStore::retrieve(Field& field) const {
-    return field.dataHandle();
+eckit::DataHandle* RemoteStore::retrieve(Field& field, const std::string& tracingID) const {
+    return field.dataHandle(tracingID);
 }
 
 void RemoteStore::archiveCb(
-    const Key& key, const void* data, eckit::Length length,
+    const Key& idxKey, const std::string& tracingID, const void* data, eckit::Length length,
     std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
 
-    ASSERT(!key.empty());
+    ASSERT(!idxKey.empty());
     ASSERT(data);
     ASSERT(static_cast<long long>(length) != 0ll);
 
@@ -301,8 +302,11 @@ void RemoteStore::archiveCb(
 
     eckit::Buffer keyBuffer(defaultBufferSizeKey);
     eckit::MemoryStream keyStream(keyBuffer);
+    if (!tracingID.empty()) {
+        keyStream << tracingID;
+    }
     keyStream << dbKey_;
-    keyStream << key;
+    keyStream << idxKey;
 
     PayloadList payloads;
     payloads.emplace_back(keyStream.position(), keyBuffer.data());
@@ -317,7 +321,7 @@ bool RemoteStore::open() {
     return true;
 }
 
-size_t RemoteStore::flush() {
+size_t RemoteStore::flush(const std::string& tracingID) {
 
     // Flush only does anything if there is an ongoing archive();
     if (locations_.archived() == 0) {
@@ -332,9 +336,14 @@ size_t RemoteStore::flush() {
 
     Buffer sendBuf(defaultBufferSizeFlush);
     MemoryStream s(sendBuf);
+    // check if the server supports the tracingID, if so include it in the payload
+    if (tracingEnabled()) {
+        s << tracingID;
+    }
     s << locations;
 
-    LOG_DEBUG_LIB(LibFdb5) << " RemoteStore::flush - flushing " << locations << " fields" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID << " - RemoteStore::flush - flushing " << locations
+                           << " fields" << std::endl;
     // The flush call is blocking
     controlWriteCheckResponse(Message::Flush, generateRequestID(), false, sendBuf, s.position());
 
@@ -406,6 +415,10 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
         case Message::Store: {
             // received a FieldLocation from the remote store, can forward to the archiver for the indexing
             MemoryStream s(payload);
+            std::string tracingID{};
+            if (tracingEnabled()) {
+                s >> tracingID;
+            }
             std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
             if (defaultEndpoint().empty()) {
                 return locations_.location(requestID, std::move(location));
@@ -440,12 +453,17 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
     }
 }
 
-eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation) {
-    return dataHandle(fieldLocation, Key());
+eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, const std::string& tracingID) {
+    return dataHandle(fieldLocation, tracingID, Key());
 }
 
-eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, const Key& remapKey) {
+eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, const std::string& tracingID,
+                                           const Key& remapKey) {
 
+    if (tracingID.empty()) {
+        throw RemoteFDBException("No tracing ID provided for data handle request for fieldLocation: ",
+                                 controlEndpoint());
+    }
     uint32_t id = generateRequestID();
 
     static size_t queueSize = 320;
@@ -458,7 +476,7 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
         queue = entry.first->second;
     }
 
-    ReadLimiter::instance().add(this, id, fieldLocation, remapKey);
+    ReadLimiter::instance().add(this, id, tracingID, fieldLocation, remapKey);
     return new FDBRemoteDataHandle(id, this->id(), fieldLocation.length(), queue, controlEndpoint());
 }
 

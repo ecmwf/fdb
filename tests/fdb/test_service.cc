@@ -90,9 +90,10 @@ struct FixtureService {
                     std::string data_str = data.str();
 
                     fdb5::Key k{p};
-                    auto visitor =
-                        ArchiveVisitor::create(fdb, k, static_cast<const void*>(data_str.c_str()), data_str.size());
-                    fdb.archive(k, *visitor);
+                    std::string tracingID = "archive_param_" + param + "_step_" + str(step) + "_level_" + str(level);
+                    auto visitor = ArchiveVisitor::create(fdb, k, tracingID, static_cast<const void*>(data_str.c_str()),
+                                                          data_str.size());
+                    fdb.archive(k, *visitor, tracingID);
                 }
             }
         }
@@ -210,7 +211,7 @@ CASE("test_fdb_service") {
         FixtureService f;
 
         SECTION("test_fdb_service_write") {
-            fdb5::Archiver fdb;
+            fdb5::Archiver fdb("test_fdb_service_write_tracingID");
 
             f.p["class"] = "rd";
             f.p["stream"] = "oper";
@@ -387,7 +388,7 @@ CASE("test_fdb_service_subtoc") {
         fdb5::Config config(expanded, userConf);
 
         SECTION("test_fdb_service_subtoc_write") {
-            fdb5::Archiver fdb(config);
+            fdb5::Archiver fdb("test_fdb_service_subtoc_write_tracingID", config);
 
             f.p["class"] = "rd";
             f.p["stream"] = "oper";

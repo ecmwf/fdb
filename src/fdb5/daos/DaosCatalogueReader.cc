@@ -121,10 +121,10 @@ std::optional<Axis> DaosCatalogueReader::computeAxis(const std::string& keyword)
     return std::nullopt;
 }
 
-bool DaosCatalogueReader::retrieve(const Key& key, Field& field) const {
+bool DaosCatalogueReader::retrieve(const Key& key, Field& field, const std::string& tracingID) const {
 
-    LOG_DEBUG_LIB(LibFdb5) << "Trying to retrieve key " << key << std::endl;
-    LOG_DEBUG_LIB(LibFdb5) << "Scanning index " << current_.location() << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID << " - Trying to retrieve key " << key << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID << " - Scanning index " << current_.location() << std::endl;
 
     if (!current_.mayContain(key)) {
         return false;

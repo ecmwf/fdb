@@ -145,13 +145,18 @@ void StoreHandler::read(uint32_t clientID, uint32_t requestID, const eckit::Buff
     MemoryStream s(payload);
 
     std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
-
-    LOG_DEBUG_LIB(LibFdb5) << "Queuing for read: " << requestID << " " << *location << std::endl;
+    Key remapKey(s);
+    std::optional<std::string> tracingID;
+    if (true /* tracingEnabled_ */) {
+        std::string tracingIDstr;
+        s >> tracingIDstr;
+        tracingID = tracingIDstr;
+    }
 
     std::unique_ptr<eckit::DataHandle> dh;
-    dh.reset(location->dataHandle());
+    dh.reset(location->dataHandle(tracingID.has_value() ? tracingID.value() : ""));
 
-    readLocationQueue_.emplace(readLocationElem(clientID, requestID, std::move(dh)));
+    readLocationQueue_.emplace(readLocationElem(clientID, requestID, std::move(dh), tracingID));
 }
 
 void StoreHandler::readLocationThreadLoop() {
@@ -162,12 +167,12 @@ void StoreHandler::readLocationThreadLoop() {
         // send the data back to the client.
 
         // Forward the API call
-        writeToParent(elem.clientID, elem.requestID, std::move(elem.readLocation));
+        writeToParent(elem.clientID, elem.requestID, std::move(elem.readLocation), elem.tracingID);
     }
 }
 
 void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t requestID,
-                                 std::unique_ptr<eckit::DataHandle> dh) {
+                                 std::unique_ptr<eckit::DataHandle> dh, std::optional<std::string>& tracingID) {
     try {
         Log::status() << "Reading: " << requestID << std::endl;
         // Write the data to the parent, in chunks if necessary.
@@ -178,6 +183,9 @@ void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t request
 
         dh->openForRead();
         LOG_DEBUG_LIB(LibFdb5) << "Reading: " << requestID << " dh size: " << dh->size() << std::endl;
+
+        Log::info() << LogFormatSetter{Log::normalFormat} << (tracingID.has_value() ? (tracingID.value() + " - ") : "")
+                    << "reading: " << *dh << std::endl;
 
         while ((dataRead = dh->read(writeBuffer, writeBuffer.size())) != 0) {
             write(Message::Blob, false, clientID, requestID, writeBuffer, dataRead);
@@ -205,8 +213,12 @@ void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t request
 
 void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) {
 
-    MemoryStream s(data, length);
+    std::string tracingID;
 
+    MemoryStream s(data, length);
+    if (true /* tracingEnabled_ */) {
+        s >> tracingID;
+    }
     fdb5::Key dbKey(s);
     fdb5::Key idxKey(s);
 
@@ -218,7 +230,11 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
 
     Store& ss = store(clientID, dbKey);
 
-    std::shared_ptr<const FieldLocation> location = ss.archive(idxKey, charData + s.position(), length - s.position());
+    std::shared_ptr<const FieldLocation> location =
+        ss.archive(idxKey, tracingID, charData + s.position(), length - s.position());
+    if (!tracingID.empty()) {
+        Log::info() << tracingID << " - archiving " << *location << std::endl;
+    }
 
     std::promise<std::shared_ptr<const FieldLocation>> promise;
     promise.set_value(location);
@@ -235,6 +251,9 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
 
     eckit::Buffer buffer(16_KiB);
     MemoryStream stream(buffer);
+    if (true /* tracingEnabled_ */) {
+        stream << tracingID;
+    }
     stream << (*location);
     Connection::write(Message::Store, true, clientID, requestID, buffer, stream.position());
 }
@@ -242,12 +261,19 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
 void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buffer& payload) {
 
     size_t numArchived = 0;
-
+    std::string tracingID;
 
     if (requestID != 0) {
         ASSERT(payload.size() > 0);
         MemoryStream stream(payload);
+
+        if (true /* agreedConf().tracingEnabled()*/) {
+            stream >> tracingID;
+        }
         stream >> numArchived;
+    }
+    if (!tracingID.empty()) {
+        Log::info() << tracingID << " - flushing " << numArchived << " fields" << std::endl;
     }
 
     if (numArchived > 0) {
@@ -256,13 +282,13 @@ void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buf
         std::lock_guard<std::mutex> lock(handlerMutex_);
         auto it = stores_.find(clientID);
         ASSERT(it != stores_.end());
-        it->second.store->flush();
+        it->second.store->flush(tracingID);
 
         flushCallback_();
     }
 
-    Log::info() << "Flush complete" << std::endl;
-    Log::status() << "Flush complete" << std::endl;
+    Log::info() << (tracingID.empty() ? "" : (tracingID + " - ")) << "flush complete" << std::endl;
+    Log::status() << (tracingID.empty() ? "" : (tracingID + " - ")) << "flush complete" << std::endl;
 }
 
 bool StoreHandler::remove(bool control, uint32_t clientID) {

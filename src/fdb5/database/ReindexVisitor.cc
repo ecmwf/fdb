@@ -11,13 +11,14 @@
 
 namespace fdb5 {
 
-ReindexVisitor::ReindexVisitor(Reindexer& owner, const Key& initialFieldKey, const FieldLocation& fieldLocation) :
-    BaseArchiveVisitor(owner, initialFieldKey), fieldLocation_(std::move(fieldLocation)) {}
+ReindexVisitor::ReindexVisitor(Reindexer& owner, const Key& initialFieldKey, const std::string& tracingID,
+                               const FieldLocation& fieldLocation) :
+    BaseArchiveVisitor(owner, initialFieldKey, tracingID), fieldLocation_(std::move(fieldLocation)) {}
 
 bool ReindexVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
     checkMissingKeys(fullKey);
     const Key idxKey = catalogue()->currentIndexKey();
-    catalogue()->archive(idxKey, datumKey, fieldLocation_.make_shared());
+    catalogue()->archive(idxKey, datumKey, tracingID_, fieldLocation_.make_shared());
     return true;
 }
 

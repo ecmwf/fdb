@@ -36,8 +36,9 @@ class DumpVisitor : public QueryVisitor<DumpElement> {
 
 public:
 
-    DumpVisitor(eckit::Queue<DumpElement>& queue, const metkit::mars::MarsRequest& request, bool simple) :
-        QueryVisitor<DumpElement>(queue, request), out_(new QueueStringLogTarget(queue)), simple_(simple) {}
+    DumpVisitor(eckit::Queue<DumpElement>& queue, const metkit::mars::MarsRequest& request,
+                const std::string& tracingID, bool simple) :
+        QueryVisitor<DumpElement>(queue, request, tracingID), out_(new QueueStringLogTarget(queue)), simple_(simple) {}
 
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }

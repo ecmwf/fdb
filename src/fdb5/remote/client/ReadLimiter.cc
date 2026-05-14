@@ -9,9 +9,16 @@
  */
 
 #include "fdb5/remote/client/ReadLimiter.h"
+
 #include <mutex>
+#include <optional>
 #include <sstream>
+
 #include "eckit/config/Resource.h"
+#include "eckit/log/Bytes.h"
+#include "eckit/log/Log.h"
+
+#include "fdb5/LibFdb5.h"
 #include "fdb5/remote/client/RemoteStore.h"
 
 namespace fdb5::remote {
@@ -42,13 +49,22 @@ size_t ReadLimiter::defaultReadLimit() {
     return limit;
 }
 
-ReadLimiter::ReadLimiter(size_t memoryLimit) : memoryUsed_{0}, memoryLimit_{memoryLimit} {}
+ReadLimiter::ReadLimiter(size_t memoryLimit) : memoryUsed_{0}, memoryLimit_{memoryLimit} {
+    LOG_DEBUG_LIB(LibFdb5) << "ReadLimiter initialized with memory limit: " << eckit::Bytes(memoryLimit_) << std::endl;
+}
 
-void ReadLimiter::add(RemoteStore* client, uint32_t id, const FieldLocation& fieldLocation, const Key& remapKey) {
+void ReadLimiter::add(RemoteStore* client, uint32_t id,
+                      std::optional<std::reference_wrapper<const std::string>> tracingID,
+                      const FieldLocation& fieldLocation, const Key& remapKey) {
     eckit::Buffer requestBuffer(4096);
     eckit::MemoryStream s(requestBuffer);
+    /// add tracing ID to the request buffer (if supported)
     s << fieldLocation;
     s << remapKey;
+    if (tracingID.has_value()) {
+        s << tracingID.value().get();
+    }
+
     size_t requestSize = s.position();
     size_t resultSize = fieldLocation.length();
 
