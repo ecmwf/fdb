@@ -3,6 +3,10 @@
 // This file implements the shim functions that convert between the native
 // FDB5 C++ API and cxx-compatible types.
 
+// trycatch handler — must come before the cxx-generated header so the
+// generated wrappers' Result<T> handling picks up our specialization.
+#include "fdb_exceptions.h"
+
 #include "fdb_bridge.h"
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
