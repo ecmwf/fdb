@@ -148,13 +148,13 @@ std::unique_ptr<const FieldLocation> DaosStore::archive(const Key&, const void* 
 
     archivedFields_++;
 
-    return std::make_unique<const DaosFieldLocation>(n.URI(), 0, length, fdb5::Key{});
+    return std::make_unique<const DaosFieldLocation>(n.URI(), 0, length, fdb5::Key{}, std::nullopt);
 
     /// @note: performed RPCs:
     /// - close (daos_array_close here) -- always performed
 }
 
-size_t DaosStore::flush() {
+size_t DaosStore::flush(const std::string& tracingID) {
     size_t archived = archivedFields_;
     archivedFields_ = 0;
     return archived;

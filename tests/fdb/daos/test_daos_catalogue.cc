@@ -207,7 +207,7 @@ CASE("DaosCatalogue tests") {
 
         /// DaosManager is configured with client config from the file
         auto loc = std::make_unique<const fdb5::DaosFieldLocation>(eckit::URI{"daos", "test_uri"}, eckit::Offset(0),
-                                                                   eckit::Length(1), fdb5::Key());
+                                                                   eckit::Length(1), fdb5::Key(), std::nullopt);
 
         {
             fdb5::DaosCatalogueWriter dcatw{db_key, config};
@@ -248,7 +248,7 @@ CASE("DaosCatalogue tests") {
 
             fdb5::Field f;
             fdb5::CatalogueReader& catr = dcatr;
-            catr.retrieve(field_key, f);
+            catr.retrieve(field_key, f, "test_daos_catalogue_tracingID");
             EXPECT_EQUAL(f.location().uri().name(), eckit::URI("daos", "test_uri").name());
             EXPECT_EQUAL(f.location().offset(), eckit::Offset(0));
             EXPECT_EQUAL(f.location().length(), eckit::Length(1));
@@ -333,7 +333,7 @@ CASE("DaosCatalogue tests") {
             catw.archive(index_key, field_key, std::move(loc));
 
             /// flush store before flushing catalogue
-            dstore.flush();  // not necessary if using a DAOS store
+            dstore.flush("test_daos_catalogue_tracingID");  // not necessary if using a DAOS store
         }
 
         // find data
@@ -344,7 +344,7 @@ CASE("DaosCatalogue tests") {
             fdb5::Catalogue& cat = dcatr;
             cat.selectIndex(index_key);
             fdb5::CatalogueReader& catr = dcatr;
-            catr.retrieve(field_key, field);
+            catr.retrieve(field_key, field, "test_daos_catalogue_tracingID");
         }
         std::cout << "Read location: " << field.location() << std::endl;
 
@@ -365,7 +365,7 @@ CASE("DaosCatalogue tests") {
             fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(dcat);
             eckit::Queue<fdb5::CatalogueWipeState> queue(100);
             metkit::mars::MarsRequest r = db_key.request("retrieve");
-            fdb5::api::local::WipeCatalogueVisitor wv{queue, r, true};
+            fdb5::api::local::WipeCatalogueVisitor wv{queue, r, "test_daos_catalogue_tracingID", true};
             cat.visitEntries(wv, false);
         }
 
@@ -431,7 +431,7 @@ CASE("DaosCatalogue tests") {
             catw.archive(index_key, field_key, std::move(loc));
 
             /// flush store before flushing catalogue
-            tstore.flush();
+            tstore.flush("test_daos_catalogue_tracingID");
         }
 
         // find data
@@ -442,7 +442,7 @@ CASE("DaosCatalogue tests") {
             fdb5::Catalogue& cat = dcatr;
             cat.selectIndex(index_key);
             fdb5::CatalogueReader& catr = dcatr;
-            catr.retrieve(field_key, field);
+            catr.retrieve(field_key, field, "test_daos_catalogue_tracingID");
         }
         std::cout << "Read location: " << field.location() << std::endl;
 
@@ -478,7 +478,7 @@ CASE("DaosCatalogue tests") {
             fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(dcat);
             eckit::Queue<fdb5::CatalogueWipeState> queue(100);
             metkit::mars::MarsRequest r = db_key.request("retrieve");
-            fdb5::api::local::WipeCatalogueVisitor wv{queue, r, true};
+            fdb5::api::local::WipeCatalogueVisitor wv{queue, r, "test_daos_catalogue_tracingID", true};
             cat.visitEntries(wv, false);
         }
 

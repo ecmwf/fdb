@@ -44,28 +44,34 @@ public:  // method
     RemoteFDB(const eckit::Configuration& config, const std::string& name);
     ~RemoteFDB() override;
 
-    ListIterator inspect(const metkit::mars::MarsRequest& request) override;
+    ListIterator inspect(const metkit::mars::MarsRequest& request, const std::string& tracingID) override;
 
-    ListIterator list(const FDBToolRequest& request, int depth) override;
+    ListIterator list(const FDBToolRequest& request, const std::string& tracingID, int depth) override;
 
-    AxesIterator axesIterator(const FDBToolRequest& request, int depth = 3) override;
+    AxesIterator axesIterator(const FDBToolRequest& request, const std::string& tracingID, int depth = 3) override;
 
-    DumpIterator dump(const FDBToolRequest& request, bool simple) override { NOTIMP; }
+    DumpIterator dump(const FDBToolRequest& request, const std::string& tracingID, bool simple) override { NOTIMP; }
 
-    StatusIterator status(const FDBToolRequest& request) override { NOTIMP; }
+    StatusIterator status(const FDBToolRequest& request, const std::string& tracingID) override { NOTIMP; }
 
-    WipeStateIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
+    WipeStateIterator wipe(const FDBToolRequest& request, const std::string& tracingID, bool doit, bool porcelain,
+                           bool unsafeWipeAll) override;
 
-    PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override { NOTIMP; }
+    PurgeIterator purge(const FDBToolRequest& request, const std::string& tracingID, bool doit,
+                        bool porcelain) override {
+        NOTIMP;
+    }
 
-    StatsIterator stats(const FDBToolRequest& request) override;
+    StatsIterator stats(const FDBToolRequest& request, const std::string& tracingID) override;
 
-    ControlIterator control(const FDBToolRequest& request, ControlAction action,
+    ControlIterator control(const FDBToolRequest& request, const std::string& tracingID, ControlAction action,
                             ControlIdentifiers identifiers) override {
         NOTIMP;
     }
 
-    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override { NOTIMP; }
+    MoveIterator move(const FDBToolRequest& request, const std::string& tracingID, const eckit::URI& dest) override {
+        NOTIMP;
+    }
 
     const eckit::net::Endpoint& storeEndpoint() const;
     const eckit::net::Endpoint& storeEndpoint(const eckit::net::Endpoint& fieldLocationEndpoint) const;
@@ -73,7 +79,7 @@ public:  // method
 private:  // methods
 
     template <typename HelperClass>
-    auto forwardApiCall(const HelperClass& helper, const FDBToolRequest& request)
+    auto forwardApiCall(const HelperClass& helper, const FDBToolRequest& request, const std::string& tracingID)
         -> APIIterator<typename HelperClass::ValueType>;
 
     void print(std::ostream& s) const override;

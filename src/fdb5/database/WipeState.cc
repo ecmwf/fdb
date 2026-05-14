@@ -11,9 +11,9 @@ namespace fdb5 {
 
 // -----------------------------------------------------------------------------------------------
 
-WipeState::WipeState() {}
-
 WipeState::WipeState(eckit::Stream& s) {
+
+    // s >> tracingID_;
 
     // deleteURIs_
     size_t n;
@@ -110,7 +110,7 @@ void CatalogueWipeState::includeData(const eckit::URI& dataURI) {
 
     auto [it, inserted] = storeWipeStates_.try_emplace(storeURI, nullptr);
     if (inserted || !it->second) {
-        it->second = std::make_unique<StoreWipeState>(it->first);
+        it->second = std::make_unique<StoreWipeState>(it->first /*, tracingID_*/);
     }
 
     it->second->includeData(dataURI);
@@ -125,7 +125,7 @@ void CatalogueWipeState::excludeData(const eckit::URI& dataURI) {
 
     auto [it, inserted] = storeWipeStates_.try_emplace(storeURI, nullptr);
     if (inserted || !it->second) {
-        it->second = std::make_unique<StoreWipeState>(it->first);
+        it->second = std::make_unique<StoreWipeState>(it->first /*, tracingID_*/);
     }
 
     it->second->excludeData(dataURI);
@@ -222,7 +222,8 @@ void StoreWipeState::failIfSigned() const {
     }
 }
 
-StoreWipeState::StoreWipeState(eckit::URI uri) : storeURI_(std::move(uri)) {}
+StoreWipeState::StoreWipeState(eckit::URI uri /*, const std::string& tracingID*/) :
+    /*WipeState(tracingID),*/ storeURI_(std::move(uri)) {}
 
 StoreWipeState::StoreWipeState(eckit::Stream& s) : WipeState(s) {
 

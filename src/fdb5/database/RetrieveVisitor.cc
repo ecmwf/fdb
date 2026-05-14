@@ -21,7 +21,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RetrieveVisitor::RetrieveVisitor(HandleGatherer& gatherer) : gatherer_(gatherer) {}
+RetrieveVisitor::RetrieveVisitor(HandleGatherer& gatherer, const std::string& tracingID) :
+    ReadVisitor(tracingID), gatherer_(gatherer) {}
 
 // From Visitor
 
@@ -34,7 +35,7 @@ bool RetrieveVisitor::selectDatabase(const Key& dbKey, const Key& /*fullKey*/) {
     }
 
     LOG_DEBUG_LIB(LibFdb5) << "RetrieveVisitor::selectDatabase " << dbKey << std::endl;
-    catalogue_ = CatalogueReaderFactory::instance().build(dbKey, fdb5::Config()).get();
+    catalogue_ = CatalogueReaderFactory::instance().build(dbKey, fdb5::Config()).release();
 
     // If this database is locked for retrieval then it "does not exist"
     if (!catalogue_->enabled(ControlIdentifier::Retrieve)) {
@@ -63,7 +64,7 @@ bool RetrieveVisitor::selectDatum(const Key& datumKey, const Key& /*fullKey*/) {
 
     Field field;
     eckit::DataHandle* dh = nullptr;
-    if (catalogue_->retrieve(datumKey, field)) {
+    if (catalogue_->retrieve(datumKey, field, tracingID_)) {
         dh = store().retrieve(field);
     }
 

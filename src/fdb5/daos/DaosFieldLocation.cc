@@ -25,14 +25,17 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 DaosFieldLocation::DaosFieldLocation(const DaosFieldLocation& rhs) :
-    FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_) {}
+    FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_, std::nullopt) {}
 
-DaosFieldLocation::DaosFieldLocation(const eckit::URI& uri) : FieldLocation(uri) {}
+DaosFieldLocation::DaosFieldLocation(const eckit::URI& uri,
+                                     std::optional<std::reference_wrapper<const std::string>> tracingID) :
+    FieldLocation(uri, tracingID) {}
 
 /// @todo: remove remapKey from signature and always pass empty Key to FieldLocation
 DaosFieldLocation::DaosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length,
-                                     const Key& remapKey) :
-    FieldLocation(uri, offset, length, remapKey) {}
+                                     const Key& remapKey,
+                                     std::optional<std::reference_wrapper<const std::string>> tracingID) :
+    FieldLocation(uri, offset, length, remapKey, tracingID) {}
 
 DaosFieldLocation::DaosFieldLocation(eckit::Stream& s) : FieldLocation(s) {}
 

@@ -72,6 +72,8 @@ class FDB {
 
 public:  // methods
 
+    static std::string generateTracingID(const std::string& prefix = "");
+
     FDB(const Config& config = Config().expandConfig());
     ~FDB();
 
@@ -88,14 +90,16 @@ public:  // methods
     /// Due to the message being self describing no key needs to be supplied.
     /// Any callback set with registerArchiveCallback will be invoked.
     /// @param handle eckit::message::Message to data to archive
-    void archive(eckit::message::Message msg);
+    /// @param tracingID Optional tracing ID for the archive operation
+    void archive(eckit::message::Message msg, const std::string& tracingID = generateTracingID("archive"));
 
     /// Archives a stream of one or more messages.
     ///
     /// Reads messages from the eckit::DatAaHandle and calls archive() on the corresponding messages.
     /// Any callback set with registerArchiveCallback will be invoked on each message.
     /// @param handle eckit::DataHandle reference data to archive
-    void archive(eckit::DataHandle& handle);
+    /// @param tracingID Optional tracing ID for the archive operation
+    void archive(eckit::DataHandle& handle, const std::string& tracingID = generateTracingID("archive"));
 
     /// Archive binary data to a FDB.
     ///
@@ -103,16 +107,19 @@ public:  // methods
     /// Any callback set with registerArchiveCallback will be invoked on each message.
     /// @param data Pointer to the binary data to archive
     /// @param length Size of the data to archive with the given
-    void archive(const void* data, size_t length);
+    /// @param tracingID Optional tracing ID for the archive operation
+    void archive(const void* data, size_t length, const std::string& tracingID = generateTracingID("archive"));
 
     /// Archives data from Datahandle and ensures all keys exactly match the provided MarsRequest.
     ///
     /// Any callback set with registerArchiveCallback will be invoked on each message.
     /// @param request a mars request
     /// @param handle a data handle pointing to the data
+    /// @param tracingID Optional tracing ID for the archive operation
     /// @throws eckit::UserError if there are more keys in the MarsRequest then in the messages.
     /// @throws eckit::UserError if message key not present in MarsRequest.
-    void archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& handle);
+    void archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& handle,
+                 const std::string& tracingID = generateTracingID("archive"));
 
     /// Archive a binary blob into FDB.
     ///
@@ -122,54 +129,76 @@ public:  // methods
     /// @param key Key used for indexing and archiving the data
     /// @param data Pointer to the binary blob to archive
     /// @param length Size in bytes of the binary blob to archive
-    void archive(const Key& key, const void* data, size_t length);
+    /// @param tracingID Optional tracing ID for the archive operation
+    void archive(const Key& key, const void* data, size_t length,
+                 const std::string& tracingID = generateTracingID("archive"));
 
     /// Generate an new index entry for an existing field location.
     ///
     /// Can be used to reindex existing data into a new catalogue (see fdb-reindex tool).
     /// @param key Key used to index the data.
     /// @param location Location of existing data in an FDB store.
-    void reindex(const Key& key, const FieldLocation& location);
+    /// @param tracingID Optional tracing ID for the reindex operation
+    void reindex(const Key& key, const FieldLocation& location,
+                 const std::string& tracingID = generateTracingID("reindex"));
 
     /// Flush all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call
-    void flush();
+    /// @param tracingID Optional tracing ID for the flush operation
+    void flush(const std::string& tracingID = generateTracingID("flush"));
 
     // TODO(simondsmart): Review this. This is a bit odd. The purpose of a URI is that it directly describes the
     // data locations - and as such shouldn't need the FDB object to do the conversion into DataHandle?
     /// Read binary data from an URI.
     /// @param uri eckit uri to the data source
+    /// @param tracingID Optional tracing ID for the read operation
     /// @return DataHandle for reading the requested data from
-    eckit::DataHandle* read(const eckit::URI& uri);
+    eckit::DataHandle* read(const eckit::URI& uri, const std::string& tracingID = generateTracingID("read"));
 
     /// Read binary data from an list of URI.
     /// @param vector of uris eckit uris to the data source
     /// @param inStorageOrder if set data will be returned in the order it is stored. If unset data will be returned in
     /// the order it was requested.
     /// @return DataHandle for reading the requested data
-    eckit::DataHandle* read(const std::vector<eckit::URI>& uris, bool inStorageOrder = false);
+    eckit::DataHandle* read(const std::vector<eckit::URI>& uris, bool inStorageOrder = false) {
+        return read(uris, generateTracingID("read"), inStorageOrder);
+    }
+    eckit::DataHandle* read(const std::vector<eckit::URI>& uris, const std::string& tracingID,
+                            bool inStorageOrder = false);
 
     /// Read binary from a ListIterator.
     /// @param uris a list iterator which resembles a set of fields which should be read
     /// @param inStorageOrder if set data will be returned in the order it is stored. If unset data will be returned in
     /// the order it was requested.
     /// @return DataHandle for reading the requested data from
-    eckit::DataHandle* read(ListIterator& it, bool inStorageOrder = false);
+    eckit::DataHandle* read(ListIterator& it, bool inStorageOrder = false) {
+        return read(it, generateTracingID("read"), inStorageOrder);
+    }
+    eckit::DataHandle* read(ListIterator& it, const std::string& tracingID, bool inStorageOrder = false);
 
     /// Retrieve data which is specified by a MARS request.
     /// @param request MarsRequest which describes the data which should be retrieved
+    /// @param tracingID Optional tracing ID for the retrieve operation
     /// @return DataHandle for reading the requested data from
-    eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request);
+    eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request,
+                                const std::string& tracingID = generateTracingID("retrieve"));
 
-    // TODO(kkratz): Provide doc!
-    ListIterator inspect(const metkit::mars::MarsRequest& request);
+    /// Retrieve locations of data specified by a MARS request.
+    /// @param request MarsRequest which describes the data which should be retrieved
+    /// @param tracingID Optional tracing ID for the retrieve operation
+    /// @return ListIterator for iterating over the set of found items
+    ListIterator inspect(const metkit::mars::MarsRequest& request,
+                         const std::string& tracingID = generateTracingID("inspect"));
 
     /// List data present at the archive and which can be retrieved.
     /// @param request FDBToolRequest stating which data should be queried
     /// @param mode select how duplicates should be handled in the returned iterator
     /// @param level maximum level the visitor should respect
     /// @return ListIterator for iterating over the set of found items
-    ListIterator list(const FDBToolRequest& request, ListMode mode, int level = 3);
+    ListIterator list(const FDBToolRequest& request, ListMode mode, int level = 3) {
+        return list(request, mode, generateTracingID("list"), level);
+    }
+    ListIterator list(const FDBToolRequest& request, ListMode mode, const std::string& tracingID, int level = 3);
 
     /// Backwards-compatible overload using the previous deduplicate flag.
     ListIterator list(const FDBToolRequest& request, bool deduplicate = false, int level = 3);
@@ -187,7 +216,7 @@ public:  // methods
     DumpIterator dump(const FDBToolRequest& request, bool simple = false);
 
     // TODO(kkratz): Provide doc!
-    StatusIterator status(const FDBToolRequest& request);
+    StatusIterator status(const FDBToolRequest& request, const std::string& tracingID = generateTracingID("status"));
 
     /// Wipe data from the database.
     ///
@@ -201,7 +230,11 @@ public:  // methods
     /// @param unsafeWipeAll flag for omitting all security checks and force a wipe
     /// @return WipeIterator for iterating over the set of wiped items
     WipeIterator wipe(const FDBToolRequest& request, bool doit = false, bool porcelain = false,
-                      bool unsafeWipeAll = false);
+                      bool unsafeWipeAll = false) {
+        return wipe(request, generateTracingID(), doit, porcelain, unsafeWipeAll);
+    }
+    WipeIterator wipe(const FDBToolRequest& request, const std::string& tracingID, bool doit = false,
+                      bool porcelain = false, bool unsafeWipeAll = false);
 
     /// Move content of one FDB database.
     ///
@@ -210,7 +243,8 @@ public:  // methods
     /// @param request a fdb tool request for the data which should be move
     /// @param dest destination uri to which the data should be moved
     /// @return MoveIterator for iterating over the set of found items
-    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest);
+    MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest,
+                      const std::string& tracingID = generateTracingID("move"));
 
     /// Remove duplicate data from the database.
     ///
@@ -223,32 +257,43 @@ public:  // methods
     /// @param doit bool if true the purge is triggered, otherwise a dry-run is executed
     /// @param porcelain bool for printing only those files which are deleted
     /// @return PurgeIterator for iterating over the set of found items
-    PurgeIterator purge(const FDBToolRequest& request, bool doit = false, bool porcelain = false);
+    PurgeIterator purge(const FDBToolRequest& request, bool doit = false, bool porcelain = false) {
+        return purge(request, generateTracingID("purge"), doit, porcelain);
+    }
+    PurgeIterator purge(const FDBToolRequest& request, const std::string& tracingID, bool doit = false,
+                        bool porcelain = false);
 
     /// Prints information about FDB databases, aggregating the
     /// information over all the databases visited into a final summary.
     /// @param request FDB tool request for which the stats should be shown
     /// @return StatsIterator for iterating over the set of found items
-    StatsIterator stats(const FDBToolRequest& request);
+    StatsIterator stats(const FDBToolRequest& request, const std::string& tracingID = generateTracingID("stats"));
 
     // TODO(kkratz): Provide doc!
     /// @param request FDB tool request
     /// @param action control action
     /// @param identifiers identifiers
     /// @return ControlIterator for iterating over the set of found items
-    ControlIterator control(const FDBToolRequest& request, ControlAction action, ControlIdentifiers identifiers);
+    ControlIterator control(const FDBToolRequest& request, ControlAction action, ControlIdentifiers identifiers,
+                            const std::string& tracingID = generateTracingID("control"));
 
     // TODO(kkratz): Provide doc!
     /// @param request FDB tool request
     /// @param level maximum level the axis visitor should respect
     /// @return IndexAxis
-    IndexAxis axes(const FDBToolRequest& request, int level = 3);
+    IndexAxis axes(const FDBToolRequest& request, int level = 3) {
+        return axes(request, generateTracingID("axes"), level);
+    }
+    IndexAxis axes(const FDBToolRequest& request, const std::string& tracingID, int level = 3);
 
     // TODO(kkratz): Provide doc!
     /// @param request FDB tool request
     /// @param level maximum level the axis visitor should respect
     /// @return AxisIterator
-    AxesIterator axesIterator(const FDBToolRequest& request, int level = 3);
+    AxesIterator axesIterator(const FDBToolRequest& request, int level = 3) {
+        return axesIterator(request, generateTracingID("axesIterator"), level);
+    }
+    AxesIterator axesIterator(const FDBToolRequest& request, const std::string& tracingID, int level = 3);
 
     /// Check whether a specific control identifier is enabled
     /// @param controlIdentifier a given control identifier

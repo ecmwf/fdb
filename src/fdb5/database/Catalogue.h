@@ -86,7 +86,7 @@ public:
 
     virtual std::string type() const = 0;
     virtual bool open() = 0;
-    virtual void flush(size_t archivedFields) = 0;
+    virtual void flush(size_t archivedFields, const std::string& tracingID) = 0;
     virtual void clean() = 0;
     virtual void close() = 0;
 
@@ -179,7 +179,7 @@ public:
     virtual DbStats stats() const = 0;
 
     std::optional<std::reference_wrapper<const Axis>> axis(const std::string& keyword) const;
-    virtual bool retrieve(const Key& key, Field& field) const = 0;
+    virtual bool retrieve(const Key& key, Field& field, const std::string& tracingID) const = 0;
 
 protected:  // methods
 
@@ -364,7 +364,7 @@ public:
 
     std::string type() const override { NOTIMP; }
     bool open() override { NOTIMP; }
-    void flush(size_t archivedFields) override { NOTIMP; }
+    void flush(size_t archivedFields, const std::string& tracingID) override { NOTIMP; }
     void clean() override { NOTIMP; }
     void close() override { NOTIMP; }
 

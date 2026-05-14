@@ -36,7 +36,7 @@ struct BaseAPIHelper {
     static Message message() { return msgID; }
 
     void encodeExtra(Stream& s) const {}
-    static ValueType valueFromStream(Stream& s, RemoteFDB* fdb) { return ValueType(s); }
+    static ValueType valueFromStream(Stream& s, RemoteFDB* fdb, const std::string& tracingID) { return ValueType(s); }
 };
 
 using StatsHelper = BaseAPIHelper<StatsElement, Message::Stats>;
@@ -45,7 +45,7 @@ struct ListHelper : BaseAPIHelper<ListElement, Message::List> {
 
     ListHelper(const int depth) : depth_(depth) {}
 
-    static ListElement valueFromStream(Stream& s, RemoteFDB* fdb) {
+    static ListElement valueFromStream(Stream& s, RemoteFDB* fdb, const std::string& tracingID) {
         ListElement elem(s);
         std::shared_ptr<const FieldLocation> remoteLocation;
 
@@ -61,12 +61,13 @@ struct ListHelper : BaseAPIHelper<ListElement, Message::List> {
             if (elem.location().uri().scheme() == "fdb") {
                 net::Endpoint fieldLocationEndpoint{elem.location().uri().host(), elem.location().uri().port()};
 
-                remoteLocation = RemoteFieldLocation(fdb->storeEndpoint(fieldLocationEndpoint),
-                                                     static_cast<const RemoteFieldLocation&>(elem.location()))
-                                     .make_shared();
+                remoteLocation =
+                    RemoteFieldLocation(fdb->storeEndpoint(fieldLocationEndpoint),
+                                        static_cast<const RemoteFieldLocation&>(elem.location()), tracingID)
+                        .make_shared();
             }
             else {
-                remoteLocation = RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
+                remoteLocation = RemoteFieldLocation(fdb->storeEndpoint(), elem.location(), tracingID).make_shared();
             }
         }
 
@@ -92,7 +93,7 @@ private:
 
 struct InspectHelper : BaseAPIHelper<ListElement, Message::Inspect> {
 
-    static ListElement valueFromStream(Stream& s, RemoteFDB* fdb) {
+    static ListElement valueFromStream(Stream& s, RemoteFDB* fdb, const std::string& tracingID) {
         ListElement elem(s);
 
         if (LibFdb5::instance().debug()) {
@@ -106,12 +107,12 @@ struct InspectHelper : BaseAPIHelper<ListElement, Message::Inspect> {
 
             std::shared_ptr<const FieldLocation> remoteLocation =
                 RemoteFieldLocation(fdb->storeEndpoint(fieldLocationEndpoint),
-                                    static_cast<const RemoteFieldLocation&>(elem.location()))
+                                    static_cast<const RemoteFieldLocation&>(elem.location()), tracingID)
                     .make_shared();
             return ListElement(elem.keys(), remoteLocation, elem.timestamp());
         }
         std::shared_ptr<const FieldLocation> remoteLocation =
-            RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
+            RemoteFieldLocation(fdb->storeEndpoint(), elem.location(), tracingID).make_shared();
         return ListElement(elem.keys(), remoteLocation, elem.timestamp());
     }
 };
@@ -125,7 +126,9 @@ struct WipeHelper : BaseAPIHelper<CatalogueWipeState, Message::Wipe> {
         s << unsafeWipeAll_;
     }
 
-    static CatalogueWipeState valueFromStream(Stream& s, RemoteFDB* fdb) { return CatalogueWipeState(s); }
+    static CatalogueWipeState valueFromStream(Stream& s, RemoteFDB* fdb, const std::string& tracingID) {
+        return CatalogueWipeState(s);
+    }
 
 private:
 
@@ -235,7 +238,7 @@ RemoteFDB::~RemoteFDB() {
 
 
 template <typename HelperClass>
-auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& request)
+auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& request, const std::string& tracingID)
     -> APIIterator<typename HelperClass::ValueType> {
 
     using ValueType = typename HelperClass::ValueType;
@@ -259,6 +262,9 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     Buffer encodeBuffer(HelperClass::bufferSize());
     MemoryStream s(encodeBuffer);
     s << request;
+    if (tracingEnabled()) {
+        s << tracingID;
+    }
     helper.encodeExtra(s);
 
     controlWriteCheckResponse(HelperClass::message(), id, true, encodeBuffer, s.position());
@@ -269,7 +275,7 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     return IteratorType(
         // n.b. Don't worry about catching exceptions in lambda, as
         // this is handled in the AsyncIterator.
-        new AsyncIterator(shared_from_this(), [messageQueue, remoteFDB](Queue<ValueType>& queue) {
+        new AsyncIterator(shared_from_this(), [messageQueue, remoteFDB, tracingID](Queue<ValueType>& queue) {
             Buffer msg{0};
             while (true) {
                 if (messageQueue->pop(msg) == -1) {
@@ -277,31 +283,32 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
                 }
                 else {
                     MemoryStream s(msg);
-                    queue.emplace(HelperClass::valueFromStream(s, remoteFDB));
+                    queue.emplace(HelperClass::valueFromStream(s, remoteFDB, tracingID));
                 }
             }
             // messageQueue goes out of scope --> destructed
         }));
 }
 
-ListIterator RemoteFDB::list(const FDBToolRequest& request, const int depth) {
-    return forwardApiCall(ListHelper(depth), request);
+ListIterator RemoteFDB::list(const FDBToolRequest& request, const std::string& tracingID, const int depth) {
+    return forwardApiCall(ListHelper(depth), request, tracingID);
 }
 
-AxesIterator RemoteFDB::axesIterator(const FDBToolRequest& request, const int depth) {
-    return forwardApiCall(AxesHelper(depth), request);
+AxesIterator RemoteFDB::axesIterator(const FDBToolRequest& request, const std::string& tracingID, const int depth) {
+    return forwardApiCall(AxesHelper(depth), request, tracingID);
 }
 
-ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {
-    return forwardApiCall(InspectHelper(), request);
+ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request, const std::string& tracingID) {
+    return forwardApiCall(InspectHelper(), request, tracingID);
 }
 
-StatsIterator RemoteFDB::stats(const FDBToolRequest& request) {
-    return forwardApiCall(StatsHelper(), request);
+StatsIterator RemoteFDB::stats(const FDBToolRequest& request, const std::string& tracingID) {
+    return forwardApiCall(StatsHelper(), request, tracingID);
 }
 
-WipeStateIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
-    return forwardApiCall(WipeHelper(doit, porcelain, unsafeWipeAll), request);
+WipeStateIterator RemoteFDB::wipe(const FDBToolRequest& request, const std::string& tracingID, bool doit,
+                                  bool porcelain, bool unsafeWipeAll) {
+    return forwardApiCall(WipeHelper(doit, porcelain, unsafeWipeAll), request, tracingID);
 }
 
 void RemoteFDB::print(std::ostream& s) const {

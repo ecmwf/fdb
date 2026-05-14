@@ -47,7 +47,9 @@ public:  // methods
 
     // From CatalogueReader
     DbStats stats() const override { return {}; }
-    bool retrieve(const Key& /*key*/, Field& /*field*/) const override { return false; }
+    bool retrieve(const Key& /*key*/, Field& /*field*/, const std::string& /*tracingID*/) const override {
+        return false;
+    }
 
     // From Catalogue
     bool selectIndex(const Key& idxKey) override;
@@ -74,7 +76,7 @@ public:  // methods
     std::string type() const override { return typeName(); }
 
     bool open() override;
-    void flush(size_t archivedFields) override;
+    void flush(size_t archivedFields, const std::string& tracingID) override;
     void clean() override;
     void close() override;
     bool exists() const override;

@@ -28,8 +28,9 @@ class DaosFieldLocation : public FieldLocation {
 public:
 
     DaosFieldLocation(const DaosFieldLocation& rhs);
-    DaosFieldLocation(const eckit::URI& uri);
-    DaosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
+    DaosFieldLocation(const eckit::URI& uri, std::optional<std::reference_wrapper<const std::string>> tracingID);
+    DaosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey,
+                      std::optional<std::reference_wrapper<const std::string>> tracingID);
     DaosFieldLocation(eckit::Stream&);
 
     eckit::DataHandle* dataHandle() const override;

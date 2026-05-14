@@ -55,7 +55,8 @@ public:
 
     static RemoteConfiguration common(RemoteConfiguration& clientConf, RemoteConfiguration& serverConf);
 
-    bool singleConnection() const;
+    bool singleConnection() const { return singleConnection_; }
+    bool tracingEnabled() const { return tracingEnabled_ ? tracingEnabled_.value() : false; }
 
     friend eckit::Stream& operator<<(eckit::Stream& s, const RemoteConfiguration& r);
 
@@ -65,6 +66,7 @@ private:
     std::vector<int> numberOfConnections_;
 
     std::optional<bool> preferSingleConnection_;
+    std::optional<bool> tracingEnabled_;
 
     bool singleConnection_{false};
 };

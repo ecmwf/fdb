@@ -188,7 +188,7 @@ void DaosCatalogueWriter::deselectIndex() {
 
 void DaosCatalogueWriter::clean() {
 
-    flush(0);
+    flush(0, "");
 
     deselectIndex();
 }
@@ -319,7 +319,7 @@ void DaosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
     }
 }
 
-void DaosCatalogueWriter::flush(size_t archivedFields) {
+void DaosCatalogueWriter::flush(size_t archivedFields, const std::string& tracingID) {
 
     if (!current_.null()) {
         current_ = Index();

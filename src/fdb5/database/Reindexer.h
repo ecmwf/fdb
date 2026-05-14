@@ -24,16 +24,16 @@ class Reindexer : public Archiver {
 
 public:  // methods
 
-    Reindexer(const Config& dbConfig = Config().expandConfig());
+    Reindexer(const std::string& tracingID, const Config& dbConfig = Config().expandConfig());
 
     virtual ~Reindexer();
 
     // Write a field location to the catalogue without touching the store
-    void reindex(const Key& key, const FieldLocation& fieldLocation);
+    void reindex(const Key& key, const FieldLocation& fieldLocation, const std::string& tracingID);
 
 protected:  // methods
 
-    void flushDatabase(Database& db) override;
+    void flushDatabase(Database& db, const std::string& tracingID) override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -113,6 +113,7 @@ private:  // methods
 protected:  // members
 
     bool single_;
+    bool tracingEnabled_{true};
 
 private:  // members
 

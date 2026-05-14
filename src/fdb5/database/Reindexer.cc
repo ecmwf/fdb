@@ -15,19 +15,19 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Reindexer::Reindexer(const Config& dbConfig) : Archiver(dbConfig) {}
+Reindexer::Reindexer(const std::string& tracingID, const Config& dbConfig) : Archiver(tracingID, dbConfig) {}
 
 Reindexer::~Reindexer() {
-    flush();
+    flush(tracingID_);
 }
 
-void Reindexer::reindex(const Key& key, const FieldLocation& fieldLocation) {
+void Reindexer::reindex(const Key& key, const FieldLocation& fieldLocation, const std::string& tracingID) {
     ReindexVisitor visitor{*this, key, fieldLocation};
-    archive(key, visitor);
+    archive(key, visitor, tracingID);
 }
 
-void Reindexer::flushDatabase(Database& db) {
-    db.catalogue_->flush(db.catalogue_->archivedLocations());
+void Reindexer::flushDatabase(Database& db, const std::string& tracingID) {
+    db.catalogue_->flush(db.catalogue_->archivedLocations(), tracingID);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -29,8 +29,8 @@ namespace local {
 class ControlVisitor : public QueryVisitor<ControlElement> {
 public:
 
-    ControlVisitor(eckit::Queue<ControlElement>& queue, const metkit::mars::MarsRequest& request, ControlAction action,
-                   ControlIdentifiers identifiers);
+    ControlVisitor(eckit::Queue<ControlElement>& queue, const metkit::mars::MarsRequest& request,
+                   const std::string& tracingID, ControlAction action, ControlIdentifiers identifiers);
 
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }

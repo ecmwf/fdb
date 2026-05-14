@@ -30,8 +30,9 @@ public:
 
     RadosFieldLocation(const RadosFieldLocation& rhs);
     RadosFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length);
-    RadosFieldLocation(const eckit::URI& uri);
-    RadosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length);
+    RadosFieldLocation(const eckit::URI& uri, std::optional<std::reference_wrapper<const std::string>> tracingID);
+    RadosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length,
+                       std::optional<std::reference_wrapper<const std::string>> tracingID);
     RadosFieldLocation(eckit::Stream&);
     eckit::DataHandle* dataHandle() const override;
     eckit::DataHandle* dataHandle(const Key& remapKey) const override;

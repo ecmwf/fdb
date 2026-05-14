@@ -317,7 +317,7 @@ bool RemoteStore::open() {
     return true;
 }
 
-size_t RemoteStore::flush() {
+size_t RemoteStore::flush(const std::string& tracingID) {
 
     // Flush only does anything if there is an ongoing archive();
     if (locations_.archived() == 0) {
@@ -334,7 +334,13 @@ size_t RemoteStore::flush() {
     MemoryStream s(sendBuf);
     s << locations;
 
-    LOG_DEBUG_LIB(LibFdb5) << " RemoteStore::flush - flushing " << locations << " fields" << std::endl;
+    // check if the server supports the tracingID, if so include it in the payload
+    if (tracingEnabled()) {
+        s << "tracingID: " << tracingID;
+    }
+
+    LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID << " - RemoteStore::flush - flushing " << locations
+                           << " fields" << std::endl;
     // The flush call is blocking
     controlWriteCheckResponse(Message::Flush, generateRequestID(), false, sendBuf, s.position());
 
@@ -406,13 +412,17 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
         case Message::Store: {
             // received a FieldLocation from the remote store, can forward to the archiver for the indexing
             MemoryStream s(payload);
+            std::string tracingID{};
+            if (tracingEnabled()) {
+                s >> tracingID;
+            }
             std::unique_ptr<FieldLocation> location(eckit::Reanimator<FieldLocation>::reanimate(s));
             if (defaultEndpoint().empty()) {
                 return locations_.location(requestID, std::move(location));
             }
             else {
                 std::unique_ptr<RemoteFieldLocation> remoteLocation = std::unique_ptr<RemoteFieldLocation>(
-                    new RemoteFieldLocation(eckit::net::Endpoint{defaultEndpoint()}, *location));
+                    new RemoteFieldLocation(eckit::net::Endpoint{defaultEndpoint()}, *location, tracingID));
                 return locations_.location(requestID, std::move(remoteLocation));
             }
         }
@@ -440,11 +450,14 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
     }
 }
 
-eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation) {
-    return dataHandle(fieldLocation, Key());
+eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation,
+                                           std::optional<std::reference_wrapper<const std::string>> tracingID) {
+    return dataHandle(fieldLocation, tracingID, Key());
 }
 
-eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, const Key& remapKey) {
+eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation,
+                                           std::optional<std::reference_wrapper<const std::string>> tracingID,
+                                           const Key& remapKey) {
 
     uint32_t id = generateRequestID();
 
@@ -458,7 +471,7 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
         queue = entry.first->second;
     }
 
-    ReadLimiter::instance().add(this, id, fieldLocation, remapKey);
+    ReadLimiter::instance().add(this, id, tracingID, fieldLocation, remapKey);
     return new FDBRemoteDataHandle(id, this->id(), fieldLocation.length(), queue, controlEndpoint());
 }
 

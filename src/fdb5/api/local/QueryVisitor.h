@@ -42,8 +42,9 @@ public:  // methods
 
     using ValueType = T;
 
-    QueryVisitor(eckit::Queue<ValueType>& queue, const metkit::mars::MarsRequest& request) :
-        queue_(queue), request_(request) {}
+    QueryVisitor(eckit::Queue<ValueType>& queue, const metkit::mars::MarsRequest& request,
+                 const std::string& tracingID) :
+        queue_(queue), request_(request), tracingID_(tracingID) {}
 
 protected:  // methods
 
@@ -62,6 +63,7 @@ protected:  // members
 
     eckit::Queue<ValueType>& queue_;
     metkit::mars::MarsRequest request_;
+    std::string tracingID_;
 
 private:  // members
 

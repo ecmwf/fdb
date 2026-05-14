@@ -30,19 +30,22 @@ namespace fdb5 {
 
 TocFieldLocation::TocFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length,
                                    const Key& remapKey) :
-    FieldLocation(eckit::URI("file", path), offset, length, remapKey) {}
+    FieldLocation(eckit::URI("file", path), offset, length, remapKey, std::nullopt) {}
 
-TocFieldLocation::TocFieldLocation(const eckit::URI& uri) : FieldLocation(uri) {}
+TocFieldLocation::TocFieldLocation(const eckit::URI& uri,
+                                   std::optional<std::reference_wrapper<const std::string>> tracingID) :
+    FieldLocation(uri, tracingID) {}
 
 TocFieldLocation::TocFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length,
-                                   const Key& remapKey) :
-    FieldLocation(uri, offset, length, remapKey) {}
+                                   const Key& remapKey,
+                                   std::optional<std::reference_wrapper<const std::string>> tracingID) :
+    FieldLocation(uri, offset, length, remapKey, tracingID) {}
 
 TocFieldLocation::TocFieldLocation(const TocFieldLocation& rhs) :
-    FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_) {}
+    FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_, std::nullopt) {}
 
 TocFieldLocation::TocFieldLocation(const UriStore& store, const FieldRef& ref) :
-    FieldLocation(store.get(ref.uriId()), ref.offset(), ref.length(), Key()) {}
+    FieldLocation(store.get(ref.uriId()), ref.offset(), ref.length(), Key(), std::nullopt) {}
 
 TocFieldLocation::TocFieldLocation(eckit::Stream& s) : FieldLocation(s) {}
 

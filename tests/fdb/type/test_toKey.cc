@@ -129,7 +129,7 @@ CASE("Step & ClimateDaily - expansion") {
     }
 
     fdb5::Config conf = config.expandConfig();
-    fdb5::Archiver archiver(conf);
+    fdb5::Archiver archiver("test_toKey_tracingID", conf);
     auto visitor = fdb5::ArchiveVisitor::create(archiver, key, data, 4);
     config.schema().expand(key, *visitor);
 
@@ -264,7 +264,7 @@ CASE("Expver, Time & ClimateDaily - string ctor - expansion") {
     EXPECT_EQUAL(key.valuesToString(), "ei:0001:dacl:g:pb:pl:20210427:0600:0:99:100:50:129.128");
 
     {
-        fdb5::Archiver archiver;
+        fdb5::Archiver archiver("test_toKey_tracingID");
         auto visitor = fdb5::ArchiveVisitor::create(archiver, key, data, 4);
         config.schema().expand(key, *visitor);
         fdb5::TypedKey tKey(visitor->rule()->registry());
@@ -293,7 +293,7 @@ CASE("ClimateMonthly - string ctor - expansion") {
     EXPECT_EQUAL(key.valuesToString(), "op:0001:mnth:g:cl:pl:20210427:0000:50:129.128");
 
     {
-        fdb5::Archiver archiver;
+        fdb5::Archiver archiver("test_toKey_tracingID");
         auto visitor = fdb5::ArchiveVisitor::create(archiver, key, data, 4);
         config.schema().expand(key, *visitor);
         fdb5::TypedKey tKey(visitor->rule()->registry());
@@ -326,7 +326,7 @@ CASE("Date - string ctor - expansion") {
     EXPECT_EQUAL(key.valuesToString(), "od:0001:oper:ofb:" + t(now.yyyymmdd()) + ":0000:mhs:3001");
 
     {
-        fdb5::Archiver archiver;
+        fdb5::Archiver archiver("test_toKey_tracingID");
         auto visitor = fdb5::ArchiveVisitor::create(archiver, key, data, 4);
         config.schema().expand(key, *visitor);
         fdb5::TypedKey tKey(visitor->rule()->registry());

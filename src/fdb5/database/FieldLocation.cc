@@ -58,7 +58,8 @@ void FieldLocationFactory::list(std::ostream& out) {
 }
 
 FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit::URI& uri, eckit::Offset offset,
-                                           eckit::Length length, const Key& remapKey) {
+                                           eckit::Length length, const Key& remapKey,
+                                           std::optional<std::reference_wrapper<const std::string>> tracingID) {
 
     ASSERT(static_cast<long long>(length) != 0ll);
 
@@ -77,10 +78,11 @@ FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit:
         throw eckit::SeriousBug(std::string("No FieldLocationBuilder called ") + name);
     }
 
-    return (*j).second->make(uri, offset, length, remapKey);
+    return (*j).second->make(uri, offset, length, remapKey, tracingID);
 }
 
-FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit::URI& uri) {
+FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit::URI& uri,
+                                           std::optional<std::reference_wrapper<const std::string>> tracingID) {
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
 
@@ -97,7 +99,7 @@ FieldLocation* FieldLocationFactory::build(const std::string& name, const eckit:
         throw eckit::SeriousBug(std::string("No FieldLocationBuilder called ") + name);
     }
 
-    return (*j).second->make(uri);
+    return (*j).second->make(uri, tracingID);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -115,7 +117,9 @@ FieldLocationBuilderBase::~FieldLocationBuilderBase() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FieldLocation::FieldLocation(const eckit::URI& uri) : uri_(uri) {
+FieldLocation::FieldLocation(const eckit::URI& uri,
+                             std::optional<std::reference_wrapper<const std::string>> tracingID) :
+    uri_(uri) {
     try {
         offset_ = eckit::Offset(std::stoll(uri.fragment()));
     }
@@ -156,7 +160,8 @@ eckit::URI FieldLocation::fullUri() const {
 }
 
 
-FieldLocation::FieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey) :
+FieldLocation::FieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey,
+                             std::optional<std::reference_wrapper<const std::string>> tracingID) :
     uri_(uri), offset_(offset), length_(length), remapKey_(remapKey) {}
 
 void FieldLocation::encode(eckit::Stream& s) const {

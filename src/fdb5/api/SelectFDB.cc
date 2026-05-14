@@ -52,9 +52,9 @@ FDBBase& SelectFDB::FDBLane::get() {
     return *fdb_;
 }
 
-void SelectFDB::FDBLane::flush() {
+void SelectFDB::FDBLane::flush(const std::string& tracingID) {
     if (fdb_) {
-        fdb_->flush();
+        fdb_->flush(tracingID);
     }
 }
 
@@ -83,27 +83,27 @@ SelectFDB::SelectFDB(const Config& config, const std::string& name) : FDBBase(co
 
 SelectFDB::~SelectFDB() {}
 
-void SelectFDB::archive(const Key& key, const void* data, size_t length) {
+void SelectFDB::archive(const Key& key, const void* data, size_t length, const std::string& tracingID) {
 
     for (auto& lane : subFdbs_) {
         if (lane.matches(key, Matcher::DontMatchOnMissing)) {
-            lane.get().archive(key, data, length);
+            lane.get().archive(key, data, length, tracingID);
             return;
         }
     }
 
     std::ostringstream ss;
-    ss << "No matching fdb for key: " << key;
+    ss << "tracingID: " << tracingID << " - No matching fdb for key: " << key;
     throw eckit::UserError(ss.str(), Here());
 }
 
-ListIterator SelectFDB::inspect(const MarsRequest& request) {
+ListIterator SelectFDB::inspect(const MarsRequest& request, const std::string& tracingID) {
 
     std::queue<APIIterator<ListElement>> lists;
 
     for (auto& lane : subFdbs_) {
         if (lane.matches(request, Matcher::DontMatchOnMissing)) {
-            lists.push(lane.get().inspect(request));
+            lists.push(lane.get().inspect(request, tracingID));
         }
     }
 
@@ -128,32 +128,36 @@ auto SelectFDB::queryInternal(const FDBToolRequest& request, const QueryFN& fn)
     return QueryIterator(new APIAggregateIterator<ValueType>(std::move(iterQueue)));
 }
 
-ListIterator SelectFDB::list(const FDBToolRequest& request, const int level) {
-    LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::list() >> " << request << std::endl;
-    return queryInternal(request,
-                         [level](FDBBase& fdb, const FDBToolRequest& request) { return fdb.list(request, level); });
+ListIterator SelectFDB::list(const FDBToolRequest& request, const std::string& tracingID, const int level) {
+    LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID << " - SelectFDB::list() >> " << request << std::endl;
+    return queryInternal(request, [tracingID, level](FDBBase& fdb, const FDBToolRequest& request) {
+        return fdb.list(request, tracingID, level);
+    });
 }
 
-DumpIterator SelectFDB::dump(const FDBToolRequest& request, bool simple) {
-    LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::dump() >> " << request << std::endl;
-    return queryInternal(request,
-                         [simple](FDBBase& fdb, const FDBToolRequest& request) { return fdb.dump(request, simple); });
+DumpIterator SelectFDB::dump(const FDBToolRequest& request, const std::string& tracingID, bool simple) {
+    LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID << " - SelectFDB::dump() >> " << request << std::endl;
+    return queryInternal(request, [tracingID, simple](FDBBase& fdb, const FDBToolRequest& request) {
+        return fdb.dump(request, tracingID, simple);
+    });
 }
 
-StatusIterator SelectFDB::status(const FDBToolRequest& request) {
-    LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::status() >> " << request << std::endl;
-    return queryInternal(request, [](FDBBase& fdb, const FDBToolRequest& request) { return fdb.status(request); });
+StatusIterator SelectFDB::status(const FDBToolRequest& request, const std::string& tracingID) {
+    LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID << " - SelectFDB::status() >> " << request << std::endl;
+    return queryInternal(
+        request, [tracingID](FDBBase& fdb, const FDBToolRequest& request) { return fdb.status(request, tracingID); });
 }
 
-WipeStateIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
-    LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::wipe() >> " << request << std::endl;
+WipeStateIterator SelectFDB::wipe(const FDBToolRequest& request, const std::string& tracingID, bool doit,
+                                  bool porcelain, bool unsafeWipeAll) {
+    LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID << " - SelectFDB::wipe() >> " << request << std::endl;
 
     FDBLane* matchingLane = nullptr;
     for (auto& lane : subFdbs_) {
         if (lane.matches(request.request(), Matcher::MatchOnMissing)) {
             if (matchingLane != nullptr) {
                 std::stringstream ss;
-                ss << "Multiple matching lanes for request " << request.request();
+                ss << "tracingID: " << tracingID << " - Multiple matching lanes for request " << request.request();
                 ss << " - wipe request must not match multiple SelectFDB lanes.";
                 throw eckit::UserError(ss.str(), Here());
             }
@@ -164,42 +168,44 @@ WipeStateIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool
 
     if (matchingLane == nullptr) {
         std::stringstream ss;
-        ss << "No matching lane for request " << request.request();
+        ss << "tracingID: " << tracingID << " - No matching lane for request " << request.request();
         throw eckit::UserError(ss.str(), Here());
     }
 
-    return matchingLane->get().wipe(request, doit, porcelain, unsafeWipeAll);
+    return matchingLane->get().wipe(request, tracingID, doit, porcelain, unsafeWipeAll);
 }
 
-PurgeIterator SelectFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {
-    LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::purge() >> " << request << std::endl;
-    return queryInternal(request, [doit, porcelain](FDBBase& fdb, const FDBToolRequest& request) {
-        return fdb.purge(request, doit, porcelain);
+PurgeIterator SelectFDB::purge(const FDBToolRequest& request, const std::string& tracingID, bool doit, bool porcelain) {
+    LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID << " - SelectFDB::purge() >> " << request << std::endl;
+    return queryInternal(request, [tracingID, doit, porcelain](FDBBase& fdb, const FDBToolRequest& request) {
+        return fdb.purge(request, tracingID, doit, porcelain);
     });
 }
 
-StatsIterator SelectFDB::stats(const FDBToolRequest& request) {
-    LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::stats() >> " << request << std::endl;
-    return queryInternal(request, [](FDBBase& fdb, const FDBToolRequest& request) { return fdb.stats(request); });
-}
-
-ControlIterator SelectFDB::control(const FDBToolRequest& request, ControlAction action,
-                                   ControlIdentifiers identifiers) {
-    LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::control >> " << request << std::endl;
-    return queryInternal(request, [action, identifiers](FDBBase& fdb, const FDBToolRequest& request) {
-        return fdb.control(request, action, identifiers);
-    });
-}
-
-AxesIterator SelectFDB::axesIterator(const FDBToolRequest& request, int level) {
-    LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::axesIterator() >> " << request << std::endl;
+StatsIterator SelectFDB::stats(const FDBToolRequest& request, const std::string& tracingID) {
+    LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID << " - SelectFDB::stats() >> " << request << std::endl;
     return queryInternal(
-        request, [level](FDBBase& fdb, const FDBToolRequest& request) { return fdb.axesIterator(request, level); });
+        request, [tracingID](FDBBase& fdb, const FDBToolRequest& request) { return fdb.stats(request, tracingID); });
 }
 
-void SelectFDB::flush() {
+ControlIterator SelectFDB::control(const FDBToolRequest& request, const std::string& tracingID, ControlAction action,
+                                   ControlIdentifiers identifiers) {
+    LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID << " - SelectFDB::control >> " << request << std::endl;
+    return queryInternal(request, [tracingID, action, identifiers](FDBBase& fdb, const FDBToolRequest& request) {
+        return fdb.control(request, tracingID, action, identifiers);
+    });
+}
+
+AxesIterator SelectFDB::axesIterator(const FDBToolRequest& request, const std::string& tracingID, int level) {
+    LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID << " - SelectFDB::axesIterator() >> " << request << std::endl;
+    return queryInternal(request, [tracingID, level](FDBBase& fdb, const FDBToolRequest& request) {
+        return fdb.axesIterator(request, tracingID, level);
+    });
+}
+
+void SelectFDB::flush(const std::string& tracingID) {
     for (auto& lane : subFdbs_) {
-        lane.flush();
+        lane.flush(tracingID);
     }
 }
 

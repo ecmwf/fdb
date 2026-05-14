@@ -76,7 +76,7 @@ public:  // methods
     /// Retrieves the data selected by the MarsRequest to the provided DataHandle
     /// @returns  data handle to read from
 
-    ListIterator inspect(const metkit::mars::MarsRequest& request) const;
+    ListIterator inspect(const metkit::mars::MarsRequest& request, const std::string& tracingID) const;
 
     /// Give read access to a range of entries according to a request
 
