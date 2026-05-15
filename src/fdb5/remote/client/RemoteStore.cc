@@ -24,6 +24,7 @@
 #include "fdb5/remote/client/ReadLimiter.h"
 #include "fdb5/rules/Rule.h"
 
+#include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/Length.h"
@@ -219,18 +220,31 @@ Client::EndpointList storeEndpoints(const Config& config) {
     return out;
 }
 
+/// Default ReadLimiter memory limit used when RemoteStore is constructed standalone
+/// (e.g. type=local, store=remote). When used via RemoteFDB, init() is called in its
+/// constructor first with user-configured limits; std::call_once inside init() makes
+/// subsequent calls no-ops, so the user's limit wins.
+size_t defaultReadLimit() {
+    static size_t limit =
+        eckit::Resource<size_t>("$FDB_READ_LIMIT;fdbReadLimit", size_t{1} * 1024 * 1024 * 1024);  // 1 GiB default
+    return limit;
+}
+
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
 RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
-    Client(config, storeEndpoints(config)), dbKey_(dbKey), config_(config) {}
+    Client(config, storeEndpoints(config)), dbKey_(dbKey), config_(config) {
+    ReadLimiter::init(defaultReadLimit());
+}
 
 // this is used only in retrieval, with an URI already referring to an accessible Store
 RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
     Client(config, eckit::net::Endpoint(uri.hostport()), uri.hostport()), config_(config) {
     // no need to set the local_ flag on the read path
     ASSERT(uri.scheme() == "fdb");
+    ReadLimiter::init(defaultReadLimit());
 }
 
 RemoteStore::~RemoteStore() {
