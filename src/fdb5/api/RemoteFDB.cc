@@ -218,8 +218,9 @@ RemoteFDB::RemoteFDB(const Configuration& config, const std::string& name) : Loc
     config_.set("fieldLocationEndpoints", fieldLocationEndpoints);
     config_.overrideSchema(static_cast<std::string>(controlEndpoint()) + "/schema", schema);
 
-    /// @note: We must instantiate the ReadLimiter before any RemoteStores due to their static initialisation.
-    /// @todo: this may change in future.
+    // Initialise ReadLimiter with user-configured limit.
+    // RemoteStore constructors call init() with a default limit as a fallback
+    // for standalone use (e.g. type=local, store=remote).
     static size_t memoryLimit =
         Resource<size_t>("$FDB_READ_LIMIT;fdbReadLimit",
                          config_.userConfig().getUnsigned("limits.read", size_t(1) * 1024 * 1024 * 1024));  // 1GiB
