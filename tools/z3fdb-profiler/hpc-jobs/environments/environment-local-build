@@ -1,0 +1,9 @@
+source /home/ecm7593/python-venvs/bench/bin/activate
+export FINDLIBS_DISABLE_PACKAGE=yes
+export PYTHONPATH=/home/ecm7593/workspace/build/z3fdb-python-package-staging:/home/ecm7593/workspace/fdb/tools/z3fdb-profiler
+
+export PATH=/home/ecm7593/workspace/fdb/tools/z3fdb-profiler:$PATH
+
+export FDB_HOME=/home/fdbprod
+export FDB5_HOME=/home/ecm7593/workspace/build
+export ECCODES_HOME=/home/ecm7593/workspace/build

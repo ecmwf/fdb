@@ -1,0 +1,6 @@
+source /home/ecm7593/python-venvs/bench/bin/activate
+export PYTHONPATH=/home/ecm7593/workspace/build/z3fdb-python-package-staging:$PYTHONPATH
+
+export FDB_HOME=/home/fdbprod
+export FDB5_HOME=/usr/local/apps/mars-server/7.29.29.1
+export ECCODES_HOME=/usr/local/apps/mars-server/7.29.29.1

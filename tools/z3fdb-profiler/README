@@ -1,0 +1,36 @@
+# Z3FDB Profiling
+
+This contains the tools and scripts that I have developed to run Z3FDB profiling. They are not polished and required code changes in some places if you want to swap configuration.
+
+This folder contains:
+
+```
+├── data                <- Contains profiling configurations
+├── hpc-jobs            <- SLURM Jobs to prep & run profiling on ATOS
+├── requirements.txt    <- requirements for this tool   
+├── z3fdb_profiler      <- code
+└── z3fdb-profiler      <- entry point
+```
+
+## High Level Overview
+
+For a performance comparison / profiling run you will need a FDB with the appropriate data.
+
+*Setup FDB (Alternative A)*
+
+If you want to run simulate machine learning training use you will need to first download ERA5 data from MARS. Use `hpc-jobs/download/download-era.data.py` to download, this will require `earthkit-data`. You will need to modify the script if you want to change the data that is downloaded. *BE AWARE: The downloaded data needs to fit the requests use later*
+
+*Operational FDB (Alternative B)*
+If you want to work with current forecast data you can simply use the production fdb config on ATOS. *BE AWARE that you need to rely on relative dates or your will ru into issues when data gets purged*
+
+*Native Zarr Stores*
+To export a zarr store from FDB use `z3fdb-profiler`. See `z3fdb-profiler export --help` for all options. For a fair comparison you should probably use lz4 with default settings. Be sure to work on scratch to ensure you run with LUSTRE underneath.
+
+See `hpc-jobs/jobs/export_*` jobs
+
+*Benchmarking*
+Each of the benchmarking jobs runs 100 HPC jobs and reports the time taken. Use this to compare wall time needed to read from Z3FDB vs. Native Zarr.
+
+*Profiling*
+Creates a Flamegraph from perf profiles, run `hpc-jobs/jobs/profile-z3fdb.sh`, requires https://github.com/brendangregg/flamegraph to be cloned (update location in job)
+
