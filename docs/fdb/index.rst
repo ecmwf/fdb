@@ -1,15 +1,16 @@
 .. _FDB_Introduction:
 
-FDB
-===================================
+Fields DataBase - FDB Documentation
+====================================
 
 :Version: |version|
 
-The FDB is a domain-specific object store developed at ECMWF for
-storing, indexing and retrieving GRIB data. Each GRIB message is stored as a
-field and indexed trough semantic metadata (i.e., physical variables such as
-temperature, pressure, …). A set of fields can be retrieved specifying a
-request using a specific language developed for accessing MARS Archive.
+The FDB (Fields DataBase) is a domain-specific object store developed at ECMWF for storing,
+indexing and retrieving meteorological data. The data objects to be stored should be
+self-describing (messages), and are stored and indexed according to their semantic
+metadata (such as 'atmospheric level' or 'physical parameter'). A set of messages can
+be retrieved specifying a request using a specific language developed for accessing
+the MARS Archive.
 
 .. index:: Contents
 
@@ -17,17 +18,14 @@ request using a specific language developed for accessing MARS Archive.
    :maxdepth: 2
    :caption: Contents
 
-   content/requirements
-   content/installation
-   content/reference
-   content/tools
+   content/introduction
+   content/mars
    content/config-schema
    content/environment-variables
-   content/license
    cli_tools/index
-   cpp_api
-   c_api
-   content/genindex
+   content/api
+   content/license
+   genindex
 
 .. |Licence| image:: https://img.shields.io/badge/License-Apache%202.0-blue.svg
    :target: https://github.com/ecmwf/fdb/blob/develop/LICENSE

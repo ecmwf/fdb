@@ -56,7 +56,7 @@ bool TypeStep::match(const std::string&, const std::string& value1, const std::s
 }
 
 void TypeStep::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                         eckit::StringList& values, const Notifier&, const CatalogueReader* cat) const {
+                         eckit::StringList& values, const CatalogueReader* cat) const {
 
     // Get the steps / step ranges from the request
 

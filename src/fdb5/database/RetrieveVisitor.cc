@@ -21,8 +21,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RetrieveVisitor::RetrieveVisitor(const Notifier& wind, HandleGatherer& gatherer) :
-    ReadVisitor(wind), gatherer_(gatherer) {}
+RetrieveVisitor::RetrieveVisitor(HandleGatherer& gatherer) : gatherer_(gatherer) {}
 
 // From Visitor
 

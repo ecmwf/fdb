@@ -37,17 +37,21 @@ public:
     virtual DataLayout layout(eckit::DataHandle& handle) const = 0;
 
     /// Writes the extracted data into the out pointer.
-    /// The caller must ensure there is enought memory allccated for all values to be copied into out.
+    /// The caller must ensure there is enough memory allocated for all values to be copied into out.
     /// @param request that was used to read data from FDB, only used to enhance error messages
     /// @param list_iterator to read data from
     /// @param axes of the corresponding view.
     /// @param layout of the expected field.
-    /// @param out pointer to write into.
-    /// @param out len of memory pointed to by ptr in floats
-    /// @param expected_msg_count number of GRIB messages expected
-    virtual void writeInto(const metkit::mars::MarsRequest& request,
-                           std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
-                           const DataLayout& layout, float* ptr, size_t len, size_t expected_msg_count) const = 0;
+    /// @param ptr pointer to write into.
+    /// @param len of memory pointed to by ptr in floats
+    /// @param extensionAxisIdx index of the extension axis (SIZE_MAX = no extension)
+    /// @param combinedExtSize combined size of the extension axis across all parts
+    /// @param extensionOffset offset of this part on the extension axis
+    /// @return number of messages written
+    virtual size_t writeInto(const metkit::mars::MarsRequest& request,
+                             std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
+                             const DataLayout& layout, float* ptr, size_t len, size_t extensionAxisIdx = SIZE_MAX,
+                             size_t combinedExtSize = 0, size_t extensionOffset = 0) const = 0;
 };
 
 enum class ExtractorType {

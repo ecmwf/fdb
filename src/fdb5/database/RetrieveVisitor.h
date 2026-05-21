@@ -23,7 +23,6 @@
 namespace fdb5 {
 
 class HandleGatherer;
-class Notifier;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -31,7 +30,7 @@ class RetrieveVisitor : public ReadVisitor {
 
 public:  // methods
 
-    RetrieveVisitor(const Notifier& wind, HandleGatherer& gatherer);
+    explicit RetrieveVisitor(HandleGatherer& gatherer);
 
 protected:  // methods
 
