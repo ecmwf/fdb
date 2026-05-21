@@ -111,9 +111,6 @@ void ListElement::print(std::ostream& out, const bool location, const bool lengt
 
 void ListElement::json(eckit::JSON& json) const {
     json << combinedKey().keyDict();
-    if (loc_) {
-        json << "length" << loc_->length();
-    }
 }
 
 void ListElement::encode(eckit::Stream& stream) const {
