@@ -24,7 +24,7 @@ TypeInteger::TypeInteger(const std::string& name, const std::string& type) : Typ
 TypeInteger::~TypeInteger() {}
 
 void TypeInteger::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                            eckit::StringList& values, const Notifier&, const CatalogueReader*) const {
+                            eckit::StringList& values, const CatalogueReader*) const {
     std::vector<long> intValues;
 
     request.getValues(keyword, intValues, true);

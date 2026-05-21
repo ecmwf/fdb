@@ -20,8 +20,6 @@
 
 #include "eckit/types/Types.h"
 
-class Notifier;
-
 namespace metkit {
 namespace mars {
 class MarsRequest;
@@ -31,7 +29,6 @@ class MarsRequest;
 namespace fdb5 {
 
 class CatalogueReader;
-class Notifier;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -55,7 +52,7 @@ public:  // methods
     virtual std::string toKey(const std::string& value) const;
 
     virtual void getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                           eckit::StringList& values, const Notifier& wind, const CatalogueReader* cat) const;
+                           eckit::StringList& values, const CatalogueReader* cat) const;
 
     virtual bool match(const std::string& keyword, const std::string& value1, const std::string& value2) const;
 

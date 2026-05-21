@@ -55,7 +55,7 @@ std::string TypeClimateMonthly::toKey(const std::string& value) const {
 }
 
 void TypeClimateMonthly::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                                   eckit::StringList& values, const Notifier&, const CatalogueReader*) const {
+                                   eckit::StringList& values, const CatalogueReader*) const {
     std::vector<std::string> dates;
 
     request.getValues(keyword, dates, true);

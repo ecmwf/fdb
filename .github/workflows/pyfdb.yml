@@ -1,12 +1,28 @@
 name: Build and Test PyFDB
 
 on:
-  pull_request:
-  workflow_dispatch:  # Allows manual trigger
+  # Trigger the workflow on push to master or develop, except tag creation
+  push:
+    branches:
+      - 'master'
+      - 'develop'
+    tags-ignore:
+      - '**'
+
+  # Trigger the workflow on pull request
+  pull_request: ~
+
+  # Trigger the workflow manually
+  workflow_dispatch: ~
+
+  # Trigger after public PR approved for CI
+  pull_request_target:
+    types: [labeled]
 
 jobs:
   prepare-deps:
     runs-on: ubuntu-latest
+    if: ${{ (success() || failure()) && (!github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci') }}
     steps:
       - name: Get ecbuild
         uses: actions/checkout@v5
@@ -14,18 +30,18 @@ jobs:
           repository: ecmwf/ecbuild
           ref: develop
           path: ecbuild
-      - name: Get cxx-dependencies
+      - name: Get stack-dependencies
         uses: actions/checkout@v5
         with:
-          repository: ecmwf/cxx-dependencies
+          repository: ecmwf/stack-dependencies
           ref: master
-          path: cxx-dependencies-src
+          path: stack-dependencies-src
           token: ${{ secrets.GH_REPO_READ_TOKEN }}
           submodules: recursive
       - name: Install dependencies
         run: |
-          mkdir cxx-dependencies-build
-          BUILD_PATH=cxx-dependencies-build INSTALL_PREFIX=dependencies cxx-dependencies-src/build.sh
+          mkdir stack-dependencies-build
+          stack-dependencies-src/build.sh --build-path stack-dependencies-build --install-path dependencies  --with-deps libaec,pybind11
       - name: Get eccodes
         uses: actions/checkout@v5
         with:
@@ -90,6 +106,7 @@ jobs:
   build-wheels:
     needs: prepare-deps
     runs-on: ubuntu-latest
+    if: ${{ (success() || failure()) && (!github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci') }}
     strategy:
       matrix:
         python-version: ['3.11', '3.12', '3.13'] # eccodes does not yet support 3.14

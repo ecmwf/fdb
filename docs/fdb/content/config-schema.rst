@@ -2,7 +2,7 @@
 Setting up FDB
 ##############
 
-Seting up FDB requires the user to write a configuration and a schema file.
+Setting up FDB requires the user to write a configuration and a schema file.
 
 ***************************
 Writing a FDB Configuration
@@ -22,7 +22,7 @@ The following is of the form local:
     roots:
     - path: /path/to/fdb/root
 
-There a number of different types such as local, remote, distributed, and
+There are a number of different types such as local, remote, distributed, and
 select.
 
 *Local* implements the passage of data from the frontend to storage backend, talk
@@ -39,18 +39,18 @@ Select Type:
   type: select
   fdbs:
   - select: class=od
-    type:local
+    type: local
     spaces:
       roots:
-        -path: /path/to/fdb/od
-  -select: class=rd,expver=xx.?.?
+        - path: /path/to/fdb/od
+  - select: class=rd,expver=xx.?.?
     type: local
     spaces:
       roots:
         - path: /path/to/fdb/rd
 
-The *remote* type handles access to the remote FDB vis TCP/IP. It talks to the
-FDB server using an asynchronous protocol. It only handles the transition. not
+The *remote* type handles access to the remote FDB via TCP/IP. It talks to the
+FDB server using an asynchronous protocol. It only handles the transition, not
 the distribution of data.
 
 Remote type:
@@ -70,16 +70,16 @@ Dist type:
 
   type: dist
   lanes:
-    -type: remote
+    - type: remote
       host: fdb-minus-1
       port: 36604
-    -type: remote
+    - type: remote
       host: fdb-minus-2
       port: 36604
 
 These types can be composed together in the config file when using FDB.
 
-## TODO: Get this reviewed and add more information.
+.. TODO: Get this reviewed and add more information.
 
 ***************
 Database Schema
@@ -120,7 +120,7 @@ type ``Double`` values that cannot be parsed as double values are rejected and
 errors emitted.
 
 .. code-block:: text
-    :caption: Redfining datatypes for keywords
+    :caption: Redefining datatypes for keywords
 
     param:     Param;
     step:      Step;
@@ -186,14 +186,14 @@ In this example the data may contain the ``levelist`` keyword.
 
     [stream, date, time
         [type, levtype
-            [step, levellist?, param]]]
+            [step, levelist?, param]]]
 
 .. attention::
 
    To retrieve data matching all possible values including messages with
-   omitted keyword you will need to write two requests. One request specifiying
-   all possible values for the keayword and a second request with the keyword
-   ommitted.
+   omitted keyword you will need to write two requests. One request specifying
+   all possible values for the keyword and a second request with the keyword
+   omitted.
 
 Matching on Keyword Values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -248,7 +248,7 @@ used to form a key.
    Since types change how a key is formed specific types can be used to
    truncate values. A specific example for this is ``ClimateMonthly``
    which requires the value to be in date format and creates a three letter
-   code for a month out of it, effectively truncating to date to just 'month'.
+   code for a month out of it, effectively truncating the date to just 'month'.
 
 .. list-table:: Types
     :widths: 25 75
@@ -335,7 +335,7 @@ Forecast Data Example
 The primary characteristic of forecast runs is that there are discrete chunks of data produced
 by a large number of processes in parallel. But these produce a well-defined, self-contained
 dataset in which all the data are produced in a relatively narrow time window, in which the
-bulk of data accesses to this data are occur at the same times and separate from access to
+bulk of data accesses to this data occur at the same times and separate from access to
 earlier or later forecast runs, and that the data are typically deleted together as the
 forecast run becomes older and less valuable.
 
@@ -345,7 +345,7 @@ through the simulation is measured by the keyword step. And the combination of t
 is required to obtain the real-time valid time for the resultant output. These are treated
 very differently to each other.
 
-The first axes of time is included in the first level of the schema. As a result, each forecast
+The first axis of time is included in the first level of the schema. As a result, each forecast
 run produces its own, self-contained dataset. The second axis of time is included in the third
 level as a 'fast moving' key along side concepts such as the level in the atmosphere, and the
 parameter being output.
@@ -410,8 +410,8 @@ are also very poor for typical usage.
 
 As such, we suggest a change to use a hierarchical scheme, where notably components of
 date appear at multiple levels. The datasets are created per year of simulated output,
-indexing structures per month, and then date itself is treated analagously to step
-in typical forecast ouput (i.e. as a fast-changing key).
+indexing structures per month, and then date itself is treated analogously to step
+in typical forecast output (i.e. as a fast-changing key).
 
 .. code-block:: text
     :caption: Example Configuration for Climate Data

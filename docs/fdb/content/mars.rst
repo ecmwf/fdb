@@ -24,7 +24,7 @@ Where:
 ===============  ===============
 Format	         Example
 ===============  ===============
-single value     ``param = temperature/SSRD``
+single value     ``param = temperature``
 list of values   ``step = 12/24/48``
 range of values  ``date = 19990104/to/19990110/by/2``
 ===============  ===============
