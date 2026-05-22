@@ -116,5 +116,11 @@ fdb-list class=rd,expver=xxxx,date=20240911,stream=oper,type=an,levtype=pl,param
 line_count 12
 [[ $(grep '{class=rd,expver=xxxx' out | grep 'date=20240911' | grep param=138 | wc -l) -eq 12 ]] || die "Incorrect number of entries reported"
 
+
+echo "Test json does not contain length"
+
+fdb-list class=rd,expver=xxxx,date=20240911,stream=oper,type=an,levtype=pl,param=138 --json | tee out
+grep_count "length" 0
+
 echo "cleanup"
 rm -rf "$work_dir/localroot" "$work_dir"/data.*.grib
