@@ -26,13 +26,18 @@ bool ReadLimiter::isInitialised() {
     return instance_ != nullptr;
 }
 
+void ReadLimiter::init(size_t memoryLimit) {
+    std::call_once(initFlag_, [memoryLimit] { instance_ = new ReadLimiter(memoryLimit); });
+}
+
 ReadLimiter& ReadLimiter::instance() {
-    ASSERT(instance_);
+    std::call_once(initFlag_, [] { instance_ = new ReadLimiter(defaultReadLimit()); });
     return *instance_;
 }
 
-void ReadLimiter::init(size_t memoryLimit) {
-    std::call_once(initFlag_, [memoryLimit] { instance_ = new ReadLimiter(memoryLimit); });
+size_t ReadLimiter::defaultReadLimit() {
+    static size_t limit = eckit::Resource<size_t>("$FDB_READ_LIMIT;fdbReadLimit", size_t{1_GiB});  // 1 GiB default
+    return limit;
 }
 
 ReadLimiter::ReadLimiter(size_t memoryLimit) : memoryUsed_{0}, memoryLimit_{memoryLimit} {}

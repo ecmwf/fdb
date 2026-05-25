@@ -1,7 +1,8 @@
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 
-namespace {
+#include <mutex>
 
+namespace {
 class ConnectionError : public eckit::Exception {
 public:
 
@@ -24,7 +25,11 @@ ConnectionError::ConnectionError(const eckit::net::Endpoint& endpoint) {
     reason(s.str());
     eckit::Log::status() << what() << std::endl;
 }
+
+fdb5::remote::ClientConnectionRouter* instance_ = nullptr;
+std::once_flag initFlag_;
 }  // namespace
+
 namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -86,7 +91,7 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
 
 std::shared_ptr<ClientConnection> ClientConnectionRouter::refresh(const eckit::Configuration& config,
                                                                   const std::shared_ptr<ClientConnection>& connection) {
-    std::lock_guard lock(connectionMutex_);
+    std::lock_guard<std::mutex> lock(connectionMutex_);
     const auto iter = connections_.find(connection->controlEndpoint());
     if (iter == connections_.end() || !iter->second->valid()) {
         auto newConnection =
@@ -110,8 +115,8 @@ void ClientConnectionRouter::deregister(ClientConnection& connection) {
 }
 
 ClientConnectionRouter& ClientConnectionRouter::instance() {
-    static ClientConnectionRouter router;
-    return router;
+    std::call_once(initFlag_, [] { instance_ = new ClientConnectionRouter(); });
+    return *instance_;
 }
 
 void ClientConnectionRouter::teardown(std::exception_ptr e) {
