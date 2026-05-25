@@ -59,7 +59,7 @@ Client::Client(const eckit::Configuration& config,
 }
 
 void Client::refreshConnection() {
-    if (connection_->valid()) {
+    if (connection_->valid()) {  // Connection is still valid, no need to refresh
         return;
     }
     eckit::Log::warning() << "Connection to " << connection_->controlEndpoint()
@@ -92,8 +92,16 @@ void Client::controlWriteCheckResponse(const Message msg, const uint32_t request
     }
 
     auto f = connection_->controlWrite(*this, msg, requestID, dataListener, payloads);
-    f.wait();
-    ASSERT(f.get().size() == 0);
+    try {
+        f.wait();
+        ASSERT(f.get().size() == 0);
+    }
+    catch (const std::exception& e) {
+        std::ostringstream ss;
+        ss << "Error while waiting for response to control message " << msg << " with requestID " << requestID << ": "
+           << e.what();
+        throw RemoteFDBException(ss.str(), connection_->controlEndpoint());
+    }
 }
 
 eckit::Buffer Client::controlWriteReadResponse(const Message msg, const uint32_t requestID, const void* const payload,
@@ -109,8 +117,16 @@ eckit::Buffer Client::controlWriteReadResponse(const Message msg, const uint32_t
     }
 
     auto f = connection_->controlWrite(*this, msg, requestID, false, payloads);
-    f.wait();
-    return eckit::Buffer{f.get()};
+    try {
+        f.wait();
+        return eckit::Buffer{f.get()};
+    }
+    catch (const std::exception& e) {
+        std::ostringstream ss;
+        ss << "Error while waiting for response to control message " << msg << " with requestID " << requestID << ": "
+           << e.what();
+        throw RemoteFDBException(ss.str(), connection_->controlEndpoint());
+    }
 }
 
 void Client::dataWrite(Message msg, uint32_t requestID, PayloadList payloads) {

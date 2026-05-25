@@ -96,6 +96,7 @@ private:  // members
     // The shared_ptr allows this removal to be asynchronous with the actual task
     // cleaning up and returning to the client.
     std::unordered_map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
+    std::mutex messageMutex_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

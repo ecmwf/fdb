@@ -28,15 +28,6 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class RemoteFDBException : public eckit::RemoteException {
-public:
-
-    RemoteFDBException(const std::string& msg, const eckit::net::Endpoint& endpoint) :
-        eckit::RemoteException(msg, endpoint) {}
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-
 class Client {
 public:  // types
 
