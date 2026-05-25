@@ -228,16 +228,13 @@ Client::EndpointList storeEndpoints(const Config& config) {
 //----------------------------------------------------------------------------------------------------------------------
 
 RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
-    Client(config, storeEndpoints(config)), dbKey_(dbKey), config_(config) {
-    ReadLimiter::init(defaultReadLimit());
-}
+    Client(config, storeEndpoints(config)), dbKey_(dbKey), config_(config) {}
 
 // this is used only in retrieval, with an URI already referring to an accessible Store
 RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
     Client(config, eckit::net::Endpoint(uri.hostport()), uri.hostport()), config_(config) {
     // no need to set the local_ flag on the read path
     ASSERT(uri.scheme() == "fdb");
-    ReadLimiter::init(defaultReadLimit());
 }
 
 RemoteStore::~RemoteStore() {
