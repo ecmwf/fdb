@@ -158,7 +158,7 @@ const net::Endpoint& RemoteFDB::storeEndpoint(const net::Endpoint& fieldLocation
 
 RemoteFDB::RemoteFDB(const Configuration& config, const std::string& name) : LocalFDB(config, name), Client(config) {
 
-    Buffer buf = controlWriteReadResponse(remote::Message::Stores, generateRequestID());
+    Buffer buf = controlWriteReadResponse(Message::Stores, generateRequestID());
     MemoryStream s(buf);
     size_t numStores;
     s >> numStores;
@@ -209,7 +209,7 @@ RemoteFDB::RemoteFDB(const Configuration& config, const std::string& name) : Loc
         fieldLocationEndpoints.push_back("");
     }
 
-    Buffer buf2 = controlWriteReadResponse(remote::Message::Schema, generateRequestID());
+    Buffer buf2 = controlWriteReadResponse(Message::Schema, generateRequestID());
     MemoryStream s2(buf2);
 
     Schema* schema = Reanimator<Schema>::reanimate(s2);
@@ -217,14 +217,6 @@ RemoteFDB::RemoteFDB(const Configuration& config, const std::string& name) : Loc
     config_.set("stores", stores);
     config_.set("fieldLocationEndpoints", fieldLocationEndpoints);
     config_.overrideSchema(static_cast<std::string>(controlEndpoint()) + "/schema", schema);
-
-    // Initialise ReadLimiter with user-configured limit.
-    // RemoteStore constructors call init() with a default limit as a fallback
-    // for standalone use (e.g. type=local, store=remote).
-    static size_t memoryLimit =
-        Resource<size_t>("$FDB_READ_LIMIT;fdbReadLimit",
-                         config_.userConfig().getUnsigned("limits.read", size_t(1) * 1024 * 1024 * 1024));  // 1GiB
-    ReadLimiter::init(memoryLimit);
 }
 
 RemoteFDB::~RemoteFDB() {
@@ -253,14 +245,16 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
 
     // Ensure we have an entry in the message queue before we trigger anything that
     // will result in return messages
-
     uint32_t id = generateRequestID();
-    auto entry = messageQueues_.emplace(id, std::make_shared<MessageQueue>(HelperClass::queueSize()));
-    ASSERT(entry.second);
-    std::shared_ptr<MessageQueue> messageQueue(entry.first->second);
+    std::shared_ptr<MessageQueue> messageQueue;
+    {
+        std::lock_guard<std::mutex> lock(messageMutex_);
+        auto entry = messageQueues_.emplace(id, std::make_shared<MessageQueue>(HelperClass::queueSize()));
+        ASSERT(entry.second);
+        messageQueue = entry.first->second;
+    }
 
     // Encode the request and send it to the server
-
     Buffer encodeBuffer(HelperClass::bufferSize());
     MemoryStream s(encodeBuffer);
     s << request;
@@ -318,64 +312,69 @@ const Configuration& RemoteFDB::clientConfig() const {
     return config();
 }
 
-bool RemoteFDB::handle(remote::Message message, uint32_t requestID) {
+bool RemoteFDB::handle(Message message, uint32_t requestID) {
 
     switch (message) {
         case Message::Complete: {
-
+            std::lock_guard<std::mutex> lock(messageMutex_);
             auto it = messageQueues_.find(requestID);
             if (it == messageQueues_.end()) {
                 return false;
             }
 
             it->second->close();
-            // Remove entry (shared_ptr --> message queue will be destroyed when it
-            // goes out of scope in the worker thread).
+            // Remove entry (shared_ptr --> message queue will be destroyed when it goes out of scope in the worker
+            // thread).
             messageQueues_.erase(it);
             return true;
         }
         case Message::Error: {
-
-            std::ostringstream ss;
-            ss << "RemoteFDB - client id: " << clientId()
-               << " - received an error without error description for requestID " << requestID << std::endl;
-            throw RemoteFDBException(ss.str(), controlEndpoint());
-
-            return false;
+            std::lock_guard<std::mutex> lock(messageMutex_);
+            // Received Error message without error description. Remove the corresponding entry from the message queue
+            // and let the caller know & complain
+            auto it = messageQueues_.find(requestID);
+            if (it != messageQueues_.end()) {
+                it->second->interrupt(
+                    std::make_exception_ptr(RemoteFDBException("no error description provided", controlEndpoint())));
+                // Remove entry (shared_ptr --> message queue will be destroyed when it goes out of scope in the worker
+                // thread).
+                messageQueues_.erase(it);
+            }
+            return true;
         }
         default:
+            Log::error() << *this << " - Received unexpected [message=" << message << ",requestID=" << requestID << "]"
+                         << std::endl;
             return false;
     }
 }
-bool RemoteFDB::handle(remote::Message message, uint32_t requestID, Buffer&& payload) {
+bool RemoteFDB::handle(Message message, uint32_t requestID, Buffer&& payload) {
 
     switch (message) {
         case Message::Blob: {
+            std::lock_guard<std::mutex> lock(messageMutex_);
             auto it = messageQueues_.find(requestID);
             if (it == messageQueues_.end()) {
                 return false;
             }
-
             it->second->emplace(std::move(payload));
             return true;
         }
-
         case Message::Error: {
-
+            std::lock_guard<std::mutex> lock(messageMutex_);
             auto it = messageQueues_.find(requestID);
-            if (it == messageQueues_.end()) {
-                return false;
+            if (it != messageQueues_.end()) {
+                std::string errmsg{static_cast<const char*>(payload.data()), payload.size()};
+                it->second->interrupt(std::make_exception_ptr(RemoteFDBException(errmsg, controlEndpoint())));
+                // Remove entry (shared_ptr --> message queue will be destroyed when it goes out of scope in the worker
+                // thread).
+                messageQueues_.erase(it);
             }
-            std::string msg;
-            msg.resize(payload.size(), ' ');
-            payload.copy(&msg[0], payload.size());
-            it->second->interrupt(std::make_exception_ptr(RemoteFDBException(msg, controlEndpoint())));
-            // Remove entry (shared_ptr --> message queue will be destroyed when it
-            // goes out of scope in the worker thread).
-            messageQueues_.erase(it);
             return true;
         }
         default:
+            Log::warning() << *this << " - Received unexpected [message=" << message << ",requestID=" << requestID
+                           << ",payloadSize=" << payload.size() << "]" << std::endl;
             return false;
     }
 }
