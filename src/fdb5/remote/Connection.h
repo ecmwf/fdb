@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/net/Endpoint.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/os/BackTrace.h"
 #include "eckit/serialisation/MemoryStream.h"
@@ -46,6 +47,15 @@ public:
 
     TCPException(const std::string& msg, const eckit::CodeLocation& here) :
         eckit::Exception(std::string("TCPException: ") + msg, here) {}
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class RemoteFDBException : public eckit::RemoteException {
+public:
+
+    RemoteFDBException(const std::string& msg, const eckit::net::Endpoint& endpoint) :
+        eckit::RemoteException(msg, endpoint) {}
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -106,7 +116,7 @@ protected:  // members
 
 private:  // members
 
-    bool closingSocket_ = false;
+    mutable bool closingSocket_ = false;
 
     mutable std::mutex controlMutex_;
     mutable std::mutex dataMutex_;
