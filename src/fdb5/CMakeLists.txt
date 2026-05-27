@@ -151,8 +151,6 @@ list( APPEND fdb5_srcs
     message/MessageArchiver.h
     message/MessageDecoder.cc
     message/MessageDecoder.h
-    message/MessageIndexer.cc
-    message/MessageIndexer.h
     io/FDBFileHandle.cc
     io/FDBFileHandle.h
     io/LustreSettings.cc
