@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 from z3fdb.custom_store_builder import CustomStoreBuilder, VGroup, VArray
 import zarr
 
@@ -337,3 +338,191 @@ def test_custom_store_builder_access(read_only_fdb_setup) -> None:
     print(root["group_1/sub_group_1/array_name_2"].shape)
     print(root["group_2/sub_group_1/subsub_group_2/array_name_2"].shape)
     print(root["array_name_3"].shape)
+
+
+def test_custom_store_two_arrays_in_different_subgroups_combined_axis(
+    read_only_fdb_pattern_setup,
+) -> None:
+    """Two arrays in separate subgroup branches, each using a combined axis with
+    scrambled request ordering — analogous to
+    test_random_axis_retrieval_swapped_axis_and_request_combined_axis but using
+    CustomStoreBuilder with two independent arrays placed in different parts of
+    the zarr hierarchy.
+
+    Array 1  →  group_sfc/sub_sfc/sfc_fields    (levtype=sfc, params 167/165/166)
+                combined axis [time, step, param, date], scrambled request order.
+    Array 2  →  group_pl/sub_pl/pl_fields       (levtype=pl,  params 132/131/133)
+                combined axis [date, param, levelist, time], scrambled request order.
+    Array 3  →  group_merged/sub_merged/merged_fields
+                built from two add_view calls on the same path (sfc + pl parts)
+                merged along axis 1, like test_axis_check_merge.
+    """
+    builder = CustomStoreBuilder(read_only_fdb_pattern_setup)
+
+    # ── Array 1: surface fields — combined axis, scrambled request order ─────
+    req_sfc = (
+        "type=an,class=ea,domain=g,expver=0001,stream=oper,"
+        "time=18/0/12/6,"
+        "date=2020-01-03/2020-01-01/2020-01-02,"
+        "levtype=sfc,step=0,"
+        "param=167/165/166"
+    )
+    builder.add_view(
+        ["group_sfc", "sub_sfc", "sfc_fields"],
+        req_sfc,
+        [AxisDefinition(["time", "step", "param", "date"], Chunking.NONE)],
+        ExtractorType.GRIB,
+    )
+
+    # ── Array 2: pressure-level fields — different combined axis, scrambled order
+    req_pl = (
+        "type=an,class=ea,domain=g,expver=0001,stream=oper,"
+        "time=12/0/6/18,"
+        "date=2020-01-02/2020-01-01/2020-01-03,"
+        "levtype=pl,step=0,"
+        "param=132/131/133,"
+        "levelist=100/50/150"
+    )
+    builder.add_view(
+        ["group_pl", "sub_pl", "pl_fields"],
+        req_pl,
+        [AxisDefinition(["date", "param", "levelist", "time"], Chunking.NONE)],
+        ExtractorType.GRIB,
+    )
+
+    # ── Array 3: merged sfc + pl fields — two add_view calls, axes merged ────
+    # Part A (sfc): 2 dates × 2 times × 2 params → axis 1 size 2
+    # Part B (pl):  2 dates × 2 times × 2 params × 2 levels → axis 1 size 4
+    # After extend_on_axis(path, 1) the resulting shape is [4, 6]:
+    #   axis 0: (01-01,t=0), (01-01,t=600), (01-02,t=0), (01-02,t=600)
+    #   axis 1: sfc/165, sfc/166, pl/131@50, pl/131@100, pl/132@50, pl/132@100
+    merged_path = ["group_merged", "sub_merged", "merged_fields"]
+    builder.add_view(
+        merged_path,
+        "type=an,class=ea,domain=g,expver=0001,stream=oper,"
+        "date=2020-01-01/2020-01-02,time=0/600,levtype=sfc,step=0,param=165/166",
+        [
+            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["param"], Chunking.SINGLE_VALUE),
+        ],
+        ExtractorType.GRIB,
+    )
+    builder.add_view(
+        merged_path,
+        "type=an,class=ea,domain=g,expver=0001,stream=oper,"
+        "date=2020-01-01/2020-01-02,time=0/600,levtype=pl,step=0,param=131/132,levelist=50/100",
+        [
+            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["param", "levelist"], Chunking.SINGLE_VALUE),
+        ],
+        ExtractorType.GRIB,
+    )
+    builder.extend_on_axis(merged_path, 1)
+
+    store = builder.build()
+    root = zarr.open_group(store, mode="r", zarr_format=3, use_consolidated=False)
+
+    assert "group_sfc" in root
+    assert "group_pl" in root
+    assert "group_merged" in root
+    sfc_data = root["group_sfc/sub_sfc/sfc_fields"]
+    pl_data = root["group_pl/sub_pl/pl_fields"]
+
+    # ── sfc array correctness ────────────────────────────────────────────────
+    # Fixture ingests in product(dates, times, params_sfc) order:
+    #   dates=[01-01, 01-02, 01-03], times=[0, 600, 1200, 1800], params=[165, 166, 167]
+    #   constant field value = date_orig * 12 + time_orig * 3 + param_orig
+    #
+    # Request scramble (request_idx → original_idx in fixture order):
+    #   time:  18→3, 0→0, 12→2, 6→1   ⟹ time_perm  = [3, 0, 2, 1]
+    #   date:  03→2, 01→0, 02→1        ⟹ date_perm  = [2, 0, 1]
+    #   param: 167→2, 165→0, 166→1     ⟹ param_perm = [2, 0, 1]
+    #
+    # Combined axis [time, step, param, date] with sizes [4, 1, 3, 3]:
+    #   linear_idx = time_req * 9 + param_req * 3 + date_req
+
+    def sfc_expected(time_req, param_req, date_req):
+        time_perm  = [3, 0, 2, 1]
+        date_perm  = [2, 0, 1]
+        param_perm = [2, 0, 1]
+        return (
+            date_perm[date_req] * 4 * 3
+            + time_perm[time_req] * 3
+            + param_perm[param_req]
+        )
+
+    for t in range(4):
+        for p in range(3):
+            for d in range(3):
+                assert all(sfc_data[t * 9 + p * 3 + d] == sfc_expected(t, p, d))
+
+    # ── pl array correctness ─────────────────────────────────────────────────
+    # Fixture ingests in product(dates, times, params_pl, levels) order:
+    #   dates=[01-01, 01-02, 01-03], times=[0, 600, 1200, 1800],
+    #   params=[131, 132, 133], levels=[50, 100, 150]
+    #   constant field value = 36 + date_orig * 36 + time_orig * 9 + param_orig * 3 + level_orig
+    #   (36 = offset after the 36 sfc messages)
+    #
+    # Request scramble (request_idx → original_idx in fixture order):
+    #   time:  12→2, 0→0, 6→1, 18→3   ⟹ time_perm  = [2, 0, 1, 3]
+    #   date:  02→1, 01→0, 03→2        ⟹ date_perm  = [1, 0, 2]
+    #   param: 132→1, 131→0, 133→2     ⟹ param_perm = [1, 0, 2]
+    #   level: 100→1, 50→0, 150→2      ⟹ level_perm = [1, 0, 2]
+    #
+    # Combined axis [date, param, levelist, time] with sizes [3, 3, 3, 4]:
+    #   linear_idx = date_req * 36 + param_req * 12 + level_req * 4 + time_req
+
+    def pl_expected(date_req, param_req, level_req, time_req):
+        time_perm  = [2, 0, 1, 3]
+        date_perm  = [1, 0, 2]
+        param_perm = [1, 0, 2]
+        level_perm = [1, 0, 2]
+        return (
+            36
+            + date_perm[date_req]   * 4 * 3 * 3
+            + time_perm[time_req]   * 3 * 3
+            + param_perm[param_req] * 3
+            + level_perm[level_req]
+        )
+
+    for d in range(3):
+        for p in range(3):
+            for lv in range(3):
+                for t in range(4):
+                    assert all(
+                        pl_data[d * 36 + p * 12 + lv * 4 + t] == pl_expected(d, p, lv, t)
+                    )
+
+    # ── Array 3: merged_fields correctness ───────────────────────────────────
+    merged_data = root["group_merged/sub_merged/merged_fields"]
+
+    # Pattern fixture sfc values: date_orig * (4*3) + time_orig * 3 + param_orig
+    #   dates=[01-01(0), 01-02(1), 01-03(2)], times=[0(0),600(1),1200(2),1800(3)],
+    #   params=[165(0), 166(1), 167(2)]
+    # Pattern fixture pl values: 36 + date_orig * (4*3*3) + time_orig * (3*3)
+    #                                + param_orig * 3 + level_orig
+    #   params=[131(0), 132(1), 133(2)], levels=[50(0), 100(1), 150(2)]
+
+    # axis-0 index 0 → date=01-01 (orig 0), time=0 (orig 0)
+    assert np.all(merged_data[0, 0] == 0)    # sfc 165: 0*12 + 0*3 + 0
+    assert np.all(merged_data[0, 1] == 1)    # sfc 166: 0*12 + 0*3 + 1
+    assert np.all(merged_data[0, 2] == 36)   # pl 131@50:  36 + 0 + 0 + 0*3 + 0
+    assert np.all(merged_data[0, 3] == 37)   # pl 131@100: 36 + 0 + 0 + 0*3 + 1
+    assert np.all(merged_data[0, 4] == 39)   # pl 132@50:  36 + 0 + 0 + 1*3 + 0
+    assert np.all(merged_data[0, 5] == 40)   # pl 132@100: 36 + 0 + 0 + 1*3 + 1
+
+    # axis-0 index 1 → date=01-01 (orig 0), time=600 (orig 1)
+    assert np.all(merged_data[1, 0] == 3)    # sfc 165: 0*12 + 1*3 + 0
+    assert np.all(merged_data[1, 1] == 4)    # sfc 166: 0*12 + 1*3 + 1
+    assert np.all(merged_data[1, 2] == 45)   # pl 131@50:  36 + 0 + 1*9 + 0 + 0
+    assert np.all(merged_data[1, 3] == 46)   # pl 131@100: 36 + 0 + 1*9 + 0 + 1
+    assert np.all(merged_data[1, 4] == 48)   # pl 132@50:  36 + 0 + 1*9 + 1*3 + 0
+    assert np.all(merged_data[1, 5] == 49)   # pl 132@100: 36 + 0 + 1*9 + 1*3 + 1
+
+    # axis-0 index 2 → date=01-02 (orig 1), time=0 (orig 0)
+    assert np.all(merged_data[2, 0] == 12)   # sfc 165: 1*12 + 0*3 + 0
+    assert np.all(merged_data[2, 1] == 13)   # sfc 166: 1*12 + 0*3 + 1
+    assert np.all(merged_data[2, 2] == 72)   # pl 131@50:  36 + 1*36 + 0 + 0 + 0
+    assert np.all(merged_data[2, 3] == 73)   # pl 131@100: 36 + 1*36 + 0 + 0 + 1
+    assert np.all(merged_data[2, 4] == 75)   # pl 132@50:  36 + 1*36 + 0 + 1*3 + 0
+    assert np.all(merged_data[2, 5] == 76)   # pl 132@100: 36 + 1*36 + 0 + 1*3 + 1
