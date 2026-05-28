@@ -14,6 +14,7 @@
 #include "chunked_data_view/AxisDefinition.h"
 #include "chunked_data_view/Extractor.h"
 #include "chunked_data_view/Fdb.h"
+#include "chunked_data_view/exception/GribExtractorException.h"
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/DataHandle.h"
@@ -84,18 +85,26 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
 void ViewPart::at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len, size_t expected_msg_count,
                   size_t extensionAxisIdx, size_t combinedExtSize, size_t extensionOffset) const {
     ASSERT(chunkIndex.size() - 1 == axes_.size());
-    auto request = request_;
-    for (size_t idx = 0; idx < chunkIndex.size() - 1; ++idx) {
-        RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
-    }
+
+    auto request = RequestManipulation::selectRequest(request_, axes_, chunkIndex);
+
     auto listIterator = fdb_->inspect(request);
-    size_t written = extractor_->writeInto(request, std::move(listIterator), axes_, layout_, ptr, len, extensionAxisIdx,
-                                           combinedExtSize, extensionOffset);
-    if (written != expected_msg_count) {
+    try {
+        size_t written = extractor_->writeInto(std::move(listIterator), axes_, layout_, ptr, len, extensionAxisIdx,
+                                               combinedExtSize, extensionOffset);
+
+        if (written != expected_msg_count) {
+            std::ostringstream ss;
+            ss << "ViewPart::at: retrieved only " << written << " of " << expected_msg_count << " fields in request "
+               << request;
+            throw eckit::UserError(ss.str());
+        }
+    }
+    catch (GribExtractorException& exception) {
         std::ostringstream ss;
-        ss << "ViewPart::at: retrieved only " << written << " of " << expected_msg_count << " fields in request "
-           << request;
-        throw eckit::UserError(ss.str());
+        ss << exception.what();
+        ss << "Request was: " << request_ << std::endl;
+        throw GribExtractorException(ss.str());
     }
 }
 

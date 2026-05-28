@@ -73,8 +73,7 @@ struct FakeExtractor : public cdv::Extractor {
         return layout;
     }
 
-    size_t writeInto(const metkit::mars::MarsRequest& request,
-                     std::unique_ptr<chunked_data_view::ListIteratorInterface> list_iterator,
+    size_t writeInto(std::unique_ptr<chunked_data_view::ListIteratorInterface> list_iterator,
                      const std::vector<chunked_data_view::Axis>& axes, const chunked_data_view::DataLayout& layout,
                      float* ptr, size_t len, size_t extensionAxisIdx, size_t combinedExtSize,
                      size_t extensionOffset) const override {

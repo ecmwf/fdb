@@ -15,7 +15,6 @@
 #include "chunked_data_view/ListIterator.h"
 
 #include "fdb5/api/FDB.h"
-#include "metkit/mars/MarsRequest.h"
 
 #include <cstddef>
 #include <memory>
@@ -27,8 +26,8 @@ public:
 
     DataLayout layout(eckit::DataHandle& handle) const override;
 
-    size_t writeInto(const metkit::mars::MarsRequest& request, std::unique_ptr<ListIteratorInterface> list_iterator,
-                     const std::vector<Axis>& axes, const DataLayout& layout, float* ptr, size_t len,
-                     size_t extensionAxisIdx, size_t combinedExtSize, size_t extensionOffset) const override;
+    size_t writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
+                     const DataLayout& layout, float* ptr, size_t len, size_t extensionAxisIdx, size_t combinedExtSize,
+                     size_t extensionOffset) const override;
 };
 }  // namespace chunked_data_view
