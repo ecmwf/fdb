@@ -7,7 +7,6 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
-#pragma once
 
 #include "eckit/exception/Exceptions.h"
 

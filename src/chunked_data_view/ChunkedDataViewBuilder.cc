@@ -21,6 +21,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <filesystem>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -111,7 +112,15 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
     for (auto& [req, defs, ext] : parts_) {
         ext->setFillValue(fillValue_);
 
-        auto request = fdb5::FDBToolRequest::requestsFromString(req).at(0).request();
+        const auto requests = fdb5::FDBToolRequest::requestsFromString(req);
+
+        if (requests.size() > 1) {
+            std::ostringstream ss;
+            ss << "Cannot create view, request " << req << " expanded to multiple requests.";
+            throw eckit::UserError(ss.str());
+        }
+
+        const auto request = requests.at(0).request();
 
         try {
             const auto layout = ext->layout(request);
@@ -124,7 +133,7 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
             ViewPart vp(std::move(request), layout, axes, offsetInChunkedDataView);
             part_offsets.push_back(part_offsets.back() + vp.extension()[extensionAxisIndex_.value_or(0)]);
 
-            viewParts.emplace_back(std::move(vp), std::move(ext));
+            viewParts.emplace_back(std::move(vp), ext);
         }
         catch (const std::exception& e) {
             std::ostringstream ss;

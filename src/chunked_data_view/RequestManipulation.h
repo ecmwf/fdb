@@ -39,5 +39,10 @@ public:
     ///         would require multiple MARS requests to retrieve.
     static void updateRequest(metkit::mars::MarsRequest& request, const Axis& axis, size_t lowerIndex,
                               size_t upperIndex);
+
+    /// Returns a copy of @p request where every key except "param" is reduced to its
+    /// first value.  The "param" values are left intact so the returned request covers all
+    /// requested parameters in a single FDB retrieve call with minimal other key cardinality.
+    static metkit::mars::MarsRequest allParamRequest(const metkit::mars::MarsRequest& request);
 };
 }  // namespace chunked_data_view
