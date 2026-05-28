@@ -13,6 +13,7 @@
 #include "chunked_data_view/DataLayout.h"
 #include "chunked_data_view/IndexMapper.h"
 #include "chunked_data_view/ListIterator.h"
+#include "chunked_data_view/exception/GribExtractorException.h"
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/message/Reader.h"
@@ -57,8 +58,7 @@ size_t computeBufferIndex(const std::vector<Axis>& axes, const fdb5::Key& key, s
                                                                         extensionOffset);
 }
 
-size_t GribExtractor::writeInto(const metkit::mars::MarsRequest& request,
-                                std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
+size_t GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
                                 const DataLayout& layout, float* ptr, size_t len, size_t extensionAxisIdx,
                                 size_t combinedExtSize, size_t extensionOffset) const {
 
@@ -97,9 +97,7 @@ size_t GribExtractor::writeInto(const metkit::mars::MarsRequest& request,
     }
 
     if (iterator_empty) {
-        std::ostringstream ss;
-        ss << "GribExtractor: Empty iterator for request: " << request << ". Is the request correctly specified?";
-        throw eckit::Exception(ss.str());
+        throw GribExtractorException("GribExtractor: Empty iterator for request. Is the request correctly specified?");
     }
 
     return messagesWritten;
