@@ -19,6 +19,16 @@
 
 namespace chunked_data_view {
 
+metkit::mars::MarsRequest RequestManipulation::selectRequest(const metkit::mars::MarsRequest& request,
+                                                             const std::vector<Axis>& axes,
+                                                             const std::vector<size_t>& chunkIndex) {
+    metkit::mars::MarsRequest result = request;
+    for (size_t idx = 0; idx < chunkIndex.size() - 1; ++idx) {
+        RequestManipulation::updateRequest(result, axes[idx], chunkIndex[idx]);
+    }
+    return result;
+}
+
 void RequestManipulation::updateRequest(metkit::mars::MarsRequest& request, const Axis& axis, size_t chunkIndex) {
     if (!axis.isChunked()) {
         ASSERT(chunkIndex == 0);

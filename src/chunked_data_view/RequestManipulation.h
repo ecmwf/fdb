@@ -20,6 +20,9 @@ namespace chunked_data_view {
 class RequestManipulation {
 public:
 
+    static metkit::mars::MarsRequest selectRequest(const metkit::mars::MarsRequest& request,
+                                                   const std::vector<Axis>& axes,
+                                                   const std::vector<size_t>& chunkIndex);
     static void updateRequest(metkit::mars::MarsRequest& request, const Axis& axis, size_t chunkIndex);
 };
 }  // namespace chunked_data_view

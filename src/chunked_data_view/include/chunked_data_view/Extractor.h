@@ -38,7 +38,6 @@ public:
 
     /// Writes the extracted data into the out pointer.
     /// The caller must ensure there is enough memory allocated for all values to be copied into out.
-    /// @param request that was used to read data from FDB, only used to enhance error messages
     /// @param list_iterator to read data from
     /// @param axes of the corresponding view.
     /// @param layout of the expected field.
@@ -48,8 +47,7 @@ public:
     /// @param combinedExtSize combined size of the extension axis across all parts
     /// @param extensionOffset offset of this part on the extension axis
     /// @return number of messages written
-    virtual size_t writeInto(const metkit::mars::MarsRequest& request,
-                             std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
+    virtual size_t writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
                              const DataLayout& layout, float* ptr, size_t len, size_t extensionAxisIdx = SIZE_MAX,
                              size_t combinedExtSize = 0, size_t extensionOffset = 0) const = 0;
 };
