@@ -130,6 +130,7 @@ public:
     ViewPart(const ViewPart&) = delete;
     ViewPart& operator=(const ViewPart&) = delete;
 
+
     /// Returns the MARS sub-request that covers the fields within @p boundingBox.
     /// The bounding box must intersect the part's own bounding box.
     metkit::mars::MarsRequest at(const PartBoundingBox& boundingBox) const;

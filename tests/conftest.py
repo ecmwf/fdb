@@ -247,6 +247,73 @@ def read_only_fdb_setup_for_sfc_pl_example(
     return cfg
 
 
+@pytest.fixture(scope="session")
+def build_div_vo_grib_messages(data_path, session_tmp) -> pathlib.Path:
+    """Build GRIB messages containing divergence (155) and relative vorticity (138)
+    on pressure levels — for use with read_only_fdb_setup_for_div_vo_example.
+
+    Data layout: sequential integer values assigned by
+    enumerate(product(dates, times, levels, parameters)), so each
+    (date, time, level, param) combination carries a unique, predictable value.
+    """
+    tmp = session_tmp / "build_div_vo_grib_messages"
+    tmp.mkdir()
+    template_grib = data_path / "template.grib"
+    assert template_grib.is_file()
+    template_grib_fd = open(template_grib, "rb")
+    gid = ec.codes_grib_new_from_file(template_grib_fd)
+    template_grib_fd.close()
+    count_data_points = int(ec.codes_get(gid, "numberOfDataPoints"))
+    count_values = int(ec.codes_get(gid, "numberOfValues"))
+    count_missing = int(ec.codes_get(gid, "numberOfMissing"))
+
+    assert count_data_points == count_values
+    assert count_missing == 0
+
+    ec.codes_set_string(gid, "type", "an")
+    ec.codes_set_string(gid, "class", "ea")
+    ec.codes_set_string(gid, "expver", "0001")
+    ec.codes_set_string(gid, "stream", "oper")
+    ec.codes_set_string(gid, "levtype", "pl")
+
+    dates = [20200101, 20200102]
+    times = [0, 300, 600, 900, 1200, 1500, 1800, 2100]
+    levels = [50, 100]
+    parameters = [155, 138]  # divergence, relative vorticity
+
+    messages = tmp / "test_data_div_vo.grib"
+    with open(messages, "wb") as out:
+        for value, (date, time, level, parameter) in enumerate(
+            itertools.product(dates, times, levels, parameters)
+        ):
+            ec.codes_set(gid, "date", date)
+            ec.codes_set(gid, "time", time)
+            ec.codes_set(gid, "level", level)
+            ec.codes_set(gid, "paramId", parameter)
+            ec.codes_set_values(gid, repeat(value, count_values))
+            ec.codes_write(gid, out)
+
+    ec.codes_release(gid)
+    return messages
+
+
+@pytest.fixture(scope="session", autouse=False)
+def read_only_fdb_setup_for_div_vo_example(
+    data_path, session_tmp, build_div_vo_grib_messages
+) -> pathlib.Path:
+    """Read-only FDB containing divergence (155) and relative vorticity (138)
+    on pressure levels 50 and 100, for two dates and eight time steps.
+
+    Intended for tests that verify correct retrieval of div/vor fields.
+    """
+    fdb_root = session_tmp / "div-vo-example-fdb"
+    fdb_root.mkdir()
+    cfg = create_fdb(fdb_root, data_path / "schema")
+    populate_fdb(cfg, [build_div_vo_grib_messages])
+    return cfg
+
+
+
 @pytest.fixture(scope="function", autouse=False)
 def read_only_fdb_setup(data_path, function_tmp, build_grib_messages) -> pathlib.Path:
     """

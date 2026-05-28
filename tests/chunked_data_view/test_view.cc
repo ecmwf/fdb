@@ -147,6 +147,27 @@ CASE("ChunkedDataView | View from 2 requests | Can compute shape, combined axis"
     EXPECT_EQUAL(view->shape(), (std::vector<size_t>{16, 4, 10}));
 }
 
+CASE("ChunkedDataViewBuilder | build | Calling build twice throws") {
+    // build() used to move the shared_ptr<Extractor> out of the builder's internal parts_ list, making a second call
+    // UB. The builder now retains ownership so build() can be called multiple times safely.
+    const std::string keys{
+        "type=an,domain=g,expver=0001,stream=oper,"
+        "date=2020-01-01/to/2020-01-04,levtype=sfc,"
+        "param=v/u,time=0/6/12/18"};
+
+    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB());
+
+    cdv::ChunkedDataViewBuilder builder;
+    builder.addPart(keys,
+                    {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
+                     cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
+                     cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::WholeAxisChunking{}}},
+                    mock_extractor);
+
+    EXPECT_NO_THROW(builder.build());
+    EXPECT_NO_THROW(builder.build());
+}
+
 CASE("ChunkedDataView - Can build") {
     const std::string keys{
         "type=an,"

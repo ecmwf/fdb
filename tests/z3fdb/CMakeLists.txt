@@ -25,15 +25,27 @@ function(add_py_test test)
 endfunction()
 
 
-set(test_files
-  test_store_v3.py
-  test_store_v3_errors.py
-  test_store_v3_pattern.py
-  test_store_v3_parts.py
-  test_store_v3_random_axis.py
+set(unit_tests
+  unit/test_store_v3.py
+  unit/test_store_v3_errors.py
+  unit/test_u_v_vo_d_retrieval.py
 )
 
-foreach(test_file ${test_files})
+set(zarr_interface_conformity_tests
+  zarr_interface_conformity/test_z3fdb_store_interface.py
+  zarr_interface_conformity/test_z3fdb_store_path_correctness.py
+  zarr_interface_conformity/test_z3fdb_consolidated_metadata.py
+)
+
+set(permutation_tests
+  permutation_tests/test_scrambled_request_ordering.py
+  permutation_tests/test_axis_definition_ordering.py
+  permutation_tests/test_axis_definition_permutations.py
+  permutation_tests/test_store_individual_chunking.py
+  permutation_tests/test_store_multiple_parts.py
+)
+
+foreach(test_file ${unit_tests} ${zarr_interface_conformity_tests} ${permutation_tests})
   add_py_test(${test_file})
 endforeach()
 
