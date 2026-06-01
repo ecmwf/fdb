@@ -14,7 +14,6 @@
 /// @date   April 2016
 
 #include "fdb5/rules/SchemaParser.h"
-#include "eckit/log/Log.h"
 #include "eckit/parser/StreamParser.h"
 #include "fdb5/rules/ExcludeAll.h"
 #include "fdb5/rules/MatchAlways.h"
@@ -26,12 +25,29 @@
 #include "fdb5/rules/Rule.h"
 
 #include <memory>
+#include <set>
 #include <sstream>
 #include <utility>
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
+
+bool SchemaParser::isAscii(char c) {
+    return static_cast<unsigned char>(c) < 128;
+}
+
+char SchemaParser::peek(bool spaces) {
+    const char peeked = parser.peek(spaces);
+
+    if (peeked != 0 && !isAscii(peeked)) {
+        std::stringstream buf;
+        buf << "Schema file contained non-ASCII character which are not supported." << std::endl;
+        throw eckit::StreamParser::Error(buf.str(), parser.line() + 1);
+    }
+
+    return peeked;
+}
 
 std::string SchemaParser::parseIdent(bool value, bool emptyOK) {
     std::string s;
@@ -48,19 +64,19 @@ std::string SchemaParser::parseIdent(bool value, bool emptyOK) {
             case ']':
             case '?':
                 if (s.empty() && !emptyOK) {
-                    throw StreamParser::Error("Syntax error: found '" + std::to_string(c) + "'", line_ + 1);
+                    throw eckit::StreamParser::Error("Syntax error: found '" + std::string{c} + "'", parser.line() + 1);
                 }
                 return s;
             case '-':
                 if (s.empty() && !emptyOK) {
-                    throw StreamParser::Error("Syntax error: found '-'", line_ + 1);
+                    throw eckit::StreamParser::Error("Syntax error: found '-'", parser.line() + 1);
                 }
                 if (!value) {
                     return s;
                 }
                 [[fallthrough]];
             default:
-                consume(c);
+                parser.consume(c);
                 s += c;
                 break;
         }
@@ -76,19 +92,19 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
     char c = peek();
 
     if (c == ':') {
-        consume(c);
+        parser.consume(c);
         ASSERT(types.find(k) == types.end());
         types[k] = parseIdent(false, false);
         c = peek();
     }
 
     if (c == '?') {
-        consume(c);
+        parser.consume(c);
         return std::make_unique<Predicate>(k, new MatchOptional(parseIdent(true, true)));
     }
 
     if (c == '-') {
-        consume(c);
+        parser.consume(c);
         if (types.find(k) == types.end()) {
             // Register ignore type
             types[k] = "Ignore";
@@ -97,7 +113,7 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
     }
 
     if (c != ',' && c != '[' && c != ']') {
-        consume("=");
+        parser.consume("=");
 
         std::string val = parseIdent(true, false);
         exclude = val[0] == '!';
@@ -110,7 +126,7 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
         }
 
         while ((c = peek()) == '/') {
-            consume(c);
+            parser.consume(c);
             values.insert(parseIdent(true, false));
         }
     }
@@ -129,16 +145,27 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
 }
 
 void SchemaParser::parseTypes(eckit::StringDict& types) {
-    for (;;) {
-        const auto name = parseIdent(false, true);
-        if (name.empty()) {
-            break;
+
+    try {
+        for (;;) {
+            const auto name = parseIdent(false, true);
+            if (name.empty()) {
+                break;
+            }
+            parser.consume(':');
+            const auto type = parseIdent(false, false);
+            parser.consume(';');
+            ASSERT(types.find(name) == types.end());
+            types[name] = type;
         }
-        consume(':');
-        const auto type = parseIdent(false, false);
-        consume(';');
-        ASSERT(types.find(name) == types.end());
-        types[name] = type;
+    }
+    catch (eckit::StreamParser::Error& spe) {
+        std::stringstream buf;
+        buf << "SchemaParser::parseTypes: Error during parsing of types in schema, check the definitions: '<name>: "
+               "<type>;'."
+            << " Underlying issue: " << spe.what();
+
+        throw Error(buf.str(), parser.line() + 1);
     }
 }
 
@@ -146,13 +173,13 @@ std::unique_ptr<RuleDatum> SchemaParser::parseDatum() {
     Rule::Predicates predicates;
     eckit::StringDict types;
 
-    consume('[');
+    parser.consume('[');
 
-    const std::size_t line = line_ + 1;
+    const std::size_t line = parser.line() + 1;
 
     char c = peek();
     if (c == ']') {
-        consume(c);
+        parser.consume(c);
         return std::make_unique<RuleDatum>(line, predicates, types);
     }
 
@@ -162,13 +189,13 @@ std::unique_ptr<RuleDatum> SchemaParser::parseDatum() {
 
         predicates.emplace_back(parsePredicate(types));
         while ((c = peek()) == ',') {
-            consume(c);
+            parser.consume(c);
             predicates.emplace_back(parsePredicate(types));
         }
 
         c = peek();
         if (c == ']') {
-            consume(c);
+            parser.consume(c);
             return std::make_unique<RuleDatum>(line, predicates, types);
         }
     }
@@ -179,13 +206,13 @@ std::unique_ptr<RuleIndex> SchemaParser::parseIndex() {
     eckit::StringDict types;
     RuleIndex::Child rule;
 
-    consume('[');
+    parser.consume('[');
 
-    const std::size_t line = line_ + 1;
+    const std::size_t line = parser.line() + 1;
 
     char c = peek();
     if (c == ']') {
-        consume(c);
+        parser.consume(c);
         return std::make_unique<RuleIndex>(line, predicates, types, std::move(rule));
     }
 
@@ -199,14 +226,14 @@ std::unique_ptr<RuleIndex> SchemaParser::parseIndex() {
         else {
             predicates.emplace_back(parsePredicate(types));
             while ((c = peek()) == ',') {
-                consume(c);
+                parser.consume(c);
                 predicates.emplace_back(parsePredicate(types));
             }
         }
 
         c = peek();
         if (c == ']') {
-            consume(c);
+            parser.consume(c);
             return std::make_unique<RuleIndex>(line, predicates, types, std::move(rule));
         }
     }
@@ -217,91 +244,82 @@ std::unique_ptr<RuleDatabase> SchemaParser::parseDatabase() {
     eckit::StringDict types;
     RuleDatabase::Children rules;
 
-    consume('[');
+    try {
+        parser.consume('[');
 
-    const std::size_t line = line_ + 1;
+        const std::size_t line = parser.line() + 1;
 
-    char c = peek();
-    if (c == ']') {
-        consume(c);
-        return std::make_unique<RuleDatabase>(line, predicates, types, rules);
-    }
-
-    for (;;) {
-
-        c = peek();
-
-        if (c == '[') {
-            rules.emplace_back(parseIndex());
-        }
-        else {
-            predicates.emplace_back(parsePredicate(types));
-            while ((c = peek()) == ',') {
-                consume(c);
-                predicates.emplace_back(parsePredicate(types));
-            }
-        }
-
-        c = peek();
+        char c = peek();
         if (c == ']') {
-            consume(c);
+            parser.consume(c);
             return std::make_unique<RuleDatabase>(line, predicates, types, rules);
         }
+
+        for (;;) {
+
+            c = peek();
+
+            if (c == '[') {
+                rules.emplace_back(parseIndex());
+            }
+            else {
+                predicates.emplace_back(parsePredicate(types));
+                while ((c = peek()) == ',') {
+                    parser.consume(c);
+                    predicates.emplace_back(parsePredicate(types));
+                }
+            }
+
+            c = peek();
+            if (c == ']') {
+                parser.consume(c);
+                return std::make_unique<RuleDatabase>(line, predicates, types, rules);
+            }
+        }
+    }
+    catch (eckit::StreamParser::Error& spe) {
+        std::stringstream buf;
+        buf << "SchemaParser::parseDatabase: Error during parsing of rules in schema, check for closing brackets and "
+               "definitions."
+            << " Underlying issue: " << spe.what();
+
+        throw Error(buf.str(), parser.line() + 1);
     }
 }
 
 void SchemaParser::parse(RuleList& result, TypesRegistry& registry) {
     eckit::StringDict types;
 
-    try {
-        parseTypes(types);
-        for (const auto& [keyword, type] : types) {
-            registry.addType(keyword, type);
-        }
-    }
-    catch (StreamParser::Error& spe) {
-        std::stringstream buf;
-        buf << "SchemaParser::parse: Error during parsing of types in schema, check the definitions: '<name>: "
-               "<type>;'."
-            << " Underlying issue: " << spe.what();
-
-        throw SchemaParser::Error(buf.str());
+    parseTypes(types);
+    for (const auto& [keyword, type] : types) {
+        registry.addType(keyword, type);
     }
 
-    try {
-        char c;
-        while ((c = peek()) == '[') {
-            try {
-                result.emplace_back(parseDatabase());
-            }
-            catch (eckit::StreamParser::Error& spe) {
-                std::stringstream buf;
-                buf << "SchemaParser::parse: Error during parsing of rules in schema, check rules: for closing "
-                       "brackets and syntax."
-                    << " Underlying issue: " << spe.what();
-                throw SchemaParser::Error(buf.str());
-            }
-        }
-
-        if (c) {
-            throw SchemaParser::Error(std::string("Error parsing rules: remaining char: ") + c);
-        }
+    char c;
+    while ((c = peek()) == '[') {
+        result.emplace_back(parseDatabase());
     }
-    catch (StreamParser::Error& spe) {
-        std::stringstream buf;
-        buf << "SchemaParser::parse: Error during parsing of rules in schema, check the definitions.";
-        buf << " Underlying issue: " << spe.what();
-        throw SchemaParser::Error(buf.str());
+
+    if (c) {
+        throw Error(std::string("SchemaParser::parse: Error parsing rules: remaining char: ") + c);
     }
 
 
     if (result.size() == 0) {
         std::stringstream buf;
         buf << "SchemaParser::parse: Empty rule list. Didn't find any rule in the provided schema file." << std::endl;
-        throw SchemaParser::Error(buf.str());
+        throw Error(buf.str());
     }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+
+SchemaParser::Error::Error(const std::string& what, size_t line) : eckit::StreamParser::Error(what, line) {
+    if (line) {
+        std::ostringstream oss;
+        oss << "Line: " << line << " " << what;
+        reason(oss.str());
+    }
+}
 
 }  // namespace fdb5

@@ -1,17 +1,8 @@
 
-#include <fstream>
-#include <memory>
-
-#include "eckit/persist/Isa.h"
-#include "fdb5/database/IndexAxis.h"
-#include "fdb5/database/Key.h"
-
 #include "eckit/testing/Test.h"
-#include "fdb5/rules/Predicate.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/rules/SchemaParser.h"
-#include "fdb5/types/TypesRegistry.h"
 
 namespace {
 
@@ -22,7 +13,7 @@ CASE("Broken schema - Non-existing schema file") {
     try {
         fdb5::Schema schema("./data/non-existing");
     }
-    catch (std::exception& ex) {
+    catch (eckit::Exception& ex) {
         std::cout << ex.what() << std::endl;
     }
 }
@@ -32,8 +23,9 @@ CASE("Broken schema - No Rule") {
     try {
         fdb5::Schema("./data/broken_schema_no_rule");
     }
-    catch (std::exception& ex) {
+    catch (fdb5::SchemaParser::Error& ex) {
         std::cout << ex.what() << std::endl;
+        EXPECT(std::string(ex.what()).find("SchemaParser::parse: Empty rule list") != std::string::npos);
     }
 }
 
@@ -42,8 +34,9 @@ CASE("Broken schema - Missing semicolon types") {
     try {
         fdb5::Schema("./data/broken_types_missing_semicolon");
     }
-    catch (std::exception& ex) {
+    catch (fdb5::SchemaParser::Error& ex) {
         std::cout << ex.what() << std::endl;
+        EXPECT(std::string(ex.what()).find("SchemaParser::parseTypes") != std::string::npos);
     }
 }
 
@@ -52,7 +45,7 @@ CASE("Broken schema - No type name") {
     try {
         fdb5::Schema("./data/broken_types_no_name");
     }
-    catch (std::exception& ex) {
+    catch (fdb5::SchemaParser::Error& ex) {
         std::cout << ex.what() << std::endl;
     }
 }
@@ -62,7 +55,7 @@ CASE("Broken schema - No type type") {
     try {
         fdb5::Schema("./data/broken_types_no_type");
     }
-    catch (std::exception& ex) {
+    catch (fdb5::SchemaParser::Error& ex) {
         std::cout << ex.what() << std::endl;
     }
 }
@@ -76,6 +69,19 @@ CASE("Broken schema - Missing closing bracket") {
     }
     catch (fdb5::SchemaParser::Error& ex) {
         std::cout << ex.what() << std::endl;
+        EXPECT(std::string(ex.what()).find("SchemaParser::parseDatabase") != std::string::npos);
+    }
+}
+
+CASE("Broken schema - Non-ASCII chars") {
+
+    EXPECT_THROWS(fdb5::Schema("./data/non_ascii_chars"));
+    try {
+        fdb5::Schema("./data/non_ascii_chars");
+    }
+    catch (fdb5::SchemaParser::Error& ex) {
+        std::cout << ex.what() << std::endl;
+        EXPECT(std::string(ex.what()).find("non-ASCII") != std::string::npos);
     }
 }
 
