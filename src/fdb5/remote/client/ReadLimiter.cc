@@ -18,20 +18,22 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 namespace {
-ReadLimiter* instance_ = nullptr;
-std::once_flag initFlag_;
+std::mutex instanceMutex_;
+std::unique_ptr<ReadLimiter> instance_{nullptr};
 }  // namespace
 
-bool ReadLimiter::isInitialised() {
-    return instance_ != nullptr;
-}
-
 void ReadLimiter::init(size_t memoryLimit) {
-    std::call_once(initFlag_, [memoryLimit] { instance_ = new ReadLimiter(memoryLimit); });
+    std::lock_guard<std::mutex> lock(instanceMutex_);
+    if (instance_ == nullptr) {
+        instance_.reset(new ReadLimiter(memoryLimit));
+    }
 }
 
 ReadLimiter& ReadLimiter::instance() {
-    std::call_once(initFlag_, [] { instance_ = new ReadLimiter(defaultReadLimit()); });
+    std::lock_guard<std::mutex> lock(instanceMutex_);
+    if (instance_ == nullptr) {
+        instance_.reset(new ReadLimiter(defaultReadLimit()));
+    }
     return *instance_;
 }
 
@@ -58,7 +60,7 @@ void ReadLimiter::add(RemoteStore* client, uint32_t id, const FieldLocation& fie
     }
 
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
         requests_.emplace_back(RequestInfo{client, id, std::move(requestBuffer), requestSize, resultSize});
     }
 
@@ -66,7 +68,7 @@ void ReadLimiter::add(RemoteStore* client, uint32_t id, const FieldLocation& fie
 }
 
 bool ReadLimiter::tryNextRequest() {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (requests_.empty()) {
         return false;
     }
@@ -89,7 +91,7 @@ bool ReadLimiter::tryNextRequest() {
 
 void ReadLimiter::finishRequest(uint32_t clientID, uint32_t requestID) {
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
 
         auto it = activeRequests_.find(clientID);
         if (it == activeRequests_.end()) {
@@ -109,37 +111,38 @@ void ReadLimiter::finishRequest(uint32_t clientID, uint32_t requestID) {
 
 /// @note: Only called when a RemoteStore is destroyed, which is currently on exit.
 void ReadLimiter::evictClient(size_t clientID) {
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(instanceMutex_);
+    if (instance_ != nullptr) {
+        auto& instance = *instance_;
+        std::lock_guard<std::recursive_mutex> lock(instance.mutex_);
         // Remove the client's active requests
-        auto it = activeRequests_.find(clientID);
+        auto it = instance.activeRequests_.find(clientID);
 
-        if (it != activeRequests_.end()) {
+        if (it != instance.activeRequests_.end()) {
             for (auto requestID : it->second) {
-                memoryUsed_ -= resultSizes_[{clientID, requestID}];
-                resultSizes_.erase({clientID, requestID});
+                instance.memoryUsed_ -= instance.resultSizes_[{clientID, requestID}];
+                instance.resultSizes_.erase({clientID, requestID});
             }
-            activeRequests_.erase(it);
+            instance.activeRequests_.erase(it);
         }
 
         // Clean up any pending requests attributed to this client
         ///@note O(n), room for optimisation.
-        auto it2 = requests_.begin();
-        while (it2 != requests_.end()) {
+        auto it2 = instance.requests_.begin();
+        while (it2 != instance.requests_.end()) {
             if (it2->client->id() == clientID) {
-                it2 = requests_.erase(it2);
+                it2 = instance.requests_.erase(it2);
             }
             else {
                 ++it2;  // Only increment if we didn't erase
             }
         }
+        instance.tryNextRequest();
     }
-
-    tryNextRequest();
 }
 
 void ReadLimiter::print(std::ostream& out) const {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
 
     out << "ReadLimiter(memoryUsed=" << memoryUsed_ << ", memoryLimit=" << memoryLimit_ << ") {" << std::endl;
 

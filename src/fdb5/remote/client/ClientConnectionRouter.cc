@@ -26,8 +26,8 @@ ConnectionError::ConnectionError(const eckit::net::Endpoint& endpoint) {
     eckit::Log::status() << what() << std::endl;
 }
 
-fdb5::remote::ClientConnectionRouter* instance_ = nullptr;
-std::once_flag initFlag_;
+std::mutex initMutex;
+std::unique_ptr<fdb5::remote::ClientConnectionRouter> instance_{nullptr};
 }  // namespace
 
 namespace fdb5::remote {
@@ -112,10 +112,17 @@ void ClientConnectionRouter::deregister(ClientConnection& connection) {
     if (it != connections_.end() && &connection == it->second.get()) {
         connections_.erase(it);
     }
+    if (connections_.empty()) {
+        std::lock_guard<std::mutex> lock(initMutex);
+        instance_.reset();
+    }
 }
 
 ClientConnectionRouter& ClientConnectionRouter::instance() {
-    std::call_once(initFlag_, [] { instance_ = new ClientConnectionRouter(); });
+    std::lock_guard<std::mutex> lock(initMutex);
+    if (!instance_) {
+        instance_.reset(new ClientConnectionRouter());
+    }
     return *instance_;
 }
 

@@ -317,6 +317,9 @@ const eckit::Configuration& RemoteFDB::clientConfig() const {
 
 bool RemoteFDB::handle(remote::Message message, uint32_t requestID) {
 
+    // Received Error message without error description.
+    ASSERT(message != remote::Message::Error);
+
     switch (message) {
         case fdb5::remote::Message::Complete: {
 
@@ -330,15 +333,6 @@ bool RemoteFDB::handle(remote::Message message, uint32_t requestID) {
             // goes out of scope in the worker thread).
             messageQueues_.erase(it);
             return true;
-        }
-        case fdb5::remote::Message::Error: {
-
-            std::ostringstream ss;
-            ss << "RemoteFDB - client id: " << clientId()
-               << " - received an error without error description for requestID " << requestID << std::endl;
-            throw RemoteFDBException(ss.str(), controlEndpoint());
-
-            return false;
         }
         default:
             return false;
@@ -363,10 +357,8 @@ bool RemoteFDB::handle(remote::Message message, uint32_t requestID, eckit::Buffe
             if (it == messageQueues_.end()) {
                 return false;
             }
-            std::string msg;
-            msg.resize(payload.size(), ' ');
-            payload.copy(&msg[0], payload.size());
-            it->second->interrupt(std::make_exception_ptr(RemoteFDBException(msg, controlEndpoint())));
+            std::string errmsg{static_cast<const char*>(payload.data()), payload.size()};
+            it->second->interrupt(std::make_exception_ptr(RemoteFDBException(errmsg, controlEndpoint())));
             // Remove entry (shared_ptr --> message queue will be destroyed when it
             // goes out of scope in the worker thread).
             messageQueues_.erase(it);

@@ -59,7 +59,7 @@ Client::Client(const eckit::Configuration& config,
 }
 
 void Client::refreshConnection() {
-    if (connection_->valid()) {
+    if (connection_->valid()) { // NO ==> this way we refresh the connection only for one of the clients sharing the connection.
         return;
     }
     eckit::Log::warning() << "Connection to " << connection_->controlEndpoint()

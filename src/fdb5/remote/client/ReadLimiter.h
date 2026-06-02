@@ -40,7 +40,6 @@ struct RequestInfo {
 class ReadLimiter {
 public:
 
-    static bool isInitialised();
     static void init(size_t memoryLimit);
     static ReadLimiter& instance();
 
@@ -64,7 +63,7 @@ public:
     // request).
     /// @todo: This is somewhat pointless right now because the RemoteStores appear to be infinitely long lived...
     /// Revisit if this changes.
-    void evictClient(size_t clientID);
+    static void evictClient(size_t clientID);
 
     // Debugging
     void print(std::ostream& out) const;
@@ -80,7 +79,7 @@ private:
 
 private:
 
-    mutable std::mutex mutex_;
+    mutable std::recursive_mutex mutex_;
 
     size_t memoryUsed_;
     const size_t memoryLimit_;

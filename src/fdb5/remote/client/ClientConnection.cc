@@ -404,10 +404,8 @@ void ClientConnection::listeningControlThreadLoop() {
                             ss << "RemoteFDB received an unhandled error on CONTROL connection. [clientID="
                                << hdr.clientID() << ",requestID=" << hdr.requestID << "]";
                             if (hdr.payloadSize) {
-                                std::string msg;
-                                msg.resize(payload.size(), ' ');
-                                payload.copy(msg.data(), payload.size());
-                                ss << ": " << msg;
+                                std::string errmsg{static_cast<const char*>(payload.data()), payload.size()};
+                                ss << ": " << errmsg;
                             }
                             throw RemoteFDBException(ss.str(), controlEndpoint_);
                         }
@@ -496,10 +494,8 @@ void ClientConnection::listeningDataThreadLoop() {
                             ss << "RemoteFDB received an unhandled error on DATA connection. [clientID="
                                << hdr.clientID() << ",requestID=" << hdr.requestID << "]";
                             if (hdr.payloadSize) {
-                                std::string msg;
-                                msg.resize(payload.size(), ' ');
-                                payload.copy(msg.data(), payload.size());
-                                ss << ": " << msg;
+                                std::string errmsg{static_cast<const char*>(payload.data()), payload.size()};
+                                ss << ": " << errmsg;
                             }
                             throw RemoteFDBException(ss.str(), dataEndpoint_);
                         }

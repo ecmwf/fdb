@@ -130,9 +130,7 @@ private:  // methods
 
             // If we are in the DataHandle, then there MUST be data to read
             RemoteStore::StoredMessage msg = std::make_pair(remote::Message{}, eckit::Buffer{0});
-            // eckit::Log::info() << "RemoteDataHandle::read() -- popping next" << std::endl;
             ASSERT(queue_->pop(msg) != -1);
-            // eckit::Log::info() << "RemoteDataHandle::read() -- popped next" << std::endl;
 
             // Handle any remote errors communicated from the server
             if (msg.first == Message::Error) {
@@ -208,9 +206,11 @@ private:  // members
 Client::EndpointList storeEndpoints(const Config& config) {
 
     ASSERT(config.has("stores"));
-    ASSERT(config.has("fieldLocationEndpoints"));
     const auto stores = config.getStringVector("stores");
-    const auto fieldLocationEndpoints = config.getStringVector("fieldLocationEndpoints");
+
+    // endpoints used in RemoteFieldLocations can differ from the store endpoints (e.g. different networs; caninical store names)
+    // if so, the canonical names must be provided in the fieldLocationEndpoints config, otherwhise the store endpoints are used.
+    const auto fieldLocationEndpoints = config.has("fieldLocationEndpoints") ? config.getStringVector("fieldLocationEndpoints") : stores;
 
     ASSERT(stores.size() == fieldLocationEndpoints.size());
 
@@ -246,9 +246,7 @@ RemoteStore::~RemoteStore() {
         eckit::Main::instance().terminate();
     }
 
-    if (ReadLimiter::isInitialised()) {
-        ReadLimiter::instance().evictClient(id());
-    }
+    ReadLimiter::evictClient(id());
 }
 
 eckit::URI RemoteStore::uri() const {
@@ -368,6 +366,8 @@ const eckit::Configuration& RemoteStore::clientConfig() const {
 
 bool RemoteStore::handle(Message message, uint32_t requestID) {
 
+    ASSERT(message != Message::Error);
+
     switch (message) {
         case Message::Complete: {
             std::lock_guard<std::mutex> lock(retrieveMessageMutex_);
@@ -378,15 +378,6 @@ bool RemoteStore::handle(Message message, uint32_t requestID) {
 
             retrieveMessageQueues_.erase(id);
             return true;
-        }
-        case Message::Error: {
-
-            std::ostringstream ss;
-            ss << "RemoteStore client id: " << id() << " - received an error without error description for requestID "
-               << requestID << std::endl;
-            throw RemoteFDBException(ss.str(), controlEndpoint());
-
-            return false;
         }
         default:
             return false;
