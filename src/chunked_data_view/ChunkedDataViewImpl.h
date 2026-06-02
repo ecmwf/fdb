@@ -13,6 +13,7 @@
 #include "chunked_data_view/ViewPart.h"
 
 #include <cstddef>
+#include <utility>
 #include <vector>
 
 namespace chunked_data_view {
@@ -20,7 +21,8 @@ namespace chunked_data_view {
 class ChunkedDataViewImpl : public ChunkedDataView {
 public:
 
-    ChunkedDataViewImpl(std::vector<ViewPart> partialViews, size_t extensionAxisIndex);
+    ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>> partialViews,
+                        size_t extensionAxisIndex);
 
     /// @param index n-dim chunk index
     void at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len) override;
@@ -56,7 +58,7 @@ private:
     std::vector<size_t> chunkShape_{};
     std::vector<size_t> shape_{};
     std::vector<size_t> chunks_{};
-    std::vector<ViewPart> parts_{};
+    std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>> parts_{};
     size_t extensionAxisIndex_{};
 };
 

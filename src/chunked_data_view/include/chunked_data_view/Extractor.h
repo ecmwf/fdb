@@ -14,7 +14,6 @@
 #include "chunked_data_view/ListIterator.h"
 
 #include "eckit/io/DataHandle.h"
-#include "metkit/mars/MarsRequest.h"
 
 #include <cstddef>
 #include <memory>
@@ -22,6 +21,10 @@
 
 namespace eckit {
 class DataHandle;
+}
+
+namespace chunked_data_view {
+class ViewPart;
 }
 
 namespace chunked_data_view {
@@ -50,12 +53,13 @@ public:
     virtual size_t writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
                              const DataLayout& layout, float* ptr, size_t len, size_t extensionAxisIdx = SIZE_MAX,
                              size_t combinedExtSize = 0, size_t extensionOffset = 0) const = 0;
+
+    virtual size_t extractInto(const ViewPart& part, const std::vector<std::size_t>& chunkIndex, float* ptr, size_t len,
+                               size_t extensionAxisIdx = SIZE_MAX, size_t combinedExtSize = 0,
+                               size_t extensionOffset = 0) const = 0;
 };
 
 enum class ExtractorType {
     GRIB
 };
-
-std::unique_ptr<Extractor> makeExtractor(ExtractorType type);
-
 }  // namespace chunked_data_view

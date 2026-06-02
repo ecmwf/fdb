@@ -13,6 +13,7 @@
 #include <chunked_data_view/ChunkedDataViewBuilder.h>
 #include <chunked_data_view/Extractor.h>
 #include <chunked_data_view/LibChunkedDataView.h>
+#include <chunked_data_view/exception/UnknownExtractorException.h>
 
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -21,6 +22,7 @@
 
 #include <string>
 #include <vector>
+#include "chunked_data_view/GribExtractor.h"
 
 namespace py = pybind11;
 namespace cdv = chunked_data_view;
@@ -73,7 +75,17 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
         .def("add_part",
              [](cdv::ChunkedDataViewBuilder& builder, std::string marsRequestKeyValues,
                 std::vector<cdv::AxisDefinition> axes, const cdv::ExtractorType extractorType) {
-                 builder.addPart(std::move(marsRequestKeyValues), std::move(axes), cdv::makeExtractor(extractorType));
+                 switch (extractorType) {
+                     case chunked_data_view::ExtractorType::GRIB:
+                         builder.addPart(std::move(marsRequestKeyValues), std::move(axes),
+                                         std::make_unique<chunked_data_view::GribExtractor>(
+                                             chunked_data_view::GribExtractor(builder.getFdb())));
+                         break;
+                     default:
+                         std::stringstream buf;
+                         buf << "ChunkedDataViewBuidler::add_part: Unknown Extractor of type " << std::endl;
+                         throw cdv::UnknownExtractorException(buf.str());
+                 }
              })
         .def("extend_on_axis", &cdv::ChunkedDataViewBuilder::extendOnAxis)
         .def("build", &cdv::ChunkedDataViewBuilder::build);
