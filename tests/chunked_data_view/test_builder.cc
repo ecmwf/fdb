@@ -1,5 +1,6 @@
 #include <memory>
 
+#include "chunked_data_view/ViewPart.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/testing/Test.h"
 
@@ -95,6 +96,13 @@ struct FakeExtractor : public cdv::Extractor {
         }
         return count;
     };
+
+    size_t extractInto(const chunked_data_view::ViewPart& part, const std::vector<std::size_t>& chunkIndex, float* ptr,
+                       size_t len, size_t extensionAxisIdx, size_t combinedExtSize,
+                       size_t extensionOffset) const override {
+        // TODO(TKR): Implement me
+        return 0;
+    }
 };
 
 CASE("ChunkedDataView | Single part - no extension axis") {

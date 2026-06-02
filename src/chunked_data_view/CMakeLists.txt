@@ -28,6 +28,7 @@ add_library(chunked_data_view STATIC
     ViewPart.cc
     ViewPart.h
     exception/GribExtractorException.cc
+    exception/UnknownExtractorException.cc
     include/chunked_data_view/AxisDefinition.h
     include/chunked_data_view/Buffer.h
     include/chunked_data_view/ChunkedDataView.h
@@ -38,6 +39,7 @@ add_library(chunked_data_view STATIC
     include/chunked_data_view/LibChunkedDataView.h
     include/chunked_data_view/ListIterator.h
     include/chunked_data_view/exception/GribExtractorException.h
+    include/chunked_data_view/exception/UnknownExtractorException.h
 )
 
 target_include_directories(chunked_data_view

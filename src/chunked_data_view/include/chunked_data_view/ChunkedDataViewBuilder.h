@@ -35,7 +35,7 @@ public:
     /// Every keyword with more than one value needs to be mapped to the output axes with an AxisDefinition.
     /// Multiple keywords can map to one axis.
     ChunkedDataViewBuilder& addPart(std::string marsRequestKeyValues, std::vector<AxisDefinition> axes,
-                                    std::unique_ptr<Extractor> extractor);
+                                    std::shared_ptr<Extractor> extractor);
 
     /// On which axis the multiple parts extend each other.
     /// For multiple part builds this all other axis must have the same extension. For a single
@@ -46,12 +46,14 @@ public:
 
     std::unique_ptr<ChunkedDataView> build();
 
+    std::shared_ptr<FdbInterface> getFdb() const { return fdb_; }
+
 private:
 
-    std::unique_ptr<FdbInterface> fdb_{};
-    std::vector<std::tuple<std::string, std::vector<AxisDefinition>, std::unique_ptr<Extractor>>> parts_{};
+    std::shared_ptr<FdbInterface> fdb_{};
+    std::vector<std::tuple<std::string, std::vector<AxisDefinition>, std::shared_ptr<Extractor>>> parts_{};
     std::optional<size_t> extensionAxisIndex_ = std::nullopt;
 
-    bool doPartsAlign(const std::vector<ViewPart>& viewParts);
+    bool doPartsAlign(const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& viewParts);
 };
 }  // namespace chunked_data_view

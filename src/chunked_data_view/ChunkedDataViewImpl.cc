@@ -12,6 +12,8 @@
 #include "chunked_data_view/ViewPart.h"
 #include "eckit/exception/Exceptions.h"
 
+#include "chunked_data_view/exception/GribExtractorException.h"
+
 #include <cstddef>
 #include <ostream>
 #include <sstream>
@@ -38,10 +40,14 @@ size_t countFieldsForPart(const ViewPart& part, const std::vector<size_t>& chunk
 
 }  // namespace
 
-ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<ViewPart> parts, size_t extensionAxisIndex) :
+ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>> parts,
+                                         size_t extensionAxisIndex) :
     parts_(std::move(parts)), extensionAxisIndex_(extensionAxisIndex) {
-    shape_ = parts_[0].shape();
-    for (const auto& part : parts_) {
+
+    const auto& first_part = std::get<0>(parts_[0]);
+    shape_ = first_part.shape();
+
+    for (const auto& [part, _] : parts_) {
         for (size_t idx = 0; idx < shape_.size(); ++idx) {
             if (idx == extensionAxisIndex_) {
                 shape_[idx] += part.shape()[idx];
@@ -54,20 +60,20 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<ViewPart> parts, size_t ext
         }
     }
 
-    if (extensionAxisIndex_ >= parts_[0].shape().size() - 1) {  // The implicit dimension must be subtracted
+    if (extensionAxisIndex_ >= first_part.shape().size() - 1) {  // The implicit dimension must be subtracted
         std::ostringstream ss;
         ss << "ChunkedDataViewImpl: Extension axis is not referring to a valid axis index. Possible axis are: 0-";
-        ss << parts_[0].shape().size() - 2 << ". You're selection is: " << extensionAxisIndex << std::endl;
+        ss << first_part.shape().size() - 2 << ". You're selection is: " << extensionAxisIndex << std::endl;
         throw eckit::UserError(ss.str());
     }
 
-    shape_[extensionAxisIndex_] -= parts_[0].shape()[extensionAxisIndex_];
+    shape_[extensionAxisIndex_] -= first_part.shape()[extensionAxisIndex_];
     chunkShape_ = shape_;
     chunks_.resize(shape_.size());
     // The last dimension is implicitly created for the number of values in a field, i.e. there is no representation in
     // the axes. And the dimension of fields is never chunked I.e. fields are always returned whole.
     for (size_t index = 0; index < chunkShape_.size() - 1; ++index) {
-        if (parts_[0].isAxisChunked(index)) {
+        if (first_part.isAxisChunked(index)) {
             chunkShape_[index] = 1;
         }
         chunks_[index] = shape_[index] / chunkShape_[index] + ((shape_[index] % chunkShape_[index]) != 0);
@@ -93,7 +99,9 @@ void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, 
         }
     }
 
-    if (!parts_[0].isAxisChunked(extensionAxisIndex_)) {
+    const auto& first_part = std::get<0>(parts_[0]);
+
+    if (!first_part.isAxisChunked(extensionAxisIndex_)) {
         // NoChunking: single chunk spans all parts on the extension axis.
         // Each part writes directly into the combined buffer. The extension axis
         // parameters tell computeBufferIndex to use the combined size for strides
@@ -101,10 +109,27 @@ void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, 
         size_t totalExtSize = shape_[extensionAxisIndex_];
         size_t extOffset = 0;
 
-        for (const auto& part : parts_) {
-            size_t partFields = countFieldsForPart(part, chunkShape_, extensionAxisIndex_);
+        for (const auto& [part, extractor] : parts_) {
 
-            part.at(chunkIndex, ptr, len, partFields, extensionAxisIndex_, totalExtSize, extOffset);
+            size_t expected_msg_count = countFieldsForPart(part, chunkShape_, extensionAxisIndex_);
+
+            try {
+                auto written =
+                    extractor->extractInto(part, chunkIndex, ptr, len, extensionAxisIndex_, totalExtSize, extOffset);
+
+                if (written != expected_msg_count) {
+                    std::ostringstream ss;
+                    ss << "ViewPart::at: retrieved only " << written << " of " << expected_msg_count
+                       << " fields in request." << part.at(chunkIndex);
+                    throw eckit::UserError(ss.str());
+                }
+            }
+            catch (GribExtractorException& exception) {
+                std::ostringstream ss;
+                ss << exception.what();
+                ss << "Request was: " << part.at(chunkIndex) << std::endl;
+                throw GribExtractorException(ss.str());
+            }
 
             extOffset += part.shape()[extensionAxisIndex_];
         }
@@ -114,12 +139,12 @@ void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, 
     // IndividualChunking: route to the single part that owns this chunk index
     auto idx(chunkIndex);
 
-    for (const auto& part : parts_) {
+    for (const auto& [part, extractor] : parts_) {
         if (idx[extensionAxisIndex_] >= part.shape()[extensionAxisIndex_]) {
             idx[extensionAxisIndex_] -= part.shape()[extensionAxisIndex_];
             continue;
         }
-        part.at(idx, ptr, len, countFields());
+        extractor->extractInto(part, idx, ptr, len);
         return;
     }
     throw eckit::SeriousBug("ChunkedDataViewImpl::at - This code should never be reached.");
