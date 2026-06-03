@@ -28,10 +28,12 @@
 
 namespace fdb5 {
 
+using namespace remote;
+
 //----------------------------------------------------------------------------------------------------------------------
 class Archiver;
 
-class RemoteFDB : public LocalFDB, public remote::Client {
+class RemoteFDB : public LocalFDB, public Client {
 
 public:  // types
 
@@ -78,8 +80,8 @@ private:  // methods
 
     // Client
     const eckit::Configuration& clientConfig() const override;
-    bool handle(remote::Message message, uint32_t requestID) override;
-    bool handle(remote::Message message, uint32_t requestID, eckit::Buffer&& payload) override;
+    bool handle(Message message, uint32_t requestID) override;
+    bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
 
 private:  // members
 
@@ -93,6 +95,7 @@ private:  // members
     // The shared_ptr allows this removal to be asynchronous with the actual task
     // cleaning up and returning to the client.
     std::unordered_map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
+    std::mutex messageMutex_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

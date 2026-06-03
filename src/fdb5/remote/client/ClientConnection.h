@@ -81,7 +81,6 @@ private:  // methods
     void listeningControlThreadLoop();
     void listeningDataThreadLoop();
     void dataWriteThreadLoop();
-    void closeConnection();
 
     const eckit::net::TCPSocket& controlSocket() const override { return controlClient_; }
 

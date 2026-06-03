@@ -99,11 +99,13 @@ eckit::Buffer Connection::read(bool control, MessageHeader& hdr) const {
                 eckit::net::Endpoint remoteEndpoint{socket.remoteHost(), socket.remotePort()};
                 std::ostringstream ss;
                 if (payload.size() == 0) {
-                    ss << "Received an error without error description for clientID " << hdr.clientID() << " requestID " << hdr.requestID << std::endl;
+                    ss << "Received an error without error description for clientID " << hdr.clientID() << " requestID "
+                       << hdr.requestID << std::endl;
                     throw RemoteFDBException(ss.str(), remoteEndpoint);
                 }
                 std::string errmsg{static_cast<const char*>(payload.data()), payload.size()};
-                ss << "Received error message: \"" << errmsg << "\" from " << remoteEndpoint << " for clientID " << hdr.clientID() << " requestID " << hdr.requestID << std::endl;
+                ss << "Received error message: \"" << errmsg << "\" from " << remoteEndpoint << " for clientID "
+                   << hdr.clientID() << " requestID " << hdr.requestID << std::endl;
                 eckit::Log::warning() << ss.str();
             }
             return payload;
