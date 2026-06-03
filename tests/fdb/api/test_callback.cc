@@ -56,7 +56,7 @@ CASE("Archive and flush callback") {
 
     EXPECT(flushCalled);
 
-    EXPECT(map.size() == 3);
+    EXPECT_EQUAL(map.size(), 3);
 
     for (const auto& [key, uri] : map) {
         bool found = false;

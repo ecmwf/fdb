@@ -48,53 +48,53 @@ method:     Integer;
 # stream elda
 [ class=e6, expver, stream=elda, date, domain?g
        [ type=an, levtype=al/sfc, anoffset
-               [ number, time, step?0, levelist-, param, frequency?, direction?, wavelength?, timespan?none]]
+               [ number, time, step?0, levelist-, param:ParamID, frequency?, direction?, wavelength?, timespan?none]]
        [ type=an, levtype=ml/pl/sol/hl/pv/pt, anoffset
-               [ number, time, step?0, levelist, param, frequency?, direction?, wavelength?, timespan?none]]
+               [ number, time, step?0, levelist, param:ParamID, frequency?, direction?, wavelength?, timespan?none]]
        [ type=eme, levtype, anoffset
-               [ number, time, step?0, levelist?, param, frequency?, direction?, wavelength?, timespan?none]]
+               [ number, time, step?0, levelist?, param:ParamID, frequency?, direction?, wavelength?, timespan?none]]
        [ type=fc, levtype=al/sfc/o2d, anoffset
-               [ number, time, step, levelist-, param, frequency?, direction?, wavelength?, timespan?none]]
+               [ number, time, step, levelist-, param:ParamID, frequency?, direction?, wavelength?, timespan?none]]
        [ type=fc, levtype=ml/pl/sol/hl/pv/pt/o3d, anoffset
-               [ number, time, step, levelist, param, frequency?, direction?, wavelength?, timespan?none]]
+               [ number, time, step, levelist, param:ParamID, frequency?, direction?, wavelength?, timespan?none]]
        [ type=4i, levtype, anoffset
-               [ number?, time, step, iteration, levelist, param, timespan?none ]]
+               [ number?, time, step, iteration, levelist, param:ParamID, timespan?none ]]
        [ type=4v, levtype, anoffset
-               [ number, time, step, levelist?, param, frequency?, direction?, wavelength?, timespan?none ]]
+               [ number, time, step, levelist?, param:ParamID, frequency?, direction?, wavelength?, timespan?none ]]
        [ type=est, levtype, anoffset
-               [ number?, time, step, levelist?, param, frequency?, direction?, wavelength?, timespan?none ]]
+               [ number?, time, step, levelist?, param:ParamID, frequency?, direction?, wavelength?, timespan?none ]]
        [ type=es/em, levtype, anoffset
-               [ number?, time, step, levelist?, param, channel?, wavelength?, timespan?none ]]
+               [ number?, time, step, levelist?, param:ParamID, channel?, wavelength?, timespan?none ]]
        [ type=ses, levtype, anoffset
-               [ number?, time, step, levelist?, param, channel?, timespan?none ]]
+               [ number?, time, step, levelist?, param:ParamID, channel?, timespan?none ]]
 ]
 
 # stream lwda
 [ class=e6, expver, stream=lwda, date, domain?g
        [ type=an, levtype, anoffset
-               [ time, step?0, levelist?, param, frequency?, direction?, wavelength?, timespan?none]]
+               [ time, step?0, levelist?, param:ParamID, frequency?, direction?, wavelength?, timespan?none]]
        [ type=me, levtype, anoffset
-               [ number?, time, step?0, levelist?, param, frequency?, direction?, wavelength?, timespan?none]]
+               [ number?, time, step?0, levelist?, param:ParamID, frequency?, direction?, wavelength?, timespan?none]]
        [ type=fc, levtype, anoffset
-               [ time, step, levelist?, param, frequency?, direction?, wavelength?, timespan?none]]
+               [ time, step, levelist?, param:ParamID, frequency?, direction?, wavelength?, timespan?none]]
        [ type=4i, levtype, anoffset
-               [ time, step, iteration, levelist, param, timespan?none ]]
+               [ time, step, iteration, levelist, param:ParamID, timespan?none ]]
        [ type=4v, levtype, anoffset
-               [ time, step, levelist?, param, frequency?, direction?, wavelength?, timespan?none]]
+               [ time, step, levelist?, param:ParamID, frequency?, direction?, wavelength?, timespan?none]]
 ]
 
 # stream enda
 [ class=e6, expver, stream=enda, date, domain?g
        [ type, levtype
-               [ number, time, step?0, levelist?, param, channel?, frequency?, direction?, wavelength?, timespan?none]]
+               [ number, time, step?0, levelist?, param:ParamID, channel?, frequency?, direction?, wavelength?, timespan?none]]
 ]
  
 # stream oper
 [ class=e6, expver, stream=oper, date, domain?g
        [ type=me, levtype
-               [ number?, time, step?0, levelist?, param, frequency?, direction?, wavelength?, timespan?none]]
+               [ number?, time, step?0, levelist?, param:ParamID, frequency?, direction?, wavelength?, timespan?none]]
        [ type, levtype
-               [ time, step, levelist?, param, frequency?, direction?, wavelength?, timespan?none]]
+               [ time, step, levelist?, param:ParamID, frequency?, direction?, wavelength?, timespan?none]]
 ]
 
 ########################################################
@@ -102,12 +102,12 @@ method:     Integer;
 
 [ class=e6, expver, stream=sttd, date, domain?g
        [ stattype=moav/momn/momx/mosd/daac/daav/damn/damx/dasd/moav_daav/moav_damn/moav_damx/moav_dasd/momn_daav/momn_damn/momn_damx/momn_dasd/momx_daav/momx_damn/momx_damx/momx_dasd/mosd_daav/mosd_damn/mosd_damx/mosd_dasd, type, levtype
-               [ levelist?, param, frequency?, direction?, wavelength?, timespan?none]]
+               [ levelist?, param:ParamID, frequency?, direction?, wavelength?, timespan?none]]
 ]
 
 [ class=e6, expver, stream=stte, date, domain?g
        [ stattype=moav/momn/momx/mosd/daac/daav/damn/damx/dasd/moav_daav/moav_damn/moav_damx/moav_dasd/momn_daav/momn_damn/momn_damx/momn_dasd/momx_daav/momx_damn/momx_damx/momx_dasd/mosd_daav/mosd_damn/mosd_damx/mosd_dasd, type=em/es, levtype
-               [ levelist?, param, frequency?, direction?, wavelength?, timespan?none]]
+               [ levelist?, param:ParamID, frequency?, direction?, wavelength?, timespan?none]]
        [ stattype=moav/momn/momx/mosd/daac/daav/damn/damx/dasd/moav_daav/moav_damn/moav_damx/moav_dasd/momn_daav/momn_damn/momn_damx/momn_dasd/momx_daav/momx_damn/momx_damx/momx_dasd/mosd_daav/mosd_damn/mosd_damx/mosd_dasd, type, levtype
-               [ number, levelist?, param, frequency?, direction?, wavelength?, timespan?none]]
+               [ number, levelist?, param:ParamID, frequency?, direction?, wavelength?, timespan?none]]
 ]

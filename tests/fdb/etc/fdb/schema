@@ -184,53 +184,53 @@ method:     Integer;
 # stream elda
 [ class=e6, expver, stream=elda, date, domain?g
        [ type=an, levtype=al/sfc, anoffset, timespan?none
-               [ number, time, step?0, levelist-, param, frequency?, direction?, wavelength?]]
+               [ number, time, step?0, levelist-, param:ParamID, frequency?, direction?, wavelength?]]
        [ type=an, levtype=ml/pl/sol/hl/pv/pt, anoffset, timespan?none
-               [ number, time, step?0, levelist, param, frequency?, direction?, wavelength?]]
+               [ number, time, step?0, levelist, param:ParamID, frequency?, direction?, wavelength?]]
        [ type=eme, levtype, anoffset, timespan?none
-               [ number, time, step?0, levelist?, param, frequency?, direction?, wavelength?]]
+               [ number, time, step?0, levelist?, param:ParamID, frequency?, direction?, wavelength?]]
        [ type=fc, levtype=al/sfc/o2d, anoffset, timespan?none
-               [ number, time, step, levelist-, param, frequency?, direction?, wavelength?]]
+               [ number, time, step, levelist-, param:ParamID, frequency?, direction?, wavelength?]]
        [ type=fc, levtype=ml/pl/sol/hl/pv/pt/o3d, anoffset, timespan?none
-               [ number, time, step, levelist, param, frequency?, direction?, wavelength?]]
+               [ number, time, step, levelist, param:ParamID, frequency?, direction?, wavelength?]]
        [ type=4i, levtype, anoffset, timespan?none
-               [ number?, time, step, iteration, levelist, param ]]
+               [ number?, time, step, iteration, levelist, param:ParamID ]]
        [ type=4v, levtype, anoffset, timespan?none
-               [ number, time, step, levelist?, param, frequency?, direction?, wavelength? ]]
+               [ number, time, step, levelist?, param:ParamID, frequency?, direction?, wavelength? ]]
        [ type=est, levtype, anoffset, timespan?none
-               [ number?, time, step, levelist?, param, frequency?, direction?, wavelength? ]]
+               [ number?, time, step, levelist?, param:ParamID, frequency?, direction?, wavelength? ]]
        [ type=es/em, levtype, anoffset, timespan?none
-               [ number?, time, step, levelist?, param, channel?, wavelength? ]]
+               [ number?, time, step, levelist?, param:ParamID, channel?, wavelength? ]]
        [ type=ses, levtype, anoffset, timespan?none
-               [ number?, time, step, levelist?, param, channel? ]]
+               [ number?, time, step, levelist?, param:ParamID, channel? ]]
 ]
 
 # stream lwda
 [ class=e6, expver, stream=lwda, date, domain?g
        [ type=an, levtype, anoffset, timespan?none
-               [ time, step?0, levelist?, param, frequency?, direction?, wavelength?]]
+               [ time, step?0, levelist?, param:ParamID, frequency?, direction?, wavelength?]]
        [ type=me, levtype, anoffset, timespan?none
-               [ number?, time, step?0, levelist?, param, frequency?, direction?, wavelength?]]
+               [ number?, time, step?0, levelist?, param:ParamID, frequency?, direction?, wavelength?]]
        [ type=fc, levtype, anoffset, timespan?none
-               [ time, step, levelist?, param, frequency?, direction?, wavelength?]]
+               [ time, step, levelist?, param:ParamID, frequency?, direction?, wavelength?]]
        [ type=4i, levtype, anoffset, timespan?none
-               [ time, step, iteration, levelist, param ]]
+               [ time, step, iteration, levelist, param:ParamID ]]
        [ type=4v, levtype, anoffset, timespan?none
-               [ time, step, levelist?, param, frequency?, direction?, wavelength? ]]
+               [ time, step, levelist?, param:ParamID, frequency?, direction?, wavelength? ]]
 ]
 
 # stream enda
 [ class=e6, expver, stream=enda, date, domain?g
        [ type, levtype, timespan?none
-               [ number, time, step?0, levelist?, param, channel?, frequency?, direction?, wavelength?]]
+               [ number, time, step?0, levelist?, param:ParamID, channel?, frequency?, direction?, wavelength?]]
 ]
  
 # stream oper
 [ class=e6, expver, stream=oper, date, domain?g
        [ type=me, levtype, timespan?none
-               [ number?, time, step?0, levelist?, param, frequency?, direction?, wavelength?]]
+               [ number?, time, step?0, levelist?, param:ParamID, frequency?, direction?, wavelength?]]
        [ type, levtype, timespan?none
-               [ time, step, levelist?, param, frequency?, direction?, wavelength?]]
+               [ time, step, levelist?, param:ParamID, frequency?, direction?, wavelength?]]
 ]
 
 ########################################################
@@ -238,14 +238,14 @@ method:     Integer;
 
 [ class=e6, expver, stream=sttd, date, domain?g
        [ stattype=moav/momn/momx/mosd/daac/daav/damn/damx/dasd/moav_daav/moav_damn/moav_damx/moav_dasd/momn_daav/momn_damn/momn_damx/momn_dasd/momx_daav/momx_damn/momx_damx/momx_dasd/mosd_daav/mosd_damn/mosd_damx/mosd_dasd, type, levtype, timespan?none
-               [ levelist?, param, frequency?, direction?, wavelength?]]
+               [ levelist?, param:ParamID, frequency?, direction?, wavelength?]]
 ]
 
 [ class=e6, expver, stream=stte, date, domain?g
        [ stattype=moav/momn/momx/mosd/daac/daav/damn/damx/dasd/moav_daav/moav_damn/moav_damx/moav_dasd/momn_daav/momn_damn/momn_damx/momn_dasd/momx_daav/momx_damn/momx_damx/momx_dasd/mosd_daav/mosd_damn/mosd_damx/mosd_dasd, type=em/es, levtype, timespan?none
-               [ levelist?, param, frequency?, direction?, wavelength?]]
+               [ levelist?, param:ParamID, frequency?, direction?, wavelength?]]
        [ stattype=moav/momn/momx/mosd/daac/daav/damn/damx/dasd/moav_daav/moav_damn/moav_damx/moav_dasd/momn_daav/momn_damn/momn_damx/momn_dasd/momx_daav/momx_damn/momx_damx/momx_dasd/mosd_daav/mosd_damn/mosd_damx/mosd_dasd, type, levtype, timespan?none
-               [ number, levelist?, param, frequency?, direction?, wavelength?]]
+               [ number, levelist?, param:ParamID, frequency?, direction?, wavelength?]]
 ]
 
 ########################################################
@@ -280,28 +280,28 @@ method:     Integer;
 
 [ class=a5, expver, stream=oper, date, domain?
        [ type=an, levtype, timespan?none
-               [ time, step?0, levelist?, param, chem?, frequency?, direction?, wavelength?]]
+               [ time, step?0, levelist?, param:ParamID, chem?, frequency?, direction?, wavelength?]]
        [ type=me, levtype, timespan?none
-               [ number?, time, step?0, levelist?, param, chem?, frequency?, direction?, wavelength?]]
+               [ number?, time, step?0, levelist?, param:ParamID, chem?, frequency?, direction?, wavelength?]]
        [ type=fc, levtype, timespan?none
-               [ time, step, levelist?, param, chem?, frequency?, direction?, wavelength?]]
+               [ time, step, levelist?, param:ParamID, chem?, frequency?, direction?, wavelength?]]
        [ type=4i, levtype, timespan?none
-               [ time, step, iteration, levelist, param, chem? ]]
+               [ time, step, iteration, levelist, param:ParamID, chem? ]]
        [ type=4v, levtype, timespan?none
-               [ time, step, levelist?, param, chem?, frequency?, direction?, wavelength?]]
+               [ time, step, levelist?, param:ParamID, chem?, frequency?, direction?, wavelength?]]
 ]
 
 [ class=a5, expver, stream=lwda, date, domain?
        [ type=an, levtype, anoffset, timespan?none
-               [ time, step?0, levelist?, param, chem?, frequency?, direction?, wavelength?]]
+               [ time, step?0, levelist?, param:ParamID, chem?, frequency?, direction?, wavelength?]]
        [ type=me, levtype, anoffset, timespan?none
-               [ number, time, step?0, levelist?, param, chem?, frequency?, direction?, wavelength?]]
+               [ number, time, step?0, levelist?, param:ParamID, chem?, frequency?, direction?, wavelength?]]
        [ type=fc, levtype, anoffset, timespan?none
-               [ time, step, levelist?, param, chem?, frequency?, direction?, wavelength?]]
+               [ time, step, levelist?, param:ParamID, chem?, frequency?, direction?, wavelength?]]
        [ type=4i, levtype, anoffset, timespan?none
-               [ time, step, iteration, levelist, param, chem? ]]
+               [ time, step, iteration, levelist, param:ParamID, chem? ]]
        [ type=4v, levtype, anoffset, timespan?none
-               [ time, step, levelist?, param, chem?, frequency?, direction?, wavelength?]]
+               [ time, step, levelist?, param:ParamID, chem?, frequency?, direction?, wavelength?]]
 ]
 
 ########################################################
@@ -309,12 +309,12 @@ method:     Integer;
 
 [ class=a5, expver, stream=sttd, date, domain?
        [ stattype=moav/momn/momx/mosd/daac/daav/damn/damx/dasd/moav_daav/moav_damn/moav_damx/moav_dasd/momn_daav/momn_damn/momn_damx/momn_dasd/momx_daav/momx_damn/momx_damx/momx_dasd/mosd_daav/mosd_damn/mosd_damx/mosd_dasd, type, levtype, timespan?none
-               [ levelist?, param, chem?, frequency?, direction?, wavelength?]]
+               [ levelist?, param:ParamID, chem?, frequency?, direction?, wavelength?]]
 ]
 
 [ class=a5, expver, stream=stte, date, domain?
        [ stattype=moav/momn/momx/mosd/daac/daav/damn/damx/dasd/moav_daav/moav_damn/moav_damx/moav_dasd/momn_daav/momn_damn/momn_damx/momn_dasd/momx_daav/momx_damn/momx_damx/momx_dasd/mosd_daav/mosd_damn/mosd_damx/mosd_dasd, type, levtype, timespan?none
-               [ number, levelist?, param, chem?, frequency?, direction?, wavelength?]]
+               [ number, levelist?, param:ParamID, chem?, frequency?, direction?, wavelength?]]
 ]
 
 [ class=cr, expver, stream=sttd, date, domain?
@@ -746,9 +746,9 @@ method:     Integer;
 # seas
 [ class, expver, stream=seas, date, time, domain
        [ type, levtype=dp, product, section, system?, method
-               [ step, number, levelist?, latitude?, longitude?, range?, param ]]
+               [ step, number, levelist?, latitude?, longitude?, range?, param:ParamID ]]
        [ type, levtype, system?, method
-               [ step, number, levelist?, param ]]
+               [ step, number, levelist?, param:ParamID ]]
 ]
 
 # sfmm/smma

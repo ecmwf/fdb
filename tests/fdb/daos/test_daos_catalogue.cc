@@ -249,9 +249,9 @@ CASE("DaosCatalogue tests") {
             fdb5::Field f;
             fdb5::CatalogueReader& catr = dcatr;
             catr.retrieve(field_key, f);
-            EXPECT(f.location().uri().name() == eckit::URI("daos", "test_uri").name());
-            EXPECT(f.location().offset() == eckit::Offset(0));
-            EXPECT(f.location().length() == eckit::Length(1));
+            EXPECT_EQUAL(f.location().uri().name(), eckit::URI("daos", "test_uri").name());
+            EXPECT_EQUAL(f.location().offset(), eckit::Offset(0));
+            EXPECT_EQUAL(f.location().length(), eckit::Length(1));
         }
 
         // remove (manual deindex)
@@ -355,8 +355,8 @@ CASE("DaosCatalogue tests") {
 
         eckit::MemoryHandle mh;
         dh->copyTo(mh);
-        EXPECT(mh.size() == eckit::Length(sizeof(data)));
-        EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
+        EXPECT_EQUAL(mh.size(), eckit::Length(sizeof(data)));
+        EXPECT_EQUAL(::memcmp(mh.data(), data, sizeof(data)), 0);
 
         // deindex data
 
@@ -458,8 +458,8 @@ CASE("DaosCatalogue tests") {
         }
         eckit::MemoryHandle mh;
         dh->copyTo(mh);
-        EXPECT(mh.size() == eckit::Length(sizeof(data)));
-        EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
+        EXPECT_EQUAL(mh.size(), eckit::Length(sizeof(data)));
+        EXPECT_EQUAL(::memcmp(mh.data(), data, sizeof(data)), 0);
 
         // remove data
 
@@ -553,7 +553,7 @@ CASE("DaosCatalogue tests") {
             std::cout << std::endl;
             ++count;
         }
-        EXPECT(count == 0);
+        EXPECT_EQUAL(count, 0);
 
         // archive data
 
@@ -573,8 +573,8 @@ CASE("DaosCatalogue tests") {
 
         eckit::MemoryHandle mh;
         dh->copyTo(mh);
-        EXPECT(mh.size() == eckit::Length(sizeof(data)));
-        EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
+        EXPECT_EQUAL(mh.size(), eckit::Length(sizeof(data)));
+        EXPECT_EQUAL(::memcmp(mh.data(), data, sizeof(data)), 0);
 
         // list all
 
@@ -585,7 +585,7 @@ CASE("DaosCatalogue tests") {
             // std::cout << std::endl;
             count++;
         }
-        EXPECT(count == 1);
+        EXPECT_EQUAL(count, 1);
 
         // wipe data
 
@@ -594,7 +594,7 @@ CASE("DaosCatalogue tests") {
         // dry run attempt to wipe with too specific request
 
         auto wipeObject = fdb.wipe(full_req);
-        EXPECT(countWipeable(wipeObject) == 0);
+        EXPECT_EQUAL(countWipeable(wipeObject), 0);
 
         // dry run wipe index and store unit
         wipeObject = fdb.wipe(index_req);
@@ -612,11 +612,11 @@ CASE("DaosCatalogue tests") {
             // std::cout << std::endl;
             count++;
         }
-        EXPECT(count == 1);
+        EXPECT_EQUAL(count, 1);
 
         // attempt to wipe with too specific request
         wipeObject = fdb.wipe(full_req, true);
-        EXPECT(countWipeable(wipeObject) == 0);
+        EXPECT_EQUAL(countWipeable(wipeObject), 0);
         /// @todo: really needed?
         fdb.flush();
 
@@ -632,7 +632,7 @@ CASE("DaosCatalogue tests") {
         while (listObject.next(info)) {
             count++;
         }
-        EXPECT(count == 0);
+        EXPECT_EQUAL(count, 0);
 
         /// @todo: ensure index and corresponding container do not exist
         /// @todo: ensure DB still exists
@@ -659,7 +659,7 @@ CASE("DaosCatalogue tests") {
             // std::cout << std::endl;
             count++;
         }
-        EXPECT(count == 1);
+        EXPECT_EQUAL(count, 1);
 
         // wipe full database
 
@@ -677,7 +677,7 @@ CASE("DaosCatalogue tests") {
             // std::cout << std::endl;
             count++;
         }
-        EXPECT(count == 0);
+        EXPECT_EQUAL(count, 0);
 
         /// @todo: ensure DB and corresponding pool do not exist
 
@@ -750,7 +750,7 @@ CASE("DaosCatalogue tests") {
             std::cout << std::endl;
             ++count;
         }
-        EXPECT(count == 0);
+        EXPECT_EQUAL(count, 0);
 
         // archive data with incomplete key
 
@@ -770,7 +770,7 @@ CASE("DaosCatalogue tests") {
             std::cout << std::endl;
             ++count;
         }
-        EXPECT(count == 1);
+        EXPECT_EQUAL(count, 1);
 
         // retrieve data
 
@@ -780,8 +780,8 @@ CASE("DaosCatalogue tests") {
 
             eckit::MemoryHandle mh;
             dh->copyTo(mh);
-            EXPECT(mh.size() == eckit::Length(sizeof(data)));
-            EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
+            EXPECT_EQUAL(mh.size(), eckit::Length(sizeof(data)));
+            EXPECT_EQUAL(::memcmp(mh.data(), data, sizeof(data)), 0);
         }
 
         // archive data with complete key
@@ -802,7 +802,7 @@ CASE("DaosCatalogue tests") {
             std::cout << std::endl;
             ++count;
         }
-        EXPECT(count == 2);
+        EXPECT_EQUAL(count, 2);
 
         // retrieve data
 
@@ -812,8 +812,8 @@ CASE("DaosCatalogue tests") {
 
             eckit::MemoryHandle mh;
             dh->copyTo(mh);
-            EXPECT(mh.size() == eckit::Length(sizeof(data)));
-            EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
+            EXPECT_EQUAL(mh.size(), eckit::Length(sizeof(data)));
+            EXPECT_EQUAL(::memcmp(mh.data(), data, sizeof(data)), 0);
         }
 
         {
@@ -822,8 +822,8 @@ CASE("DaosCatalogue tests") {
 
             eckit::MemoryHandle mh;
             dh->copyTo(mh);
-            EXPECT(mh.size() == eckit::Length(sizeof(data2)));
-            EXPECT(::memcmp(mh.data(), data2, sizeof(data2)) == 0);
+            EXPECT_EQUAL(mh.size(), eckit::Length(sizeof(data2)));
+            EXPECT_EQUAL(::memcmp(mh.data(), data2, sizeof(data2)), 0);
         }
     }
 

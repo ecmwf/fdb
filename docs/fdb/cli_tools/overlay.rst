@@ -22,7 +22,7 @@ Usage
 Options
 -------
 
-At least one of class or expver is required is required
+At least one of class or expver is required.
 
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--force``                            | Apply overlay even if the target database already exists                                                            |

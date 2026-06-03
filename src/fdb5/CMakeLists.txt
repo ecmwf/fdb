@@ -144,16 +144,13 @@ list( APPEND fdb5_srcs
     database/MultiRetrieveVisitor.h
     database/WriteVisitor.cc
     database/WriteVisitor.h
-    database/Notifier.cc
-    database/Notifier.h
+
     database/Manager.cc
     database/Manager.h
     message/MessageArchiver.cc
     message/MessageArchiver.h
     message/MessageDecoder.cc
     message/MessageDecoder.h
-    message/MessageIndexer.cc
-    message/MessageIndexer.h
     io/FDBFileHandle.cc
     io/FDBFileHandle.h
     io/LustreSettings.cc

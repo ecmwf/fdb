@@ -167,12 +167,11 @@ void FDBList::execute(const CmdArgs& args) {
                 // JSON output
                 if (json) {
                     *json << elem;
-                    continue;
                 }
-
-                elem.print(Log::info(), location_, length_, timestamp_, ", ");
-                Log::info() << std::endl;
-
+                else {
+                    elem.print(Log::info(), location_, length_, timestamp_, ", ");
+                    Log::info() << std::endl;
+                }
             }  // while
             // n.b. finding no data is not an error for fdb-list
         }
