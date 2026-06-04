@@ -15,7 +15,7 @@ namespace fdb5::remote {
 Connection::Connection() : single_(false) {}
 
 void Connection::teardown() {
-    closingSocket_ = true;
+    closingSocket_.store(true);
 
     if (!valid()) {
         return;
@@ -93,7 +93,7 @@ eckit::Buffer Connection::read(bool control, MessageHeader& hdr) const {
             ASSERT(tail == MessageHeader::EndMarker);
 
             if (hdr.message == Message::Exit) {
-                closingSocket_ = true;
+                closingSocket_.store(true);
             }
             if (hdr.message == Message::Error) {
                 eckit::net::Endpoint remoteEndpoint{socket.remoteHost(), socket.remotePort()};
@@ -113,7 +113,7 @@ eckit::Buffer Connection::read(bool control, MessageHeader& hdr) const {
     }
 
     hdr.message = Message::Exit;
-    closingSocket_ = true;
+    closingSocket_.store(true);
     return eckit::Buffer{0};
 }
 
