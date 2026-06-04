@@ -13,13 +13,17 @@
 /// @author Simon Smart
 /// @date Nov 2016
 
-#ifndef fdb5_FieldLocation_H
-#define fdb5_FieldLocation_H
+#pragma once
 
-#include <eckit/filesystem/URI.h>
+#include <functional>
+#include <map>
 #include <memory>
+#include <optional>
+#include <ostream>
+#include <string>
 
 #include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/URI.h"
 #include "eckit/io/Length.h"
 #include "eckit/memory/Owned.h"
 #include "eckit/serialisation/Streamable.h"
@@ -186,5 +190,3 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif
