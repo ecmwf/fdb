@@ -52,6 +52,7 @@ TocCatalogueWriter::~TocCatalogueWriter() {
 
 // selectIndex is called during schema traversal and in case of out-of-order fieldLocation archival
 bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
+    std::lock_guard<std::recursive_mutex> lock(archiveMutex_);
 
     currentIndexKey_ = idxKey;
 
@@ -139,6 +140,8 @@ void TocCatalogueWriter::close() {
 }
 
 void TocCatalogueWriter::index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) {
+    std::lock_guard<std::recursive_mutex> lock(archiveMutex_);
+
     archivedLocations_++;
 
     if (current_.null()) {
@@ -323,6 +326,7 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
 
 void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
                                  std::shared_ptr<const FieldLocation> fieldLocation) {
+    std::lock_guard<std::recursive_mutex> lock(archiveMutex_);
 
     archivedLocations_++;
 

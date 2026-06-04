@@ -116,7 +116,7 @@ protected:  // members
 
 private:  // members
 
-    mutable bool closingSocket_ = false;
+    mutable std::atomic<bool> closingSocket_{false};
 
     mutable std::mutex controlMutex_;
     mutable std::mutex dataMutex_;
