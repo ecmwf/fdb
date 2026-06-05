@@ -66,7 +66,7 @@ RemoteCatalogue::RemoteCatalogue(const eckit::URI& /*uri*/, const Config& config
 
 RemoteCatalogue::~RemoteCatalogue() = default;
 
-void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey,
+void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey, const std::string& tracingID,
                               std::shared_ptr<const FieldLocation> fieldLocation) {
 
     ASSERT(!datumKey.empty());
@@ -83,6 +83,9 @@ void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey,
 
     Buffer buffer(defaultBufferSizeArchive);
     MemoryStream stream(buffer);
+    if (tracingEnabled()) {
+        stream << tracingID;
+    }
     stream << idxKey;
     stream << datumKey;
     stream << *fieldLocation;
@@ -143,7 +146,7 @@ void RemoteCatalogue::flush(size_t archivedFields, const std::string& tracingID)
         eckit::Buffer sendBuf(defaultBufferSizeFlush);
         eckit::MemoryStream s(sendBuf);
         if (tracingEnabled()) {
-            s << "tracingID: " << tracingID;
+            s << tracingID;
         }
         s << numLocations_;
 

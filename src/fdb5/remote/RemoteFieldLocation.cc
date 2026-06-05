@@ -33,15 +33,10 @@ namespace remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RemoteFieldLocation::RemoteFieldLocation(const eckit::net::Endpoint& endpoint, const FieldLocation& remoteLocation,
-                                         const std::string& tracingID) :
+RemoteFieldLocation::RemoteFieldLocation(const eckit::net::Endpoint& endpoint, const FieldLocation& remoteLocation) :
     FieldLocation(
         eckit::URI(RemoteFieldLocation::typeName(), remoteLocation.uri(), endpoint.hostname(), endpoint.port()),
-        remoteLocation.offset(), remoteLocation.length(), remoteLocation.remapKey(), tracingID),
-    tracingID_(tracingID) {
-
-    std::cout << "RemoteFieldLocation::RemoteFieldLocation: endpoint=" << endpoint
-              << ", remoteLocation=" << remoteLocation << ", tracingID=" << tracingID << std::endl;
+        remoteLocation.offset(), remoteLocation.length(), remoteLocation.remapKey()) {
 
     ASSERT(remoteLocation.uri().scheme() != RemoteFieldLocation::typeName());
     if (!remoteLocation.uri().scheme().empty()) {
@@ -53,37 +48,28 @@ RemoteFieldLocation::RemoteFieldLocation(const eckit::net::Endpoint& endpoint, c
 }
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::net::Endpoint& endpoint,
-                                         const RemoteFieldLocation& remoteLocation, const std::string& tracingID) :
+                                         const RemoteFieldLocation& remoteLocation) :
     FieldLocation(
         eckit::URI(RemoteFieldLocation::typeName(), remoteLocation.uri(), endpoint.hostname(), endpoint.port()),
-        remoteLocation.offset(), remoteLocation.length(), remoteLocation.remapKey(), tracingID),
-    tracingID_(tracingID) {}
+        remoteLocation.offset(), remoteLocation.length(), remoteLocation.remapKey()) {}
 
-RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri,
-                                         std::optional<std::reference_wrapper<const std::string>> tracingID) :
-    FieldLocation(uri, tracingID) {
-    if (tracingID.has_value()) {
-        tracingID_ = tracingID.value().get();
-    }
-
+RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri) : FieldLocation(uri) {
     ASSERT(uri.scheme() == RemoteFieldLocation::typeName());
 }
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset,
-                                         const eckit::Length& length, const Key& remapKey,
-                                         std::optional<std::reference_wrapper<const std::string>> tracingID) :
-    FieldLocation(uri, offset, length, remapKey, tracingID) {
-    if (tracingID.has_value()) {
-        tracingID_ = tracingID.value().get();
-    }
+                                         const eckit::Length& length, const Key& remapKey) :
+    FieldLocation(uri, offset, length, remapKey) {
 
     ASSERT(uri.scheme() == RemoteFieldLocation::typeName());
 }
 
-RemoteFieldLocation::RemoteFieldLocation(eckit::Stream& s) : FieldLocation(s) {}
+RemoteFieldLocation::RemoteFieldLocation(eckit::Stream& s) : FieldLocation(s) {
+    ASSERT(uri().scheme() == RemoteFieldLocation::typeName());
+}
 
 RemoteFieldLocation::RemoteFieldLocation(const RemoteFieldLocation& rhs) :
-    FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_, rhs.tracingID_), tracingID_(rhs.tracingID_) {}
+    FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_) {}
 
 
 std::shared_ptr<const FieldLocation> RemoteFieldLocation::make_shared() const {
@@ -111,7 +97,7 @@ eckit::URI RemoteFieldLocation::internalURI(const eckit::URI& uri) {
     return remote;
 }
 
-eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
+eckit::DataHandle* RemoteFieldLocation::dataHandle(const std::string& tracingID) const {
 
     if (fdb5::LibFdb5::instance().debug()) {
         eckit::Log::debug<fdb5::LibFdb5>() << "RemoteFieldLocation::dataHandle for location: ";
@@ -123,21 +109,13 @@ eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
 
     eckit::URI remote = RemoteFieldLocation::internalURI(uri_);
     std::unique_ptr<FieldLocation> loc(
-        FieldLocationFactory::instance().build(remote.scheme(), remote, offset_, length_, remapKey_, tracingID_));
+        FieldLocationFactory::instance().build(remote.scheme(), remote, offset_, length_, remapKey_));
 
-    return store.dataHandle(*loc, tracingID_);
+    return store.dataHandle(*loc, tracingID);
 }
 
 void RemoteFieldLocation::visit(FieldLocationVisitor& visitor) const {
     visitor(*this);
-}
-
-const std::string& RemoteFieldLocation::tracingID() const {
-    static const std::string emptyString;
-    if (tracingID_.has_value()) {
-        return tracingID_.value();
-    }
-    return emptyString;
 }
 
 void RemoteFieldLocation::print(std::ostream& out) const {

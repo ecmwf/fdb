@@ -48,7 +48,7 @@ protected:  // methods
     std::string type() const override { return "rados"; }
     bool exists() const override;
 
-    eckit::DataHandle* retrieve(Field& field, Key& remapKey) const override;
+    eckit::DataHandle* retrieve(Field& field, const std::string& tracingID, Key& remapKey) const override;
     std::unique_ptr<const FieldLocation> archive(const uint32_t, const Key& key, const void* data,
                                                  eckit::Length length) override;
 

@@ -32,13 +32,12 @@ public:
 
     TocFieldLocation(const TocFieldLocation& rhs);
     TocFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length, const Key& remapKey);
-    TocFieldLocation(const eckit::URI& uri, std::optional<std::reference_wrapper<const std::string>> tracingID);
-    TocFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey,
-                     std::optional<std::reference_wrapper<const std::string>> tracingID);
+    TocFieldLocation(const eckit::URI& uri);
+    TocFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
     TocFieldLocation(const UriStore& store, const FieldRef& ref);
     TocFieldLocation(eckit::Stream&);
 
-    eckit::DataHandle* dataHandle() const override;
+    eckit::DataHandle* dataHandle(const std::string& tracingID) const override;
 
     std::shared_ptr<const FieldLocation> make_shared() const override;
 

@@ -13,8 +13,6 @@ namespace fdb5 {
 
 WipeState::WipeState(eckit::Stream& s) {
 
-    // s >> tracingID_;
-
     // deleteURIs_
     size_t n;
     s >> n;
@@ -110,7 +108,7 @@ void CatalogueWipeState::includeData(const eckit::URI& dataURI) {
 
     auto [it, inserted] = storeWipeStates_.try_emplace(storeURI, nullptr);
     if (inserted || !it->second) {
-        it->second = std::make_unique<StoreWipeState>(it->first /*, tracingID_*/);
+        it->second = std::make_unique<StoreWipeState>(it->first);
     }
 
     it->second->includeData(dataURI);
@@ -125,7 +123,7 @@ void CatalogueWipeState::excludeData(const eckit::URI& dataURI) {
 
     auto [it, inserted] = storeWipeStates_.try_emplace(storeURI, nullptr);
     if (inserted || !it->second) {
-        it->second = std::make_unique<StoreWipeState>(it->first /*, tracingID_*/);
+        it->second = std::make_unique<StoreWipeState>(it->first);
     }
 
     it->second->excludeData(dataURI);

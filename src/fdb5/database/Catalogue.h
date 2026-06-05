@@ -204,7 +204,7 @@ public:
     virtual bool createIndex(const Key& idxKey, size_t datumKeySize) = 0;
     virtual const Index& currentIndex() = 0;
     virtual const Key currentIndexKey();
-    virtual void archive(const Key& idxKey, const Key& datumKey,
+    virtual void archive(const Key& idxKey, const Key& datumKey, const std::string& tracingID,
                          std::shared_ptr<const FieldLocation> fieldLocation) = 0;
     virtual void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys,
                            bool unmount) = 0;

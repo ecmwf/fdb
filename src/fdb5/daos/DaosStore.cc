@@ -9,6 +9,7 @@
  */
 
 #include "eckit/config/Resource.h"
+#include "eckit/log/Bytes.h"
 
 #include "fdb5/database/WipeState.h"
 
@@ -112,12 +113,13 @@ bool DaosStore::exists() const {
 }
 
 /// @todo: never used in actual fdb-read?
-eckit::DataHandle* DaosStore::retrieve(Field& field) const {
+eckit::DataHandle* DaosStore::retrieve(Field& field, const std::string& tracingID) const {
 
-    return field.dataHandle();
+    return field.dataHandle(tracingID);
 }
 
-std::unique_ptr<const FieldLocation> DaosStore::archive(const Key&, const void* data, eckit::Length length) {
+std::unique_ptr<const FieldLocation> DaosStore::archive(const Key&, const std::string& tracingID, const void* data,
+                                                        eckit::Length length) {
 
     /// @note: performed RPCs:
     /// - open pool if not cached (daos_pool_connect) -- always skipped as it is cached after selectDatabase.
@@ -130,6 +132,10 @@ std::unique_ptr<const FieldLocation> DaosStore::archive(const Key&, const void* 
         fdb5::DaosName(pool_, db_cont_).createArrayName(OC_S1, false);  // TODO: pass oclass from config
 
     std::unique_ptr<eckit::DataHandle> h(n.dataHandle());
+
+    if (!tracingID.empty()) {
+        LOG_DEBUG_LIB(LibFdb5) << tracingID << " - archiving " << eckit::Bytes(length) << "to " << *h << std::endl;
+    }
 
     /// @note: performed RPCs:
     /// - open pool if not cached (daos_pool_connect) -- always skipped, opened above
@@ -148,13 +154,21 @@ std::unique_ptr<const FieldLocation> DaosStore::archive(const Key&, const void* 
 
     archivedFields_++;
 
-    return std::make_unique<const DaosFieldLocation>(n.URI(), 0, length, fdb5::Key{}, std::nullopt);
+    return std::make_unique<const DaosFieldLocation>(n.URI(), 0, length, fdb5::Key{});
 
     /// @note: performed RPCs:
     /// - close (daos_array_close here) -- always performed
 }
 
 size_t DaosStore::flush(const std::string& tracingID) {
+    if (archivedFields_ == 0) {
+        return 0;
+    }
+
+    if (!tracingID.empty()) {
+        LOG_DEBUG_LIB(LibFdb5) << tracingID << " - flushing " << archivedFields_ << " fields" << std::endl;
+    }
+
     size_t archived = archivedFields_;
     archivedFields_ = 0;
     return archived;

@@ -21,9 +21,9 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-AdoptVisitor::AdoptVisitor(Archiver& owner, const Key& initialFieldKey, const PathName& path, Offset offset,
-                           Length length) :
-    BaseArchiveVisitor(owner, initialFieldKey), path_(path), offset_(offset), length_(length) {
+AdoptVisitor::AdoptVisitor(Archiver& owner, const Key& initialFieldKey, const std::string& tracingID,
+                           const PathName& path, Offset offset, Length length) :
+    BaseArchiveVisitor(owner, initialFieldKey, tracingID), path_(path), offset_(offset), length_(length) {
     ASSERT(offset_ >= Offset(0));
     ASSERT(length_ > Length(0));
 }

@@ -25,17 +25,14 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 DaosFieldLocation::DaosFieldLocation(const DaosFieldLocation& rhs) :
-    FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_, std::nullopt) {}
+    FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_) {}
 
-DaosFieldLocation::DaosFieldLocation(const eckit::URI& uri,
-                                     std::optional<std::reference_wrapper<const std::string>> tracingID) :
-    FieldLocation(uri, tracingID) {}
+DaosFieldLocation::DaosFieldLocation(const eckit::URI& uri) : FieldLocation(uri) {}
 
 /// @todo: remove remapKey from signature and always pass empty Key to FieldLocation
 DaosFieldLocation::DaosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length,
-                                     const Key& remapKey,
-                                     std::optional<std::reference_wrapper<const std::string>> tracingID) :
-    FieldLocation(uri, offset, length, remapKey, tracingID) {}
+                                     const Key& remapKey) :
+    FieldLocation(uri, offset, length, remapKey) {}
 
 DaosFieldLocation::DaosFieldLocation(eckit::Stream& s) : FieldLocation(s) {}
 
@@ -43,7 +40,7 @@ std::shared_ptr<const FieldLocation> DaosFieldLocation::make_shared() const {
     return std::make_shared<DaosFieldLocation>(std::move(*this));
 }
 
-eckit::DataHandle* DaosFieldLocation::dataHandle() const {
+eckit::DataHandle* DaosFieldLocation::dataHandle(const std::string& tracingID) const {
 
     return fdb5::DaosArrayName(uri_).dataHandle(offset(), length());
 }

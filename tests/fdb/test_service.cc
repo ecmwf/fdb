@@ -90,9 +90,10 @@ struct FixtureService {
                     std::string data_str = data.str();
 
                     fdb5::Key k{p};
-                    auto visitor =
-                        ArchiveVisitor::create(fdb, k, static_cast<const void*>(data_str.c_str()), data_str.size());
-                    fdb.archive(k, *visitor, "test_fdb_service_write");
+                    std::string tracingID = "archive_param_" + param + "_step_" + str(step) + "_level_" + str(level);
+                    auto visitor = ArchiveVisitor::create(fdb, k, tracingID, static_cast<const void*>(data_str.c_str()),
+                                                          data_str.size());
+                    fdb.archive(k, *visitor, tracingID);
                 }
             }
         }

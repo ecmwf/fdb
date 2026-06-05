@@ -61,13 +61,12 @@ struct ListHelper : BaseAPIHelper<ListElement, Message::List> {
             if (elem.location().uri().scheme() == "fdb") {
                 net::Endpoint fieldLocationEndpoint{elem.location().uri().host(), elem.location().uri().port()};
 
-                remoteLocation =
-                    RemoteFieldLocation(fdb->storeEndpoint(fieldLocationEndpoint),
-                                        static_cast<const RemoteFieldLocation&>(elem.location()), tracingID)
-                        .make_shared();
+                remoteLocation = RemoteFieldLocation(fdb->storeEndpoint(fieldLocationEndpoint),
+                                                     static_cast<const RemoteFieldLocation&>(elem.location()))
+                                     .make_shared();
             }
             else {
-                remoteLocation = RemoteFieldLocation(fdb->storeEndpoint(), elem.location(), tracingID).make_shared();
+                remoteLocation = RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
             }
         }
 
@@ -107,12 +106,12 @@ struct InspectHelper : BaseAPIHelper<ListElement, Message::Inspect> {
 
             std::shared_ptr<const FieldLocation> remoteLocation =
                 RemoteFieldLocation(fdb->storeEndpoint(fieldLocationEndpoint),
-                                    static_cast<const RemoteFieldLocation&>(elem.location()), tracingID)
+                                    static_cast<const RemoteFieldLocation&>(elem.location()))
                     .make_shared();
             return ListElement(elem.keys(), remoteLocation, elem.timestamp());
         }
         std::shared_ptr<const FieldLocation> remoteLocation =
-            RemoteFieldLocation(fdb->storeEndpoint(), elem.location(), tracingID).make_shared();
+            RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
         return ListElement(elem.keys(), remoteLocation, elem.timestamp());
     }
 };

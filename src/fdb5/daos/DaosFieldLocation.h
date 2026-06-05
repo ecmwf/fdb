@@ -28,12 +28,11 @@ class DaosFieldLocation : public FieldLocation {
 public:
 
     DaosFieldLocation(const DaosFieldLocation& rhs);
-    DaosFieldLocation(const eckit::URI& uri, std::optional<std::reference_wrapper<const std::string>> tracingID);
-    DaosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey,
-                      std::optional<std::reference_wrapper<const std::string>> tracingID);
+    DaosFieldLocation(const eckit::URI& uri);
+    DaosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
     DaosFieldLocation(eckit::Stream&);
 
-    eckit::DataHandle* dataHandle() const override;
+    eckit::DataHandle* dataHandle(const std::string& tracingID) const override;
 
     std::shared_ptr<const FieldLocation> make_shared() const override;
 

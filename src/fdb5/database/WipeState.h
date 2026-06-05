@@ -42,10 +42,9 @@ class WipeState {
 public:
 
     WipeState() = default;
-    // WipeState(const std::string& tracingID) : tracingID_(tracingID) {};
 
-    WipeState(std::set<eckit::URI> safeURIs, URIMap deleteURIs /*, const std::string& tracingID*/) :
-        deleteURIs_(std::move(deleteURIs)), safeURIs_(std::move(safeURIs)) /*, tracingID_(tracingID)*/ {}
+    WipeState(std::set<eckit::URI> safeURIs, URIMap deleteURIs) :
+        deleteURIs_(std::move(deleteURIs)), safeURIs_(std::move(safeURIs)) {}
 
     explicit WipeState(eckit::Stream& s);
 
@@ -106,13 +105,10 @@ public:
     // this function call.
     virtual WipeElements extractWipeElements() = 0;
 
-    // const std::string& tracingID() const { return tracingID_; }
-
 protected:
 
     URIMap deleteURIs_;
     std::set<eckit::URI> safeURIs_;
-    // std::string tracingID_;
 
 private:
 

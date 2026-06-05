@@ -171,8 +171,9 @@ public:  // methods
     /// @param inStorageOrder if set data will be returned in the order it is stored. If unset data will be returned in
     /// the order it was requested.
     /// @return DataHandle for reading the requested data from
-    eckit::DataHandle* read(ListIterator& it, bool inStorageOrder = false) {
-        return read(it, generateTracingID("read"), inStorageOrder);
+    eckit::DataHandle* read(ListIterator& it, bool inStorageOrder = false,
+                            const std::string& tracingID = generateTracingID("read")) {
+        return read(it, tracingID, inStorageOrder);
     }
     eckit::DataHandle* read(ListIterator& it, const std::string& tracingID, bool inStorageOrder = false);
 

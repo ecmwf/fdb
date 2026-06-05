@@ -30,25 +30,21 @@ class RemoteStore;
 class RemoteFieldLocation : public FieldLocation {
 public:
 
-    RemoteFieldLocation(const eckit::net::Endpoint& endpoint, const FieldLocation& remoteLocation,
-                        const std::string& tracingID);
-    RemoteFieldLocation(const eckit::net::Endpoint& endpoint, const RemoteFieldLocation& remoteLocation,
-                        const std::string& tracingID);
-    RemoteFieldLocation(const eckit::URI& uri, std::optional<std::reference_wrapper<const std::string>> tracingID);
+    RemoteFieldLocation(const eckit::net::Endpoint& endpoint, const FieldLocation& remoteLocation);
+    RemoteFieldLocation(const eckit::net::Endpoint& endpoint, const RemoteFieldLocation& remoteLocation);
+    RemoteFieldLocation(const eckit::URI& uri);
     RemoteFieldLocation(const eckit::URI& uri, const eckit::Offset& offset, const eckit::Length& length,
-                        const Key& remapKey, std::optional<std::reference_wrapper<const std::string>> tracingID);
+                        const Key& remapKey);
     RemoteFieldLocation(eckit::Stream&);
     RemoteFieldLocation(const RemoteFieldLocation&);
 
     static const char* typeName() { return "fdb"; }
 
-    eckit::DataHandle* dataHandle() const override;
+    eckit::DataHandle* dataHandle(const std::string& tracingID) const override;
 
     std::shared_ptr<const FieldLocation> make_shared() const override;
     void visit(FieldLocationVisitor& visitor) const override;
     static eckit::URI internalURI(const eckit::URI& uri);
-
-    const std::string& tracingID() const;
 
 public:  // For Streamable
 
@@ -65,10 +61,6 @@ protected:  // For Streamable
 private:  // methods
 
     void print(std::ostream& out) const override;
-
-private:  // members
-
-    std::optional<std::string> tracingID_{std::nullopt};
 };
 
 

@@ -75,7 +75,8 @@ protected:  // methods
     void clean() override;
     void close() override;
 
-    void archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const FieldLocation> fieldLocation) override;
+    void archive(const Key& idxKey, const Key& datumKey, const std::string& tracingID,
+                 std::shared_ptr<const FieldLocation> fieldLocation) override;
     void reconsolidateIndexesAndTocs();
 
     void print(std::ostream& out) const override;

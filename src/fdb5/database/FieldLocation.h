@@ -44,9 +44,8 @@ class FieldLocation : public eckit::OwnedLock, public eckit::Streamable {
 public:  // methods
 
     FieldLocation() : offset_(eckit::Offset(0)), length_(eckit::Length(0)), remapKey_(Key()) {}
-    FieldLocation(const eckit::URI& uri, std::optional<std::reference_wrapper<const std::string>> tracingID);
-    FieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey,
-                  std::optional<std::reference_wrapper<const std::string>> tracingID);
+    FieldLocation(const eckit::URI& uri);
+    FieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
     FieldLocation(eckit::Stream&);
 
     FieldLocation(const FieldLocation&) = delete;
@@ -59,7 +58,7 @@ public:  // methods
     virtual eckit::Length length() const { return length_; }
     const Key& remapKey() const { return remapKey_; }
 
-    virtual eckit::DataHandle* dataHandle() const = 0;
+    virtual eckit::DataHandle* dataHandle(const std::string& tracingID) const = 0;
 
     /// Create a (shared) copy of the current object, for storage in a general container.
     virtual std::shared_ptr<const FieldLocation> make_shared() const = 0;
@@ -108,21 +107,17 @@ public:
 
     FieldLocationBuilderBase(const std::string&);
     virtual ~FieldLocationBuilderBase();
-    virtual FieldLocation* make(const eckit::URI& uri,
-                                std::optional<std::reference_wrapper<const std::string>> tracingID) = 0;
-    virtual FieldLocation* make(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey,
-                                std::optional<std::reference_wrapper<const std::string>> tracingID) = 0;
+    virtual FieldLocation* make(const eckit::URI& uri) = 0;
+    virtual FieldLocation* make(const eckit::URI& uri, eckit::Offset offset, eckit::Length length,
+                                const Key& remapKey) = 0;
 };
 
 template <class T>
 class FieldLocationBuilder : public FieldLocationBuilderBase {
-    FieldLocation* make(const eckit::URI& uri,
-                        std::optional<std::reference_wrapper<const std::string>> tracingID) override {
-        return new T(uri, tracingID);
-    }
-    FieldLocation* make(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey,
-                        std::optional<std::reference_wrapper<const std::string>> tracingID) override {
-        return new T(uri, offset, length, remapKey, tracingID);
+    FieldLocation* make(const eckit::URI& uri) override { return new T(uri); }
+    FieldLocation* make(const eckit::URI& uri, eckit::Offset offset, eckit::Length length,
+                        const Key& remapKey) override {
+        return new T(uri, offset, length, remapKey);
     }
 
 public:
@@ -143,11 +138,9 @@ public:
     void list(std::ostream&);
 
     /// @returns a specialized FieldLocation built by specified builder
-    FieldLocation* build(const std::string&, const eckit::URI&,
-                         std::optional<std::reference_wrapper<const std::string>> tracingID = std::nullopt);
+    FieldLocation* build(const std::string&, const eckit::URI&);
     FieldLocation* build(const std::string&, const eckit::URI&, eckit::Offset offset, eckit::Length length,
-                         const Key& remapKey,
-                         std::optional<std::reference_wrapper<const std::string>> tracingID = std::nullopt);
+                         const Key& remapKey);
 
 private:
 

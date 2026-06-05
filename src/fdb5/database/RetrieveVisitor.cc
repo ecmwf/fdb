@@ -65,7 +65,7 @@ bool RetrieveVisitor::selectDatum(const Key& datumKey, const Key& /*fullKey*/) {
     Field field;
     eckit::DataHandle* dh = nullptr;
     if (catalogue_->retrieve(datumKey, field, tracingID_)) {
-        dh = store().retrieve(field);
+        dh = store().retrieve(field, tracingID_);
     }
 
     if (dh) {

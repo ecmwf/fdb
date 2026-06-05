@@ -130,10 +130,8 @@ public:  // methods
 
     void checkUID() const override {}
 
-    eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation,
-                                  std::optional<std::reference_wrapper<const std::string>> tracingID);
-    eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation,
-                                  std::optional<std::reference_wrapper<const std::string>> tracingID,
+    eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation, const std::string& tracingID);
+    eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation, const std::string& tracingID,
                                   const Key& remapKey);
 
     bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const override { return false; }
@@ -162,9 +160,9 @@ protected:  // methods
 
     bool exists() const override;
 
-    eckit::DataHandle* retrieve(Field& field) const override;
+    eckit::DataHandle* retrieve(Field& field, const std::string& tracingID) const override;
     void archiveCb(
-        const Key& key, const void* data, eckit::Length length,
+        const Key& idxKey, const std::string& tracingID, const void* data, eckit::Length length,
         std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;

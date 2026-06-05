@@ -27,7 +27,7 @@ public:
 
     // -- Contructors
 
-    FieldHandle(ListIterator& it);
+    FieldHandle(ListIterator& it, const std::string& tracingID);
 
     // -- Destructor
 

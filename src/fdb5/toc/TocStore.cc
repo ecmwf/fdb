@@ -135,11 +135,12 @@ bool TocStore::exists() const {
     return directory_.exists();
 }
 
-eckit::DataHandle* TocStore::retrieve(Field& field) const {
-    return field.dataHandle();
+eckit::DataHandle* TocStore::retrieve(Field& field, const std::string& tracingID) const {
+    return field.dataHandle(tracingID);
 }
 
-std::unique_ptr<const FieldLocation> TocStore::archive(const Key& idxKey, const void* data, eckit::Length length) {
+std::unique_ptr<const FieldLocation> TocStore::archive(const Key& idxKey, const std::string& tracingID,
+                                                       const void* data, eckit::Length length) {
     archivedFields_++;
 
     eckit::PathName dataPath = getDataPath(idxKey);
@@ -147,6 +148,11 @@ std::unique_ptr<const FieldLocation> TocStore::archive(const Key& idxKey, const 
     eckit::DataHandle& dh = getDataHandle(dataPath);
 
     eckit::Offset position = dh.position();
+
+    if (!tracingID.empty()) {
+        LOG_DEBUG_LIB(LibFdb5) << tracingID << " - archiving " << eckit::Bytes(length) << "to " << dataPath
+                               << std::endl;
+    }
 
     long len = dh.write(data, length);
 
@@ -158,6 +164,10 @@ std::unique_ptr<const FieldLocation> TocStore::archive(const Key& idxKey, const 
 size_t TocStore::flush(const std::string& tracingID) {
     if (archivedFields_ == 0) {
         return 0;
+    }
+
+    if (!tracingID.empty()) {
+        LOG_DEBUG_LIB(LibFdb5) << tracingID << " - flushing " << archivedFields_ << " fields" << std::endl;
     }
 
     // ensure consistent state before writing Toc entry

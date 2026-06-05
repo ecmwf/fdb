@@ -37,7 +37,7 @@ Archiver::~Archiver() {
 
 void Archiver::archive(const Key& key, const void* data, size_t len, const std::string& tracingID) {
     tracingID_ = tracingID;
-    auto visitor = ArchiveVisitor::create(*this, key, data, len, callback_);
+    auto visitor = ArchiveVisitor::create(*this, key, tracingID, data, len, callback_);
     archive(key, *visitor, tracingID);
 }
 

@@ -74,8 +74,9 @@ protected:  // methods
     std::string type() const override { return "file"; }
     bool exists() const override;
 
-    eckit::DataHandle* retrieve(Field& field) const override;
-    std::unique_ptr<const FieldLocation> archive(const Key& idxKey, const void* data, eckit::Length length) override;
+    eckit::DataHandle* retrieve(Field& field, const std::string& tracingID) const override;
+    std::unique_ptr<const FieldLocation> archive(const Key& idxKey, const std::string& tracingID, const void* data,
+                                                 eckit::Length length) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 

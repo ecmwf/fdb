@@ -277,15 +277,15 @@ bool RemoteStore::exists() const {
     return result;
 }
 
-eckit::DataHandle* RemoteStore::retrieve(Field& field) const {
-    return field.dataHandle();
+eckit::DataHandle* RemoteStore::retrieve(Field& field, const std::string& tracingID) const {
+    return field.dataHandle(tracingID);
 }
 
 void RemoteStore::archiveCb(
-    const Key& key, const void* data, eckit::Length length,
+    const Key& idxKey, const std::string& tracingID, const void* data, eckit::Length length,
     std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
 
-    ASSERT(!key.empty());
+    ASSERT(!idxKey.empty());
     ASSERT(data);
     ASSERT(static_cast<long long>(length) != 0ll);
 
@@ -301,8 +301,11 @@ void RemoteStore::archiveCb(
 
     eckit::Buffer keyBuffer(defaultBufferSizeKey);
     eckit::MemoryStream keyStream(keyBuffer);
+    if (!tracingID.empty()) {
+        keyStream << tracingID;
+    }
     keyStream << dbKey_;
-    keyStream << key;
+    keyStream << idxKey;
 
     PayloadList payloads;
     payloads.emplace_back(keyStream.position(), keyBuffer.data());
@@ -332,12 +335,11 @@ size_t RemoteStore::flush(const std::string& tracingID) {
 
     Buffer sendBuf(defaultBufferSizeFlush);
     MemoryStream s(sendBuf);
-    s << locations;
-
     // check if the server supports the tracingID, if so include it in the payload
     if (tracingEnabled()) {
-        s << "tracingID: " << tracingID;
+        s << tracingID;
     }
+    s << locations;
 
     LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID << " - RemoteStore::flush - flushing " << locations
                            << " fields" << std::endl;
@@ -422,7 +424,7 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
             }
             else {
                 std::unique_ptr<RemoteFieldLocation> remoteLocation = std::unique_ptr<RemoteFieldLocation>(
-                    new RemoteFieldLocation(eckit::net::Endpoint{defaultEndpoint()}, *location, tracingID));
+                    new RemoteFieldLocation(eckit::net::Endpoint{defaultEndpoint()}, *location));
                 return locations_.location(requestID, std::move(remoteLocation));
             }
         }
@@ -450,15 +452,21 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
     }
 }
 
-eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation,
-                                           std::optional<std::reference_wrapper<const std::string>> tracingID) {
+eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, const std::string& tracingID) {
     return dataHandle(fieldLocation, tracingID, Key());
 }
 
-eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation,
-                                           std::optional<std::reference_wrapper<const std::string>> tracingID,
+eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, const std::string& tracingID,
                                            const Key& remapKey) {
 
+    std::cout << "RemoteStore::dataHandle - fieldLocation: " << fieldLocation.fullUri() << ", remapKey: " << remapKey
+              << ", tracingID: " << tracingID << std::endl;
+
+
+    if (tracingID.empty()) {
+        throw RemoteFDBException("No tracing ID provided for data handle request for fieldLocation: ",
+                                 controlEndpoint());
+    }
     uint32_t id = generateRequestID();
 
     static size_t queueSize = 320;

@@ -34,7 +34,7 @@ public:
     DaosLazyFieldLocation(const fdb5::DaosLazyFieldLocation& rhs);
     DaosLazyFieldLocation(const fdb5::DaosKeyValueName& index, const std::string& key);
 
-    eckit::DataHandle* dataHandle() const override;
+    eckit::DataHandle* dataHandle(const std::string& tracingID) const override;
 
     std::shared_ptr<const FieldLocation> make_shared() const override;
 

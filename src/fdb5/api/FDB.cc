@@ -164,18 +164,16 @@ bool FDB::sorted(const metkit::mars::MarsRequest& request) {
 }
 
 eckit::DataHandle* FDB::read(const eckit::URI& uri, const std::string& tracingID) {
-    auto location =
-        std::unique_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri, tracingID));
-    return location->dataHandle();
+    auto location = std::unique_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri));
+    return location->dataHandle(tracingID);
 }
 
 eckit::DataHandle* FDB::read(const std::vector<eckit::URI>& uris, const std::string& tracingID, bool sorted) {
     HandleGatherer result(sorted);
 
     for (const eckit::URI& uri : uris) {
-        auto location =
-            std::unique_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri, tracingID));
-        result.add(location->dataHandle());
+        auto location = std::unique_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri));
+        result.add(location->dataHandle(tracingID));
     }
 
     return result.dataHandle();
@@ -219,14 +217,14 @@ eckit::DataHandle* FDB::read(ListIterator& it, const std::string& tracingID, boo
             for (std::size_t i = 0; i < cube.size(); i++) {
                 ListElement element;
                 if (cube.find(i, element)) {
-                    result.add(element.location().dataHandle());
+                    result.add(element.location().dataHandle(tracingID));
                 }
             }
         }
     }
     else {
         while (it.next(el)) {
-            result.add(el.location().dataHandle());
+            result.add(el.location().dataHandle(tracingID));
         }
     }
     return result.dataHandle();
@@ -236,7 +234,7 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request, const
     static bool seekable = eckit::Resource<bool>("fdbSeekableDataHandle;$FDB_SEEKABLE_DATA_HANDLE", false);
 
     ListIterator it = inspect(request, tracingID);
-    return seekable ? new FieldHandle(it) : read(it, sorted(request));
+    return seekable ? new FieldHandle(it, tracingID) : read(it, sorted(request), tracingID);
 }
 
 ListIterator FDB::inspect(const metkit::mars::MarsRequest& request, const std::string& tracingID) {

@@ -30,22 +30,19 @@ namespace fdb5 {
 
 TocFieldLocation::TocFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length,
                                    const Key& remapKey) :
-    FieldLocation(eckit::URI("file", path), offset, length, remapKey, std::nullopt) {}
+    FieldLocation(eckit::URI("file", path), offset, length, remapKey) {}
 
-TocFieldLocation::TocFieldLocation(const eckit::URI& uri,
-                                   std::optional<std::reference_wrapper<const std::string>> tracingID) :
-    FieldLocation(uri, tracingID) {}
+TocFieldLocation::TocFieldLocation(const eckit::URI& uri) : FieldLocation(uri) {}
 
 TocFieldLocation::TocFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length,
-                                   const Key& remapKey,
-                                   std::optional<std::reference_wrapper<const std::string>> tracingID) :
-    FieldLocation(uri, offset, length, remapKey, tracingID) {}
+                                   const Key& remapKey) :
+    FieldLocation(uri, offset, length, remapKey) {}
 
 TocFieldLocation::TocFieldLocation(const TocFieldLocation& rhs) :
-    FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_, std::nullopt) {}
+    FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_) {}
 
 TocFieldLocation::TocFieldLocation(const UriStore& store, const FieldRef& ref) :
-    FieldLocation(store.get(ref.uriId()), ref.offset(), ref.length(), Key(), std::nullopt) {}
+    FieldLocation(store.get(ref.uriId()), ref.offset(), ref.length(), Key()) {}
 
 TocFieldLocation::TocFieldLocation(eckit::Stream& s) : FieldLocation(s) {}
 
@@ -53,7 +50,7 @@ std::shared_ptr<const FieldLocation> TocFieldLocation::make_shared() const {
     return std::make_shared<TocFieldLocation>(std::move(*this));
 }
 
-eckit::DataHandle* TocFieldLocation::dataHandle() const {
+eckit::DataHandle* TocFieldLocation::dataHandle(const std::string& tracingID) const {
     if (remapKey_.empty()) {
         return uri_.path().partHandle(offset(), length());
     }

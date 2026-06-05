@@ -22,11 +22,13 @@ Reindexer::~Reindexer() {
 }
 
 void Reindexer::reindex(const Key& key, const FieldLocation& fieldLocation, const std::string& tracingID) {
-    ReindexVisitor visitor{*this, key, fieldLocation};
+    ReindexVisitor visitor{*this, key, tracingID, fieldLocation};
+    tracingID_ = tracingID;
     archive(key, visitor, tracingID);
 }
 
 void Reindexer::flushDatabase(Database& db, const std::string& tracingID) {
+    tracingID_ = tracingID;
     db.catalogue_->flush(db.catalogue_->archivedLocations(), tracingID);
 }
 

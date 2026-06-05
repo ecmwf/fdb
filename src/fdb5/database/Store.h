@@ -15,6 +15,10 @@
 #pragma once
 
 #include <memory>
+#include <optional>
+#include <set>
+#include <string>
+#include <vector>
 
 #include "eckit/distributed/Transport.h"
 #include "eckit/filesystem/URI.h"
@@ -38,11 +42,12 @@ public:
 
     virtual ~Store() = default;
 
-    virtual eckit::DataHandle* retrieve(Field& field) const = 0;
+    virtual eckit::DataHandle* retrieve(Field& field, const std::string& tracingID) const = 0;
     virtual void archiveCb(
-        const Key& idxKey, const void* data, eckit::Length length,
+        const Key& idxKey, const std::string& tracingID, const void* data, eckit::Length length,
         std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive);
-    virtual std::unique_ptr<const FieldLocation> archive(const Key& idxKey, const void* data, eckit::Length length);
+    virtual std::unique_ptr<const FieldLocation> archive(const Key& idxKey, const std::string& tracingID,
+                                                         const void* data, eckit::Length length);
 
     virtual void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose,
                         bool doit = true) const = 0;

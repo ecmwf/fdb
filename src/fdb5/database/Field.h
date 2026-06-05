@@ -46,7 +46,7 @@ public:  // methods
           const FieldDetails& details = FieldDetails());
     Field(const FieldLocation&& location, time_t timestamp, const FieldDetails& details = FieldDetails());
 
-    eckit::DataHandle* dataHandle() const { return location_->dataHandle(); }
+    eckit::DataHandle* dataHandle(const std::string& tracingID) const { return location_->dataHandle(tracingID); }
 
     const FieldLocation& location() const { return *location_; }
 

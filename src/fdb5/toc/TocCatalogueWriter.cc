@@ -149,7 +149,7 @@ void TocCatalogueWriter::index(const Key& key, const eckit::URI& uri, eckit::Off
         selectIndex(currentIndexKey_);
     }
 
-    Field field(TocFieldLocation(uri, offset, length, Key(), std::nullopt), currentIndex().timestamp());
+    Field field(TocFieldLocation(uri, offset, length, Key()), currentIndex().timestamp());
 
     current_.put(key, field);
 
@@ -324,7 +324,7 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
     return TocCatalogue::enabled(controlIdentifier);
 }
 
-void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
+void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey, const std::string& tracingID,
                                  std::shared_ptr<const FieldLocation> fieldLocation) {
     std::lock_guard<std::recursive_mutex> lock(archiveMutex_);
 
@@ -345,6 +345,9 @@ void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
             }
         }
     }
+
+    LOG_DEBUG_LIB(LibFdb5) << (tracingID.empty() ? "" : tracingID + " - ") << "archiving " << *fieldLocation
+                           << std::endl;
 
     Field field(std::move(fieldLocation), currentIndex().timestamp());
 

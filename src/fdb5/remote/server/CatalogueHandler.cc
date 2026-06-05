@@ -492,6 +492,8 @@ void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffe
         return;
     }
 
+    Log::info() << (tracingID.empty() ? "" : tracingID + " - ") << "flushing " << numArchived << " fields" << std::endl;
+
     auto it = catalogues_.find(clientID);
     ASSERT(it != catalogues_.end());
 
@@ -515,19 +517,19 @@ void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffe
 
     it->second.catalogue->flush(numArchived, tracingID);
 
-    Log::info() << "tracingID: " << tracingID << " - Flush complete" << std::endl;
-    Log::status() << "tracingID: " << tracingID << " - Flush complete" << std::endl;
+    Log::info() << (tracingID.empty() ? "" : tracingID + " - ") << "flush complete" << std::endl;
+    Log::status() << (tracingID.empty() ? "" : tracingID + " - ") << "flush complete" << std::endl;
 }
 
 // A helper function to make archiveThreadLoop a bit cleaner
 void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) {
 
-    MemoryStream s(data, length);
     std::string tracingID;
+
+    MemoryStream s(data, length);
     if (agreedConf().tracingEnabled()) {
         s >> tracingID;
     }
-
     fdb5::Key idxKey(s);
     fdb5::Key datumKey(s);
 
@@ -548,14 +550,12 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
         }
     }
 
-    eckit::Log::info() << (tracingID.empty() ? "" : "tracingID: " + tracingID + " - ") << "catalogue: " << host() << ":"
-                       << port() << " - " << "Indexing key: " << it->second.catalogue->key() << idxKey << datumKey
-                       << " location: " << location->uri() << std::endl;
-
+    eckit::Log::info() << (tracingID.empty() ? "" : tracingID + " - ") << "archiving " << *location << " to "
+                       << it->second.catalogue->key() << idxKey << datumKey << std::endl;
     if (!it->second.catalogue->selectIndex(idxKey)) {
         it->second.catalogue->createIndex(idxKey, datumKey.keys().size());
     }
-    it->second.catalogue->archive(idxKey, datumKey, std::move(location));
+    it->second.catalogue->archive(idxKey, datumKey, tracingID, std::move(location));
     {
         std::lock_guard<std::mutex> lock(fieldLocationsMutex_);
         it->second.locationsArchived++;
