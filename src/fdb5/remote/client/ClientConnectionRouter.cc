@@ -119,11 +119,13 @@ void ClientConnectionRouter::deregister(ClientConnection& connection) {
 }
 
 ClientConnectionRouter& ClientConnectionRouter::instance() {
-    std::lock_guard<std::mutex> lock(initMutex);
-    if (!instance_) {
-        instance_.reset(new ClientConnectionRouter());
-    }
-    return *instance_;
+    static ClientConnectionRouter router;
+    return router;
+    // std::lock_guard<std::mutex> lock(initMutex);
+    // if (!instance_) {
+    //     instance_.reset(new ClientConnectionRouter());
+    // }
+    // return *instance_;
 }
 
 void ClientConnectionRouter::teardown(std::exception_ptr e) {

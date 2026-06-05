@@ -37,7 +37,7 @@ public:
     TocFieldLocation(const UriStore& store, const FieldRef& ref);
     TocFieldLocation(eckit::Stream&);
 
-    eckit::DataHandle* dataHandle() const override;
+    eckit::DataHandle* dataHandle(const std::string& tracingID) const override;
 
     std::shared_ptr<const FieldLocation> make_shared() const override;
 

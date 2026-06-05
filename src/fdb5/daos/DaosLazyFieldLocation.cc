@@ -28,9 +28,9 @@ std::shared_ptr<const FieldLocation> DaosLazyFieldLocation::make_shared() const 
     return std::make_shared<DaosLazyFieldLocation>(std::move(*this));
 }
 
-eckit::DataHandle* DaosLazyFieldLocation::dataHandle() const {
+eckit::DataHandle* DaosLazyFieldLocation::dataHandle(const std::string& tracingID) const {
 
-    return realise()->dataHandle();
+    return realise()->dataHandle(tracingID);
 }
 
 void DaosLazyFieldLocation::print(std::ostream& out) const {

@@ -39,7 +39,7 @@ public:  // methods
     std::set<eckit::URI> asCollocatedDataURIs(const std::set<eckit::URI>&) const override;
 
     bool open() override { return true; }
-    size_t flush() override;
+    size_t flush(const std::string& tracingID) override;
     void close() override {};
 
     void checkUID() const override { /* nothing to do */ }
@@ -61,8 +61,9 @@ protected:  // methods
 
     bool exists() const override;
 
-    eckit::DataHandle* retrieve(Field& field) const override;
-    std::unique_ptr<const FieldLocation> archive(const Key& key, const void* data, eckit::Length length) override;
+    eckit::DataHandle* retrieve(Field& field, const std::string& tracingID) const override;
+    std::unique_ptr<const FieldLocation> archive(const Key& key, const std::string& tracingID, const void* data,
+                                                 eckit::Length length) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 

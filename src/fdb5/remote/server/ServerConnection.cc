@@ -181,6 +181,7 @@ void ServerConnection::initialiseConnections() {
     try {
         agreedConf_ = RemoteConfiguration::common(clientConf, serverConf);
         single_ = agreedConf_.singleConnection();
+        tracingEnabled_ = agreedConf_.tracingEnabled();
     }
     catch (const eckit::Exception& e) {
         error(e.what(), hdr.clientID(), hdr.requestID);

@@ -27,7 +27,7 @@ std::optional<std::tuple<fdb5::Key, std::unique_ptr<eckit::DataHandle>>> ListIte
     auto has_next = listIterator_.next(elem);
 
     if (has_next) {
-        return std::make_tuple(elem.combinedKey(), std::unique_ptr<eckit::DataHandle>(elem.location().dataHandle()));
+        return std::make_tuple(elem.combinedKey(), std::unique_ptr<eckit::DataHandle>(elem.location().dataHandle("")));
     }
 
     return std::nullopt;

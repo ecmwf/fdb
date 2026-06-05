@@ -66,7 +66,7 @@ RemoteCatalogue::RemoteCatalogue(const eckit::URI& /*uri*/, const Config& config
 
 RemoteCatalogue::~RemoteCatalogue() = default;
 
-void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey,
+void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey, const std::string& tracingID,
                               std::shared_ptr<const FieldLocation> fieldLocation) {
 
     ASSERT(!datumKey.empty());
@@ -83,6 +83,9 @@ void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey,
 
     Buffer buffer(defaultBufferSizeArchive);
     MemoryStream stream(buffer);
+    if (tracingEnabled()) {
+        stream << tracingID;
+    }
     stream << idxKey;
     stream << datumKey;
     stream << *fieldLocation;
@@ -132,7 +135,7 @@ const Rule& RemoteCatalogue::rule() const {
     return rule_.value().get();
 }
 
-void RemoteCatalogue::flush(size_t archivedFields) {
+void RemoteCatalogue::flush(size_t archivedFields, const std::string& tracingID) {
 
     std::lock_guard<std::mutex> lock(archiveMutex_);
     ASSERT(archivedFields == numLocations_);
@@ -142,9 +145,13 @@ void RemoteCatalogue::flush(size_t archivedFields) {
 
         eckit::Buffer sendBuf(defaultBufferSizeFlush);
         eckit::MemoryStream s(sendBuf);
+        if (tracingEnabled()) {
+            s << tracingID;
+        }
         s << numLocations_;
 
-        LOG_DEBUG_LIB(LibFdb5) << " RemoteCatalogue::flush - flushing " << numLocations_ << " fields" << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID << " - RemoteCatalogue::flush - flushing " << numLocations_
+                               << " fields" << std::endl;
 
         // The flush call is blocking
         controlWriteCheckResponse(Message::Flush, generateRequestID(), false, sendBuf, s.position());

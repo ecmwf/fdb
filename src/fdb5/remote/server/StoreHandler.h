@@ -46,7 +46,8 @@ private:  // methods
 
     void readLocationThreadLoop();
 
-    void writeToParent(uint32_t clientID, uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh);
+    void writeToParent(uint32_t clientID, uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh,
+                       std::optional<std::string>& tracingID);
 
     bool remove(bool control, uint32_t clientID) override;
 

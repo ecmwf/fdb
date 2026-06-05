@@ -48,6 +48,8 @@ RemoteConfiguration::RemoteConfiguration(const eckit::Configuration& config) {
     else {
         preferSingleConnection_ = std::nullopt;
     }
+
+    tracingEnabled_ = config.has("tracing") ? config.getBool("tracing") : true;
 }
 
 RemoteConfiguration::RemoteConfiguration(eckit::Stream& s) {
@@ -91,10 +93,12 @@ RemoteConfiguration::RemoteConfiguration(eckit::Stream& s) {
     else {
         preferSingleConnection_ = std::nullopt;
     }
-}
 
-bool RemoteConfiguration::singleConnection() const {
-    return singleConnection_;
+    if (v.contains("TracingEnabled")) {
+        eckit::Value te = v["TracingEnabled"];
+        ASSERT(te.isBool());
+        tracingEnabled_ = te;
+    }
 }
 
 eckit::Stream& operator<<(eckit::Stream& s, const RemoteConfiguration& r) {
@@ -103,6 +107,9 @@ eckit::Stream& operator<<(eckit::Stream& s, const RemoteConfiguration& r) {
     val["NumberOfConnections"] = eckit::toValue(r.numberOfConnections_);
     if (r.preferSingleConnection_) {
         val["PreferSingleConnection"] = eckit::toValue(r.preferSingleConnection_.value());
+    }
+    if (r.tracingEnabled_) {
+        val["TracingEnabled"] = eckit::toValue(r.tracingEnabled_.value());
     }
     s << val;
     return s;
@@ -162,6 +169,17 @@ RemoteConfiguration RemoteConfiguration::common(RemoteConfiguration& clientConf,
     LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - NumberOfConnections " << ncSelected << std::endl;
     agreedConf.numberOfConnections_ = {ncSelected};
     agreedConf.singleConnection_ = (ncSelected == 1);
+
+    if (clientConf.tracingEnabled_ && serverConf.tracingEnabled_) {
+        agreedConf.tracingEnabled_ = clientConf.tracingEnabled() && serverConf.tracingEnabled();
+    }
+    LOG_DEBUG_LIB(LibFdb5)
+        << "Protocol negotiation - TracingEnabled: client "
+        << (clientConf.tracingEnabled_ ? std::to_string(clientConf.tracingEnabled_.value()) : "undefined")
+        << ", server "
+        << (serverConf.tracingEnabled_ ? std::to_string(serverConf.tracingEnabled_.value()) : "undefined")
+        << ", agreed "
+        << (agreedConf.tracingEnabled_ ? std::to_string(agreedConf.tracingEnabled_.value()) : "undefined") << std::endl;
 
     return agreedConf;
 }

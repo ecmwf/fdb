@@ -40,7 +40,7 @@ public:
 
     static const char* typeName() { return "fdb"; }
 
-    eckit::DataHandle* dataHandle() const override;
+    eckit::DataHandle* dataHandle(const std::string& tracingID) const override;
 
     std::shared_ptr<const FieldLocation> make_shared() const override;
     void visit(FieldLocationVisitor& visitor) const override;
@@ -61,8 +61,6 @@ protected:  // For Streamable
 private:  // methods
 
     void print(std::ostream& out) const override;
-
-private:  // members
 };
 
 

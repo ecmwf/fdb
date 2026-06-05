@@ -27,7 +27,8 @@ class ReindexVisitor : public BaseArchiveVisitor {
 
 public:  // methods
 
-    ReindexVisitor(Reindexer& owner, const Key& initialFieldKey, const FieldLocation& fieldLocation);
+    ReindexVisitor(Reindexer& owner, const Key& initialFieldKey, const std::string& tracingID,
+                   const FieldLocation& fieldLocation);
 
 protected:  // methods
 

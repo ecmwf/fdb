@@ -16,21 +16,23 @@
 
 namespace fdb5 {
 
-ArchiveVisitor::ArchiveVisitor(Archiver& owner, const Key& initialFieldKey, const void* data, size_t size,
-                               const ArchiveCallback& callback) :
-    BaseArchiveVisitor(owner, initialFieldKey), data_(data), size_(size), callback_(callback) {}
+ArchiveVisitor::ArchiveVisitor(Archiver& owner, const Key& initialFieldKey, const std::string& tracingID,
+                               const void* data, size_t size, const ArchiveCallback& callback) :
+    BaseArchiveVisitor(owner, initialFieldKey, tracingID), data_(data), size_(size), callback_(callback) {}
 
-std::shared_ptr<ArchiveVisitor> ArchiveVisitor::create(Archiver& owner, const Key& dataKey, const void* data,
-                                                       size_t size, const ArchiveCallback& callback) {
-    return std::shared_ptr<ArchiveVisitor>(new ArchiveVisitor(owner, dataKey, data, size, callback));
+std::shared_ptr<ArchiveVisitor> ArchiveVisitor::create(Archiver& owner, const Key& dataKey,
+                                                       const std::string& tracingID, const void* data, size_t size,
+                                                       const ArchiveCallback& callback) {
+    return std::shared_ptr<ArchiveVisitor>(new ArchiveVisitor(owner, dataKey, tracingID, data, size, callback));
 }
 
 void ArchiveVisitor::callbacks(std::shared_ptr<CatalogueWriter> catalogue, const Key& idxKey, const Key& datumKey,
+                               const std::string& tracingID,
                                std::shared_ptr<std::promise<std::shared_ptr<const FieldLocation>>> p,
                                std::shared_ptr<const FieldLocation> fieldLocation) {
     p->set_value(fieldLocation);
     ASSERT(catalogue);
-    catalogue->archive(idxKey, datumKey, std::move(fieldLocation));
+    catalogue->archive(idxKey, datumKey, tracingID, std::move(fieldLocation));
 }
 
 bool ArchiveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
@@ -43,9 +45,9 @@ bool ArchiveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
     std::shared_ptr<ArchiveVisitor> self = shared_from_this();
     auto writer = catalogue();
 
-    store()->archiveCb(idxKey, data_, size_,
+    store()->archiveCb(idxKey, tracingID_, data_, size_,
                        [self, idxKey, datumKey, p, writer](std::unique_ptr<const FieldLocation> loc) mutable {
-                           self->callbacks(writer, idxKey, datumKey, p, std::move(loc));
+                           self->callbacks(writer, idxKey, datumKey, self->tracingID_, p, std::move(loc));
                        });
 
     callback_(initialFieldKey(), data_, size_, p->get_future());

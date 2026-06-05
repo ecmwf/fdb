@@ -30,7 +30,7 @@ class RetrieveVisitor : public ReadVisitor {
 
 public:  // methods
 
-    explicit RetrieveVisitor(HandleGatherer& gatherer);
+    explicit RetrieveVisitor(HandleGatherer& gatherer, const std::string& tracingID);
 
 protected:  // methods
 

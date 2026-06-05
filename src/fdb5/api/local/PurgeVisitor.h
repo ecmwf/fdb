@@ -38,8 +38,8 @@ namespace local {
 class PurgeVisitor : public QueryVisitor<PurgeElement> {
 public:
 
-    PurgeVisitor(eckit::Queue<PurgeElement>& queue, const metkit::mars::MarsRequest& request, bool doit,
-                 bool porcelain);
+    PurgeVisitor(eckit::Queue<PurgeElement>& queue, const metkit::mars::MarsRequest& request,
+                 const std::string& tracingID, bool doit, bool porcelain);
 
     bool visitDatabase(const Catalogue& catalogue) override;
     bool visitIndex(const Index& index) override;

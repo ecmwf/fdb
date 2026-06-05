@@ -29,7 +29,8 @@ class WipeCatalogueVisitor : public QueryVisitor<CatalogueWipeState> {
 
 public:  // methods
 
-    WipeCatalogueVisitor(eckit::Queue<CatalogueWipeState>& queue, const metkit::mars::MarsRequest& request, bool doit);
+    WipeCatalogueVisitor(eckit::Queue<CatalogueWipeState>& queue, const metkit::mars::MarsRequest& request,
+                         const std::string& tracingID, bool doit);
 
     bool visitEntries() override { return false; }
     bool visitDatabase(const Catalogue& catalogue) override;

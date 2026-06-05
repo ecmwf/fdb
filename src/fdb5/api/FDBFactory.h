@@ -31,6 +31,7 @@
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/api/helpers/StatusIterator.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/database/WipeState.h"
 
 namespace eckit::message {
@@ -72,32 +73,34 @@ public:  // methods
 
     // -------------- Primary API functions ----------------------------
 
-    virtual void archive(const Key& key, const void* data, size_t length) = 0;
+    virtual void archive(const Key& key, const void* data, size_t length, const std::string& tracingID) = 0;
 
-    virtual void reindex(const Key& key, const FieldLocation& location) { NOTIMP; }
+    virtual void reindex(const Key& key, const FieldLocation& location, const std::string& tracingID) { NOTIMP; }
 
-    virtual void flush() = 0;
+    virtual void flush(const std::string& tracingID) = 0;
 
-    virtual ListIterator inspect(const metkit::mars::MarsRequest& request) = 0;
+    virtual ListIterator inspect(const metkit::mars::MarsRequest& request, const std::string& tracingID) = 0;
 
-    virtual ListIterator list(const FDBToolRequest& request, int level) = 0;
+    virtual ListIterator list(const FDBToolRequest& request, const std::string& tracingID, int level) = 0;
 
-    virtual DumpIterator dump(const FDBToolRequest& request, bool simple) = 0;
+    virtual DumpIterator dump(const FDBToolRequest& request, const std::string& tracingID, bool simple) = 0;
 
-    virtual StatusIterator status(const FDBToolRequest& request) = 0;
+    virtual StatusIterator status(const FDBToolRequest& request, const std::string& tracingID) = 0;
 
-    virtual WipeStateIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) = 0;
+    virtual WipeStateIterator wipe(const FDBToolRequest& request, const std::string& tracingID, bool doit,
+                                   bool porcelain, bool unsafeWipeAll) = 0;
 
-    virtual PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) = 0;
+    virtual PurgeIterator purge(const FDBToolRequest& request, const std::string& tracingID, bool doit,
+                                bool porcelain) = 0;
 
-    virtual StatsIterator stats(const FDBToolRequest& request) = 0;
+    virtual StatsIterator stats(const FDBToolRequest& request, const std::string& tracingID) = 0;
 
-    virtual ControlIterator control(const FDBToolRequest& request, ControlAction action,
-                                    ControlIdentifiers identifier) = 0;
+    virtual ControlIterator control(const FDBToolRequest& request, const std::string& tracingID, ControlAction action,
+                                    ControlIdentifiers identifiers) = 0;
 
-    virtual MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) = 0;
+    virtual MoveIterator move(const FDBToolRequest& request, const std::string& tracingID, const eckit::URI& dest) = 0;
 
-    virtual AxesIterator axesIterator(const FDBToolRequest& request, int axes) = 0;
+    virtual AxesIterator axesIterator(const FDBToolRequest& request, const std::string& tracingID, int axes) = 0;
 
     // -------------- API management ----------------------------
 
