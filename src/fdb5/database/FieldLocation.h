@@ -58,7 +58,7 @@ public:  // methods
     virtual eckit::Length length() const { return length_; }
     const Key& remapKey() const { return remapKey_; }
 
-    virtual eckit::DataHandle* dataHandle(const std::string& tracingID) const = 0;
+    virtual eckit::DataHandle* dataHandle(const std::string& tracingID = "") const = 0;
 
     /// Create a (shared) copy of the current object, for storage in a general container.
     virtual std::shared_ptr<const FieldLocation> make_shared() const = 0;
