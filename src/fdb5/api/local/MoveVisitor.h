@@ -35,7 +35,8 @@ class MoveVisitor : public QueryVisitor<MoveElement> {
 
 public:  // methods
 
-    MoveVisitor(eckit::Queue<MoveElement>& queue, const metkit::mars::MarsRequest& request, const eckit::URI& dest);
+    MoveVisitor(eckit::Queue<MoveElement>& queue, const metkit::mars::MarsRequest& request,
+                const std::string& tracingID, const eckit::URI& dest);
 
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }

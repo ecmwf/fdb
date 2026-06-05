@@ -41,7 +41,7 @@ using URIMap = std::map<WipeElementType, std::set<eckit::URI>>;
 class WipeState {
 public:
 
-    WipeState();
+    WipeState() = default;
 
     WipeState(std::set<eckit::URI> safeURIs, URIMap deleteURIs) :
         deleteURIs_(std::move(deleteURIs)), safeURIs_(std::move(safeURIs)) {}
@@ -121,7 +121,8 @@ class StoreWipeState : public WipeState {
 public:
 
     StoreWipeState() = default;
-    StoreWipeState(eckit::URI uri);
+    // StoreWipeState(const std::string& tracingID) : WipeState(tracingID) {}
+    StoreWipeState(eckit::URI uri /*, const std::string& tracingID*/);
     StoreWipeState(eckit::Stream& s);
 
     // Non-copyable
@@ -212,13 +213,14 @@ public:
 
     /// @todo: Can we remove some of these constructors?
 
-    CatalogueWipeState() : WipeState() {}
+    CatalogueWipeState() = default;
+    // CatalogueWipeState(const std::string& tracingID) : WipeState(tracingID) {}
 
-    CatalogueWipeState(const Key& dbKey) : WipeState(), dbKey_(dbKey) {}
+    CatalogueWipeState(const Key& dbKey /*, const std::string& tracingID*/) : /*WipeState(tracingID),*/ dbKey_(dbKey) {}
 
     CatalogueWipeState(const Key& dbKey, std::set<eckit::URI> safeURIs, URIMap deleteURIs,
-                       std::set<Index> indexesToMask) :
-        WipeState(std::move(safeURIs), std::move(deleteURIs)),
+                       std::set<Index> indexesToMask /*, const std::string& tracingID*/) :
+        WipeState(std::move(safeURIs), std::move(deleteURIs) /*, tracingID*/),
         dbKey_(dbKey),
         indexesToMask_(std::move(indexesToMask)) {}
 

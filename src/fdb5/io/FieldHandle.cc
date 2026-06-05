@@ -26,7 +26,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FieldHandle::FieldHandle(ListIterator& it) :
+FieldHandle::FieldHandle(ListIterator& it, const std::string& tracingID) :
     datahandles_({}),
     totalSize_(0),
     currentIdx_(0),
@@ -70,7 +70,7 @@ FieldHandle::FieldHandle(ListIterator& it) :
                 ListElement element;
                 if (cube.find(i, element)) {
                     eckit::Length len = element.location().length();
-                    eckit::DataHandle* dh = element.location().dataHandle();
+                    eckit::DataHandle* dh = element.location().dataHandle(tracingID);
                     datahandles_.push_back(std::make_pair(len, dh));
 
                     totalSize_ += len;
@@ -86,7 +86,7 @@ FieldHandle::FieldHandle(ListIterator& it) :
     else {
         while (it.next(el)) {
             eckit::Length len = el.location().length();
-            eckit::DataHandle* dh = el.location().dataHandle();
+            eckit::DataHandle* dh = el.location().dataHandle(tracingID);
             datahandles_.push_back(std::make_pair(len, dh));
 
             totalSize_ += len;

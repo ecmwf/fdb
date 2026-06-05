@@ -38,7 +38,7 @@ class ReadVisitor {
 
 public:  // methods
 
-    ReadVisitor() {}
+    ReadVisitor(const std::string& tracingID) : tracingID_(tracingID) {}
 
     ReadVisitor(const ReadVisitor&) = delete;
     ReadVisitor& operator=(const ReadVisitor&) = delete;
@@ -66,6 +66,8 @@ protected:  // methods
 protected:  // members
 
     CatalogueReader* catalogue_{};
+
+    std::string tracingID_;
 
     friend std::ostream& operator<<(std::ostream& s, const ReadVisitor& x) {
         x.print(s);

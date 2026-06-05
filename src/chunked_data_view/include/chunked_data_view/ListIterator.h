@@ -37,6 +37,7 @@ class ListIteratorWrapperImpl : public ListIteratorInterface {
 public:
 
     explicit ListIteratorWrapperImpl(fdb5::ListIterator listIterator) : listIterator_(std::move(listIterator)) {};
+
     std::optional<std::tuple<fdb5::Key, std::unique_ptr<eckit::DataHandle>>> next() override;
 };
 

@@ -47,7 +47,7 @@ bool RadosStore::exists() const {
     return true;
 }
 
-eckit::DataHandle* RadosStore::retrieve(Field& field, Key& remapKey) const {
+eckit::DataHandle* RadosStore::retrieve(Field& field, const std::string& tracingID, Key& remapKey) const {
     return remapKey.empty() ? field.dataHandle() : field.dataHandle(remapKey);
 }
 

@@ -34,7 +34,7 @@ class BaseArchiveVisitor : public WriteVisitor {
 
 public:  // methods
 
-    BaseArchiveVisitor(Archiver& owner, const Key& initialFieldKey);
+    BaseArchiveVisitor(Archiver& owner, const Key& initialFieldKey, const std::string& tracingID);
 
 protected:  // methods
 
@@ -51,6 +51,10 @@ protected:  // methods
     Store* store() const;
 
     const Key& initialFieldKey() const { return initialFieldKey_; }
+
+protected:  // members
+
+    std::string tracingID_;
 
 private:  // members
 

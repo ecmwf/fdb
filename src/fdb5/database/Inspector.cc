@@ -56,10 +56,10 @@ static void purgeCatalogue(Key& key, CatalogueReader*& db) {
 Inspector::Inspector(const Config& dbConfig) :
     databases_(Resource<size_t>("fdbMaxOpenDatabases", 16), &purgeCatalogue), dbConfig_(dbConfig) {}
 
-ListIterator Inspector::inspect(const metkit::mars::MarsRequest& request) const {
+ListIterator Inspector::inspect(const metkit::mars::MarsRequest& request, const std::string& tracingID) const {
 
     auto iterator = std::make_unique<InspectIterator>();
-    MultiRetrieveVisitor visitor(*iterator, databases_, dbConfig_);
+    MultiRetrieveVisitor visitor(*iterator, databases_, dbConfig_, tracingID);
 
     const auto& schema = dbConfig_.schema();
     LOG_DEBUG_LIB(LibFdb5) << "Using schema: " << schema << std::endl;

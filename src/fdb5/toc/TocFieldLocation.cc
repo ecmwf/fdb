@@ -50,7 +50,7 @@ std::shared_ptr<const FieldLocation> TocFieldLocation::make_shared() const {
     return std::make_shared<TocFieldLocation>(std::move(*this));
 }
 
-eckit::DataHandle* TocFieldLocation::dataHandle() const {
+eckit::DataHandle* TocFieldLocation::dataHandle(const std::string& tracingID) const {
     if (remapKey_.empty()) {
         return uri_.path().partHandle(offset(), length());
     }

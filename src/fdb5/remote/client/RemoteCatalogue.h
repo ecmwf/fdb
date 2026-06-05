@@ -40,14 +40,17 @@ public:  // methods
     // From CatalogueWriter
     const Index& currentIndex() override;
     bool createIndex(const Key& idxKey, size_t datumKeySize) override;
-    void archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const FieldLocation> fieldLocation) override;
+    void archive(const Key& idxKey, const Key& datumKey, const std::string& tracingID,
+                 std::shared_ptr<const FieldLocation> fieldLocation) override;
     void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) override;
     void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) override;
     void reconsolidate() override;
 
     // From CatalogueReader
     DbStats stats() const override { return {}; }
-    bool retrieve(const Key& /*key*/, Field& /*field*/) const override { return false; }
+    bool retrieve(const Key& /*key*/, Field& /*field*/, const std::string& /*tracingID*/) const override {
+        return false;
+    }
 
     // From Catalogue
     bool selectIndex(const Key& idxKey) override;
@@ -74,7 +77,7 @@ public:  // methods
     std::string type() const override { return typeName(); }
 
     bool open() override;
-    void flush(size_t archivedFields) override;
+    void flush(size_t archivedFields, const std::string& tracingID) override;
     void clean() override;
     void close() override;
     bool exists() const override;

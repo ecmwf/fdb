@@ -86,66 +86,70 @@ public:  // methods
     }
     ~ApiSpy() override { knownSpies().erase(std::find(knownSpies().begin(), knownSpies().end(), this)); }
 
-    void archive(const fdb5::Key& key, const void* data, size_t length) override {
+    void archive(const fdb5::Key& key, const void* data, size_t length, const std::string& tracingID) override {
         counts_.archive += 1;
         archives_.push_back(std::make_tuple(key, data, length));
     }
 
-    fdb5::ListIterator inspect(const metkit::mars::MarsRequest& request) override {
+    fdb5::ListIterator inspect(const metkit::mars::MarsRequest& request, const std::string& tracingID) override {
         counts_.inspect += 1;
         retrieves_.push_back(request);
         return fdb5::ListIterator(0);
     }
 
-    fdb5::ListIterator list(const fdb5::FDBToolRequest& /* request */, const int level) override {
+    fdb5::ListIterator list(const fdb5::FDBToolRequest& /* request */, const std::string& tracingID,
+                            const int level) override {
         counts_.list += 1;
         ASSERT(level == 3);
         return fdb5::ListIterator(0);
     }
 
-    fdb5::AxesIterator axesIterator(const fdb5::FDBToolRequest& request, int level = 3) override {
+    fdb5::AxesIterator axesIterator(const fdb5::FDBToolRequest& request, const std::string& tracingID,
+                                    int level = 3) override {
         counts_.axes += 1;
         return fdb5::AxesIterator(0);
     }
 
-    fdb5::DumpIterator dump(const fdb5::FDBToolRequest& request, bool simple) override {
+    fdb5::DumpIterator dump(const fdb5::FDBToolRequest& request, const std::string& tracingID, bool simple) override {
         counts_.dump += 1;
         return fdb5::DumpIterator(0);
     }
 
-    fdb5::StatusIterator status(const fdb5::FDBToolRequest& request) override {
+    fdb5::StatusIterator status(const fdb5::FDBToolRequest& request, const std::string& tracingID) override {
         counts_.status += 1;
         return fdb5::StatusIterator(0);
     }
 
-    fdb5::WipeStateIterator wipe(const fdb5::FDBToolRequest& request, bool doit, bool verbose,
-                                 bool unsafeWipeAll) override {
+    fdb5::WipeStateIterator wipe(const fdb5::FDBToolRequest& request, const std::string& tracingID, bool doit,
+                                 bool verbose, bool unsafeWipeAll) override {
         counts_.wipe += 1;
         return fdb5::WipeStateIterator(0);
     }
 
-    fdb5::PurgeIterator purge(const fdb5::FDBToolRequest& request, bool doit, bool verbose) override {
+    fdb5::PurgeIterator purge(const fdb5::FDBToolRequest& request, const std::string& tracingID, bool doit,
+                              bool verbose) override {
         counts_.purge += 1;
         return fdb5::PurgeIterator(0);
     }
 
-    fdb5::StatsIterator stats(const fdb5::FDBToolRequest& request) override {
+    fdb5::StatsIterator stats(const fdb5::FDBToolRequest& request, const std::string& tracingID) override {
         counts_.stats += 1;
         return fdb5::StatsIterator(0);
     }
 
-    fdb5::MoveIterator move(const fdb5::FDBToolRequest& request, const eckit::URI& dest) override {
+    fdb5::MoveIterator move(const fdb5::FDBToolRequest& request, const std::string& tracingID,
+                            const eckit::URI& dest) override {
         counts_.move += 1;
         return fdb5::MoveIterator(0);
     }
 
-    fdb5::StatusIterator control(const fdb5::FDBToolRequest& request, fdb5::ControlAction action,
-                                 fdb5::ControlIdentifiers identifiers) override {
+    fdb5::StatusIterator control(const fdb5::FDBToolRequest& request, const std::string& tracingID,
+                                 fdb5::ControlAction action, fdb5::ControlIdentifiers identifiers) override {
         counts_.control += 1;
         return fdb5::StatusIterator(0);
     }
 
-    void flush() override { counts_.flush += 1; }
+    void flush(const std::string& tracingID) override { counts_.flush += 1; }
 
     // For diagnostics
 

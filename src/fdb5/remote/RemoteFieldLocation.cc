@@ -54,7 +54,6 @@ RemoteFieldLocation::RemoteFieldLocation(const eckit::net::Endpoint& endpoint,
         remoteLocation.offset(), remoteLocation.length(), remoteLocation.remapKey()) {}
 
 RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri) : FieldLocation(uri) {
-
     ASSERT(uri.scheme() == RemoteFieldLocation::typeName());
 }
 
@@ -65,7 +64,9 @@ RemoteFieldLocation::RemoteFieldLocation(const eckit::URI& uri, const eckit::Off
     ASSERT(uri.scheme() == RemoteFieldLocation::typeName());
 }
 
-RemoteFieldLocation::RemoteFieldLocation(eckit::Stream& s) : FieldLocation(s) {}
+RemoteFieldLocation::RemoteFieldLocation(eckit::Stream& s) : FieldLocation(s) {
+    ASSERT(uri().scheme() == RemoteFieldLocation::typeName());
+}
 
 RemoteFieldLocation::RemoteFieldLocation(const RemoteFieldLocation& rhs) :
     FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_) {}
@@ -96,7 +97,7 @@ eckit::URI RemoteFieldLocation::internalURI(const eckit::URI& uri) {
     return remote;
 }
 
-eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
+eckit::DataHandle* RemoteFieldLocation::dataHandle(const std::string& tracingID) const {
 
     if (fdb5::LibFdb5::instance().debug()) {
         eckit::Log::debug<fdb5::LibFdb5>() << "RemoteFieldLocation::dataHandle for location: ";
@@ -110,7 +111,7 @@ eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
     std::unique_ptr<FieldLocation> loc(
         FieldLocationFactory::instance().build(remote.scheme(), remote, offset_, length_, remapKey_));
 
-    return store.dataHandle(*loc);
+    return store.dataHandle(*loc, tracingID);
 }
 
 void RemoteFieldLocation::visit(FieldLocationVisitor& visitor) const {

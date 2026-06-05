@@ -127,7 +127,7 @@ void TocCatalogueWriter::clean() {
 
     LOG_DEBUG_LIB(LibFdb5) << "Closing path " << directory_ << std::endl;
 
-    flush(archivedLocations_);  // closes the TOC entries & indexes but not data files
+    flush(archivedLocations_, "");  // closes the TOC entries & indexes but not data files
 
     compactSubTocIndexes();
 
@@ -324,7 +324,7 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
     return TocCatalogue::enabled(controlIdentifier);
 }
 
-void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
+void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey, const std::string& tracingID,
                                  std::shared_ptr<const FieldLocation> fieldLocation) {
     std::lock_guard<std::recursive_mutex> lock(archiveMutex_);
 
@@ -346,6 +346,9 @@ void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
         }
     }
 
+    LOG_DEBUG_LIB(LibFdb5) << (tracingID.empty() ? "" : tracingID + " - ") << "archiving " << *fieldLocation
+                           << std::endl;
+
     Field field(std::move(fieldLocation), currentIndex().timestamp());
 
     current_.put(datumKey, field);
@@ -355,7 +358,7 @@ void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
     }
 }
 
-void TocCatalogueWriter::flush(size_t archivedFields) {
+void TocCatalogueWriter::flush(size_t archivedFields, const std::string& tracingID) {
     ASSERT(archivedFields == archivedLocations_);
 
     if (archivedLocations_ == 0) {

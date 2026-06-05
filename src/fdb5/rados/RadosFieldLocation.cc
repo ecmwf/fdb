@@ -26,10 +26,13 @@ namespace fdb5 {
 RadosFieldLocation::RadosFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length) :
     FieldLocation(eckit::URI("rados", path), offset, length) {}
 
-RadosFieldLocation::RadosFieldLocation(const eckit::URI& uri) : FieldLocation(uri) {}
+RadosFieldLocation::RadosFieldLocation(const eckit::URI& uri,
+                                       std::optional<std::reference_wrapper<const std::string>> tracingID) :
+    FieldLocation(uri, tracingID) {}
 
-RadosFieldLocation::RadosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length) :
-    FieldLocation(uri, offset, length) {}
+RadosFieldLocation::RadosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length,
+                                       std::optional<std::reference_wrapper<const std::string>> tracingID) :
+    FieldLocation(uri, offset, length, Key(), tracingID) {}
 
 RadosFieldLocation::RadosFieldLocation(const RadosFieldLocation& rhs) : FieldLocation(rhs.uri_) {}
 

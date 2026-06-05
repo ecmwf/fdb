@@ -11,8 +11,6 @@ namespace fdb5 {
 
 // -----------------------------------------------------------------------------------------------
 
-WipeState::WipeState() {}
-
 WipeState::WipeState(eckit::Stream& s) {
 
     // deleteURIs_
@@ -222,7 +220,8 @@ void StoreWipeState::failIfSigned() const {
     }
 }
 
-StoreWipeState::StoreWipeState(eckit::URI uri) : storeURI_(std::move(uri)) {}
+StoreWipeState::StoreWipeState(eckit::URI uri /*, const std::string& tracingID*/) :
+    /*WipeState(tracingID),*/ storeURI_(std::move(uri)) {}
 
 StoreWipeState::StoreWipeState(eckit::Stream& s) : WipeState(s) {
 

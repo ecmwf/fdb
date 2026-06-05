@@ -60,6 +60,8 @@ public:  // methods
     const eckit::net::Endpoint& controlEndpoint() const;
     const std::string& defaultEndpoint() const { return defaultEndpoint_; }
 
+    bool tracingEnabled() const { return tracingEnabled_; }
+
     using Connection::valid;
 
 private:  // methods

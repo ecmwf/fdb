@@ -27,8 +27,8 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 MultiRetrieveVisitor::MultiRetrieveVisitor(InspectIterator& iterator, eckit::CacheLRU<Key, CatalogueReader*>& databases,
-                                           const Config& config) :
-    databases_(databases), iterator_(iterator), config_(config) {}
+                                           const Config& config, const std::string& tracingID) :
+    ReadVisitor(tracingID), databases_(databases), iterator_(iterator), config_(config) {}
 
 MultiRetrieveVisitor::~MultiRetrieveVisitor() {}
 
@@ -42,7 +42,7 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const Key& /* fullKe
 
     if (catalogue_) {
         if (dbKey == catalogue_->key()) {
-            eckit::Log::info() << "This is the current db" << std::endl;
+            eckit::Log::info() << "tracingID: " << tracingID_ << " - This is the current db" << std::endl;
             return true;
         }
     }
@@ -50,7 +50,7 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const Key& /* fullKe
     /* is the DB already open ? */
 
     if (databases_.exists(dbKey)) {
-        LOG_DEBUG_LIB(LibFdb5) << "FDB5 Reusing database " << dbKey << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID_ << " - FDB5 Reusing database " << dbKey << std::endl;
         catalogue_ = databases_.access(dbKey);
         return true;
     }
@@ -62,16 +62,16 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const Key& /* fullKe
     // If this database is locked for retrieval then it "does not exist"
     if (!newCatalogue->enabled(ControlIdentifier::Retrieve)) {
         std::ostringstream ss;
-        ss << "Catalogue " << *newCatalogue << " is LOCKED for retrieval";
+        ss << "tracingID: " << tracingID_ << " - Catalogue " << *newCatalogue << " is LOCKED for retrieval";
         eckit::Log::warning() << ss.str() << std::endl;
         return false;
     }
 
-    LOG_DEBUG_LIB(LibFdb5) << "MultiRetrieveVisitor::selectDatabase opening database " << dbKey
-                           << " (type=" << newCatalogue->type() << ")" << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID_ << " - MultiRetrieveVisitor::selectDatabase opening database "
+                           << dbKey << " (type=" << newCatalogue->type() << ")" << std::endl;
 
     if (!newCatalogue->open()) {
-        LOG_DEBUG_LIB(LibFdb5) << "Database does not exist " << dbKey << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID_ << " - Database does not exist " << dbKey << std::endl;
         return false;
     }
     else {
@@ -83,16 +83,17 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const Key& /* fullKe
 
 bool MultiRetrieveVisitor::selectIndex(const Key& idxKey) {
     ASSERT(catalogue_);
-    LOG_DEBUG_LIB(LibFdb5) << "selectIndex " << idxKey << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID_ << " - selectIndex " << idxKey << std::endl;
     return catalogue_->selectIndex(idxKey);
 }
 
 bool MultiRetrieveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) {
     ASSERT(catalogue_);
-    LOG_DEBUG_LIB(LibFdb5) << "selectDatum " << datumKey << ", " << fullKey << std::endl;
+    LOG_DEBUG_LIB(LibFdb5) << "tracingID: " << tracingID_ << " - selectDatum " << datumKey << ", " << fullKey
+                           << std::endl;
 
     Field field;
-    if (catalogue_->retrieve(datumKey, field)) {
+    if (catalogue_->retrieve(datumKey, field, tracingID_)) {
 
         Key simplifiedKey;
         for (const auto& [keyword, value] : datumKey) {

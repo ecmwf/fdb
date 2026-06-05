@@ -56,11 +56,11 @@ private:  // methods
     void deselectIndex() override;
 
     bool open() override;
-    void flush(size_t archivedFields) override {}
+    void flush(size_t archivedFields, const std::string& tracingID) override {}
     void clean() override {}
     void close() override;
 
-    bool retrieve(const Key& key, Field& field) const override;
+    bool retrieve(const Key& key, Field& field, const std::string& tracingID) const override;
 
     void print(std::ostream& out) const override;
 

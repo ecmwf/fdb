@@ -32,7 +32,7 @@ public:
     DaosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
     DaosFieldLocation(eckit::Stream&);
 
-    eckit::DataHandle* dataHandle() const override;
+    eckit::DataHandle* dataHandle(const std::string& tracingID) const override;
 
     std::shared_ptr<const FieldLocation> make_shared() const override;
 

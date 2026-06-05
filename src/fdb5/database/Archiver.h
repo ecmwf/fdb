@@ -51,7 +51,8 @@ class Archiver {
 
 public:  // methods
 
-    Archiver(const Config& dbConfig = Config().expandConfig(), const ArchiveCallback& callback = CALLBACK_ARCHIVE_NOOP);
+    Archiver(const std::string& tracingID, const Config& dbConfig = Config().expandConfig(),
+             const ArchiveCallback& callback = CALLBACK_ARCHIVE_NOOP);
 
     Archiver(const Archiver&) = delete;
     Archiver& operator=(const Archiver&) = delete;
@@ -60,12 +61,12 @@ public:  // methods
 
     virtual ~Archiver();
 
-    void archive(const Key& key, BaseArchiveVisitor& visitor);
-    void archive(const Key& key, const void* data, size_t len);
+    void archive(const Key& key, BaseArchiveVisitor& visitor, const std::string& tracingID);
+    void archive(const Key& key, const void* data, size_t len, const std::string& tracingID);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call
-    void flush();
+    void flush(const std::string& tracingID);
 
     friend std::ostream& operator<<(std::ostream& s, const Archiver& x) {
         x.print(s);
@@ -74,7 +75,7 @@ public:  // methods
 
 protected:  // methods
 
-    virtual void flushDatabase(Database& db);
+    virtual void flushDatabase(Database& db, const std::string& tracingID);
 
 private:  // methods
 
@@ -85,6 +86,7 @@ private:  // methods
 protected:  // members
 
     std::map<Key, Database> databases_;
+    std::string tracingID_;
 
 private:  // members
 
