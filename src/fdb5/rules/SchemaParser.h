@@ -19,7 +19,6 @@
 #include <memory>
 #include <string>
 
-#include "eckit/exception/Exceptions.h"
 #include "eckit/parser/StreamParser.h"
 #include "eckit/types/Types.h"
 
@@ -39,7 +38,7 @@ public:  // methods
         Error(const std::string& what, size_t line = 0);
     };
 
-    SchemaParser(std::istream& in) : parser(eckit::StreamParser(in)) {}
+    SchemaParser(std::istream& in) : parser_(eckit::StreamParser(in, true)) {}
 
     void parse(RuleList& result, TypesRegistry& registry);
 
@@ -48,8 +47,6 @@ private:  // methods
     bool isAscii(char c);
 
     char peek(bool spaces = false);
-
-    eckit::StreamParser parser;
 
     std::string parseIdent(bool value, bool emptyOK);
 
@@ -62,6 +59,10 @@ private:  // methods
     std::unique_ptr<Predicate> parsePredicate(eckit::StringDict& types);
 
     void parseTypes(eckit::StringDict& types);
+
+private:  // members
+
+    eckit::StreamParser parser_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

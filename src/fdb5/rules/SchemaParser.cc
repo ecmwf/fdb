@@ -38,12 +38,12 @@ bool SchemaParser::isAscii(char c) {
 }
 
 char SchemaParser::peek(bool spaces) {
-    const char peeked = parser.peek(spaces);
+    const char peeked = parser_.peek(spaces);
 
     if (peeked != 0 && !isAscii(peeked)) {
         std::stringstream buf;
         buf << "Schema file contained non-ASCII character which are not supported." << std::endl;
-        throw eckit::StreamParser::Error(buf.str(), parser.line() + 1);
+        throw SchemaParser::Error(buf.str(), parser_.line() + 1);
     }
 
     return peeked;
@@ -64,19 +64,19 @@ std::string SchemaParser::parseIdent(bool value, bool emptyOK) {
             case ']':
             case '?':
                 if (s.empty() && !emptyOK) {
-                    throw eckit::StreamParser::Error("Syntax error: found '" + std::string{c} + "'", parser.line() + 1);
+                    throw SchemaParser::Error("Syntax error: found '" + std::string{c} + "'", parser_.line() + 1);
                 }
                 return s;
             case '-':
                 if (s.empty() && !emptyOK) {
-                    throw eckit::StreamParser::Error("Syntax error: found '-'", parser.line() + 1);
+                    throw SchemaParser::Error("Syntax error: found '-'", parser_.line() + 1);
                 }
                 if (!value) {
                     return s;
                 }
                 [[fallthrough]];
             default:
-                parser.consume(c);
+                parser_.consume(c);
                 s += c;
                 break;
         }
@@ -92,19 +92,19 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
     char c = peek();
 
     if (c == ':') {
-        parser.consume(c);
+        parser_.consume(c);
         ASSERT(types.find(k) == types.end());
         types[k] = parseIdent(false, false);
         c = peek();
     }
 
     if (c == '?') {
-        parser.consume(c);
+        parser_.consume(c);
         return std::make_unique<Predicate>(k, new MatchOptional(parseIdent(true, true)));
     }
 
     if (c == '-') {
-        parser.consume(c);
+        parser_.consume(c);
         if (types.find(k) == types.end()) {
             // Register ignore type
             types[k] = "Ignore";
@@ -113,7 +113,7 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
     }
 
     if (c != ',' && c != '[' && c != ']') {
-        parser.consume("=");
+        parser_.consume("=");
 
         std::string val = parseIdent(true, false);
         exclude = val[0] == '!';
@@ -126,7 +126,7 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
         }
 
         while ((c = peek()) == '/') {
-            parser.consume(c);
+            parser_.consume(c);
             values.insert(parseIdent(true, false));
         }
     }
@@ -152,9 +152,9 @@ void SchemaParser::parseTypes(eckit::StringDict& types) {
             if (name.empty()) {
                 break;
             }
-            parser.consume(':');
+            parser_.consume(':');
             const auto type = parseIdent(false, false);
-            parser.consume(';');
+            parser_.consume(';');
             ASSERT(types.find(name) == types.end());
             types[name] = type;
         }
@@ -165,7 +165,7 @@ void SchemaParser::parseTypes(eckit::StringDict& types) {
                "<type>;'."
             << " Underlying issue: " << spe.what();
 
-        throw Error(buf.str(), parser.line() + 1);
+        throw Error(buf.str(), parser_.line() + 1);
     }
 }
 
@@ -173,13 +173,13 @@ std::unique_ptr<RuleDatum> SchemaParser::parseDatum() {
     Rule::Predicates predicates;
     eckit::StringDict types;
 
-    parser.consume('[');
+    parser_.consume('[');
 
-    const std::size_t line = parser.line() + 1;
+    const std::size_t line = parser_.line() + 1;
 
     char c = peek();
     if (c == ']') {
-        parser.consume(c);
+        parser_.consume(c);
         return std::make_unique<RuleDatum>(line, predicates, types);
     }
 
@@ -189,13 +189,13 @@ std::unique_ptr<RuleDatum> SchemaParser::parseDatum() {
 
         predicates.emplace_back(parsePredicate(types));
         while ((c = peek()) == ',') {
-            parser.consume(c);
+            parser_.consume(c);
             predicates.emplace_back(parsePredicate(types));
         }
 
         c = peek();
         if (c == ']') {
-            parser.consume(c);
+            parser_.consume(c);
             return std::make_unique<RuleDatum>(line, predicates, types);
         }
     }
@@ -206,13 +206,13 @@ std::unique_ptr<RuleIndex> SchemaParser::parseIndex() {
     eckit::StringDict types;
     RuleIndex::Child rule;
 
-    parser.consume('[');
+    parser_.consume('[');
 
-    const std::size_t line = parser.line() + 1;
+    const std::size_t line = parser_.line() + 1;
 
     char c = peek();
     if (c == ']') {
-        parser.consume(c);
+        parser_.consume(c);
         return std::make_unique<RuleIndex>(line, predicates, types, std::move(rule));
     }
 
@@ -226,14 +226,14 @@ std::unique_ptr<RuleIndex> SchemaParser::parseIndex() {
         else {
             predicates.emplace_back(parsePredicate(types));
             while ((c = peek()) == ',') {
-                parser.consume(c);
+                parser_.consume(c);
                 predicates.emplace_back(parsePredicate(types));
             }
         }
 
         c = peek();
         if (c == ']') {
-            parser.consume(c);
+            parser_.consume(c);
             return std::make_unique<RuleIndex>(line, predicates, types, std::move(rule));
         }
     }
@@ -245,13 +245,13 @@ std::unique_ptr<RuleDatabase> SchemaParser::parseDatabase() {
     RuleDatabase::Children rules;
 
     try {
-        parser.consume('[');
+        parser_.consume('[');
 
-        const std::size_t line = parser.line() + 1;
+        const std::size_t line = parser_.line() + 1;
 
         char c = peek();
         if (c == ']') {
-            parser.consume(c);
+            parser_.consume(c);
             return std::make_unique<RuleDatabase>(line, predicates, types, rules);
         }
 
@@ -265,14 +265,14 @@ std::unique_ptr<RuleDatabase> SchemaParser::parseDatabase() {
             else {
                 predicates.emplace_back(parsePredicate(types));
                 while ((c = peek()) == ',') {
-                    parser.consume(c);
+                    parser_.consume(c);
                     predicates.emplace_back(parsePredicate(types));
                 }
             }
 
             c = peek();
             if (c == ']') {
-                parser.consume(c);
+                parser_.consume(c);
                 return std::make_unique<RuleDatabase>(line, predicates, types, rules);
             }
         }
@@ -283,7 +283,7 @@ std::unique_ptr<RuleDatabase> SchemaParser::parseDatabase() {
                "definitions."
             << " Underlying issue: " << spe.what();
 
-        throw Error(buf.str(), parser.line() + 1);
+        throw Error(buf.str(), parser_.line() + 1);
     }
 }
 
@@ -301,25 +301,19 @@ void SchemaParser::parse(RuleList& result, TypesRegistry& registry) {
     }
 
     if (c) {
-        throw Error(std::string("SchemaParser::parse: Error parsing rules: remaining char: ") + c);
+        throw Error(std::string("SchemaParser::parse: Error parsing rules: remaining char: ") + c, parser_.line());
     }
 
 
     if (result.size() == 0) {
         std::stringstream buf;
         buf << "SchemaParser::parse: Empty rule list. Didn't find any rule in the provided schema file." << std::endl;
-        throw Error(buf.str());
+        throw Error(buf.str(), parser_.line());
     }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-SchemaParser::Error::Error(const std::string& what, size_t line) : eckit::StreamParser::Error(what, line) {
-    if (line) {
-        std::ostringstream oss;
-        oss << "Line: " << line << " " << what;
-        reason(oss.str());
-    }
-}
+SchemaParser::Error::Error(const std::string& what, size_t line) : eckit::StreamParser::Error(what, line) {}
 
 }  // namespace fdb5

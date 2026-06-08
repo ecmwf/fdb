@@ -14,7 +14,6 @@
 #include <memory>
 #include <mutex>
 #include <optional>
-#include <set>
 #include <sstream>
 #include <string>
 #include <tuple>
@@ -24,7 +23,6 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/log/Log.h"
-#include "eckit/parser/StreamParser.h"
 #include "eckit/utils/Tokenizer.h"
 
 #include "fdb5/LibFdb5.h"
