@@ -27,7 +27,7 @@ public:
     ViewPart(const metkit::mars::MarsRequest& request, const DataLayout& data_layout,
              const std::vector<AxisDefinition>& axes);
     metkit::mars::MarsRequest at(const std::vector<size_t>& chunkIndex) const;
-    std::vector<size_t> shape() const { return shape_; }
+    std::vector<size_t> extension() const { return extension_; }
     const DataLayout& layout() const { return layout_; }
     const std::vector<Axis>& axes() const { return axes_; }
 
@@ -45,9 +45,8 @@ private:
     // axis definition
     metkit::mars::MarsRequest request_{};
     std::vector<Axis> axes_{};
-    // std::shared_ptr<Extractor> extractor_{};
     DataLayout layout_{};
-    std::vector<size_t> shape_{};
+    std::vector<size_t> extension_{};  // extension in each dimension, counting entries
 };
 
 }  // namespace chunked_data_view
