@@ -67,8 +67,17 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
     std::shared_ptr<FdbInterface> fdb = std::move(fdb_);
     for (auto& [req, defs, ext] : parts_) {
         auto request = fdb5::FDBToolRequest::requestsFromString(req).at(0).request();
-        ViewPart vp(std::move(request), ext, fdb, defs);
-        viewParts.emplace_back(std::move(vp), std::move(ext));
+        try {
+            const auto layout = ext->layout(request);
+            ViewPart vp(std::move(request), layout, defs);
+            viewParts.emplace_back(std::move(vp), std::move(ext));
+        }
+        catch (const std::exception& e) {
+            std::ostringstream ss;
+            ss << "Cannot create view, no data found for request " << req
+               << " to establish field size. Underlying error: " << e.what();
+            throw eckit::UserError(ss.str());
+        }
     }
 
     if (!doPartsAlign(viewParts)) {
