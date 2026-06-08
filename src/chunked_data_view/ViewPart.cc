@@ -35,10 +35,10 @@ ViewPart::ViewPart(const metkit::mars::MarsRequest& request, const DataLayout& d
     axes_ = AxisMapper::mapRequestToAxis(request, axes);
 
     const auto req = requestAt(std::vector<size_t>(axes_.size()));
-    shape_.reserve(axes_.size() + 1);
-    std::transform(std::begin(axes_), std::end(axes_), std::back_inserter(shape_),
+    extension_.reserve(axes_.size() + 1);
+    std::transform(std::begin(axes_), std::end(axes_), std::back_inserter(extension_),
                    [](const auto& axis) { return axis.size(); });
-    shape_.push_back(data_layout.countValues);
+    extension_.push_back(data_layout.countValues);
 }
 
 metkit::mars::MarsRequest ViewPart::at(const std::vector<size_t>& chunkIndex) const {
@@ -57,18 +57,18 @@ metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIn
 
 bool ViewPart::extensibleWith(const ViewPart& other, const size_t extension_axis) const {
 
-    if (other.shape().size() != this->shape().size()) {
+    if (other.extension().size() != this->extension().size()) {
         return false;
     }
 
-    for (size_t index = 0; index < other.shape().size(); ++index) {
+    for (size_t index = 0; index < other.extension().size(); ++index) {
         if (index == extension_axis) {
             continue;
         }
         // Checking the size of the combined axis
         // @info This is not checking whether the parameters are matching. We intentionally
         // can stitch mismatching parameters.
-        if (other.shape()[index] != shape()[index]) {
+        if (other.extension()[index] != extension()[index]) {
             return false;
         }
     }
