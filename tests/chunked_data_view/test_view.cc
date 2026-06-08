@@ -97,6 +97,30 @@ struct MockFdb final : public cdv::FdbInterface {
 };
 
 struct FakeExtractor : public cdv::Extractor {
+
+    std::unique_ptr<MockFdb> mock_;
+
+    FakeExtractor() {
+
+        mock_ = std::make_unique<MockFdb>(
+            [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
+            [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
+                return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
+                    std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
+                });
+            });
+    }
+
+    cdv::DataLayout layout(const metkit::mars::MarsRequest& mars_request) const override {
+
+        const auto handle = mock_->retrieve(mars_request);
+        cdv::DataLayout layout{};
+        handle->openForRead();
+        EXPECT_EQUAL(handle->read(&layout.countValues, sizeof(layout.countValues)), sizeof(layout.countValues));
+        EXPECT_EQUAL(handle->read(&layout.bytesPerValue, sizeof(layout.bytesPerValue)), sizeof(layout.bytesPerValue));
+        handle->close();
+        return layout;
+    }
     cdv::DataLayout layout(eckit::DataHandle& handle) const override {
         cdv::DataLayout layout{};
         handle.openForRead();

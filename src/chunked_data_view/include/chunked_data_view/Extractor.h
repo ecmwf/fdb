@@ -14,6 +14,7 @@
 #include "chunked_data_view/ListIterator.h"
 
 #include "eckit/io/DataHandle.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include <cstddef>
 #include <memory>
@@ -38,6 +39,7 @@ public:
     /// @param handle to a stream of grib messages
     /// @return the data
     virtual DataLayout layout(eckit::DataHandle& handle) const = 0;
+    virtual DataLayout layout(const metkit::mars::MarsRequest& req) const = 0;
 
     /// Writes the extracted data into the out pointer.
     /// The caller must ensure there is enough memory allocated for all values to be copied into out.

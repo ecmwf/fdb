@@ -13,12 +13,10 @@
 #include "chunked_data_view/AxisDefinition.h"
 #include "chunked_data_view/DataLayout.h"
 #include "chunked_data_view/Extractor.h"
-#include "chunked_data_view/Fdb.h"
 
 #include "metkit/mars/MarsRequest.h"
 
 #include <cstddef>
-#include <memory>
 #include <vector>
 
 namespace chunked_data_view {
@@ -26,7 +24,7 @@ namespace chunked_data_view {
 class ViewPart {
 public:
 
-    ViewPart(metkit::mars::MarsRequest request, std::shared_ptr<Extractor> extractor, std::shared_ptr<FdbInterface> fdb,
+    ViewPart(const metkit::mars::MarsRequest& request, const DataLayout& data_layout,
              const std::vector<AxisDefinition>& axes);
 
     ~ViewPart() = default;
@@ -55,8 +53,7 @@ private:
     // axis definition
     metkit::mars::MarsRequest request_{};
     std::vector<Axis> axes_{};
-    std::shared_ptr<Extractor> extractor_{};
-    std::shared_ptr<FdbInterface> fdb_{};
+    // std::shared_ptr<Extractor> extractor_{};
     DataLayout layout_{};
     std::vector<size_t> shape_{};
 };
