@@ -76,6 +76,7 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::sh
         if (first_part.isAxisChunked(index)) {
             chunkShape_[index] = 1;
         }
+        // Integer ceil
         chunks_[index] = shape_[index] / chunkShape_[index] + ((shape_[index] % chunkShape_[index]) != 0);
     }
     chunks_.back() = 1;

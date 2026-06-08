@@ -27,6 +27,8 @@ add_library(chunked_data_view STATIC
     RequestManipulation.h
     ViewPart.cc
     ViewPart.h
+    mapping/AxisMapper.cc
+    mapping/AxisMapper.h
     exception/GribExtractorException.cc
     exception/UnknownExtractorException.cc
     include/chunked_data_view/AxisDefinition.h

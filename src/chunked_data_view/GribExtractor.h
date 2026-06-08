@@ -12,6 +12,7 @@
 #include "chunked_data_view/Axis.h"
 #include "chunked_data_view/DataLayout.h"
 #include "chunked_data_view/Extractor.h"
+#include "chunked_data_view/Fdb.h"
 #include "chunked_data_view/ListIterator.h"
 
 #include "chunked_data_view/ViewPart.h"
@@ -28,6 +29,7 @@ public:
     GribExtractor(const std::shared_ptr<FdbInterface> fdb);
 
     DataLayout layout(eckit::DataHandle& handle) const override;
+    DataLayout layout(const metkit::mars::MarsRequest& mars_request) const override;
 
     size_t writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
                      const DataLayout& layout, float* ptr, size_t len, size_t extensionAxisIdx, size_t combinedExtSize,
@@ -38,6 +40,6 @@ public:
 
 private:
 
-    std::shared_ptr<FdbInterface> _fdb;
+    std::shared_ptr<FdbInterface> fdb_;
 };
 }  // namespace chunked_data_view

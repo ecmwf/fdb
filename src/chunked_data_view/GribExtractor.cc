@@ -29,7 +29,7 @@
 
 namespace chunked_data_view {
 
-GribExtractor::GribExtractor(const std::shared_ptr<FdbInterface> fdb) : _fdb(fdb) {}
+GribExtractor::GribExtractor(const std::shared_ptr<FdbInterface> fdb) : fdb_(fdb) {}
 
 DataLayout GribExtractor::layout(eckit::DataHandle& handle) const {
     eckit::message::Reader reader(handle);
@@ -37,6 +37,20 @@ DataLayout GribExtractor::layout(eckit::DataHandle& handle) const {
     if (!msg) {
         throw eckit::Exception("GribExtractor::layout: Couldn't read GRIB message.");
     }
+    size_t countValues = msg.getSize("values");
+    return {countValues, 4};
+}
+
+DataLayout GribExtractor::layout(const metkit::mars::MarsRequest& mars_request) const {
+
+    const auto& handle = fdb_->retrieve(mars_request);
+    eckit::message::Reader reader(*handle);
+    eckit::message::Message msg = reader.next();
+
+    if (!msg) {
+        throw eckit::Exception("GribExtractor::layout: Couldn't read GRIB message.");
+    }
+
     size_t countValues = msg.getSize("values");
     return {countValues, 4};
 }
@@ -113,7 +127,7 @@ size_t GribExtractor::extractInto(const ViewPart& part, const std::vector<std::s
                                   size_t extensionOffset) const {
 
     const auto& request = part.at(chunkIndex);
-    auto listIterator = _fdb->inspect(request);
+    auto listIterator = fdb_->inspect(request);
 
     size_t written = writeInto(std::move(listIterator), part.axes(), part.layout(), ptr, len, extensionAxisIdx,
                                combinedExtSize, extensionOffset);
