@@ -29,7 +29,7 @@ size_t countFieldsForPart(const ViewPart& part, const std::vector<size_t>& chunk
     size_t result = 1;
     for (size_t i = 0; i < chunkShape.size() - 1; ++i) {
         if (i == extensionAxisIndex) {
-            result *= part.shape()[i];
+            result *= part.extension()[i];
         }
         else {
             result *= chunkShape[i];
@@ -45,14 +45,14 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::sh
     parts_(std::move(parts)), extensionAxisIndex_(extensionAxisIndex) {
 
     const auto& first_part = std::get<0>(parts_[0]);
-    shape_ = first_part.shape();
+    shape_ = first_part.extension();
 
     for (const auto& [part, _] : parts_) {
         for (size_t idx = 0; idx < shape_.size(); ++idx) {
             if (idx == extensionAxisIndex_) {
-                shape_[idx] += part.shape()[idx];
+                shape_[idx] += part.extension()[idx];
             }
-            else if (shape_[idx] != part.shape()[idx]) {
+            else if (shape_[idx] != part.extension()[idx]) {
                 throw eckit::UserError(
                     "ChunkedDataViewImpl: Axis size mismatch. All axis besides the extension axis have to match in "
                     "their extent.");
@@ -60,14 +60,14 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::sh
         }
     }
 
-    if (extensionAxisIndex_ >= first_part.shape().size() - 1) {  // The implicit dimension must be subtracted
+    if (extensionAxisIndex_ >= first_part.extension().size() - 1) {  // The implicit dimension must be subtracted
         std::ostringstream ss;
         ss << "ChunkedDataViewImpl: Extension axis is not referring to a valid axis index. Possible axis are: 0-";
-        ss << first_part.shape().size() - 2 << ". You're selection is: " << extensionAxisIndex << std::endl;
+        ss << first_part.extension().size() - 2 << ". You're selection is: " << extensionAxisIndex << std::endl;
         throw eckit::UserError(ss.str());
     }
 
-    shape_[extensionAxisIndex_] -= first_part.shape()[extensionAxisIndex_];
+    shape_[extensionAxisIndex_] -= first_part.extension()[extensionAxisIndex_];
     chunkShape_ = shape_;
     chunks_.resize(shape_.size());
     // The last dimension is implicitly created for the number of values in a field, i.e. there is no representation in
@@ -132,7 +132,7 @@ void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, 
                 throw GribExtractorException(ss.str());
             }
 
-            extOffset += part.shape()[extensionAxisIndex_];
+            extOffset += part.extension()[extensionAxisIndex_];
         }
         return;
     }
@@ -141,8 +141,8 @@ void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, 
     auto idx(chunkIndex);
 
     for (const auto& [part, extractor] : parts_) {
-        if (idx[extensionAxisIndex_] >= part.shape()[extensionAxisIndex_]) {
-            idx[extensionAxisIndex_] -= part.shape()[extensionAxisIndex_];
+        if (idx[extensionAxisIndex_] >= part.extension()[extensionAxisIndex_]) {
+            idx[extensionAxisIndex_] -= part.extension()[extensionAxisIndex_];
             continue;
         }
         extractor->extractInto(part, idx, ptr, len);
