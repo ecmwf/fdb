@@ -61,10 +61,9 @@ struct ListHelper : BaseAPIHelper<ListElement, Message::List> {
             if (elem.location().uri().scheme() == "fdb") {
                 net::Endpoint fieldLocationEndpoint{elem.location().uri().host(), elem.location().uri().port()};
 
-                remoteLocation =
-                    RemoteFieldLocation(fdb->storeEndpoint(fieldLocationEndpoint),
-                                                      static_cast<const RemoteFieldLocation&>(elem.location()))
-                        .make_shared();
+                remoteLocation = RemoteFieldLocation(fdb->storeEndpoint(fieldLocationEndpoint),
+                                                     static_cast<const RemoteFieldLocation&>(elem.location()))
+                                     .make_shared();
             }
             else {
                 remoteLocation = RemoteFieldLocation(fdb->storeEndpoint(), elem.location()).make_shared();
@@ -107,7 +106,7 @@ struct InspectHelper : BaseAPIHelper<ListElement, Message::Inspect> {
 
             std::shared_ptr<const FieldLocation> remoteLocation =
                 RemoteFieldLocation(fdb->storeEndpoint(fieldLocationEndpoint),
-                                                  static_cast<const RemoteFieldLocation&>(elem.location()))
+                                    static_cast<const RemoteFieldLocation&>(elem.location()))
                     .make_shared();
             return ListElement(elem.keys(), remoteLocation, elem.timestamp());
         }
@@ -126,9 +125,7 @@ struct WipeHelper : BaseAPIHelper<CatalogueWipeState, Message::Wipe> {
         s << unsafeWipeAll_;
     }
 
-    static CatalogueWipeState valueFromStream(Stream& s, RemoteFDB* fdb) {
-        return CatalogueWipeState(s);
-    }
+    static CatalogueWipeState valueFromStream(Stream& s, RemoteFDB* fdb) { return CatalogueWipeState(s); }
 
 private:
 
@@ -161,8 +158,7 @@ const net::Endpoint& RemoteFDB::storeEndpoint(const net::Endpoint& fieldLocation
     return it->second;
 }
 
-RemoteFDB::RemoteFDB(const Configuration& config, const std::string& name) :
-    LocalFDB(config, name), Client(config) {
+RemoteFDB::RemoteFDB(const Configuration& config, const std::string& name) : LocalFDB(config, name), Client(config) {
 
     Buffer buf = controlWriteReadResponse(remote::Message::Stores, generateRequestID());
     MemoryStream s(buf);
@@ -226,9 +222,9 @@ RemoteFDB::RemoteFDB(const Configuration& config, const std::string& name) :
 
     /// @note: We must instantiate the ReadLimiter before any RemoteStores due to their static initialisation.
     /// @todo: this may change in future.
-    static size_t memoryLimit = Resource<size_t>(
-        "$FDB_READ_LIMIT;fdbReadLimit",
-        config_.userConfig().getUnsigned("limits.read", size_t(1) * 1024 * 1024 * 1024));  // 1GiB
+    static size_t memoryLimit =
+        Resource<size_t>("$FDB_READ_LIMIT;fdbReadLimit",
+                         config_.userConfig().getUnsigned("limits.read", size_t(1) * 1024 * 1024 * 1024));  // 1GiB
     ReadLimiter::init(memoryLimit);
 }
 

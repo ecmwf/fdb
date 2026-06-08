@@ -185,9 +185,8 @@ RemoteConfiguration ClientConnection::availableFunctionality(const Configuration
 
 //----------------------------------------------------------------------------------------------------------------------
 
-std::future<Buffer> ClientConnection::controlWrite(const Client& client, const Message msg,
-                                                          const uint32_t requestID, const bool /*dataListener*/,
-                                                          const PayloadList payloads) const {
+std::future<Buffer> ClientConnection::controlWrite(const Client& client, const Message msg, const uint32_t requestID,
+                                                   const bool /*dataListener*/, const PayloadList payloads) const {
     std::future<Buffer> f;
     {
         std::lock_guard<std::mutex> lock(promisesMutex_);
@@ -311,7 +310,7 @@ SessionID ClientConnection::verifyServerStartupResponse() {
                            << serverSession << " " << dataEndpoint << std::endl;
     if (dataEndpoint_.hostname() != controlEndpoint_.hostname()) {
         Log::warning() << "Data and control interface hostnames do not match. " << dataEndpoint_.hostname()
-                              << " /= " << controlEndpoint_.hostname() << std::endl;
+                       << " /= " << controlEndpoint_.hostname() << std::endl;
     }
 
     if (clientSession != sessionID_) {
@@ -324,8 +323,8 @@ SessionID ClientConnection::verifyServerStartupResponse() {
     }
 
     if (single_ && !(dataEndpoint_ == controlEndpoint_)) {
-        Log::warning() << "Returned control interface does not match. " << dataEndpoint_
-                              << " /= " << controlEndpoint_ << std::endl;
+        Log::warning() << "Returned control interface does not match. " << dataEndpoint_ << " /= " << controlEndpoint_
+                       << std::endl;
     }
 
     return serverSession;
