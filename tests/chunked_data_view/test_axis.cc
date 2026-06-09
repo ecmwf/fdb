@@ -56,6 +56,9 @@ CASE("RequestManipulation | Axis test single axis for Indices | Can create a sub
         EXPECT_EQUAL(values.size(), 10);
         EXPECT_EQUAL(values, axis.parameters()[0].values()[i]);
     }
+
+    std::vector<size_t> expected_chunks = {1, 1, 1};
+    EXPECT_EQUAL(expected_chunks, axis.chunks());
 }
 
 CASE("RequestManipulation | Axis test multiple axis for Indices | Can create a subindex") {
@@ -98,6 +101,9 @@ CASE("RequestManipulation | Axis test multiple axis for Indices | Can create a s
             EXPECT_EQUAL(time_values, times[j]);
         }
     }
+
+    std::vector<size_t> expected_chunks = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+    EXPECT_EQUAL(expected_chunks, axis.chunks());
 }
 
 
@@ -160,6 +166,7 @@ bool assert_arrays(const metkit::mars::MarsRequest& request, const chunked_data_
         }
     }
 
+
     return true;
 }
 
@@ -191,6 +198,14 @@ CASE("RequestManipulation | Axis test multiple axis for Indices 2 | Can handle m
     const chunked_data_view::Axis axis = {{date_parameter, time_parameter, step_parameter, param_parameter}, true};
 
     EXPECT(assert_arrays(request, axis));
+
+    std::vector<size_t> expected_chunks = {};
+
+    for (size_t i = 0; i < dates.size() * times.size() * steps.size() * params.size(); ++i) {
+        expected_chunks.emplace_back(1);
+    }
+
+    EXPECT_EQUAL(axis.chunks(), expected_chunks);
 }
 
 CASE("RequestManipulation | Axis test multiple axis | Non-chunked") {
@@ -227,6 +242,9 @@ CASE("RequestManipulation | Axis test multiple axis | Non-chunked") {
         auto request_copy = request;
         EXPECT_THROWS(chunked_data_view::RequestManipulation::updateRequest(request_copy, axis, i));
     }
+
+    std::vector<size_t> expected_chunks = {dates.size() * times.size() * steps.size() * params.size()};
+    EXPECT_EQUAL(axis.chunks(), expected_chunks);
 }
 
 CASE("RequestManipulation | Axis test multiple axis for Indices | Permutations") {
@@ -274,6 +292,15 @@ CASE("RequestManipulation | Axis test multiple axis for Indices | Permutations")
                             << param_vector[perm[1]].name() << ", " << param_vector[perm[2]].name() << ", "
                             << param_vector[perm[3]].name() << ") " << std::endl;
         EXPECT(assert_arrays(request, axis));
+
+        std::vector<size_t> expected_chunks = {};
+
+        for (size_t i = 0;
+             i < first.values().size() * second.values().size() * third.values().size() * fourth.values().size(); ++i) {
+            expected_chunks.emplace_back(1);
+        }
+
+        EXPECT_EQUAL(axis.chunks(), expected_chunks);
 
     } while (next_perm(perm.begin(), perm.end()));
 }
