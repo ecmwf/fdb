@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <string>
 #include <tuple>
+#include <variant>
 #include <vector>
 
 namespace chunked_data_view {
@@ -33,6 +34,37 @@ private:
     std::tuple<const std::string, const std::vector<std::string>> _internal;
 };
 
+class Chunks {
+
+public:
+
+    explicit Chunks(const std::vector<std::variant<size_t, std::tuple<size_t, size_t>>>& chunks) {
+
+        for (const auto& element : chunks) {
+            if (std::holds_alternative<size_t>(element)) {
+                extensions_.emplace_back(std::get<size_t>(element));
+            }
+            else {
+                auto [extent, amount] = std::get<std::tuple<size_t, size_t>>(element);
+                for (size_t i = 0; i < amount; ++i) {
+                    extensions_.emplace_back(extent);
+                }
+            }
+        }
+    }
+
+    Chunks(size_t chunk_extension, size_t amount) :
+        Chunks(std::vector<std::variant<size_t, std::tuple<size_t, size_t>>>{
+            std::tuple<size_t, size_t>{chunk_extension, amount}}) {};
+
+    size_t size() const { return extensions_.size(); }
+    std::vector<size_t> extensions() const { return extensions_; }
+
+private:
+
+    std::vector<size_t> extensions_{};
+};
+
 class Axis {
 public:
 
@@ -50,7 +82,8 @@ public:
         return false;
     }
 
-    bool isChunked() const { return chunked_; }
+    bool isChunked() const { return chunks_.size() > 1; }                // TODO(TKR): Remove once every Axis is chunked
+    std::vector<size_t> chunks() const { return chunks_.extensions(); }  // TODO(TKR): Remove once every Axis is chunked
     const std::vector<chunked_data_view::Parameter>& parameters() const { return parameters_; }
 
     size_t index(const fdb5::Key& key) const;
@@ -59,7 +92,7 @@ private:
 
     std::vector<chunked_data_view::Parameter> parameters_{};
     size_t size_{};
-    bool chunked_{};
+    Chunks chunks_;
 };
 
 }  // namespace chunked_data_view
