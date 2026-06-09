@@ -58,7 +58,8 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
              })
         .def("chunk_shape", [](const cdv::ChunkedDataView* view) { return view->chunkShape(); })
         .def("chunks", [](const cdv::ChunkedDataView* view) { return view->chunks(); })
-        .def("shape", [](const cdv::ChunkedDataView* view) { return view->shape(); });
+        .def("shape", [](const cdv::ChunkedDataView* view) { return view->shape(); })
+        .def("fillValue", [](const cdv::ChunkedDataView* view) { return view->fillValue(); });
 
     py::enum_<cdv::ExtractorType>(m, "ExtractorType").value("GRIB", cdv::ExtractorType::GRIB);
 
@@ -88,5 +89,6 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
                  }
              })
         .def("extend_on_axis", &cdv::ChunkedDataViewBuilder::extendOnAxis)
+        .def("fill_value", &cdv::ChunkedDataViewBuilder::fillValue)
         .def("build", &cdv::ChunkedDataViewBuilder::build);
 }

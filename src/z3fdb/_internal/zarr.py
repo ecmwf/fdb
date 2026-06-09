@@ -150,6 +150,7 @@ class FdbSource:
         self._shape = self._chunked_data_view.shape()
         self._chunks = self._chunked_data_view.chunkShape()
         self._chunks_per_dimension = self._chunked_data_view.chunks()
+        self._fill_value = self._chunked_data_view.fillValue()
 
     def create_dot_zarr_json(self) -> CpuBuffer:
         return to_cpu_buffer(
@@ -158,7 +159,7 @@ class FdbSource:
                     shape=self._shape,
                     chunk_grid=ChunkGridMetadata(chunks=self._chunks),
                     data_type="float32",
-                    fill_value=-1.0,
+                    fill_value=self._fill_value,
                 )
             )
         )
