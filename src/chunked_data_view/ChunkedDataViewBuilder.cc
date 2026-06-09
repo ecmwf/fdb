@@ -42,6 +42,11 @@ ChunkedDataViewBuilder& ChunkedDataViewBuilder::extendOnAxis(size_t index) {
     return *this;
 }
 
+ChunkedDataViewBuilder& ChunkedDataViewBuilder::fillValue(float fillValue) {
+    fillValue_ = fillValue;
+    return *this;
+}
+
 bool ChunkedDataViewBuilder::doPartsAlign(
     const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& viewParts) {
     const ViewPart& first = std::get<0>(viewParts[0]);
@@ -84,7 +89,7 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
         throw eckit::UserError("Shape of all parts must be identical except for the extension axis index.");
     }
 
-    return std::make_unique<ChunkedDataViewImpl>(std::move(viewParts), extensionAxisIndex_.value_or(0));
+    return std::make_unique<ChunkedDataViewImpl>(std::move(viewParts), fillValue_, extensionAxisIndex_.value_or(0));
 }
 
 };  // namespace chunked_data_view

@@ -41,8 +41,8 @@ size_t countFieldsForPart(const ViewPart& part, const std::vector<size_t>& chunk
 }  // namespace
 
 ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>> parts,
-                                         size_t extensionAxisIndex) :
-    parts_(std::move(parts)), extensionAxisIndex_(extensionAxisIndex) {
+                                         float fillValue, size_t extensionAxisIndex) :
+    parts_(std::move(parts)), extensionAxisIndex_(extensionAxisIndex), fillValue_(fillValue) {
 
     const auto& first_part = std::get<0>(parts_[0]);
     shape_ = first_part.extension();
