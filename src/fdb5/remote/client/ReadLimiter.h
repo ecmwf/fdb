@@ -40,8 +40,8 @@ struct RequestInfo {
 class ReadLimiter {
 public:
 
-    static void init(size_t memoryLimit);
     static ReadLimiter& instance();
+    void setMemoryLimit(size_t memoryLimit);
 
     ReadLimiter(const ReadLimiter&) = delete;
     ReadLimiter& operator=(const ReadLimiter&) = delete;
@@ -51,10 +51,6 @@ public:
     // Add a new request to the queue of requests to be sent. Will not be sent until we know we have buffer space.
     void add(RemoteStore* client, uint32_t id, const FieldLocation& fieldLocation,
              const Key& remapKey);  // use const *?
-
-    // Attempt to send the next request in the queue. Returns true if a request was sent.
-    // If not enough memory is available, or there is no next request, returns false.
-    bool tryNextRequest();
 
     void finishRequest(uint32_t clientID, uint32_t requestID);
 
@@ -74,15 +70,19 @@ private:
 
     static size_t defaultReadLimit();
 
+    // Attempt to send the next request in the queue. Returns true if a request was sent.
+    // If not enough memory is available, or there is no next request, returns false.
+    bool tryNextRequest();
+
     // Send the request to the server
     void sendRequest(const RequestInfo& request) const;
 
 private:
 
-    mutable std::recursive_mutex mutex_;
+    mutable std::mutex mutex_;
 
     size_t memoryUsed_;
-    const size_t memoryLimit_;
+    size_t memoryLimit_;
 
     // Enqueued requests
     std::deque<RequestInfo> requests_;
