@@ -99,6 +99,11 @@ def session_tmp(tmp_path_factory) -> pathlib.Path:
     return tmp_path_factory.mktemp("session_data")
 
 
+@pytest.fixture(scope="function")
+def function_tmp(tmp_path_factory) -> pathlib.Path:
+    return tmp_path_factory.mktemp("function_data")
+
+
 @pytest.fixture(scope="session")
 def build_example_sfc_pl_grib_messages(data_path, session_tmp) -> pathlib.Path:
     """
@@ -222,8 +227,10 @@ def read_only_fdb_setup_for_sfc_pl_example(
     return cfg
 
 
-@pytest.fixture(scope="session", autouse=False)
-def read_only_fdb_setup(data_path, session_tmp, build_grib_messages) -> pathlib.Path:
+@pytest.fixture(scope="function", autouse=False)
+def read_only_fdb_setup(
+    data_path, function_tmp, session_tmp, build_grib_messages
+) -> pathlib.Path:
     """
     Creates a FDB setup in this tests temp directory.
     Test FDB currently reads all grib files in `tests/data`
@@ -235,7 +242,7 @@ def read_only_fdb_setup(data_path, session_tmp, build_grib_messages) -> pathlib.
     schema_path = session_tmp / "schema"
     shutil.copy(schema_path_src, schema_path)
 
-    db_store_path = session_tmp / "db_store"
+    db_store_path = function_tmp / "db_store"
     db_store_path.mkdir()
     fdb_config = dict(
         type="local",
@@ -362,7 +369,9 @@ def build_pattern_grib_messages(data_path, session_tmp) -> pathlib.Path:
             ec.codes_set(gid, "time", time)
             ec.codes_set(gid, "paramId", parameter)
             ec.codes_set(gid, "level", level)
-            ec.codes_set_values(gid, list(itertools.repeat(total_values + value, count_values)))
+            ec.codes_set_values(
+                gid, list(itertools.repeat(total_values + value, count_values))
+            )
             ec.codes_write(gid, out)
 
     ec.codes_release(gid)
