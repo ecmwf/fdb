@@ -28,7 +28,8 @@ public:
     virtual const std::vector<size_t>& chunks() const = 0;
     /// Shape of the dataset / number of values in each dimension
     virtual const std::vector<size_t>& shape() const = 0;
-
+    /// Fill value for non-existing data
+    virtual const float& fillValue() const = 0;
 
     virtual size_t countChunkValues() const = 0;
 };

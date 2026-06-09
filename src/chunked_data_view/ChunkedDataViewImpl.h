@@ -21,7 +21,7 @@ namespace chunked_data_view {
 class ChunkedDataViewImpl : public ChunkedDataView {
 public:
 
-    ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>> partialViews,
+    ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>> partialViews, float fillValue,
                         size_t extensionAxisIndex);
 
     /// @param index n-dim chunk index
@@ -29,6 +29,7 @@ public:
     const std::vector<size_t>& chunkShape() const override { return chunkShape_; }
     const std::vector<size_t>& chunks() const override { return chunks_; }
     const std::vector<size_t>& shape() const override { return shape_; }
+    const float& fillValue() const override { return fillValue_; }
 
     /**
      * @brief Returns the number of entries in a chunk including the implicit field entries
@@ -60,6 +61,7 @@ private:
     std::vector<size_t> chunks_{};
     std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>> parts_{};
     size_t extensionAxisIndex_{};
+    float fillValue_;
 };
 
 }  // namespace chunked_data_view

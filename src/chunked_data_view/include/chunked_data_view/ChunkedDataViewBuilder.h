@@ -44,6 +44,8 @@ public:
     /// @throws eckit::UserException in case the index is not a valid axis
     ChunkedDataViewBuilder& extendOnAxis(size_t index);
 
+    ChunkedDataViewBuilder& fillValue(float fillValue);
+
     std::unique_ptr<ChunkedDataView> build();
 
     std::shared_ptr<FdbInterface> getFdb() const { return fdb_; }
@@ -53,6 +55,7 @@ private:
     std::shared_ptr<FdbInterface> fdb_{};
     std::vector<std::tuple<std::string, std::vector<AxisDefinition>, std::shared_ptr<Extractor>>> parts_{};
     std::optional<size_t> extensionAxisIndex_ = std::nullopt;
+    float fillValue_ = std::numeric_limits<float>::infinity();
 
     bool doPartsAlign(const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& viewParts);
 };

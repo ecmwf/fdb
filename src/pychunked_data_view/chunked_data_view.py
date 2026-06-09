@@ -92,6 +92,9 @@ class ChunkedDataView:
     def shape(self):
         return self._obj.shape()
 
+    def fillValue(self):
+        return self._obj.fillValue()
+
 
 class ExtractorType(enum.Enum):
     """Suported data extractors.
@@ -119,6 +122,9 @@ class ChunkedDataViewBuilder:
 
     def extend_on_axis(self, axis: int):
         self._obj.extend_on_axis(axis)
+
+    def fill_value(self, value: float):
+        self._obj.fill_value(value)
 
     def build(self):
         try:
