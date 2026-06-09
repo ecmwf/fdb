@@ -62,7 +62,7 @@ void ReadLimiter::add(RemoteStore* client, uint32_t id, const FieldLocation& fie
     }
 
     {
-        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
         requests_.emplace_back(RequestInfo{client, id, std::move(requestBuffer), requestSize, resultSize});
     }
 
@@ -92,7 +92,7 @@ bool ReadLimiter::tryNextRequest() {
 
 void ReadLimiter::finishRequest(uint32_t clientID, uint32_t requestID) {
     {
-        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
 
         auto it = activeRequests_.find(clientID);
         if (it == activeRequests_.end()) {
@@ -147,7 +147,7 @@ void ReadLimiter::evictClient(size_t clientID) {
 }
 
 void ReadLimiter::print(std::ostream& out) const {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
 
     out << "ReadLimiter(memoryUsed=" << memoryUsed_ << ", memoryLimit=" << memoryLimit_ << ") {" << std::endl;
 

@@ -82,7 +82,7 @@ private:
 
 private:
 
-    mutable std::recursive_mutex mutex_;
+    mutable std::mutex mutex_;
 
     size_t memoryUsed_;
     size_t memoryLimit_;
