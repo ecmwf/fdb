@@ -17,16 +17,16 @@ fdb-sys = { path = "crates/fdb-sys" }
 fdb = { path = "crates/fdb" }
 
 # Foundation crates
-eckit-sys = { path = "../../rust-wrappers-playground/crates/eckit-sys", default-features = false }
-eckit = { path = "../../rust-wrappers-playground/crates/eckit" }
-metkit-sys = { path = "../../rust-wrappers-playground/crates/metkit-sys", default-features = false }
-metkit = { path = "../../rust-wrappers-playground/crates/metkit" }
-eccodes-sys = { path = "../../rust-wrappers-playground/crates/eccodes-sys", default-features = false, features = ["vendored", "eccodes-threads"] }
+eckit-sys = { git = "ssh://git@github.com/ecmwf/eckit.git", branch = "rust-bindings", default-features = false }
+eckit = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git" }
+metkit-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", default-features = false }
+metkit = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git" }
+eccodes-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", default-features = false, features = ["vendored", "eccodes-threads"] }
 
 # Build tools
-bindman = { path = "../../bindman/bindman" }
-bindman-build = { path = "../../bindman/bindman-build" }
-bindman-utils = { path = "../../bindman/bindman-utils" }
+bindman = { git = "ssh://git@github.com/ecmwf/bindman.git" }
+bindman-build = { git = "ssh://git@github.com/ecmwf/bindman.git" }
+bindman-utils = { git = "ssh://git@github.com/ecmwf/bindman.git" }
 
 # External
 thiserror = "2"
