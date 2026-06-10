@@ -12,8 +12,6 @@
 #include "RequestManipulation.h"
 #include "chunked_data_view/AxisDefinition.h"
 #include "chunked_data_view/DataLayout.h"
-#include "chunked_data_view/Extractor.h"
-#include "chunked_data_view/exception/GribExtractorException.h"
 
 #include "chunked_data_view/mapping/AxisMapper.h"
 #include "eckit/exception/Exceptions.h"

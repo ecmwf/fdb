@@ -79,15 +79,6 @@ struct FakeExtractor : public cdv::Extractor {
             });
     }
 
-    cdv::DataLayout layout(eckit::DataHandle& handle) const override {
-        cdv::DataLayout layout{};
-        handle.openForRead();
-        EXPECT_EQUAL(handle.read(&layout.countValues, sizeof(layout.countValues)), sizeof(layout.countValues));
-        EXPECT_EQUAL(handle.read(&layout.bytesPerValue, sizeof(layout.bytesPerValue)), sizeof(layout.bytesPerValue));
-        handle.close();
-        return layout;
-    }
-
     cdv::DataLayout layout(const metkit::mars::MarsRequest& mars_request) const override {
 
         const auto handle = mock_->retrieve(mars_request);
@@ -102,7 +93,7 @@ struct FakeExtractor : public cdv::Extractor {
     size_t writeInto(std::unique_ptr<chunked_data_view::ListIteratorInterface> list_iterator,
                      const std::vector<chunked_data_view::Axis>& axes, const chunked_data_view::DataLayout& layout,
                      float* ptr, size_t len, size_t extensionAxisIdx, size_t combinedExtSize,
-                     size_t extensionOffset) const override {
+                     size_t extensionOffset) const {
         cdv::DataLayout readLayout{};
         size_t count = 0;
         while (auto res = list_iterator->next()) {

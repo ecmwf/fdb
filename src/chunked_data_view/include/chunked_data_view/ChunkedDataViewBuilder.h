@@ -29,7 +29,7 @@ class ViewPart;
 class ChunkedDataViewBuilder {
 public:
 
-    explicit ChunkedDataViewBuilder(std::unique_ptr<FdbInterface> fdb);
+    explicit ChunkedDataViewBuilder(std::shared_ptr<FdbInterface> fdb);
     /// Add data to the view defined by a mars request.
     /// Multiple parts can be added by repeated calls to addPart, e.g. adding surface and non surface fields.
     /// Every keyword with more than one value needs to be mapped to the output axes with an AxisDefinition.
