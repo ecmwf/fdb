@@ -9,15 +9,11 @@
  */
 #pragma once
 
-#include "chunked_data_view/Axis.h"
 #include "chunked_data_view/DataLayout.h"
-#include "chunked_data_view/ListIterator.h"
 
-#include "eckit/io/DataHandle.h"
 #include "metkit/mars/MarsRequest.h"
 
 #include <cstddef>
-#include <memory>
 #include <vector>
 
 namespace eckit {
@@ -38,7 +34,6 @@ public:
     /// Only first message will be read
     /// @param handle to a stream of grib messages
     /// @return the data
-    virtual DataLayout layout(eckit::DataHandle& handle) const = 0;
     virtual DataLayout layout(const metkit::mars::MarsRequest& req) const = 0;
 
     /// Writes the extracted data into the out pointer.
@@ -52,9 +47,9 @@ public:
     /// @param combinedExtSize combined size of the extension axis across all parts
     /// @param extensionOffset offset of this part on the extension axis
     /// @return number of messages written
-    virtual size_t writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
-                             const DataLayout& layout, float* ptr, size_t len, size_t extensionAxisIdx = SIZE_MAX,
-                             size_t combinedExtSize = 0, size_t extensionOffset = 0) const = 0;
+    // virtual size_t writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
+    //                          const DataLayout& layout, float* ptr, size_t len, size_t extensionAxisIdx = SIZE_MAX,
+    //                          size_t combinedExtSize = 0, size_t extensionOffset = 0) const = 0;
 
     virtual size_t extractInto(const ViewPart& part, const std::vector<std::size_t>& chunkIndex, float* ptr, size_t len,
                                size_t extensionAxisIdx = SIZE_MAX, size_t combinedExtSize = 0,

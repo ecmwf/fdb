@@ -145,7 +145,9 @@ void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, 
             idx[extensionAxisIndex_] -= part.extension()[extensionAxisIndex_];
             continue;
         }
-        extractor->extractInto(part, idx, ptr, len);
+        // TODO(TKR): Write a error message if the amount of written fields is not equal
+        // to the expected amount of fields in a chunk
+        auto written = extractor->extractInto(part, idx, ptr, len);
         return;
     }
     throw eckit::SeriousBug("ChunkedDataViewImpl::at - This code should never be reached.");
