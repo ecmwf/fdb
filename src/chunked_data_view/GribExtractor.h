@@ -16,7 +16,6 @@
 #include "chunked_data_view/ListIterator.h"
 
 #include "chunked_data_view/ViewPart.h"
-#include "fdb5/api/FDB.h"
 
 #include <cstddef>
 #include <memory>
@@ -28,18 +27,20 @@ public:
 
     GribExtractor(const std::shared_ptr<FdbInterface> fdb);
 
-    DataLayout layout(eckit::DataHandle& handle) const override;
     DataLayout layout(const metkit::mars::MarsRequest& mars_request) const override;
 
-    size_t writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
-                     const DataLayout& layout, float* ptr, size_t len, size_t extensionAxisIdx, size_t combinedExtSize,
-                     size_t extensionOffset) const override;
 
     size_t extractInto(const ViewPart& part, const std::vector<std::size_t>& chunkIndex, float* ptr, size_t len,
                        size_t extensionAxisIdx, size_t combinedExtSize, size_t extensionOffset) const override;
 
-private:
+private:  // members
 
     std::shared_ptr<FdbInterface> fdb_;
+
+private:  // methods
+
+    size_t writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
+                     const DataLayout& layout, float* ptr, size_t len, size_t extensionAxisIdx, size_t combinedExtSize,
+                     size_t extensionOffset) const;
 };
 }  // namespace chunked_data_view

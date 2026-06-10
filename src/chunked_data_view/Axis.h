@@ -11,6 +11,7 @@
 
 #include "fdb5/database/Key.h"
 
+#include <cassert>
 #include <cstddef>
 #include <string>
 #include <tuple>
@@ -82,7 +83,11 @@ public:
         return false;
     }
 
-    bool isChunked() const { return chunks_.size() > 1; }                // TODO(TKR): Remove once every Axis is chunked
+    bool isChunked() const {
+        assert(chunks_.size() > 0);
+        return (chunks_.extensions().size() > 1);
+    }  // TODO(TKR): Remove once every Axis is chunked
+
     std::vector<size_t> chunks() const { return chunks_.extensions(); }  // TODO(TKR): Remove once every Axis is chunked
     const std::vector<chunked_data_view::Parameter>& parameters() const { return parameters_; }
 
