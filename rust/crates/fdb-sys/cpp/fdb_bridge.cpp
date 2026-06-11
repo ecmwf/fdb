@@ -524,8 +524,7 @@ void archive_reader(FdbHandle& handle, rust::Box<ReaderBox> reader) {
     handle.inner().archive(adapter);
 }
 
-MessageArchiverWrapper::MessageArchiverWrapper(const KeyData& key, bool complete_transfers,
-                                               bool verbose,
+MessageArchiverWrapper::MessageArchiverWrapper(const KeyData& key, bool complete_transfers, bool verbose,
                                                const eckit_bridge::ConfigWrapper& config) :
     archiver_(to_fdb_key(key), complete_transfers, verbose, fdb5::Config(config.inner())) {}
 
@@ -538,9 +537,8 @@ void MessageArchiverWrapper::flush() {
     archiver_.flush();
 }
 
-std::unique_ptr<MessageArchiverWrapper> new_message_archiver(
-    const KeyData& key, bool complete_transfers, bool verbose,
-    const eckit_bridge::ConfigWrapper& config) {
+std::unique_ptr<MessageArchiverWrapper> new_message_archiver(const KeyData& key, bool complete_transfers, bool verbose,
+                                                             const eckit_bridge::ConfigWrapper& config) {
     return std::make_unique<MessageArchiverWrapper>(key, complete_transfers, verbose, config);
 }
 
