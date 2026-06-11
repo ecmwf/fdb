@@ -25,13 +25,13 @@
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/ControlIterator.h"
-#include "fdb5/message/MessageArchiver.h"
 #include "fdb5/api/helpers/DumpIterator.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/api/helpers/StatusIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/message/MessageArchiver.h"
 
 #include "eckit/io/DataHandle.h"
 
@@ -363,9 +363,8 @@ public:
 };
 
 /// Construct a `MessageArchiverWrapper`.
-std::unique_ptr<MessageArchiverWrapper> new_message_archiver(
-    const KeyData& key, bool complete_transfers, bool verbose,
-    const eckit_bridge::ConfigWrapper& config);
+std::unique_ptr<MessageArchiverWrapper> new_message_archiver(const KeyData& key, bool complete_transfers, bool verbose,
+                                                             const eckit_bridge::ConfigWrapper& config);
 
 // ============================================================================
 // Retrieve functions
