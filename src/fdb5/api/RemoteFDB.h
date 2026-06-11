@@ -28,10 +28,13 @@
 
 namespace fdb5 {
 
+using remote::Client;
+using remote::Message;
+
 //----------------------------------------------------------------------------------------------------------------------
 class Archiver;
 
-class RemoteFDB : public LocalFDB, public remote::Client {
+class RemoteFDB : public LocalFDB, public Client {
 
 public:  // types
 
@@ -78,8 +81,8 @@ private:  // methods
 
     // Client
     const eckit::Configuration& clientConfig() const override;
-    bool handle(remote::Message message, uint32_t requestID) override;
-    bool handle(remote::Message message, uint32_t requestID, eckit::Buffer&& payload) override;
+    bool handle(Message message, uint32_t requestID) override;
+    bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
 
 private:  // members
 
