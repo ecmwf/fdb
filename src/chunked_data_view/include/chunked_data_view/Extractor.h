@@ -11,10 +11,10 @@
 
 #include "chunked_data_view/DataLayout.h"
 
+#include "chunked_data_view/ViewPart.h"
 #include "metkit/mars/MarsRequest.h"
 
 #include <cstddef>
-#include <vector>
 
 namespace eckit {
 class DataHandle;
@@ -23,6 +23,14 @@ class DataHandle;
 namespace chunked_data_view {
 class ViewPart;
 }
+
+namespace chunked_data_view {
+class BoundingBox;
+using ChunkedDataViewPartBoundingBox = chunked_data_view::BoundingBox;
+using PartBoundingBox = chunked_data_view::BoundingBox;
+using BufferBoundingBox = chunked_data_view::BoundingBox;
+
+}  // namespace chunked_data_view
 
 namespace chunked_data_view {
 
@@ -36,6 +44,7 @@ public:
     /// @return the data
     virtual DataLayout layout(const metkit::mars::MarsRequest& req) const = 0;
 
+    // TODO(TKR): Update description
     /// Writes the extracted data into the out pointer.
     /// The caller must ensure there is enough memory allocated for all values to be copied into out.
     /// @param list_iterator to read data from
@@ -51,9 +60,9 @@ public:
     //                          const DataLayout& layout, float* ptr, size_t len, size_t extensionAxisIdx = SIZE_MAX,
     //                          size_t combinedExtSize = 0, size_t extensionOffset = 0) const = 0;
 
-    virtual size_t extractInto(const ViewPart& part, const std::vector<std::size_t>& chunkIndex, float* ptr, size_t len,
-                               size_t extensionAxisIdx = SIZE_MAX, size_t combinedExtSize = 0,
-                               size_t extensionOffset = 0) const = 0;
+    virtual size_t extractInto(const ViewPart& part, const ChunkedDataViewPartBoundingBox& chunkBoundingBox,
+                               const ChunkedDataViewPartBoundingBox& intersectionBoundingBox, float* ptr,
+                               size_t len) const = 0;
 };
 
 enum class ExtractorType {

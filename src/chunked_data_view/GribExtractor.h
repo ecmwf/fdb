@@ -30,8 +30,9 @@ public:
     DataLayout layout(const metkit::mars::MarsRequest& mars_request) const override;
 
 
-    size_t extractInto(const ViewPart& part, const std::vector<std::size_t>& chunkIndex, float* ptr, size_t len,
-                       size_t extensionAxisIdx, size_t combinedExtSize, size_t extensionOffset) const override;
+    size_t extractInto(const ViewPart& part, const ChunkedDataViewPartBoundingBox& chunkBoundingBox,
+                       const ChunkedDataViewPartBoundingBox& intersectionBoundingBox, float* ptr,
+                       size_t len) const override;
 
 private:  // members
 
@@ -40,7 +41,7 @@ private:  // members
 private:  // methods
 
     size_t writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
-                     const DataLayout& layout, float* ptr, size_t len, size_t extensionAxisIdx, size_t combinedExtSize,
-                     size_t extensionOffset) const;
+                     const DataLayout& layout, float* ptr, size_t len,
+                     const BufferBoundingBox& bufferBoundingBox) const;
 };
 }  // namespace chunked_data_view

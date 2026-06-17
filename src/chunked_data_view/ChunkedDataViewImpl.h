@@ -21,14 +21,14 @@ namespace chunked_data_view {
 class ChunkedDataViewImpl : public ChunkedDataView {
 public:
 
-    ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>> partialViews, float fillValue,
+    ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& partialViews, float fillValue,
                         size_t extensionAxisIndex);
 
     /// @param index n-dim chunk index
     void at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len) override;
     const std::vector<size_t>& chunkShape() const override { return chunkShape_; }
     const std::vector<size_t>& chunks() const override { return chunks_; }
-    const std::vector<size_t>& shape() const override { return shape_; }
+    const std::vector<size_t>& shape() const override { return chunkedDataViewShape_; }
     const float& fillValue() const override { return fillValue_; }
 
     /**
@@ -54,14 +54,18 @@ public:
     }
 
 
-private:
+private:  // members
 
     std::vector<size_t> chunkShape_{};
-    std::vector<size_t> shape_{};
+    std::vector<size_t> chunkedDataViewShape_{};
     std::vector<size_t> chunks_{};
     std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>> parts_{};
     size_t extensionAxisIndex_{};
     float fillValue_;
+
+private:  // methods
+
+    std::vector<size_t> chunkShape(const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& parts);
 };
 
 }  // namespace chunked_data_view

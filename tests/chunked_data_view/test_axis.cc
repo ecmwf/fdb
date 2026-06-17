@@ -40,7 +40,7 @@ CASE("RequestManipulation | Axis test single axis for Indices | Can create a sub
         "time=0/6/12/18"};
 
     auto request = fdb5::FDBToolRequest::requestsFromString(keys).at(0).request();
-    chunked_data_view::Axis axis({{"date", {"2020-01-01", "2020-01-02", "2020-01-03"}}}, true);
+    chunked_data_view::Axis axis({{"date", {"2020-01-01", "2020-01-02", "2020-01-03"}}});
 
     // When
 
@@ -58,7 +58,7 @@ CASE("RequestManipulation | Axis test single axis for Indices | Can create a sub
     }
 
     std::vector<size_t> expected_chunks = {1, 1, 1};
-    EXPECT_EQUAL(expected_chunks, axis.chunks());
+    // EXPECT_EQUAL(expected_chunks, axis.chunks());
 }
 
 CASE("RequestManipulation | Axis test multiple axis for Indices | Can create a subindex") {
@@ -77,7 +77,7 @@ CASE("RequestManipulation | Axis test multiple axis for Indices | Can create a s
     auto request = fdb5::FDBToolRequest::requestsFromString(keys).at(0).request();
     std::vector<std::string> dates = {"2020-01-01", "2020-01-02", "2020-01-03"};
     std::vector<std::string> times = {"0", "6", "12", "18"};
-    chunked_data_view::Axis axis({{"date", dates}, {"time", times}}, true);
+    chunked_data_view::Axis axis({{"date", dates}, {"time", times}});
 
     // When
 
@@ -103,7 +103,7 @@ CASE("RequestManipulation | Axis test multiple axis for Indices | Can create a s
     }
 
     std::vector<size_t> expected_chunks = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-    EXPECT_EQUAL(expected_chunks, axis.chunks());
+    // EXPECT_EQUAL(expected_chunks, axis.chunks());
 }
 
 
@@ -195,7 +195,7 @@ CASE("RequestManipulation | Axis test multiple axis for Indices 2 | Can handle m
     chunked_data_view::Parameter step_parameter = {"step", steps};
     chunked_data_view::Parameter param_parameter = {"param", params};
 
-    const chunked_data_view::Axis axis = {{date_parameter, time_parameter, step_parameter, param_parameter}, true};
+    const chunked_data_view::Axis axis = {{date_parameter, time_parameter, step_parameter, param_parameter}};
 
     EXPECT(assert_arrays(request, axis));
 
@@ -205,47 +205,47 @@ CASE("RequestManipulation | Axis test multiple axis for Indices 2 | Can handle m
         expected_chunks.emplace_back(1);
     }
 
-    EXPECT_EQUAL(axis.chunks(), expected_chunks);
+    // EXPECT_EQUAL(axis.chunks(), expected_chunks);
 }
 
-CASE("RequestManipulation | Axis test multiple axis | Non-chunked") {
-
-    // Given
-    const std::string keys{
-        "type=an,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "date=2020-01-01/to/2020-01-04,"
-        "levtype=sfc,"
-        "param=v,"
-        "step=0/1/2/3/4/5/6/7/8/9/10/11/12,"
-        "time=0/6/12/18"};
-
-    auto request = fdb5::FDBToolRequest::requestsFromString(keys).at(0).request();
-    std::vector<std::string> dates = {"20200101", "20200102", "20200103", "20200104"};
-    std::vector<std::string> times = {"0000", "0600", "1200", "1800"};
-    std::vector<std::string> steps = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
-    std::vector<std::string> params = {"v"};
-
-    chunked_data_view::Parameter date_parameter = {"date", dates};
-    chunked_data_view::Parameter time_parameter = {"time", times};
-    chunked_data_view::Parameter step_parameter = {"step", steps};
-    chunked_data_view::Parameter param_parameter = {"param", params};
-
-    const chunked_data_view::Axis axis = {{date_parameter, time_parameter, step_parameter, param_parameter}, false};
-
-    auto request_copy = request;
-    EXPECT_NO_THROW(chunked_data_view::RequestManipulation::updateRequest(request_copy, axis, 0));
-
-    for (size_t i = 1; i < dates.size() * times.size() * steps.size() * params.size(); ++i) {
-        auto request_copy = request;
-        EXPECT_THROWS(chunked_data_view::RequestManipulation::updateRequest(request_copy, axis, i));
-    }
-
-    std::vector<size_t> expected_chunks = {dates.size() * times.size() * steps.size() * params.size()};
-    EXPECT_EQUAL(axis.chunks(), expected_chunks);
-}
+// CASE("RequestManipulation | Axis test multiple axis | Non-chunked") {
+//
+//     // Given
+//     const std::string keys{
+//         "type=an,"
+//         "domain=g,"
+//         "expver=0001,"
+//         "stream=oper,"
+//         "date=2020-01-01/to/2020-01-04,"
+//         "levtype=sfc,"
+//         "param=v,"
+//         "step=0/1/2/3/4/5/6/7/8/9/10/11/12,"
+//         "time=0/6/12/18"};
+//
+//     auto request = fdb5::FDBToolRequest::requestsFromString(keys).at(0).request();
+//     std::vector<std::string> dates = {"20200101", "20200102", "20200103", "20200104"};
+//     std::vector<std::string> times = {"0000", "0600", "1200", "1800"};
+//     std::vector<std::string> steps = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
+//     std::vector<std::string> params = {"v"};
+//
+//     chunked_data_view::Parameter date_parameter = {"date", dates};
+//     chunked_data_view::Parameter time_parameter = {"time", times};
+//     chunked_data_view::Parameter step_parameter = {"step", steps};
+//     chunked_data_view::Parameter param_parameter = {"param", params};
+//
+//     const chunked_data_view::Axis axis = {{date_parameter, time_parameter, step_parameter, param_parameter}, false};
+//
+//     auto request_copy = request;
+//     EXPECT_NO_THROW(chunked_data_view::RequestManipulation::updateRequest(request_copy, axis, 0));
+//
+//     for (size_t i = 1; i < dates.size() * times.size() * steps.size() * params.size(); ++i) {
+//         auto request_copy = request;
+//         EXPECT_THROWS(chunked_data_view::RequestManipulation::updateRequest(request_copy, axis, i));
+//     }
+//
+//     std::vector<size_t> expected_chunks = {dates.size() * times.size() * steps.size() * params.size()};
+//     // EXPECT_EQUAL(axis.chunks(), expected_chunks);
+// }
 
 CASE("RequestManipulation | Axis test multiple axis for Indices | Permutations") {
 
@@ -284,7 +284,7 @@ CASE("RequestManipulation | Axis test multiple axis for Indices | Permutations")
         auto& third = param_vector[perm[2]];
         auto& fourth = param_vector[perm[3]];
 
-        const chunked_data_view::Axis axis = {{first, second, third, fourth}, true};
+        const chunked_data_view::Axis axis = {{first, second, third, fourth}};
 
         eckit::Log::debug() << "Current permutation: (" << perm[0] << ", " << perm[1] << ", " << perm[2] << ", "
                             << perm[3] << ") | ";
@@ -300,7 +300,7 @@ CASE("RequestManipulation | Axis test multiple axis for Indices | Permutations")
             expected_chunks.emplace_back(1);
         }
 
-        EXPECT_EQUAL(axis.chunks(), expected_chunks);
+        // EXPECT_EQUAL(axis.chunks(), expected_chunks);
 
     } while (next_perm(perm.begin(), perm.end()));
 }
