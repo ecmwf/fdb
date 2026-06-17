@@ -44,17 +44,7 @@ Parameter::Parameter(const std::string name, const std::vector<std::string> valu
 // class Axis
 //======================================================================================================================
 
-Axis::Axis(std::vector<Parameter> parameters, bool chunked) :
-    parameters_(std::move(parameters)), size_(combinedSize(parameters_)), chunks_({}) {
-
-    if (chunked) {
-        chunks_ = chunked_data_view::Chunks{1, size_};
-    }
-    else {
-        chunks_ = chunked_data_view::Chunks{size_, 1};
-    };
-}
-
+Axis::Axis(std::vector<Parameter> parameters) : parameters_(std::move(parameters)), size_(combinedSize(parameters_)) {}
 
 size_t Axis::index(const fdb5::Key& key) const {
 

@@ -32,26 +32,27 @@ size_t index_mapping::axis_index_to_buffer_index(const std::vector<size_t>& indi
                                                  size_t extensionAxisIdx, size_t combinedExtSize,
                                                  size_t extensionOffset) {
 
-    ASSERT(indices.size() == axes.size());
-
-    size_t prod = 1;
-    size_t index = 0;
-
-    for (int i = axes.size() - 1; i >= 0; --i) {
-
-        if (!axes[i].isChunked()) {
-            if (static_cast<size_t>(i) == extensionAxisIdx) {
-                index += (indices[i] + extensionOffset) * prod;
-                prod *= combinedExtSize;
-            }
-            else {
-                index += indices[i] * prod;
-                prod *= axes[i].size();
-            }
-        }
-    }
-
-    return index;
+    NOTIMP;
+    // ASSERT(indices.size() == axes.size());
+    //
+    // size_t prod = 1;
+    // size_t index = 0;
+    //
+    // for (int i = axes.size() - 1; i >= 0; --i) {
+    //
+    //     if (!axes[i].isChunked()) {
+    //         if (static_cast<size_t>(i) == extensionAxisIdx) {
+    //             index += (indices[i] + extensionOffset) * prod;
+    //             prod *= combinedExtSize;
+    //         }
+    //         else {
+    //             index += indices[i] * prod;
+    //             prod *= axes[i].size();
+    //         }
+    //     }
+    // }
+    //
+    // return index;
 }
 
 std::vector<size_t> index_mapping::to_axis_parameter_index(const size_t& index, const Axis& axis) {

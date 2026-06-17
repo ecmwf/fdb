@@ -6,6 +6,7 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
+from dataclasses import dataclass
 import enum
 import pathlib
 
@@ -27,20 +28,30 @@ class Chunking(enum.Enum):
     NONE = enum.auto()
     SINGLE_VALUE = enum.auto()
 
+    @dataclass(frozen=True)
+    class IndividualChunk:
+        chunkShape: list[int]
+
 
 class AxisDefinition:
     @staticmethod
     def _translate_chunking(
-        chunking: Chunking,
-    ) -> pdv.AxisDefinition.NoChunking | pdv.AxisDefinition.IndividualChunking:
-        if chunking == Chunking.NONE:
+        chunking: Chunking | Chunking.IndividualChunk,
+    ) -> (
+        pdv.AxisDefinition.NoChunking
+        | pdv.AxisDefinition.SingleValueChunking
+        | pdv.AxisDefinition.IndividualChunking
+    ):
+        if isinstance(chunking, Chunking.IndividualChunk):
+            return pdv.AxisDefinition.IndividualChunking(chunking.chunkShape)
+        elif chunking == Chunking.NONE:
             return pdv.AxisDefinition.NoChunking()
         elif chunking == Chunking.SINGLE_VALUE:
-            return pdv.AxisDefinition.IndividualChunking()
+            return pdv.AxisDefinition.SingleValueChunking()
         else:
             raise InternalError()
 
-    def __init__(self, keys: list[str], chunking: Chunking):
+    def __init__(self, keys: list[str], chunking: Chunking | Chunking.IndividualChunk):
         """Defines which axis from a MARS Request form an axis in the Zarr array.
 
         Also defines if the data is to be chunked.
@@ -62,17 +73,19 @@ class AxisDefinition:
         self._obj.keys = keys
 
     @property
-    def chunking(self) -> Chunking:
+    def chunking(self) -> Chunking | Chunking.IndividualChunk:
         chunking = self._obj.chunking
         if isinstance(chunking, pdv.AxisDefinition.NoChunking):
             return Chunking.NONE
-        elif isinstance(chunking, pdv.AxisDefinition.IndividualChunking):
+        elif isinstance(chunking, pdv.AxisDefinition.SingleValueChunking):
             return Chunking.SINGLE_VALUE
+        elif isinstance(chunking, pdv.AxisDefinition.IndividualChunking):
+            return Chunking.IndividualChunk(chunking.chunk_shape())
         else:
             raise InternalError()
 
     @chunking.setter
-    def chunking(self, chunking: Chunking) -> None:
+    def chunking(self, chunking: Chunking | Chunking.IndividualChunk) -> None:
         self._obj.chunking = self._translate_chunking(chunking)
 
 

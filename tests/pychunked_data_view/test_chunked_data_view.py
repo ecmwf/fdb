@@ -33,6 +33,16 @@ def test_axis_definition_can_assign():
     assert obj.chunking == Chunking.SINGLE_VALUE
 
 
+def test_axis_definition_individual_chunk():
+    obj = AxisDefinition(["key1", "key0"], Chunking.IndividualChunk([2, 3]))
+    assert obj.keys == ["key1", "key0"]
+    assert obj.chunking == Chunking.IndividualChunk([2, 3])
+    obj.keys = []
+    assert obj.keys == []
+    obj.chunking = Chunking.IndividualChunk([2, 3])
+    assert obj.chunking == Chunking.IndividualChunk([2, 3])
+
+
 def test_builder(read_only_fdb_setup):
     builder = ChunkedDataViewBuilder(read_only_fdb_setup)
     builder.add_part(
@@ -56,6 +66,10 @@ def test_builder(read_only_fdb_setup):
     view = builder.build()
 
     expected = list(range(0, 5248))
+
+    print(view.chunks())
+    print(view.chunkShape())
+
     for a, b in itertools.product(range(0, 32), range(0, 3)):
         np.testing.assert_array_almost_equal_nulp(view.at((a, b, 0)), expected)
 

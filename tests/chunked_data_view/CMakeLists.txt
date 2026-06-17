@@ -3,6 +3,8 @@ list(APPEND tests
     axis
     index_mapper
     builder
+    request_manipulation_bounding_box
+    bounding_box
 )
 
 foreach(test ${tests})

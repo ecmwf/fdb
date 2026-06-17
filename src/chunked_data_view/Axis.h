@@ -15,7 +15,6 @@
 #include <cstddef>
 #include <string>
 #include <tuple>
-#include <variant>
 #include <vector>
 
 namespace chunked_data_view {
@@ -35,12 +34,12 @@ private:
     std::tuple<const std::string, const std::vector<std::string>> _internal;
 };
 
-class Chunks {
+class AxisChunks {
 
 public:
 
-    explicit Chunks(const std::vector<std::variant<size_t, std::tuple<size_t, size_t>>>& chunks) {
-
+    explicit AxisChunks(const std::vector<std::variant<size_t, std::tuple<size_t, size_t>>>& chunks, bool extensible) :
+        extensible_(extensible) {
         for (const auto& element : chunks) {
             if (std::holds_alternative<size_t>(element)) {
                 extensions_.emplace_back(std::get<size_t>(element));
@@ -54,50 +53,36 @@ public:
         }
     }
 
-    Chunks(size_t chunk_extension, size_t amount) :
-        Chunks(std::vector<std::variant<size_t, std::tuple<size_t, size_t>>>{
-            std::tuple<size_t, size_t>{chunk_extension, amount}}) {};
+    AxisChunks(size_t chunk_extension, size_t amount, bool extensible) :
+        AxisChunks(std::vector<std::variant<size_t, std::tuple<size_t, size_t>>>{std::tuple<size_t, size_t>{
+                       chunk_extension, amount}},
+                   extensible) {};
 
     size_t size() const { return extensions_.size(); }
+    bool isExtensible() const { return extensible_; }
     std::vector<size_t> extensions() const { return extensions_; }
+    size_t representativeExtent() const { return extensions_[0]; }
 
 private:
 
     std::vector<size_t> extensions_{};
+    bool extensible_;
 };
+
 
 class Axis {
 public:
 
-    Axis(std::vector<chunked_data_view::Parameter> parameters, bool chunked);
+    Axis(std::vector<chunked_data_view::Parameter> parameters);
 
     size_t size() const { return size_; }
-
-    bool contains(const std::string& key) {
-        for (const auto& param : parameters_) {
-            if (param.name() == key) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    bool isChunked() const {
-        assert(chunks_.size() > 0);
-        return (chunks_.extensions().size() > 1);
-    }  // TODO(TKR): Remove once every Axis is chunked
-
-    std::vector<size_t> chunks() const { return chunks_.extensions(); }  // TODO(TKR): Remove once every Axis is chunked
     const std::vector<chunked_data_view::Parameter>& parameters() const { return parameters_; }
-
     size_t index(const fdb5::Key& key) const;
 
 private:
 
     std::vector<chunked_data_view::Parameter> parameters_{};
     size_t size_{};
-    Chunks chunks_;
 };
 
 }  // namespace chunked_data_view

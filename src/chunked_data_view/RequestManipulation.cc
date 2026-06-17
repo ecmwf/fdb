@@ -11,10 +11,17 @@
 
 #include "Axis.h"
 
+#include "chunked_data_view/Extractor.h"
+#include "chunked_data_view/IndexMapper.h"
+#include "chunked_data_view/exception/BoundingBoxException.h"
+#include "chunked_data_view/exception/RequestManipulationException.h"
+#include "chunked_data_view/mapping/AxisMapper.h"
 #include "eckit/exception/Exceptions.h"
 #include "metkit/mars/MarsRequest.h"
 
 #include <cstddef>
+#include <sstream>
+#include <unordered_set>
 #include <vector>
 
 namespace chunked_data_view {
@@ -29,43 +36,124 @@ metkit::mars::MarsRequest RequestManipulation::selectRequest(const metkit::mars:
     return result;
 }
 
-void RequestManipulation::updateRequest(metkit::mars::MarsRequest& request, const Axis& axis, size_t chunkIndex) {
-    if (!axis.isChunked()) {
-        ASSERT(chunkIndex == 0);
-        for (const auto& parameter : axis.parameters()) {
-            request.values(parameter.name(), parameter.values());
-        }
-        return;
+metkit::mars::MarsRequest RequestManipulation::selectRequest(const metkit::mars::MarsRequest& request,
+                                                             const std::vector<Axis>& axes,
+                                                             const PartBoundingBox& boundingBox) {
+
+    if (boundingBox.dimensions() - 1 != axes.size()) {  // ParBoundingBox contains the field sizes as last entry
+        std::stringstream buf;
+        buf << "RequestManipulation::selectRequest: Bounding Box dimensions mismatch. Bounding Box must have axes "
+               "dimensions - 1. But bounding box dimensions were "
+            << boundingBox.dimensions() << " and axes dimensions were " << axes.size();
+        throw chunked_data_view::BoundingBoxException(buf.str());
     }
-    ASSERT(chunkIndex < axis.size());
+
+    if (boundingBox.entries() == 0) {
+        throw chunked_data_view::BoundingBoxException(
+            "RequestManipulation::selectRequest: Bounding Box empty. This would result in an empty MARS request.");
+    }
+
+    // Add check for subaxis aligned bounding box
+
+
+    // TODO(TKR): Get the subrequest for a bounding box by finding the inner part offset and
+    // restricting the request accordingly.
+    // Later on we can map for each key of a read message to the corresponding buffer index
+    // Prop. adjust the update Request method to take an upper lower bound for the values of an axis.
+
+    metkit::mars::MarsRequest result = request;
+
+    for (size_t idx = 0; idx < boundingBox.dimensions() - 1; ++idx) {
+        RequestManipulation::updateRequest(result, axes[idx], boundingBox.lower()[idx], boundingBox.upper()[idx]);
+    }
+    return result;
+}
+
+void RequestManipulation::updateRequest(metkit::mars::MarsRequest& request, const Axis& axis, size_t chunkIndex) {
+    NOTIMP;
+    // if (!axis.isChunked()) {
+    //     ASSERT(chunkIndex == 0);
+    //     for (const auto& parameter : axis.parameters()) {
+    //         request.values(parameter.name(), parameter.values());
+    //     }
+    //     return;
+    // }
+    // ASSERT(chunkIndex < axis.size());
+    //
+    // const auto dimCount = axis.parameters().size();
+    // const auto index = index_mapping::to_axis_parameter_index(chunkIndex, axis);
+    //
+    // // Add all parameter values to the request
+    // for (size_t i = 0; i < dimCount; ++i) {
+    //     const auto& parameter = axis.parameters()[i];
+    //     request.values(parameter.name(), {parameter.values()[index[i]]});
+    // }
+}
+
+std::vector<std::string> removeDuplicates(const std::vector<std::string>& myVector) {
+    std::unordered_set<std::string> seen;
+
+    std::vector<std::string> result = myVector;
+
+    auto newEnd = remove_if(result.begin(), result.end(), [&seen](const std::string& value) {
+        // Checking if value has been seen; if not, add
+        // to seen and keep in vector
+        if (seen.find(value) == seen.end()) {
+            seen.insert(value);
+            return false;  // Don't remove the item
+        }
+        return true;  // Remove the item
+    });
+
+    // Erase the non-unique elements
+    result.erase(newEnd, result.end());
+
+    return result;
+}
+
+
+void RequestManipulation::updateRequest(metkit::mars::MarsRequest& request, const Axis& axis, size_t lowerIndex,
+                                        size_t upperIndex) {
+
+    ASSERT(lowerIndex >= 0);
+    ASSERT(lowerIndex <= upperIndex);
+    ASSERT(upperIndex < axis.size());
 
     const auto dimCount = axis.parameters().size();
-    std::vector<size_t> index(dimCount, 0);
+    std::unordered_map<std::string, std::vector<std::string>> new_params;
 
-    size_t chunk_index = chunkIndex;
-
-    // Idea: All dimension on the right side of the current index are multiplied and subtracted
-    // from the current index. The division in (1) computes the current index. (2) computes the
-    // remainder and afterwards we continue with the next index.
-    for (size_t i = 0; i < dimCount - 1; ++i) {
-        size_t dim_prod = 1;
-
-        for (size_t j = i + 1; j < dimCount; ++j) {
-            dim_prod *= axis.parameters()[j].values().size();
-        }
-
-        size_t index_in_dim = chunk_index / dim_prod;  // (1)
-        index[i] = index_in_dim;
-        chunk_index -= index_in_dim * dim_prod;  // (2)
-    }
-
-    // Compute the final remainder
-    index[dimCount - 1] = chunk_index % axis.parameters()[dimCount - 1].values().size();
-
-    // Add all parameter values to the request
     for (size_t i = 0; i < dimCount; ++i) {
         const auto& parameter = axis.parameters()[i];
-        request.values(parameter.name(), {parameter.values()[index[i]]});
+        new_params.emplace(parameter.name(), std::vector<std::string>{});
+    }
+
+    for (size_t index = lowerIndex; index <= upperIndex; index++) {
+        const auto mappedIndex = index_mapping::to_axis_parameter_index(index, axis);
+
+        // Add all parameter values to the request
+        for (size_t i = 0; i < dimCount; ++i) {
+            const auto& parameter = axis.parameters()[i];
+            new_params[parameter.name()].emplace_back(parameter.values()[mappedIndex[i]]);
+        }
+    }
+
+    // Chunk alignment
+    size_t entries = 1;
+
+
+    for (const auto& [name, values] : new_params) {
+        // We would need multiple MARS requests if the amount of entries of the 'hypercube' in the MARS
+        // request is more than the indices we asked for (after removing potential doubles)
+        const auto removedDoubles = removeDuplicates(values);
+        entries *= removedDoubles.size();
+        request.values(name, removedDoubles);
+    }
+
+    if (entries > upperIndex - lowerIndex + 1) {
+        std::stringstream buf;
+        buf << "RequestManipulation::updateRequest: Bounding Box is not aligned with sub-axis of the merge axis. This "
+               "would result in two needed MARS requests which is not supported.";
+        throw chunked_data_view::RequestManipulationException(buf.str());
     }
 }
 
