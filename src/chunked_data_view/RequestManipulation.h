@@ -22,12 +22,7 @@ class RequestManipulation {
 public:
 
     static metkit::mars::MarsRequest selectRequest(const metkit::mars::MarsRequest& request,
-                                                   const std::vector<Axis>& axes,
-                                                   const std::vector<size_t>& chunkIndex);
-
-    static metkit::mars::MarsRequest selectRequest(const metkit::mars::MarsRequest& request,
                                                    const std::vector<Axis>& axes, const BoundingBox& boundingBox);
-    static void updateRequest(metkit::mars::MarsRequest& request, const Axis& axis, size_t chunkIndex);
     static void updateRequest(metkit::mars::MarsRequest& request, const Axis& axis, size_t lowerIndex,
                               size_t upperIndex);
 };

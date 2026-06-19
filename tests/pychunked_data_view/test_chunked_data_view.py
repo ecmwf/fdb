@@ -34,13 +34,13 @@ def test_axis_definition_can_assign():
 
 
 def test_axis_definition_individual_chunk():
-    obj = AxisDefinition(["key1", "key0"], Chunking.IndividualChunk([2, 3]))
+    obj = AxisDefinition(["key1", "key0"], Chunking.IndividualChunk(2))
     assert obj.keys == ["key1", "key0"]
-    assert obj.chunking == Chunking.IndividualChunk([2, 3])
+    assert obj.chunking == Chunking.IndividualChunk(2)
     obj.keys = []
     assert obj.keys == []
-    obj.chunking = Chunking.IndividualChunk([2, 3])
-    assert obj.chunking == Chunking.IndividualChunk([2, 3])
+    obj.chunking = Chunking.IndividualChunk(2)
+    assert obj.chunking == Chunking.IndividualChunk(2)
 
 
 def test_builder(read_only_fdb_setup):

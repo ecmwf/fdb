@@ -11,6 +11,7 @@
 
 #include "chunked_data_view/Axis.h"
 #include "chunked_data_view/DataLayout.h"
+#include "chunked_data_view/Extractor.h"
 #include "chunked_data_view/Fdb.h"
 #include "chunked_data_view/IndexMapper.h"
 #include "chunked_data_view/ListIterator.h"
@@ -46,42 +47,9 @@ DataLayout GribExtractor::layout(const metkit::mars::MarsRequest& mars_request) 
     return {countValues, 4};
 }
 
-size_t computeBufferIndex(const std::vector<Axis>& axes, const fdb5::Key& key, std::vector<size_t> offset) {
-    std::vector<size_t> indices;
-    indices.reserve(axes.size());
 
-    auto index = 0;
-    for (size_t i = 0; i < axes.size(); ++i) {
-        const auto& axis = axes[i];
-        indices.emplace_back(axis.index(key) - offset[i]);
-    }
-
-    //
-    // ASSERT(indices.size() == axes.size());
-    //
-    // size_t prod = 1;
-    // size_t index = 0;
-    //
-    // for (int i = axes.size() - 1; i >= 0; --i) {
-    //
-    //     if (!axes[i].isChunked()) {
-    //         if (static_cast<size_t>(i) == extensionAxisIdx) {
-    //             index += (indices[i] + extensionOffset) * prod;
-    //             prod *= combinedExtSize;
-    //         }
-    //         else {
-    //             index += indices[i] * prod;
-    //             prod *= axes[i].size();
-    //         }
-    //     }
-    // }
-
-    return index;
-}
-
-size_t GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
-                                const DataLayout& layout, float* ptr, size_t len,
-                                const BufferBoundingBox& bufferRelativeBoundingBox) const {
+size_t GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const WriteContext& ctx,
+                                float* ptr, size_t len) const {
 
     bool iterator_empty = true;
     size_t messagesWritten = 0;
@@ -95,24 +63,25 @@ size_t GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iter
 
         const auto& key = std::get<0>(*res);
         auto& data_handle = std::get<1>(*res);
-        const size_t msgIndex = computeBufferIndex(axes, key, bufferRelativeBoundingBox.lower());
+        const size_t msgIndex =
+            index_mapping::computeBufferIndex(ctx.axes, key, ctx.partAxisOffset, ctx.bufferOffset, ctx.bufferExtent);
 
         eckit::message::Reader reader(*data_handle);
         eckit::message::Message msg{};
 
-        auto copyInto = ptr + msgIndex * layout.countValues;
-        const auto end = copyInto + layout.countValues;
+        auto copyInto = ptr + msgIndex * ctx.layout.countValues;
+        const auto end = copyInto + ctx.layout.countValues;
         ASSERT(end - ptr <= len);
 
         while ((msg = reader.next())) {
-            if (const auto size = msg.getSize("values"); size != layout.countValues) {
+            if (const auto size = msg.getSize("values"); size != ctx.layout.countValues) {
                 std::ostringstream ss;
                 ss << "GribExractor: Unexpected field size found in GRIB message for key: " << key
-                   << " expected: " << layout.countValues << " found: " << size
+                   << " expected: " << ctx.layout.countValues << " found: " << size
                    << ". All fields in your view need to be of equal size.";
                 throw eckit::Exception(ss.str());
             }
-            msg.getFloatArray("values", copyInto, layout.countValues);
+            msg.getFloatArray("values", copyInto, ctx.layout.countValues);
             messagesWritten++;
         }
     }
@@ -136,12 +105,21 @@ size_t GribExtractor::extractInto(const ViewPart& part, const ChunkedDataViewPar
     const auto& request = part.at(partRelativeBoundingBox);
     auto listIterator = fdb_->inspect(request);
 
-    const BufferBoundingBox& bufferRelativeBoundingBox = intersectionBoundingBox.subtract(chunkBoundingBox.lower());
+    const BufferBoundingBox& bufferRelativBoundingBox = intersectionBoundingBox.subtract(chunkBoundingBox.lower());
 
-    size_t written =
-        writeInto(std::move(listIterator), part.axes(), part.layout(), ptr, len, bufferRelativeBoundingBox);
+    const WriteContext ctx{part.axes(), part.layout(), partRelativeBoundingBox.lower(),
+                           bufferRelativBoundingBox.lower(), chunkBoundingBox.extent()};
 
-    return written;
+    try {
+        size_t written = writeInto(std::move(listIterator), ctx, ptr, len);
+        return written;
+    }
+    catch (GribExtractorException& exception) {
+        std::ostringstream ss;
+        ss << exception.what();
+        ss << "Request was: " << part.at(partRelativeBoundingBox) << std::endl;
+        throw GribExtractorException(ss.str());
+    }
 }
 
 };  // namespace chunked_data_view

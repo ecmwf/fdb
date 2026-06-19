@@ -29,14 +29,14 @@ CASE("RequestManipulation | Bounding Box | Dimensions mismatch Bounding Box | Er
 
     // When
     {
-        chunked_data_view::PartBoundingBox bb_smaller{{0, 0}, {0, 5240}};
+        chunked_data_view::PartBoundingBox bb_smaller{{0}, {0}};
         EXPECT_THROWS_AS(
             chunked_data_view::RequestManipulation::selectRequest(request, {datetime_axis, param_axis}, bb_smaller),
             chunked_data_view::BoundingBoxException);
     }
 
     {
-        chunked_data_view::PartBoundingBox bb_bigger{{0, 0, 0, 0}, {0, 0, 0, 5240}};
+        chunked_data_view::PartBoundingBox bb_bigger{{0, 0, 0}, {0, 0, 0}};
         EXPECT_THROWS_AS(
             chunked_data_view::RequestManipulation::selectRequest(request, {datetime_axis, param_axis}, bb_bigger),
             chunked_data_view::BoundingBoxException);
@@ -63,7 +63,7 @@ CASE("RequestManipulation | Bounding Box | Single Point") {
     chunked_data_view::Axis datetime_axis({{"date", dates}, {"time", times}});
     chunked_data_view::Axis param_axis({{"param", params}});
 
-    chunked_data_view::PartBoundingBox bb{{0, 0, 0}, {0, 0, 5240}};
+    chunked_data_view::PartBoundingBox bb{{0, 0}, {0, 0}};
 
     // When
     auto request_copy = chunked_data_view::RequestManipulation::selectRequest(request, {datetime_axis, param_axis}, bb);
@@ -119,7 +119,7 @@ CASE("RequestManipulation | Bounding Box | Inverval") {
 
     {
         // When
-        chunked_data_view::PartBoundingBox bb{{1, 1, 0}, {2, 1, 5240}};
+        chunked_data_view::PartBoundingBox bb{{1, 1}, {2, 1}};
         auto request_copy =
             chunked_data_view::RequestManipulation::selectRequest(request, {datetime_axis, param_axis}, bb);
 
@@ -140,7 +140,7 @@ CASE("RequestManipulation | Bounding Box | Inverval") {
     }
     {
         // When
-        chunked_data_view::PartBoundingBox bb{{1, 0, 0}, {3, 1, 5240}};
+        chunked_data_view::PartBoundingBox bb{{1, 0}, {3, 1}};
         auto request_copy =
             chunked_data_view::RequestManipulation::selectRequest(request, {datetime_axis, param_axis}, bb);
 
@@ -183,13 +183,13 @@ CASE("RequestManipulation | Bounding Box | 2D Axis | Interval | Multi MARS reque
     chunked_data_view::Axis param_axis({{"param", params}});
 
     // When
-    EXPECT_THROWS_AS((chunked_data_view::RequestManipulation::selectRequest(request, {datetime_axis, param_axis},
-                                                                            {{3, 1, 0}, {4, 1, 5240}})),
-                     chunked_data_view::RequestManipulationException);
+    EXPECT_THROWS_AS(
+        (chunked_data_view::RequestManipulation::selectRequest(request, {datetime_axis, param_axis}, {{3, 1}, {4, 1}})),
+        chunked_data_view::RequestManipulationException);
 
-    EXPECT_THROWS_AS((chunked_data_view::RequestManipulation::selectRequest(request, {datetime_axis, param_axis},
-                                                                            {{7, 1, 0}, {8, 1, 5240}})),
-                     chunked_data_view::RequestManipulationException);
+    EXPECT_THROWS_AS(
+        (chunked_data_view::RequestManipulation::selectRequest(request, {datetime_axis, param_axis}, {{7, 1}, {8, 1}})),
+        chunked_data_view::RequestManipulationException);
 }
 
 CASE("RequestManipulation | Bounding Box | 3D Axis | Inverval | Multi MARS requests required Error") {
@@ -213,24 +213,19 @@ CASE("RequestManipulation | Bounding Box | 3D Axis | Inverval | Multi MARS reque
 
     // When
     // Border of 2020-01-01/2020-01-02
-    EXPECT_THROWS_AS(
-        (chunked_data_view::RequestManipulation::selectRequest(request, {datetimeparam_axis}, {{7, 0}, {8, 5240}})),
-        chunked_data_view::RequestManipulationException);
+    EXPECT_THROWS_AS((chunked_data_view::RequestManipulation::selectRequest(request, {datetimeparam_axis}, {{7}, {8}})),
+                     chunked_data_view::RequestManipulationException);
     // Border of 0/6
-    EXPECT_THROWS_AS(
-        (chunked_data_view::RequestManipulation::selectRequest(request, {datetimeparam_axis}, {{1, 0}, {2, 5240}})),
-        chunked_data_view::RequestManipulationException);
+    EXPECT_THROWS_AS((chunked_data_view::RequestManipulation::selectRequest(request, {datetimeparam_axis}, {{1}, {2}})),
+                     chunked_data_view::RequestManipulationException);
     // Border of 6/12
-    EXPECT_THROWS_AS(
-        (chunked_data_view::RequestManipulation::selectRequest(request, {datetimeparam_axis}, {{3, 0}, {4, 5240}})),
-        chunked_data_view::RequestManipulationException);
+    EXPECT_THROWS_AS((chunked_data_view::RequestManipulation::selectRequest(request, {datetimeparam_axis}, {{3}, {4}})),
+                     chunked_data_view::RequestManipulationException);
 
+    EXPECT_NO_THROW((chunked_data_view::RequestManipulation::selectRequest(request, {datetimeparam_axis}, {{0}, {3}})));
+    EXPECT_NO_THROW((chunked_data_view::RequestManipulation::selectRequest(request, {datetimeparam_axis}, {{0}, {7}})));
     EXPECT_NO_THROW(
-        (chunked_data_view::RequestManipulation::selectRequest(request, {datetimeparam_axis}, {{0, 0}, {3, 5240}})));
-    EXPECT_NO_THROW(
-        (chunked_data_view::RequestManipulation::selectRequest(request, {datetimeparam_axis}, {{0, 0}, {7, 5240}})));
-    EXPECT_NO_THROW(
-        (chunked_data_view::RequestManipulation::selectRequest(request, {datetimeparam_axis}, {{0, 0}, {23, 5240}})));
+        (chunked_data_view::RequestManipulation::selectRequest(request, {datetimeparam_axis}, {{0}, {23}})));
 }
 
 int main(int argc, char** argv) {
