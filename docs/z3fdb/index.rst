@@ -13,6 +13,7 @@ Z3FDB
 
    architecture
    dimension_mapping
+   technical_insights
    api
 
 Introduction

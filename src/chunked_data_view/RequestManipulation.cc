@@ -44,13 +44,6 @@ metkit::mars::MarsRequest RequestManipulation::selectRequest(const metkit::mars:
     }
 
     // Add check for subaxis aligned bounding box
-
-
-    // TODO(TKR): Get the subrequest for a bounding box by finding the inner part offset and
-    // restricting the request accordingly.
-    // Later on we can map for each key of a read message to the corresponding buffer index
-    // Prop. adjust the update Request method to take an upper lower bound for the values of an axis.
-
     metkit::mars::MarsRequest result = request;
 
     for (size_t idx = 0; idx < boundingBox.dimensions(); ++idx) {
