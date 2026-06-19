@@ -9,7 +9,6 @@
  */
 #include "GribExtractor.h"
 
-#include "chunked_data_view/Axis.h"
 #include "chunked_data_view/DataLayout.h"
 #include "chunked_data_view/Extractor.h"
 #include "chunked_data_view/Fdb.h"
@@ -26,8 +25,6 @@
 #include <memory>
 #include <ostream>
 #include <sstream>
-#include <vector>
-
 
 namespace chunked_data_view {
 
@@ -48,6 +45,31 @@ DataLayout GribExtractor::layout(const metkit::mars::MarsRequest& mars_request) 
 }
 
 
+// Copies field values from FDB into the output buffer, mapping each key to its
+// buffer slot using the three offset/extent vectors in WriteContext.
+//
+// One-axis illustration (the same logic applies independently per axis):
+//
+//   Part axis  (6 values, e.g. param):
+//   index:  0    1    2    3    4    5
+//          [p0] [p1] [p2] [p3] [p4] [p5]
+//                    [=========]          <- intersection (sub-range)
+//          [=========]
+//          partAxisOffset = 2
+//          (start of intersection in the part's local axis)
+//
+//   Chunk buffer  (bufferExtent = 4 slots):
+//   slot:   0    1    2    3
+//          [  ] [  ] [  ] [  ]
+//               [=========]              <- same intersection, in buffer space
+//          [====]
+//          bufferOffset = 1
+//          (start of intersection within the chunk buffer)
+//
+//   For key p2  (axis.index(key) = 2):
+//     local  = axis.index(key) - partAxisOffset  =  2 - 2  =  0
+//     bufPos = local + bufferOffset              =  0 + 1  =  1
+//
 size_t GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const WriteContext& ctx,
                                 float* ptr, size_t len) const {
 
