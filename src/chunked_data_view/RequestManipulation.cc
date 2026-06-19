@@ -28,19 +28,9 @@ namespace chunked_data_view {
 
 metkit::mars::MarsRequest RequestManipulation::selectRequest(const metkit::mars::MarsRequest& request,
                                                              const std::vector<Axis>& axes,
-                                                             const std::vector<size_t>& chunkIndex) {
-    metkit::mars::MarsRequest result = request;
-    for (size_t idx = 0; idx < chunkIndex.size() - 1; ++idx) {
-        RequestManipulation::updateRequest(result, axes[idx], chunkIndex[idx]);
-    }
-    return result;
-}
-
-metkit::mars::MarsRequest RequestManipulation::selectRequest(const metkit::mars::MarsRequest& request,
-                                                             const std::vector<Axis>& axes,
                                                              const PartBoundingBox& boundingBox) {
 
-    if (boundingBox.dimensions() - 1 != axes.size()) {  // ParBoundingBox contains the field sizes as last entry
+    if (boundingBox.dimensions() != axes.size()) {  // ParBoundingBox contains the field sizes as last entry
         std::stringstream buf;
         buf << "RequestManipulation::selectRequest: Bounding Box dimensions mismatch. Bounding Box must have axes "
                "dimensions - 1. But bounding box dimensions were "
@@ -63,31 +53,10 @@ metkit::mars::MarsRequest RequestManipulation::selectRequest(const metkit::mars:
 
     metkit::mars::MarsRequest result = request;
 
-    for (size_t idx = 0; idx < boundingBox.dimensions() - 1; ++idx) {
+    for (size_t idx = 0; idx < boundingBox.dimensions(); ++idx) {
         RequestManipulation::updateRequest(result, axes[idx], boundingBox.lower()[idx], boundingBox.upper()[idx]);
     }
     return result;
-}
-
-void RequestManipulation::updateRequest(metkit::mars::MarsRequest& request, const Axis& axis, size_t chunkIndex) {
-    NOTIMP;
-    // if (!axis.isChunked()) {
-    //     ASSERT(chunkIndex == 0);
-    //     for (const auto& parameter : axis.parameters()) {
-    //         request.values(parameter.name(), parameter.values());
-    //     }
-    //     return;
-    // }
-    // ASSERT(chunkIndex < axis.size());
-    //
-    // const auto dimCount = axis.parameters().size();
-    // const auto index = index_mapping::to_axis_parameter_index(chunkIndex, axis);
-    //
-    // // Add all parameter values to the request
-    // for (size_t i = 0; i < dimCount; ++i) {
-    //     const auto& parameter = axis.parameters()[i];
-    //     request.values(parameter.name(), {parameter.values()[index[i]]});
-    // }
 }
 
 std::vector<std::string> removeDuplicates(const std::vector<std::string>& myVector) {

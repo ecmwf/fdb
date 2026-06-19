@@ -29,10 +29,11 @@ bool checkForEqualChunking(const std::vector<std::pair<ViewPart, std::shared_ptr
 
     for (const auto& [part, _] : parts) {
         for (size_t i = 0; i < part.axes().size(); ++i) {
-            std::cout << "Reference chunks" << parts[0].first.chunks()[i].extensions();
-            std::cout << "Chunks for part in dimensions " << i << " : " << part.chunks()[i].extensions() << std::endl;
             if (part.chunks()[i].representativeExtent() != reference_chunks[i].representativeExtent()) {
-                return false;
+                // If the axis is extensible along this axis, skip as we are fetching
+                if (!reference_chunks[i].isExtensible()) {
+                    return false;
+                }
             }
         }
     }
@@ -49,7 +50,7 @@ std::vector<size_t> ChunkedDataViewImpl::chunkShape(
     for (size_t i = 0; i < reference_part.axes().size(); ++i) {
         reference_extensions.push_back(reference_part.chunks()[i].representativeExtent());
     }
-    reference_extensions.push_back(reference_part.extension().back());  // Add the size of the fields
+    reference_extensions.push_back(reference_part.layout().countValues);  // Add the size of the fields
 
     // Check for merging in case of extension axis
     if (reference_part.isExtensible(extensionAxisIndex_)) {
@@ -86,11 +87,13 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::sh
         }
         chunkedDataViewShape_[extensionAxisIndex_] = extensionOnExtensionAxis;
     }
+    // Add the implicit dimension
+    chunkedDataViewShape_.push_back(first_part.layout().countValues);
 
-    if (extensionAxisIndex_ >= first_part.extension().size() - 1) {  // The implicit dimension must be subtracted
+    if (extensionAxisIndex_ >= first_part.extension().size()) {  // The implicit dimension must be subtracted
         std::ostringstream ss;
         ss << "ChunkedDataViewImpl: Extension axis is not referring to a valid axis index. Possible axis are: 0-";
-        ss << first_part.extension().size() - 2 << ". You're selection is: " << extensionAxisIndex << std::endl;
+        ss << first_part.extension().size() - 1 << ". Your selection is: " << extensionAxisIndex << std::endl;
         throw eckit::UserError(ss.str());
     }
 
@@ -115,6 +118,7 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::sh
     }
     chunks_.back() = 1;  // Make the implicit dimension always single chunked
 }
+
 
 void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len) {
 
@@ -141,11 +145,10 @@ void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, 
     // - For those call the extraction method (which still needs to be implemented)
     //
 
-    // Calculate chunk offset
-    std::vector<size_t> chunkLower(chunkShape_.size(), 0);
-    std::vector<size_t> chunkUpper(chunkShape_.size(), 0);
+    std::vector<size_t> chunkLower(chunkShape_.size() - 1, 0);
+    std::vector<size_t> chunkUpper(chunkShape_.size() - 1, 0);
 
-    for (size_t i = 0; i < chunkShape_.size(); ++i) {
+    for (size_t i = 0; i < chunkShape_.size() - 1; ++i) {
         chunkLower[i] = chunkShape_[i] * chunkIndex[i];
         chunkUpper[i] = chunkLower[i] + chunkShape_[i] - 1;
     }
@@ -160,23 +163,15 @@ void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, 
         if (!intersectionBoundingBox.has_value()) {
             continue;
         }
-        size_t expected_msg_count = intersectionBoundingBox.value().dropLastDimension().entries();
+        size_t expected_msg_count = intersectionBoundingBox.value().entries();
 
-        try {
-            auto written = extractor->extractInto(part, chunkBoundingBox, intersectionBoundingBox.value(), ptr, len);
+        auto written = extractor->extractInto(part, chunkBoundingBox, intersectionBoundingBox.value(), ptr, len);
 
-            if (written != expected_msg_count) {
-                std::ostringstream ss;
-                ss << "ViewPart::at: retrieved " << written << " of " << expected_msg_count
-                   << " expected fields in request." << part.at(intersectionBoundingBox.value());
-                throw eckit::UserError(ss.str());
-            }
-        }
-        catch (GribExtractorException& exception) {
+        if (written != expected_msg_count) {
             std::ostringstream ss;
-            ss << exception.what();
-            ss << "Request was: " << part.at(chunkIndex) << std::endl;
-            throw GribExtractorException(ss.str());
+            ss << "ViewPart::at: retrieved " << written << " of " << expected_msg_count
+               << " expected fields in request." << part.at(intersectionBoundingBox.value());
+            throw eckit::UserError(ss.str());
         }
     }
 
