@@ -1,5 +1,5 @@
-Dimension Mapping
-=================
+Dimension Mapping and Data Model
+=================================
 
 A MARS request defines which data to retrieve from FDB. Each keyword
 with more than one value defines an axis and **must** be mapped to a
@@ -111,6 +111,23 @@ Axis Mapping Visualized
        ad1 --> dim1
        ad2 --> dim2
 
+Coordinate System
+-----------------
+
+A ChunkedDataView exposes an ``(N+1)``-dimensional integer index space:
+
+* **Axes 0 … N−1** — one per :class:`~pychunked_data_view.AxisDefinition`.
+* **Axis N** — the implicit trailing dimension holding the decoded
+  grid-point float32 values for each field.
+
+The array **shape** is::
+
+    (axis0_size, axis1_size, …, axisN-1_size, num_values)
+
+All axis indices are zero-based. Axis sizes are determined by the total
+number of distinct values held across all parts (see
+`Combining Multiple MARS Requests`_ below).
+
 Chunking
 --------
 
@@ -141,6 +158,25 @@ values:
    ]
    # Array shape:  (3, 3, N)
    # Chunk shape:  (3, 1, N)
+
+A chunk is addressed by a *chunk-index tuple* ``(c0, c1, …, cN-1)`` —
+one integer per MARS axis. The implicit values dimension is never
+chunked. Each chunk index ``ci`` maps to an axis range:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Chunking
+     - Axis range covered by chunk index ``ci``
+   * - ``SINGLE_VALUE``
+     - ``[ci, ci]`` — exactly one slot
+   * - ``NONE``
+     - ``[0, size_i − 1]`` — the full axis (``ci`` is always 0)
+
+The chunk's **bounding box** is the Cartesian product of these per-axis
+ranges. Its flat memory footprint is::
+
+    chunkSize0 × chunkSize1 × … × chunkSizeN-1 × num_values  float32 values
 
 Memory Considerations
 ---------------------
@@ -226,3 +262,36 @@ the same number of values across parts.
 The datetime dimension (index 0) must have the same values in both
 parts. The param dimension (index 1) grows: 2 surface parameters +
 4 pressure-level combinations (2 params × 2 levels) = 6 entries total.
+
+Each Part occupies a rectangular sub-region of the global index space
+described by a closed bounding box — one ``[lower_i, upper_i]`` interval
+per axis (both bounds **inclusive**). Parts tile the extension axis
+without overlap; their bounding boxes are identical on every other axis.
+
+.. code-block:: text
+
+    Global index space after extend_on_axis(1):
+
+    Axis 0 (date×time) varies along rows (0–3).
+    Axis 1 (param) varies along columns (0–5).
+
+               0   1   2   3   4   5
+             ┌───┬───┬───┬───┬───┬───┐
+          0  │ A │ A │ B │ B │ B │ B │
+             ├───┼───┼───┼───┼───┼───┤
+          1  │ A │ A │ B │ B │ B │ B │
+             ├───┼───┼───┼───┼───┼───┤
+          2  │ A │ A │ B │ B │ B │ B │
+             ├───┼───┼───┼───┼───┼───┤
+          3  │ A │ A │ B │ B │ B │ B │
+             └───┴───┴───┴───┴───┴───┘
+             └─ A ──┘└───── B ──────┘
+
+    Part A (sfc, 2 params)  bounding box: axis0=[0,3], axis1=[0,1]
+    Part B (pl,  4 params)  bounding box: axis0=[0,3], axis1=[2,5]
+
+.. seealso::
+
+   :doc:`technical_insights` — how the library resolves a chunk access
+   into FDB sub-requests and writes each field into the correct buffer slot.
+

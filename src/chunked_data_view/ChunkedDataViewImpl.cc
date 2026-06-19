@@ -97,11 +97,6 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::sh
         throw eckit::UserError(ss.str());
     }
 
-    // TODO(TKR): Implement the following
-    // x Check parts for equals extensions of chunks, as we currently only allow equal chunk sizes
-    // x create the chunkShape and chunks members
-    // - Write a method for restricting a request of a view part from a given chunk
-
     if (!checkForEqualChunking(parts_)) {
         throw eckit::UserError("ChunkedDataViewImpl::constructor: view parts need to have same chunking extensions.");
     }
@@ -138,13 +133,6 @@ void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, 
         }
     }
 
-    // TODO(TKR):
-    // - Compute the cumulated index of the chunk (offset from origin)
-    // - Compute extension of the chunk
-    // - Find parts which are intersecting the chunk
-    // - For those call the extraction method (which still needs to be implemented)
-    //
-
     std::vector<size_t> chunkLower(chunkShape_.size() - 1, 0);
     std::vector<size_t> chunkUpper(chunkShape_.size() - 1, 0);
 
@@ -174,58 +162,6 @@ void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, 
             throw eckit::UserError(ss.str());
         }
     }
-
-
-    // const auto& first_part = std::get<0>(parts_[0]);
-    // if (!first_part.isAxisChunked(extensionAxisIndex_)) {
-    //     // NoChunking: single chunk spans all parts on the extension axis.
-    //     // Each part writes directly into the combined buffer. The extension axis
-    //     // parameters tell computeBufferIndex to use the combined size for strides
-    //     // and offset each part's indices on the extension axis.
-    //     size_t totalExtSize = chunkedDataViewShape_[extensionAxisIndex_];
-    //     size_t extOffset = 0;
-    //
-    //     for (const auto& [part, extractor] : parts_) {
-    //
-    //         size_t expected_msg_count = countFieldsForPart(part, chunkedDataViewOffset, chunkShape_);
-    //
-    //         try {
-    //             auto written =
-    //                 extractor->extractInto(part, chunkIndex, ptr, len, extensionAxisIndex_, totalExtSize, extOffset);
-    //
-    //             if (written != expected_msg_count) {
-    //                 std::ostringstream ss;
-    //                 ss << "ViewPart::at: retrieved only " << written << " of " << expected_msg_count
-    //                    << " fields in request." << part.at(chunkIndex);
-    //                 throw eckit::UserError(ss.str());
-    //             }
-    //         }
-    //         catch (GribExtractorException& exception) {
-    //             std::ostringstream ss;
-    //             ss << exception.what();
-    //             ss << "Request was: " << part.at(chunkIndex) << std::endl;
-    //             throw GribExtractorException(ss.str());
-    //         }
-    //
-    //         extOffset += part.extension()[extensionAxisIndex_];
-    //     }
-    //     return;
-    // }
-
-    // IndividualChunking: route to the single part that owns this chunk index
-    // auto idx(chunkIndex);
-
-    // for (const auto& [part, extractor] : parts_) {
-    //     if (idx[extensionAxisIndex_] >= part.extension()[extensionAxisIndex_]) {
-    //         idx[extensionAxisIndex_] -= part.extension()[extensionAxisIndex_];
-    //         continue;
-    //     }
-    //     // TODO(TKR): Write a error message if the amount of written fields is not equal
-    //     // to the expected amount of fields in a chunk
-    //     auto written = extractor->extractInto(part, idx, ptr, len);
-    //     return;
-    // }
-    // throw eckit::SeriousBug("ChunkedDataViewImpl::at - This code should never be reached.");
 }
 
 }  // namespace chunked_data_view
