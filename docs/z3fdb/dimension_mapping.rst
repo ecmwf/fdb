@@ -146,18 +146,34 @@ a dimension are grouped into a single Zarr chunk:
    * - :attr:`~pychunked_data_view.Chunking.NONE`
      - The entire axis is stored in a single chunk
      - Full axis length
+   * - :class:`~pychunked_data_view.Chunking.IndividualChunk` ``(chunkShape=k)``
+     - Groups every ``k`` consecutive values along the axis into one chunk.
+       ``k`` must divide the axis length evenly.
+     - ``k`` (user-specified)
 
-For example, with ``date`` having 3 values and ``param`` having 3
+For example, with ``date`` having 4 values and ``param`` having 3
 values:
 
 .. code-block:: python
 
    [
-       AxisDefinition(["date"], Chunking.NONE),          # chunk size = 3
-       AxisDefinition(["param"], Chunking.SINGLE_VALUE), # chunk size = 1
+       AxisDefinition(["date"], Chunking.NONE),                         # chunk size = 4
+       AxisDefinition(["param"], Chunking.SINGLE_VALUE),                # chunk size = 1
    ]
-   # Array shape:  (3, 3, N)
-   # Chunk shape:  (3, 1, N)
+   # Array shape:  (4, 3, N)
+   # Chunk shape:  (4, 1, N)
+
+   [
+       AxisDefinition(["date"], Chunking.IndividualChunk(chunkShape=2)),  # chunk size = 2
+       AxisDefinition(["param"], Chunking.SINGLE_VALUE),                  # chunk size = 1
+   ]
+   # Array shape:  (4, 3, N)
+   # Chunk shape:  (2, 1, N)   ← two dates per chunk, four chunks total
+
+:class:`~pychunked_data_view.Chunking.IndividualChunk` is useful when
+neither extreme fits — for instance, when you want to batch a temporal
+axis into multi-day windows for efficient I/O while still keeping chunks
+small enough to fit in memory.
 
 A chunk is addressed by a *chunk-index tuple* ``(c0, c1, …, cN-1)`` —
 one integer per MARS axis. The implicit values dimension is never
@@ -172,6 +188,8 @@ chunked. Each chunk index ``ci`` maps to an axis range:
      - ``[ci, ci]`` — exactly one slot
    * - ``NONE``
      - ``[0, size_i − 1]`` — the full axis (``ci`` is always 0)
+   * - ``IndividualChunk(chunkShape=k)``
+     - ``[ci × k, (ci + 1) × k − 1]`` — a window of ``k`` consecutive values
 
 The chunk's **bounding box** is the Cartesian product of these per-axis
 ranges. Its flat memory footprint is::
@@ -212,6 +230,48 @@ three axes reduces each chunk to a single field
    :attr:`~pychunked_data_view.Chunking.SINGLE_VALUE` on all axes and
    only switch individual axes to ``NONE`` when you know you always
    consume them in full.
+
+.. rubric:: Choosing a chunking strategy
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Mode
+     - When to use
+   * - ``SINGLE_VALUE``
+     - Default choice. Minimises memory per access; ideal when you read
+       individual time steps or parameters one at a time.
+   * - ``NONE``
+     - Use when you always read the full axis in one go and want to
+       reduce the number of FDB round-trips (e.g. a small ``step`` axis
+       you always load entirely).
+   * - ``IndividualChunk(chunkShape=k)``
+     - Use when you need a middle ground — for example, batching a
+       365-day date axis into weekly (``k=7``) or monthly (``k=30``)
+       windows. ``k`` must divide the axis length exactly.
+
+Fill Value
+----------
+
+When a chunk is accessed and some of its fields are absent from FDB,
+the missing slots are filled with a sentinel value. The default is
+positive infinity (``float('inf')``). You can override this via
+:meth:`~pychunked_data_view.ChunkedDataViewBuilder.fill_value`:
+
+.. code-block:: python
+
+   builder = SimpleStoreBuilder()
+   builder.add_part(...)
+   builder.fill_value(float("nan"))   # use NaN instead of inf
+   store = builder.build()
+
+The effective fill value is also available on the resulting view:
+
+.. code-block:: python
+
+   store = builder.build()
+   print(store.fillValue())  # float('inf') unless overridden
 
 Combining Multiple MARS Requests
 ---------------------------------
