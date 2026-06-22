@@ -1,5 +1,7 @@
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 
+#include <unistd.h>
+#include <cstdlib>
 #include <mutex>
 
 namespace {
@@ -112,6 +114,11 @@ void ClientConnectionRouter::deregister(ClientConnection& connection) {
     if (it != connections_.end() && &connection == it->second.get()) {
         connections_.erase(it);
     }
+}
+
+ClientConnectionRouter::ClientConnectionRouter() {
+    ::srand(static_cast<unsigned int>(::getpid()) + static_cast<unsigned int>(::time(nullptr)));
+    ::srandom(static_cast<unsigned int>(::getpid()) + static_cast<unsigned int>(::time(nullptr)));
 }
 
 ClientConnectionRouter& ClientConnectionRouter::instance() {

@@ -26,7 +26,8 @@ std::unique_ptr<ReadLimiter> instance_{nullptr};
 ReadLimiter& ReadLimiter::instance() {
     // the instance cannot be a static ReadLimiter, which is causing the following error on exit,
     // when the instance is destroyed and the mutex is destroyed before the instance:
-    // libc++abi: terminating due to uncaught exception of type std::__1::system_error: mutex lock failed: Invalid argument
+    // libc++abi: terminating due to uncaught exception of type std::__1::system_error: mutex lock failed: Invalid
+    // argument
     std::lock_guard<std::mutex> lock(instanceMutex_);
     if (instance_ == nullptr) {
         instance_.reset(new ReadLimiter(defaultReadLimit()));

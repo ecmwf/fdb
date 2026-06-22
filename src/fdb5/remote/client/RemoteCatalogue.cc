@@ -196,8 +196,8 @@ const eckit::Configuration& RemoteCatalogue::clientConfig() const {
 }
 
 bool RemoteCatalogue::handle(Message message, uint32_t requestID) {
-    Log::warning() << *this << " - Received unexpected [message=" << ((uint)message) << ",requestID=" << requestID
-                   << "]" << std::endl;
+    Log::warning() << *this << " - Received unexpected [message=" << message << ",requestID=" << requestID << "]"
+                   << std::endl;
     return false;
 }
 
