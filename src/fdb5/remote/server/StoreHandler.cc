@@ -296,8 +296,7 @@ Store& StoreHandler::getStore(uint32_t clientID) {
         for (const auto& kv : stores_) {
             Log::error() << "  clientID: " << kv.first << ", store: " << *(kv.second.store) << std::endl;
         }
-        write(Message::Error, true, 0, 0, what.c_str(), what.length());
-        throw;
+        error(what, 0, 0);
     }
 
     return *(it->second.store);

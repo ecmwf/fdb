@@ -394,8 +394,8 @@ bool RemoteStore::handle(Message message, uint32_t requestID) {
             return true;
         }
         default:
-            Log::warning() << *this << " - Received unexpected [message=" << ((uint)message)
-                           << ",requestID=" << requestID << "]" << std::endl;
+            Log::warning() << *this << " - Received unexpected [message=" << message << ",requestID=" << requestID
+                           << "]" << std::endl;
             return false;
     }
 }
