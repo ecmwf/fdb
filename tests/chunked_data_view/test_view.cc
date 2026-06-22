@@ -251,7 +251,7 @@ CASE("ChunkedDataView | View from 2 requests | NoChunking on extension axis") {
     EXPECT_EQUAL(view->chunks(), (std::vector<size_t>{4, 4, 1, 1}));
     EXPECT_EQUAL(view->chunkShape(), (std::vector<size_t>{1, 1, 4, 10}));
 
-    // at() should succeed — each part contributes 2 params × 10 values = 20 floats
+    // at() should succeed -- each part contributes 2 params x 10 values = 20 floats
     std::vector<float> buf(view->countChunkValues());
     EXPECT_NO_THROW(view->at({0, 0, 0, 0}, buf.data(), buf.size()));
 }
@@ -411,7 +411,7 @@ CASE("ChunkedDataView | at | Out-of-bounds chunk index throws") {
     // chunks = {4, 4, 1, 1} (4 dates, 4 times, 1 param-chunk, 1 value-chunk)
     std::vector<float> buf(view->countChunkValues());
 
-    // Valid index at the boundary — should NOT throw
+    // Valid index at the boundary -- should NOT throw
     EXPECT_NO_THROW(view->at({3, 3, 0, 0}, buf.data(), buf.size()));
 
     // Date index out of bounds (4 >= 4)
@@ -436,8 +436,8 @@ CASE("ChunkedDataView | at | Partial read throws") {
     auto mock_fdb = std::make_unique<MockFdb>(
         [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
         [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
-            // MockListIterator skips first entry: 2 entries → returns 1 message.
-            // View expects 2 (2 params, NoChunking) → partial read.
+            // MockListIterator skips first entry: 2 entries -> returns 1 message.
+            // View expects 2 (2 params, NoChunking) -> partial read.
             return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
                 std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
                 std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})});
