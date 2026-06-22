@@ -1,7 +1,9 @@
 
 #include "chunked_data_view/mapping/AxisMapper.h"
+#include <sstream>
 #include "chunked_data_view/Axis.h"
 #include "chunked_data_view/AxisDefinition.h"
+#include "chunked_data_view/exception/AxisMapperException.h"
 #include "eckit/exception/Exceptions.h"
 #include "metkit/mars/MarsRequest.h"
 
@@ -52,7 +54,9 @@ bool AxisMapper::chunkSizeCheck(const Axis& axis, const size_t wishedChunkSize) 
 
     size_t prod = 1;
 
-    for (std::size_t i = parameter_amount - 1; i >= 0; --i) {
+    // Use post-decrement idiom: i starts at parameter_amount, decrements before use,
+    // and exits cleanly when i reaches 0 (avoids size_t underflow wrap-around).
+    for (std::size_t i = parameter_amount; i-- > 0;) {
         if (wishedChunkSize == prod) {
             return true;
         }
@@ -60,6 +64,11 @@ bool AxisMapper::chunkSizeCheck(const Axis& axis, const size_t wishedChunkSize) 
     }
 
     if (wishedChunkSize == prod) {
+        return true;
+    }
+
+    // If the wished chunk size is a divisor of the fasted varying dimensions, this is also okay
+    if (axis.parameters()[axis.parameters().size() - 1].values().size() % wishedChunkSize == 0) {
         return true;
     }
 
@@ -78,8 +87,22 @@ AxisChunks AxisMapper::mapAxisToChunks(const Axis& axis,
     else if (std::holds_alternative<AxisDefinition::IndividualChunking>(chunking_type)) {
         auto chunks_mars_axis_extension = std::get<AxisDefinition::IndividualChunking>(chunking_type).chunkSize;
 
-        if (AxisMapper::chunkSizeCheck(axis, chunks_mars_axis_extension)) {
-            throw eckit::UserError("Axis::contructor: Unknown type for chunking.");
+        size_t prod = 1;
+        std::vector<size_t> potentialChunkSizes = {1};
+
+        // Use post-decrement idiom: i starts at parameter_amount, decrements before use,
+        // and exits cleanly when i reaches 0 (avoids size_t underflow wrap-around).
+        for (std::size_t i = axis.parameters().size(); i-- > 0;) {
+            prod *= axis.parameters()[i].values().size();
+            potentialChunkSizes.push_back(prod);
+        }
+
+        if (!AxisMapper::chunkSizeCheck(axis, chunks_mars_axis_extension)) {
+            std::stringstream buf;
+            buf << "Axis::contructor: Chunking needs to be a divider of the product of the axis sizes, starting from "
+                   "the most varying one. The suggested chunk size was: "
+                << chunks_mars_axis_extension << ". Potential chunk sizes are: " << potentialChunkSizes;
+            throw chunked_data_view::AxisMapperException(buf.str());
         };
 
         // The minimal chunking has to be the multiplicative of all chunk sizes, as the axis is a mapping of the
@@ -94,6 +117,6 @@ AxisChunks AxisMapper::mapAxisToChunks(const Axis& axis,
         return chunked_data_view::AxisChunks(chunk_extensions_single_axis, amount, false);
     }
 
-    throw eckit::UserError("Axis::contructor: Unknown type for chunking.");
+    throw chunked_data_view::AxisMapperException("Axis::contructor: Unknown type for chunking.");
 }
 }  // namespace chunked_data_view

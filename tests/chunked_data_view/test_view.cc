@@ -543,7 +543,6 @@ CASE("ChunkedDataView | View from 3 requests | Can compute shape and access") {
     EXPECT_NO_THROW(view->at({0, 0, 0, 0}, buf.data(), buf.size()));
 }
 
-
 int main(int argc, char** argv) {
     return ::eckit::testing::run_tests(argc, argv);
 }

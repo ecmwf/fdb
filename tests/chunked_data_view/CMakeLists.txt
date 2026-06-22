@@ -5,6 +5,7 @@ list(APPEND tests
     builder
     request_manipulation_bounding_box
     bounding_box
+    view_individual_chunking
 )
 
 foreach(test ${tests})
