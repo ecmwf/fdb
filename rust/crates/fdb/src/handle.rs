@@ -194,7 +194,9 @@ impl Fdb {
 
     /// Retrieve data from FDB using a `MarsRequest`.
     ///
-    /// Returns an `eckit::DataHandle` opened for reading.
+    /// Returns an unopened `eckit::DataHandle`. Call
+    /// [`DataHandle::open_for_read`](eckit::DataHandle::open_for_read) before
+    /// reading, or wrap it in a reader type that does so.
     ///
     /// # Errors
     ///
