@@ -16,20 +16,8 @@ void ExceptionTest::throw_eckit_exception() {
     throw eckit::Exception("test eckit exception");
 }
 
-void ExceptionTest::throw_eckit_serious_bug() {
-    throw eckit::SeriousBug("test serious bug");
-}
-
-void ExceptionTest::throw_eckit_user_error() {
-    throw eckit::UserError("test user error");
-}
-
 void ExceptionTest::throw_std_exception() {
     throw std::runtime_error("test std exception");
-}
-
-void ExceptionTest::throw_int() {
-    throw 42;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
