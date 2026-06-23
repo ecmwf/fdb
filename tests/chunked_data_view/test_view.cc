@@ -34,15 +34,7 @@ CASE("ChunkedDataView | View from 1 request | Can compute shape") {
         "time=0/6/12/18"};
 
     // If
-    const auto request = FDBToolRequest::requestsFromString(keys).at(0).request();
-    auto mock_fdb = std::make_unique<MockFdb>(
-        [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
-        [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
-            return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})});
-        });
-
-    auto mock_extractor = std::make_shared<FakeExtractor>(FakeExtractor(std::move(mock_fdb)));
+    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB());
 
     // Then
     const auto view = cdv::ChunkedDataViewBuilder()
@@ -70,16 +62,8 @@ CASE("ChunkedDataView | View from 2 requests | Can compute shape") {
         "param=v/u,"
         "time=0/6/12/18"};
 
-    const auto request = FDBToolRequest::requestsFromString(keys).at(0).request();
 
-    auto mock_fdb = std::make_unique<MockFdb>(
-        [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
-        [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
-            return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-            });
-        });
-    auto fake_extractor = std::make_shared<FakeExtractor>(std::move(mock_fdb));
+    auto fake_extractor = std::make_shared<FakeExtractor>(createMockFDB());
 
     const auto view = cdv::ChunkedDataViewBuilder()
                           .addPart(keys,
@@ -109,18 +93,7 @@ CASE("ChunkedDataView | View from 2 requests | NoChunking on extension axis") {
         "param=v/u,"
         "time=0/6/12/18"};
 
-    auto mock_fdb = std::make_unique<MockFdb>(
-        [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
-        [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
-            // MockListIterator skips first entry, so provide N+1 entries to return N messages
-            return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-            });
-        });
-
-    auto mock_extractor = std::make_shared<FakeExtractor>(std::move(mock_fdb));
+    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(3));
 
     const auto view = cdv::ChunkedDataViewBuilder()
                           .addPart(keys,
@@ -157,17 +130,7 @@ CASE("ChunkedDataView | View from 2 requests | Can compute shape, combined axis"
         "param=v/u,"
         "time=0/6/12/18"};
 
-    const auto request = FDBToolRequest::requestsFromString(keys).at(0).request();
-
-    auto mock_fdb = std::make_unique<MockFdb>(
-        [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
-        [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
-            return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-            });
-        });
-
-    auto mock_extractor = std::make_shared<FakeExtractor>(std::move(mock_fdb));
+    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB());
 
     const auto view = cdv::ChunkedDataViewBuilder()
                           .addPart(keys,
@@ -195,17 +158,7 @@ CASE("ChunkedDataView - Can build") {
         "param=v/u,"
         "time=0/6/12/18"};
 
-    const auto request = FDBToolRequest::requestsFromString(keys).at(0).request();
-
-    auto mock_fdb = std::make_unique<MockFdb>(
-        [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
-        [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
-            return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-            });
-        });
-
-    auto fake_extractor = std::make_shared<FakeExtractor>(std::move(mock_fdb));
+    auto fake_extractor = std::make_shared<FakeExtractor>(createMockFDB());
 
     EXPECT_NO_THROW(cdv::ChunkedDataViewBuilder()
                         .addPart(keys,
@@ -228,7 +181,6 @@ CASE("ChunkedDataView | build | No data in FDB throws user-facing error") {
 
     auto fake_extractor = std::make_shared<FakeExtractor>(mock_fdb);
 
-
     EXPECT_THROWS(cdv::ChunkedDataViewBuilder()
                       .addPart(keys,
                                {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
@@ -244,16 +196,7 @@ CASE("ChunkedDataView | at | Wrong index dimension throws") {
         "date=2020-01-01/to/2020-01-04,levtype=sfc,"
         "param=v/u,time=0/6/12/18"};
 
-    auto mock_fdb = std::make_unique<MockFdb>(
-        [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
-        [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
-            return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})});
-        });
-
-    auto mock_extractor = std::make_shared<FakeExtractor>(std::move(mock_fdb));
+    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(3));
 
     const auto view = cdv::ChunkedDataViewBuilder()
                           .addPart(keys,
@@ -279,16 +222,7 @@ CASE("ChunkedDataView | at | Out-of-bounds chunk index throws") {
         "date=2020-01-01/to/2020-01-04,levtype=sfc,"
         "param=v/u,time=0/6/12/18"};
 
-    auto mock_fdb = std::make_unique<MockFdb>(
-        [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
-        [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
-            return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})});
-        });
-
-    auto mock_extractor = std::make_shared<FakeExtractor>(std::move(mock_fdb));
+    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(3));
 
     const auto view = cdv::ChunkedDataViewBuilder()
                           .addPart(keys,
@@ -323,17 +257,7 @@ CASE("ChunkedDataView | at | Partial read throws") {
         "date=2020-01-01/to/2020-01-04,levtype=sfc,"
         "param=v/u,time=0/6/12/18"};
 
-    auto mock_fdb = std::make_unique<MockFdb>(
-        [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
-        [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
-            // MockListIterator skips first entry: 2 entries -> returns 1 message.
-            // View expects 2 (2 params, NoChunking) -> partial read.
-            return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})});
-        });
-
-    auto mock_extractor = std::make_shared<FakeExtractor>(std::move(mock_fdb));
+    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(2));
 
     const auto view = cdv::ChunkedDataViewBuilder()
                           .addPart(keys,
@@ -353,16 +277,7 @@ CASE("ChunkedDataView | at | Partial read in multi-part extension throws") {
         "date=2020-01-01/to/2020-01-04,levtype=sfc,"
         "param=v/u,time=0/6/12/18"};
 
-    auto mock_fdb = std::make_unique<MockFdb>(
-        [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
-        [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
-            // Returns 1 message, but each part expects 2 (2 params, NoChunking)
-            return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})});
-        });
-
-    auto mock_extractor = std::make_shared<FakeExtractor>(std::move(mock_fdb));
+    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(2));
 
     const auto view = cdv::ChunkedDataViewBuilder()
                           .addPart(keys,
@@ -393,17 +308,7 @@ CASE("ChunkedDataView | View from 3 requests | Can compute shape and access") {
         "param=v/u,"
         "time=0/6/12/18"};
 
-    auto mock_fdb = std::make_unique<MockFdb>(
-        [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
-        [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
-            return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-            });
-        });
-
-    auto mock_extractor = std::make_shared<FakeExtractor>(std::move(mock_fdb));
+    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(3));
 
     const auto view = cdv::ChunkedDataViewBuilder()
                           .addPart(keys,

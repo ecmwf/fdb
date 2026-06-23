@@ -87,6 +87,16 @@ struct MockFdb final : public cdv::FdbInterface {
     InsFunc insFn{};
 };
 
+std::unique_ptr<MockFdb> createMockFDB(size_t fieldAmount = 1) {
+    const std::vector<double> values = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    return std::make_unique<MockFdb>(
+        [values](auto& _) { return makeHandle(values); },
+        [fieldAmount, values](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
+            return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>(
+                fieldAmount, std::make_tuple(fdb5::Key(), values)));
+        });
+}
+
 struct FakeExtractor : public cdv::Extractor {
 
     std::shared_ptr<chunked_data_view::FdbInterface> mock_;

@@ -17,15 +17,7 @@ CASE("ChunkedDataView | IndividualChunking | Can compute shape") {
         "date=2020-01-01/to/2020-01-04,levtype=sfc,"
         "param=v/u,time=0/6/12/18"};
 
-    auto mock_fdb = std::make_unique<MockFdb>(
-        [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
-        [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
-            return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-            });
-        });
-
-    auto mock_extractor = std::make_shared<FakeExtractor>(std::move(mock_fdb));
+    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB());
 
     const auto view = cdv::ChunkedDataViewBuilder()
                           .addPart(keys,
@@ -47,14 +39,7 @@ CASE("ChunkedDataView | IndividualChunking | Invalid chunk size throws") {
         "date=2020-01-01/to/2020-01-04,levtype=sfc,"
         "param=v/u,time=0/6/12/18"};
 
-    auto mock_fdb = std::make_unique<MockFdb>(
-        [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
-        [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
-            return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-            });
-        });
-    auto mock_extractor = std::make_shared<FakeExtractor>(std::move(mock_fdb));
+    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB());
 
     // chunkSize=0 -- explicitly forbidden
     EXPECT_THROWS(cdv::ChunkedDataViewBuilder()
@@ -91,20 +76,7 @@ CASE("ChunkedDataView | IndividualChunking | at() accesses each chunk") {
         "date=2020-01-01/to/2020-01-04,levtype=sfc,"
         "param=v/u,time=0/6/12/18"};
 
-    auto mock_fdb = std::make_unique<MockFdb>(
-        [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
-        [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
-            // Skip-first iterator: 3 entries -> returns 2 messages (= 2 params, NoChunking)
-            return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-            });
-        });
-
-    auto mock_extractor = std::make_shared<FakeExtractor>(std::move(mock_fdb));
+    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(5));
 
     const auto view = cdv::ChunkedDataViewBuilder()
                           .addPart(keys,
@@ -138,25 +110,7 @@ CASE("ChunkedDataView | IndividualChunking | Combined axis with differently-size
         "date=2020-01-01/to/2020-01-04,levtype=sfc,"
         "param=10/20/30/40,time=0/6/12/18"};
 
-    auto mock_fdb = std::make_unique<MockFdb>(
-        [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
-        [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
-            // Each chunk covers combined-axis[4] x param[2] = 8 messages.
-            // MockListIterator skips the first entry, so provide 9 entries to deliver 8 messages.
-            return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>{
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-                std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
-            });
-        });
-
-    auto mock_extractor = std::make_shared<FakeExtractor>(std::move(mock_fdb));
+    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(9));
 
     const auto view = cdv::ChunkedDataViewBuilder()
                           .addPart(keys,
@@ -197,16 +151,7 @@ CASE("ChunkedDataView | IndividualChunking | Combined axis with differently-size
         "date=2020-01-01/to/2020-01-04,levtype=ml,levelist=100/200/300/400/500/600/700/800/900/1000,"
         "param=10/20/30/40/50/60,time=0/6/12"};
 
-    auto mock_fdb = std::make_unique<MockFdb>(
-        [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
-        [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
-            // Each chunk covers combined-axis[3] x levelist[5] x param[3] = 45 messages.
-            // MockListIterator skips the first entry, so 46 entries delivers 45 messages.
-            return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>(
-                46, std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})));
-        });
-
-    auto mock_extractor = std::make_shared<FakeExtractor>(std::move(mock_fdb));
+    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(46));
 
     const auto view = cdv::ChunkedDataViewBuilder()
                           .addPart(keys,
@@ -279,16 +224,7 @@ CASE("ChunkedDataView | IndividualChunking | Multi part with combined axis with 
         "date=2020-01-01/to/2020-01-04,levtype=ml,levelist=100/200/300/400/500/600/700/800/900/1000,"
         "param=10/20/30/40/50/60,time=0/6/12"};
 
-    auto mock_fdb = std::make_unique<MockFdb>(
-        [](auto& _) { return makeHandle({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}); },
-        [](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
-            // Each chunk covers combined-axis[3] x param[3] = 9 messages.
-            // MockListIterator skips the first entry, so 10 entries delivers 9 messages.
-            return std::make_unique<MockListIterator>(std::vector<std::tuple<fdb5::Key, std::vector<double>>>(
-                10, std::make_tuple(fdb5::Key(), std::vector<double>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})));
-        });
-
-    auto mock_extractor = std::make_shared<FakeExtractor>(std::move(mock_fdb));
+    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(10));
 
     const auto view =
         cdv::ChunkedDataViewBuilder()
