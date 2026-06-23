@@ -68,25 +68,6 @@ CASE("Bounding Box | Intersection test") {
     EXPECT(single_point.intersect(bb) == single_point);
 };
 
-CASE("Bounding Box | Intersection test") {
-
-    chunked_data_view::BoundingBox bb{{3, 2, 1}, {5, 3, 2}};
-
-    // Idempotent
-    EXPECT(bb.intersect(chunked_data_view::BoundingBox{{3, 2, 1}, {5, 3, 2}}) == bb);
-
-    // Contains lower/upper
-    chunked_data_view::BoundingBox unit{{0, 0, 0}, {1, 1, 1}};
-    EXPECT(bb.intersect(unit).has_value() == false);
-    EXPECT(unit.intersect(bb).has_value() == false);
-
-
-    chunked_data_view::BoundingBox single_point{{3, 2, 1}, {3, 2, 1}};
-
-    EXPECT(bb.intersect(single_point) == single_point);
-    EXPECT(single_point.intersect(bb) == single_point);
-};
-
 CASE("Bounding Box | Drop last dimension") {
 
     chunked_data_view::BoundingBox bb{{3, 2, 1}, {5, 3, 2}};
