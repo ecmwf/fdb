@@ -15,6 +15,7 @@
 #include "ExceptionTest.h"
 #include "FdbHandle.h"
 #include "Key.h"
+#include "Library.h"
 #include "ListIteratorHandle.h"
 #include "MessageArchiverWrapper.h"
 #include "PurgeIteratorHandle.h"

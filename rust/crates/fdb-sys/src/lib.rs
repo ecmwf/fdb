@@ -246,6 +246,24 @@ mod ffi {
         include!("FdbBridge.h");
 
         // =====================================================================
+        // Library — runtime initialisation and metadata
+        // =====================================================================
+
+        type Library;
+
+        /// Initialise the FDB library (sets up `eckit::Main`). Idempotent.
+        #[Self = "Library"]
+        fn initialise();
+
+        /// Get the FDB library version string.
+        #[Self = "Library"]
+        fn version() -> String;
+
+        /// Get the FDB git SHA1 hash.
+        #[Self = "Library"]
+        fn git_sha1() -> String;
+
+        // =====================================================================
         // FdbHandle - Main FDB handle
         // =====================================================================
 
@@ -483,19 +501,6 @@ mod ffi {
 
         /// Register an archive callback. Invoked for each field archived.
         fn register_archive_callback(self: Pin<&mut FdbHandle>, callback: Box<ArchiveCallbackBox>);
-
-        /// Initialize the FDB library. Must be called before any other FDB
-        /// operations.
-        #[Self = "FdbHandle"]
-        fn initialise();
-
-        /// Get the FDB library version string.
-        #[Self = "FdbHandle"]
-        fn version() -> String;
-
-        /// Get the FDB git SHA1 hash.
-        #[Self = "FdbHandle"]
-        fn git_sha1() -> String;
 
         /// Create a new FDB handle with default configuration.
         #[Self = "FdbHandle"]

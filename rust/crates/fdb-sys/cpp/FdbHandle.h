@@ -107,18 +107,6 @@ public:
     void register_flush_callback(rust::Box<FlushCallbackBox> callback);
     void register_archive_callback(rust::Box<ArchiveCallbackBox> callback);
 
-    // ============== Library lifecycle / metadata ==============
-
-    /// Initialize the FDB library. Must be called before any other FDB
-    /// operations. Idempotent.
-    static void initialise();
-
-    /// Get the FDB library version string.
-    static rust::String version();
-
-    /// Get the FDB git SHA1 hash.
-    static rust::String git_sha1();
-
     // ============== Factories ==============
 
     /// Create a new FDB handle with default configuration.
