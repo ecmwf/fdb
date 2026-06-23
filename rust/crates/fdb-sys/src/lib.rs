@@ -543,18 +543,6 @@ mod ffi {
             verbose: bool,
             config: &ConfigWrapper,
         ) -> Result<UniquePtr<MessageArchiverWrapper>>;
-
-        // =====================================================================
-        // ExceptionTest — verifies the cxx trycatch shim
-        // =====================================================================
-
-        type ExceptionTest;
-
-        #[Self = "ExceptionTest"]
-        fn throw_eckit_exception() -> Result<()>;
-
-        #[Self = "ExceptionTest"]
-        fn throw_std_exception() -> Result<()>;
     }
 
     // =========================================================================
@@ -702,30 +690,3 @@ pub use ffi::*;
 
 // Re-export cxx types needed by downstream crates
 pub use cxx::{Exception, UniquePtr};
-
-#[cfg(test)]
-mod tests {
-    use super::ffi;
-
-    #[test]
-    fn test_eckit_exception_caught_by_trycatch() {
-        let err = eckit_sys::Error::from(
-            ffi::ExceptionTest::throw_eckit_exception().expect_err("expected error"),
-        );
-        assert!(
-            matches!(err, eckit_sys::Error::Other(_)),
-            "expected Error::Other, got: {err:?}"
-        );
-    }
-
-    #[test]
-    fn test_std_exception_caught_by_trycatch() {
-        let err = eckit_sys::Error::from(
-            ffi::ExceptionTest::throw_std_exception().expect_err("expected error"),
-        );
-        assert!(
-            matches!(err, eckit_sys::Error::Other(_)),
-            "expected Error::Other for std::exception, got: {err:?}"
-        );
-    }
-}

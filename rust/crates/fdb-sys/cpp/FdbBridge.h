@@ -12,7 +12,6 @@
 
 #include "ControlIteratorHandle.h"
 #include "DumpIteratorHandle.h"
-#include "ExceptionTest.h"
 #include "FdbHandle.h"
 #include "Key.h"
 #include "Library.h"
