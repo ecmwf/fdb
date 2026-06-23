@@ -1309,8 +1309,7 @@ fn test_fdb_datareader_seek() {
         "expected error when seeking before start via End"
     );
 
-    // Test close() explicitly
-    let _closed = handle.close();
+    handle.close().expect("close failed");
 }
 
 #[test]
