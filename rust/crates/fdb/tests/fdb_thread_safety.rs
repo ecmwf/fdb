@@ -12,10 +12,43 @@
 //!
 //! Run with `cargo test --test fdb_thread_safety`.
 
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::thread;
 
 use fdb::{Fdb, Key, ListOptions};
+
+// =============================================================================
+// Test fixtures
+// =============================================================================
+
+fn fixtures_dir() -> PathBuf {
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
+    PathBuf::from(manifest_dir).join("tests/fixtures")
+}
+
+/// Build a tempdir-backed FDB config so tests don't depend on `FDB_HOME` /
+/// `FDB_CONFIG_FILE`.
+fn create_test_config(tmpdir: &Path) -> eckit::Config {
+    let schema_src = fixtures_dir().join("schema");
+    let schema_dst = tmpdir.join("schema");
+    fs::copy(&schema_src, &schema_dst).expect("failed to copy schema");
+
+    let yaml = format!(
+        r"---
+type: local
+engine: toc
+schema: {}/schema
+spaces:
+  - roots:
+      - path: {}
+",
+        tmpdir.display(),
+        tmpdir.display()
+    );
+    yaml.parse().expect("failed to parse test config")
+}
 
 // =============================================================================
 // Trait bound tests (compile-time verification)
@@ -46,20 +79,26 @@ fn test_key_traits() {
 }
 
 // =============================================================================
-// Runtime tests (require FDB libraries and configuration)
+// Runtime tests (use a tempdir-backed config)
 // =============================================================================
 
 /// Test: `Fdb` handle can be created
 #[test]
 fn test_handle_creation() {
-    let fdb = Fdb::open_default();
+    eckit::init();
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+    let fdb = Fdb::open(Some(&config), None);
     assert!(fdb.is_ok(), "Failed to create Fdb: {:?}", fdb.err());
 }
 
 /// Test: `Fdb` can be shared via Arc for concurrent access
 #[test]
 fn test_arc_sharing_readonly() {
-    let fdb = Arc::new(Fdb::open_default().expect("failed to create handle"));
+    eckit::init();
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+    let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create handle"));
 
     let handles: Vec<_> = (0..4)
         .map(|_| {
@@ -83,7 +122,10 @@ fn test_arc_sharing_readonly() {
 /// Test: Concurrent read-only operations (id, name, dirty, stats)
 #[test]
 fn test_concurrent_readonly_methods() {
-    let fdb = Arc::new(Fdb::open_default().expect("failed to create handle"));
+    eckit::init();
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+    let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create handle"));
 
     let handles: Vec<_> = (0..8)
         .map(|_| {
@@ -107,7 +149,10 @@ fn test_concurrent_readonly_methods() {
 /// Test: `Fdb` can be used for concurrent list operations
 #[test]
 fn test_concurrent_list_operations() {
-    let fdb = Arc::new(Fdb::open_default().expect("failed to create handle"));
+    eckit::init();
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+    let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create handle"));
 
     let handles: Vec<_> = (0..4)
         .map(|_| {
@@ -137,7 +182,10 @@ fn test_concurrent_list_operations() {
 /// Test: Concurrent axes queries
 #[test]
 fn test_concurrent_axes() {
-    let fdb = Arc::new(Fdb::open_default().expect("failed to create handle"));
+    eckit::init();
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+    let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create handle"));
 
     let handles: Vec<_> = (0..4)
         .map(|_| {
@@ -161,7 +209,10 @@ fn test_concurrent_axes() {
 /// Test: Stress test with many threads
 #[test]
 fn test_stress_concurrent_access() {
-    let fdb = Arc::new(Fdb::open_default().expect("failed to create handle"));
+    eckit::init();
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+    let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create handle"));
     let iterations = 50;
     let thread_count = 16;
 
@@ -206,7 +257,10 @@ fn test_stress_concurrent_access() {
 /// this limitation when using FDB in multi-threaded contexts with archiving.
 #[test]
 fn test_concurrent_errors_no_crash() {
-    let fdb = Arc::new(Fdb::open_default().expect("failed to create handle"));
+    eckit::init();
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+    let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create handle"));
 
     let handles: Vec<_> = (0..8)
         .map(|i| {
@@ -240,34 +294,6 @@ fn test_concurrent_errors_no_crash() {
 // Concurrent write tests (M15)
 // =============================================================================
 
-/// Helper to create test configuration
-fn create_test_config(tmpdir: &std::path::Path) -> eckit::Config {
-    use std::fs;
-    use std::path::PathBuf;
-
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
-    let fixtures_dir = PathBuf::from(manifest_dir).join("tests/fixtures");
-
-    // Copy schema to temp directory
-    let schema_src = fixtures_dir.join("schema");
-    let schema_dst = tmpdir.join("schema");
-    fs::copy(&schema_src, &schema_dst).expect("failed to copy schema");
-
-    let yaml = format!(
-        r"---
-type: local
-engine: toc
-schema: {}/schema
-spaces:
-  - roots:
-      - path: {}
-",
-        tmpdir.display(),
-        tmpdir.display()
-    );
-    yaml.parse().expect("failed to parse test config")
-}
-
 /// Test: Concurrent archive operations from multiple threads.
 ///
 /// Note: FDB documents that `flush()` has global semantics - it flushes ALL
@@ -275,17 +301,14 @@ spaces:
 /// archive operations don't crash, but users should be aware of this behavior.
 #[test]
 fn test_concurrent_archive_operations() {
-    use std::fs;
-    use std::path::PathBuf;
-
+    eckit::init();
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
     let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create handle"));
 
     // Read GRIB data for archiving
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
-    let grib_path = PathBuf::from(manifest_dir).join("tests/fixtures/template.grib");
+    let grib_path = fixtures_dir().join("template.grib");
     let grib_data = Arc::new(fs::read(&grib_path).expect("failed to read template.grib"));
 
     let thread_count = 4;
@@ -357,17 +380,14 @@ fn test_concurrent_archive_operations() {
 /// Test: Mixed concurrent read and write operations.
 #[test]
 fn test_concurrent_read_write_mix() {
-    use std::fs;
-    use std::path::PathBuf;
-
+    eckit::init();
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
     let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create handle"));
 
     // Pre-archive some data first
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
-    let grib_path = PathBuf::from(manifest_dir).join("tests/fixtures/template.grib");
+    let grib_path = fixtures_dir().join("template.grib");
     let grib_data = Arc::new(fs::read(&grib_path).expect("failed to read template.grib"));
 
     // Archive initial data
