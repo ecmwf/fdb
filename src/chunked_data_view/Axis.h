@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <string>
 #include <tuple>
+#include <variant>
 #include <vector>
 
 namespace chunked_data_view {
