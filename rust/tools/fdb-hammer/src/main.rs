@@ -1374,6 +1374,8 @@ fn run_list(fdb: &Fdb, config: &HammerConfig) -> Result<HammerStats, Box<dyn std
 // =============================================================================
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    eckit::init();
+
     let args = Args::parse();
 
     println!("FDB Hammer (Rust)");
