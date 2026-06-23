@@ -112,14 +112,14 @@ CASE("index_mapping | computeBufferIndex | 1 axes 2 param | Valid access / Slidi
 
                     std::cout << "i: " << i << " | j: " << j << " | k:" << k << " | l: " << l << std::endl;
                     if (k + i < bufferExtent[0] && j + l < bufferExtent[1]) {
-                        EXPECT_EQUAL(
-                            chunked_data_view::index_mapping::computeBufferIndex(axes, key, {0, 0}, bufferOffset, bufferExtent),
-                            times.size() * (k + i) + (j + l));
+                        EXPECT_EQUAL(chunked_data_view::index_mapping::computeBufferIndex(axes, key, {0, 0},
+                                                                                          bufferOffset, bufferExtent),
+                                     times.size() * (k + i) + (j + l));
                     }
                     else {
-                        EXPECT_THROWS((
-                            chunked_data_view::index_mapping::computeBufferIndex(axes, key, {0, 0}, bufferOffset, bufferExtent),
-                            times.size() * (k + i) + (j + l)));
+                        EXPECT_THROWS((chunked_data_view::index_mapping::computeBufferIndex(axes, key, {0, 0},
+                                                                                            bufferOffset, bufferExtent),
+                                       times.size() * (k + i) + (j + l)));
                     }
                 }
             }
