@@ -57,11 +57,11 @@ pub use fdb_sys::{ControlAction, ControlIdentifier};
 /// Version string of the underlying FDB C++ library.
 #[must_use]
 pub fn version() -> String {
-    fdb_sys::fdb_version()
+    fdb_sys::FdbHandle::version()
 }
 
 /// Git SHA1 of the underlying FDB C++ library.
 #[must_use]
 pub fn git_sha1() -> String {
-    fdb_sys::fdb_git_sha1()
+    fdb_sys::FdbHandle::git_sha1()
 }
