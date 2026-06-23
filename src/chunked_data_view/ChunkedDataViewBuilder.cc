@@ -39,7 +39,7 @@ ChunkedDataViewBuilder& ChunkedDataViewBuilder::addPart(std::string marsRequestK
 }
 
 ChunkedDataViewBuilder& ChunkedDataViewBuilder::extendOnAxis(size_t index) {
-    extensionAxisIndex_ = index;
+    extensionAxisIndex_ = std::make_optional<size_t>(index);
     return *this;
 }
 
@@ -60,11 +60,19 @@ bool ChunkedDataViewBuilder::doPartsAlign(
 
 std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
     if (parts_.empty()) {
-        throw eckit::UserError("User must add at least one part to the view.");
+        throw eckit::UserError("ChunkedDataViewBuilder::build: User must add at least one part to the view.");
     }
 
     if (parts_.size() > 1 && extensionAxisIndex_.has_value() == false) {
-        throw eckit::UserError("Must specify an extension axis if multiple parts are specified.");
+        throw eckit::UserError(
+            "ChunkedDataViewBuilder::build:Must specify an extension axis if multiple parts are specified.");
+    }
+    if (parts_.size() > 1 && extensionAxisIndex_.has_value()) {
+
+        const auto& firstPartAxis = std::get<1>(parts_[0]);
+        if (extensionAxisIndex_ > firstPartAxis.size() - 1) {
+            throw eckit::UserError("ChunkedDataViewBuilder::build:ExtensionAxis must be a valid index.");
+        }
     }
 
     std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>> viewParts{};
