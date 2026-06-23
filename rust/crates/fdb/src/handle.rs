@@ -21,7 +21,7 @@ static INIT: Once = Once::new();
 /// Initialize the FDB library.
 /// Called automatically when creating any FDB handle.
 fn initialize() {
-    INIT.call_once(fdb_sys::fdb_init);
+    INIT.call_once(fdb_sys::FdbHandle::initialise);
 }
 
 // Private wrapper to make UniquePtr Send-safe for use with Mutex
@@ -113,10 +113,10 @@ impl Fdb {
         let user_eckit = user_config.map(eckit::Config::from);
 
         let handle = match (config, user_eckit.as_ref()) {
-            (None, None) => fdb_sys::new_fdb()?,
-            (Some(cfg), None) => fdb_sys::new_fdb_from_config(cfg.as_sys())?,
+            (None, None) => fdb_sys::FdbHandle::create()?,
+            (Some(cfg), None) => fdb_sys::FdbHandle::from_config(cfg.as_sys())?,
             (Some(cfg), Some(user)) => {
-                fdb_sys::new_fdb_from_config_with_user_config(cfg.as_sys(), user.as_sys())?
+                fdb_sys::FdbHandle::from_config_with_user(cfg.as_sys(), user.as_sys())?
             }
             (None, Some(_)) => {
                 return Err(crate::Error::Eckit(eckit::Error::UserError(
@@ -166,7 +166,7 @@ impl Fdb {
     ///
     /// Returns an error if archiving fails.
     pub fn archive(&self, key: &Key, data: &[u8]) -> Result<()> {
-        self.with_handle(|h| fdb_sys::archive(h, key.to_cxx(), data))?;
+        self.with_handle(|h| h.archive(key.to_cxx(), data))?;
         Ok(())
     }
 
@@ -188,7 +188,7 @@ impl Fdb {
         options: ListOptions,
     ) -> Result<ListIterator> {
         let ListOptions { depth, deduplicate } = options;
-        let it = self.with_handle(|h| fdb_sys::list(h, request.as_sys(), deduplicate, depth))?;
+        let it = self.with_handle(|h| h.list(request.as_sys(), deduplicate, depth))?;
         Ok(ListIterator::new(it))
     }
 
@@ -200,7 +200,7 @@ impl Fdb {
     ///
     /// Returns an error if retrieval fails.
     pub fn retrieve(&self, request: &metkit::MarsRequest) -> Result<DataHandle> {
-        let handle = self.with_handle(|h| fdb_sys::retrieve(h, request.as_sys()))?;
+        let handle = self.with_handle(|h| h.retrieve(request.as_sys()))?;
         Ok(DataHandle::from_raw(handle))
     }
 
@@ -213,7 +213,7 @@ impl Fdb {
     ///
     /// Returns an error if reading fails.
     pub fn read_uri(&self, uri: &str) -> Result<DataHandle> {
-        let handle = self.with_handle(|h| fdb_sys::read_uri(h, uri))?;
+        let handle = self.with_handle(|h| h.read_uri(uri))?;
         Ok(DataHandle::from_raw(handle))
     }
 
@@ -233,7 +233,7 @@ impl Fdb {
     /// Returns an error if reading fails.
     pub fn read_uris(&self, uris: &[String], in_storage_order: bool) -> Result<DataHandle> {
         let uris_vec: Vec<String> = uris.to_vec();
-        let handle = self.with_handle(|h| fdb_sys::read_uris(h, &uris_vec, in_storage_order))?;
+        let handle = self.with_handle(|h| h.read_uris(&uris_vec, in_storage_order))?;
         Ok(DataHandle::from_raw(handle))
     }
 
@@ -250,8 +250,8 @@ impl Fdb {
         mut list: ListIterator,
         in_storage_order: bool,
     ) -> Result<DataHandle> {
-        let handle = self
-            .with_handle(|h| fdb_sys::read_list_iterator(h, list.inner_mut(), in_storage_order))?;
+        let handle =
+            self.with_handle(|h| h.read_list_iterator(list.inner_mut(), in_storage_order))?;
         Ok(DataHandle::from_raw(handle))
     }
 
@@ -308,7 +308,7 @@ impl Fdb {
     ///
     /// Returns an error if archiving fails.
     pub fn archive_raw(&self, data: &[u8]) -> Result<()> {
-        self.with_handle(|h| fdb_sys::archive_raw(h, data))?;
+        self.with_handle(|h| h.archive_raw(data))?;
         Ok(())
     }
 
@@ -332,7 +332,7 @@ impl Fdb {
         R: std::io::Read + Send + 'static,
     {
         let boxed = fdb_sys::make_reader_box(reader);
-        self.with_handle(|h| fdb_sys::archive_reader(h, boxed))?;
+        self.with_handle(|h| h.archive_reader(boxed))?;
         Ok(())
     }
 
@@ -353,7 +353,7 @@ impl Fdb {
         request: &metkit::MarsRequest,
         depth: i32,
     ) -> Result<HashMap<String, Vec<String>>> {
-        let axes = self.with_handle(|h| fdb_sys::axes(h, request.as_sys(), depth))?;
+        let axes = self.with_handle(|h| h.axes(request.as_sys(), depth))?;
         Ok(axes.into_iter().map(|a| (a.key, a.values)).collect())
     }
 
@@ -374,7 +374,7 @@ impl Fdb {
         options: DumpOptions,
     ) -> Result<DumpIterator> {
         let DumpOptions { simple } = options;
-        let it = self.with_handle(|h| fdb_sys::dump(h, request.as_sys(), simple))?;
+        let it = self.with_handle(|h| h.dump(request.as_sys(), simple))?;
         Ok(DumpIterator::new(it))
     }
 
@@ -388,7 +388,7 @@ impl Fdb {
     ///
     /// Returns an error if the status query fails.
     pub fn status(&self, request: &metkit::MarsRequest) -> Result<StatusIterator> {
-        let it = self.with_handle(|h| fdb_sys::status(h, request.as_sys()))?;
+        let it = self.with_handle(|h| h.status(request.as_sys()))?;
         Ok(StatusIterator::new(it))
     }
 
@@ -414,9 +414,8 @@ impl Fdb {
             porcelain,
             unsafe_wipe_all,
         } = options;
-        let it = self.with_handle(|h| {
-            fdb_sys::wipe(h, request.as_sys(), doit, porcelain, unsafe_wipe_all)
-        })?;
+        let it =
+            self.with_handle(|h| h.wipe(request.as_sys(), doit, porcelain, unsafe_wipe_all))?;
         Ok(WipeIterator::new(it))
     }
 
@@ -438,7 +437,7 @@ impl Fdb {
         options: PurgeOptions,
     ) -> Result<PurgeIterator> {
         let PurgeOptions { doit, porcelain } = options;
-        let it = self.with_handle(|h| fdb_sys::purge(h, request.as_sys(), doit, porcelain))?;
+        let it = self.with_handle(|h| h.purge(request.as_sys(), doit, porcelain))?;
         Ok(PurgeIterator::new(it))
     }
 
@@ -452,7 +451,7 @@ impl Fdb {
     ///
     /// Returns an error if the stats query fails.
     pub fn stats_iter(&self, request: &metkit::MarsRequest) -> Result<StatsIterator> {
-        let it = self.with_handle(|h| fdb_sys::stats_iterator(h, request.as_sys()))?;
+        let it = self.with_handle(|h| h.stats_iterator(request.as_sys()))?;
         Ok(StatsIterator::new(it))
     }
 
@@ -474,8 +473,7 @@ impl Fdb {
         action: ControlAction,
         identifiers: &[ControlIdentifier],
     ) -> Result<ControlIterator> {
-        let it =
-            self.with_handle(|h| fdb_sys::control(h, request.as_sys(), action, identifiers))?;
+        let it = self.with_handle(|h| h.control(request.as_sys(), action, identifiers))?;
         Ok(ControlIterator::new(it))
     }
 
@@ -496,7 +494,7 @@ impl Fdb {
         F: Fn() + Send + 'static,
     {
         self.with_handle(|h| {
-            fdb_sys::register_flush_callback(h, fdb_sys::make_flush_callback(callback));
+            h.register_flush_callback(fdb_sys::make_flush_callback(callback));
         });
     }
 
@@ -506,7 +504,7 @@ impl Fdb {
         F: Fn(ArchiveCallbackData) + Send + 'static,
     {
         self.with_handle(|h| {
-            fdb_sys::register_archive_callback(h, fdb_sys::make_archive_callback(callback));
+            h.register_archive_callback(fdb_sys::make_archive_callback(callback));
         });
     }
 }
@@ -551,7 +549,7 @@ impl MessageArchiver {
         config: &eckit::Config,
     ) -> Result<Self> {
         initialize();
-        let inner = fdb_sys::new_message_archiver(
+        let inner = fdb_sys::MessageArchiverWrapper::create(
             key.to_cxx(),
             complete_transfers,
             verbose,

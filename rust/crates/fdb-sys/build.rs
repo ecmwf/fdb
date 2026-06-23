@@ -9,8 +9,30 @@
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src/lib.rs");
-    println!("cargo:rerun-if-changed=cpp/fdb_bridge.h");
-    println!("cargo:rerun-if-changed=cpp/fdb_bridge.cpp");
+    println!("cargo:rerun-if-changed=cpp/FdbBridge.h");
+    println!("cargo:rerun-if-changed=cpp/Types.h");
+    println!("cargo:rerun-if-changed=cpp/Key.h");
+    println!("cargo:rerun-if-changed=cpp/Key.cc");
+    println!("cargo:rerun-if-changed=cpp/FdbHandle.h");
+    println!("cargo:rerun-if-changed=cpp/FdbHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/ListIteratorHandle.h");
+    println!("cargo:rerun-if-changed=cpp/ListIteratorHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/DumpIteratorHandle.h");
+    println!("cargo:rerun-if-changed=cpp/DumpIteratorHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/StatusIteratorHandle.h");
+    println!("cargo:rerun-if-changed=cpp/StatusIteratorHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/WipeIteratorHandle.h");
+    println!("cargo:rerun-if-changed=cpp/WipeIteratorHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/PurgeIteratorHandle.h");
+    println!("cargo:rerun-if-changed=cpp/PurgeIteratorHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/StatsIteratorHandle.h");
+    println!("cargo:rerun-if-changed=cpp/StatsIteratorHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/ControlIteratorHandle.h");
+    println!("cargo:rerun-if-changed=cpp/ControlIteratorHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/MessageArchiverWrapper.h");
+    println!("cargo:rerun-if-changed=cpp/MessageArchiverWrapper.cc");
+    println!("cargo:rerun-if-changed=cpp/ExceptionTest.h");
+    println!("cargo:rerun-if-changed=cpp/ExceptionTest.cc");
     println!("cargo:rerun-if-env-changed=FDB_DIR");
     println!("cargo:rerun-if-env-changed=CMAKE_PREFIX_PATH");
     println!("cargo:rerun-if-env-changed=DOCS_RS");
@@ -77,12 +99,22 @@ fn build_system() {
 
     // Build the CXX bridge
     cxx_build::bridge("src/lib.rs")
-        .file(crate_dir.join("cpp/fdb_bridge.cpp"))
+        .file(crate_dir.join("cpp/Key.cc"))
+        .file(crate_dir.join("cpp/FdbHandle.cc"))
+        .file(crate_dir.join("cpp/ListIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/DumpIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/StatusIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/WipeIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/PurgeIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/StatsIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/ControlIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/MessageArchiverWrapper.cc"))
+        .file(crate_dir.join("cpp/ExceptionTest.cc"))
         .include(&fdb_include)
         .include(&eckit_include)
-        .include(&eckit_cpp_dir) // for eckit_bridge.h
+        .include(&eckit_cpp_dir) // for EckitBridge.h
         .include(&metkit_include)
-        .include(&metkit_cpp_dir) // for metkit_bridge.h
+        .include(&metkit_cpp_dir) // for MetkitBridge.h
         .include(&eccodes_include)
         .include(crate_dir.join("cpp"))
         .include(&out_dir) // for fdb_exceptions.h (generated)
@@ -273,13 +305,23 @@ fn build_vendored() {
 
     // Build the CXX bridge
     cxx_build::bridge("src/lib.rs")
-        .file(crate_dir.join("cpp/fdb_bridge.cpp"))
+        .file(crate_dir.join("cpp/Key.cc"))
+        .file(crate_dir.join("cpp/FdbHandle.cc"))
+        .file(crate_dir.join("cpp/ListIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/DumpIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/StatusIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/WipeIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/PurgeIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/StatsIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/ControlIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/MessageArchiverWrapper.cc"))
+        .file(crate_dir.join("cpp/ExceptionTest.cc"))
         .include(&include_dir)
         .include(&fdb_src_include)
         .include(format!("{eckit_root}/include"))
-        .include(&eckit_cpp_dir) // for eckit_bridge.h
+        .include(&eckit_cpp_dir) // for EckitBridge.h
         .include(format!("{metkit_root}/include"))
-        .include(&metkit_cpp_dir) // for metkit_bridge.h
+        .include(&metkit_cpp_dir) // for MetkitBridge.h
         .include(format!("{eccodes_root}/include"))
         .include(crate_dir.join("cpp"))
         .include(&out_dir) // for fdb_exceptions.h (generated)
