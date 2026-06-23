@@ -13,6 +13,8 @@ fn main() {
     println!("cargo:rerun-if-changed=cpp/Types.h");
     println!("cargo:rerun-if-changed=cpp/Key.h");
     println!("cargo:rerun-if-changed=cpp/Key.cc");
+    println!("cargo:rerun-if-changed=cpp/Library.h");
+    println!("cargo:rerun-if-changed=cpp/Library.cc");
     println!("cargo:rerun-if-changed=cpp/FdbHandle.h");
     println!("cargo:rerun-if-changed=cpp/FdbHandle.cc");
     println!("cargo:rerun-if-changed=cpp/ListIteratorHandle.h");
@@ -100,6 +102,7 @@ fn build_system() {
     // Build the CXX bridge
     cxx_build::bridge("src/lib.rs")
         .file(crate_dir.join("cpp/Key.cc"))
+        .file(crate_dir.join("cpp/Library.cc"))
         .file(crate_dir.join("cpp/FdbHandle.cc"))
         .file(crate_dir.join("cpp/ListIteratorHandle.cc"))
         .file(crate_dir.join("cpp/DumpIteratorHandle.cc"))
@@ -306,6 +309,7 @@ fn build_vendored() {
     // Build the CXX bridge
     cxx_build::bridge("src/lib.rs")
         .file(crate_dir.join("cpp/Key.cc"))
+        .file(crate_dir.join("cpp/Library.cc"))
         .file(crate_dir.join("cpp/FdbHandle.cc"))
         .file(crate_dir.join("cpp/ListIteratorHandle.cc"))
         .file(crate_dir.join("cpp/DumpIteratorHandle.cc"))

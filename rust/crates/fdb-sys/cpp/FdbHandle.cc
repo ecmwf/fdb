@@ -283,31 +283,6 @@ void FdbHandle::register_archive_callback(rust::Box<ArchiveCallbackBox> callback
 
 //----------------------------------------------------------------------------------------------------------------------
 
-namespace {
-
-std::once_flag g_init_flag;
-
-}  // namespace
-
-void FdbHandle::initialise() {
-    std::call_once(g_init_flag, []() {
-        if (!eckit::Main::ready()) {
-            static const char* argv[] = {"fdb-sys", nullptr};
-            eckit::Main::initialise(1, const_cast<char**>(argv));
-        }
-    });
-}
-
-rust::String FdbHandle::version() {
-    return rust::String(fdb5_version_str());
-}
-
-rust::String FdbHandle::git_sha1() {
-    return rust::String(fdb5_git_sha1());
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
 std::unique_ptr<FdbHandle> FdbHandle::create() {
     return std::make_unique<FdbHandle>();
 }

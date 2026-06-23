@@ -21,7 +21,7 @@ static INIT: Once = Once::new();
 /// Initialize the FDB library.
 /// Called automatically when creating any FDB handle.
 fn initialize() {
-    INIT.call_once(fdb_sys::FdbHandle::initialise);
+    INIT.call_once(fdb_sys::Library::initialise);
 }
 
 // Private wrapper to make UniquePtr Send-safe for use with Mutex
