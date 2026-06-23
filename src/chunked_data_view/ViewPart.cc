@@ -39,6 +39,15 @@ BoundingBox::BoundingBox(const std::vector<size_t>& lower, const std::vector<siz
         throw chunked_data_view::BoundingBoxException(buf.str());
     }
 
+    for (size_t i = 0; i < lower.size(); ++i) {
+        if (lower[i] > upper[i]) {
+            std::stringstream buf;
+            buf << "BoundingBox::BoundingBox: Lower: " << lower.size() << ", Upper:" << upper.size()
+                << ". lower[i] must be <= upper[i].";
+            throw chunked_data_view::BoundingBoxException(buf.str());
+        }
+    }
+
     lower_ = lower;
     upper_ = upper;
 };
