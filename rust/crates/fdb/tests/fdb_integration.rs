@@ -212,15 +212,8 @@ fn test_fdb_archive_simple() {
         .with("step", "0")
         .with("param", "151130");
 
-    println!("Archiving...");
-    let result = fdb.archive(&key, &grib_data);
-    println!("Archive result: {result:?}");
-
-    if result.is_ok() {
-        println!("Flushing...");
-        fdb.flush().expect("flush failed");
-        println!("Done!");
-    }
+    fdb.archive(&key, &grib_data).expect("archive failed");
+    fdb.flush().expect("flush failed");
 }
 
 #[test]
