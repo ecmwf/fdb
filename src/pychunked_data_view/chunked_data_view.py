@@ -28,6 +28,7 @@ class Chunking(enum.Enum):
     NONE = enum.auto()
     SINGLE_VALUE = enum.auto()
 
+    @enum.nonmember
     @dataclass(frozen=True)
     class IndividualChunk:
         chunkShape: int
@@ -44,9 +45,9 @@ class AxisDefinition:
     ):
         if isinstance(chunking, Chunking.IndividualChunk):
             return pdv.AxisDefinition.IndividualChunking(chunking.chunkShape)
-        elif chunking == Chunking.NONE:
+        elif chunking is Chunking.NONE:
             return pdv.AxisDefinition.NoChunking()
-        elif chunking == Chunking.SINGLE_VALUE:
+        elif chunking is Chunking.SINGLE_VALUE:
             return pdv.AxisDefinition.SingleValueChunking()
         else:
             raise InternalError()
@@ -73,7 +74,7 @@ class AxisDefinition:
         self._obj.keys = keys
 
     @property
-    def chunking(self) -> Chunking | Chunking.IndividualChunk:
+    def chunking(self):
         chunking = self._obj.chunking
         if isinstance(chunking, pdv.AxisDefinition.NoChunking):
             return Chunking.NONE
