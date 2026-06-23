@@ -33,8 +33,6 @@ fn main() {
     println!("cargo:rerun-if-changed=cpp/ControlIteratorHandle.cc");
     println!("cargo:rerun-if-changed=cpp/MessageArchiverWrapper.h");
     println!("cargo:rerun-if-changed=cpp/MessageArchiverWrapper.cc");
-    println!("cargo:rerun-if-changed=cpp/ExceptionTest.h");
-    println!("cargo:rerun-if-changed=cpp/ExceptionTest.cc");
     println!("cargo:rerun-if-env-changed=FDB_DIR");
     println!("cargo:rerun-if-env-changed=CMAKE_PREFIX_PATH");
     println!("cargo:rerun-if-env-changed=DOCS_RS");
@@ -112,7 +110,6 @@ fn build_system() {
         .file(crate_dir.join("cpp/StatsIteratorHandle.cc"))
         .file(crate_dir.join("cpp/ControlIteratorHandle.cc"))
         .file(crate_dir.join("cpp/MessageArchiverWrapper.cc"))
-        .file(crate_dir.join("cpp/ExceptionTest.cc"))
         .include(&fdb_include)
         .include(&eckit_include)
         .include(&eckit_cpp_dir) // for EckitBridge.h
@@ -319,7 +316,6 @@ fn build_vendored() {
         .file(crate_dir.join("cpp/StatsIteratorHandle.cc"))
         .file(crate_dir.join("cpp/ControlIteratorHandle.cc"))
         .file(crate_dir.join("cpp/MessageArchiverWrapper.cc"))
-        .file(crate_dir.join("cpp/ExceptionTest.cc"))
         .include(&include_dir)
         .include(&fdb_src_include)
         .include(format!("{eckit_root}/include"))
