@@ -175,8 +175,9 @@ struct Args {
     check_queue_size: usize,
 
     // FDB config
-    /// Disable use of subtocs
-    #[arg(long)]
+    /// Disable use of subtocs (requires `--config`, since user overrides
+    /// must be layered on top of a main config).
+    #[arg(long, requires = "config")]
     disable_subtocs: bool,
 
     // ITT mode options
