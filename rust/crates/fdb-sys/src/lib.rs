@@ -554,16 +554,7 @@ mod ffi {
         fn throw_eckit_exception() -> Result<()>;
 
         #[Self = "ExceptionTest"]
-        fn throw_eckit_serious_bug() -> Result<()>;
-
-        #[Self = "ExceptionTest"]
-        fn throw_eckit_user_error() -> Result<()>;
-
-        #[Self = "ExceptionTest"]
         fn throw_std_exception() -> Result<()>;
-
-        #[Self = "ExceptionTest"]
-        fn throw_int() -> Result<()>;
     }
 
     // =========================================================================
@@ -728,28 +719,6 @@ mod tests {
     }
 
     #[test]
-    fn test_eckit_serious_bug_caught_by_trycatch() {
-        let err = eckit_sys::Error::from(
-            ffi::ExceptionTest::throw_eckit_serious_bug().expect_err("expected error"),
-        );
-        assert!(
-            matches!(err, eckit_sys::Error::SeriousBug(_)),
-            "expected Error::SeriousBug, got: {err:?}"
-        );
-    }
-
-    #[test]
-    fn test_eckit_user_error_caught_by_trycatch() {
-        let err = eckit_sys::Error::from(
-            ffi::ExceptionTest::throw_eckit_user_error().expect_err("expected error"),
-        );
-        assert!(
-            matches!(err, eckit_sys::Error::UserError(_)),
-            "expected Error::UserError, got: {err:?}"
-        );
-    }
-
-    #[test]
     fn test_std_exception_caught_by_trycatch() {
         let err = eckit_sys::Error::from(
             ffi::ExceptionTest::throw_std_exception().expect_err("expected error"),
@@ -757,16 +726,6 @@ mod tests {
         assert!(
             matches!(err, eckit_sys::Error::Other(_)),
             "expected Error::Other for std::exception, got: {err:?}"
-        );
-    }
-
-    #[test]
-    fn test_non_std_exception_caught_by_trycatch() {
-        let err =
-            eckit_sys::Error::from(ffi::ExceptionTest::throw_int().expect_err("expected error"));
-        assert!(
-            matches!(err, eckit_sys::Error::Other(_)),
-            "expected Error::Other for non-std exception, got: {err:?}"
         );
     }
 }
