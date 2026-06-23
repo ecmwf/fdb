@@ -29,6 +29,11 @@ CASE("Bounding Box | Initialization mismatch dimensions | Error") {
                      chunked_data_view::BoundingBoxException);
 };
 
+CASE("Bounding Box | Lower, upper orientation wrong | Error") {
+    EXPECT_THROWS_AS((chunked_data_view::BoundingBox{{2}, {1}}), chunked_data_view::BoundingBoxException);
+    EXPECT_THROWS_AS((chunked_data_view::BoundingBox{{3, 2, 1}, {3, 2, 0}}), chunked_data_view::BoundingBoxException);
+};
+
 CASE("Bounding Box | Contains test") {
 
     chunked_data_view::BoundingBox bb{{3, 2, 1}, {5, 3, 2}};

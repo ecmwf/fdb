@@ -30,17 +30,12 @@ metkit::mars::MarsRequest RequestManipulation::selectRequest(const metkit::mars:
                                                              const std::vector<Axis>& axes,
                                                              const PartBoundingBox& boundingBox) {
 
-    if (boundingBox.dimensions() != axes.size()) {  // ParBoundingBox contains the field sizes as last entry
+    if (boundingBox.dimensions() != axes.size()) {
         std::stringstream buf;
         buf << "RequestManipulation::selectRequest: Bounding Box dimensions mismatch. Bounding Box must have axes "
-               "dimensions - 1. But bounding box dimensions were "
+               "dimensions. But bounding box dimensions were "
             << boundingBox.dimensions() << " and axes dimensions were " << axes.size();
         throw chunked_data_view::BoundingBoxException(buf.str());
-    }
-
-    if (boundingBox.entries() == 0) {
-        throw chunked_data_view::BoundingBoxException(
-            "RequestManipulation::selectRequest: Bounding Box empty. This would result in an empty MARS request.");
     }
 
     // Add check for subaxis aligned bounding box
