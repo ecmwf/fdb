@@ -15,7 +15,7 @@
 //! eckit::init();
 //! let fdb = Fdb::open_default()?;
 //!
-//! let request = metkit::MarsRequestBuilder::new("list")
+//! let request = metkit::MarsRequestBuilder::new("retrieve")
 //!     .with("class", "od")
 //!     .with("expver", "0001")
 //!     .build();
