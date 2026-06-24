@@ -21,12 +21,6 @@ class DataHandle;
 }
 
 namespace chunked_data_view {
-class ViewPart;
-}
-
-namespace chunked_data_view {
-class BoundingBox;
-
 
 class Extractor {
 public:
