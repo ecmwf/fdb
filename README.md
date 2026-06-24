@@ -22,7 +22,7 @@ In-process database with C++ API
 ## fdb-tools
 
 Commandline tools to interact with FDB trough CLI
-[tools](docs/fdb/content/cli_tools.rst)
+[tools](docs/fdb/cli_tools/index.rst)
 
 ## z3fdb
 
