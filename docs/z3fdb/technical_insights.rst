@@ -1,6 +1,12 @@
 Technical Insights
 ==================
 
+.. note::
+
+   This page describes Z3FDB's internal mechanics. It is aimed at contributors
+   and anyone debugging unexpected performance behaviour. If you are using
+   Z3FDB for the first time, start with :doc:`getting_started` instead.
+
 This page covers internal mechanics that are useful when reasoning about
 performance, debugging unexpected results, or contributing to the library.
 

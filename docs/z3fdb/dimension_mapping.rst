@@ -256,29 +256,28 @@ Fill Value
 
 When a chunk is accessed and some of its fields are absent from FDB,
 the missing slots are filled with a sentinel value. The default is
-positive infinity (``float('inf')``). You can override this via
-:meth:`~pychunked_data_view.ChunkedDataViewBuilder.fill_value`:
+positive infinity (``float('inf')``).
+
+To override it, use :class:`~pychunked_data_view.ChunkedDataViewBuilder`
+directly (the high-level :class:`~z3fdb.SimpleStoreBuilder` wrapper does
+not expose this setting):
 
 .. code-block:: python
 
-   builder = SimpleStoreBuilder()
-   builder.add_part(...)
+   from pychunked_data_view import ChunkedDataViewBuilder, AxisDefinition, Chunking, ExtractorType
+
+   builder = ChunkedDataViewBuilder(fdb_config_file=None)
+   builder.add_part("...", [...], ExtractorType.GRIB)
    builder.fill_value(float("nan"))   # use NaN instead of inf
-   store = builder.build()
-
-The effective fill value is also available on the resulting view:
-
-.. code-block:: python
-
-   store = builder.build()
-   print(store.fillValue())  # float('inf') unless overridden
+   view = builder.build()
+   print(view.fillValue())  # float('nan')
 
 Combining Multiple MARS Requests
 ---------------------------------
 
 Call :meth:`~z3fdb.SimpleStoreBuilder.add_part` multiple times to
 combine data from different MARS requests into a single Zarr array.
-Use :meth:`~z3fdb.SimpleStoreBuilder.extendOnAxis` to specify which
+Use :meth:`~z3fdb.SimpleStoreBuilder.extend_on_axis` to specify which
 dimension grows when parts are joined. All other dimensions must have
 the same number of values across parts.
 
@@ -316,7 +315,7 @@ the same number of values across parts.
 
    # Extend on the param dimension (index 1)
    # Final shape will be [D, P1 + P2, N]
-   builder.extendOnAxis(1)
+   builder.extend_on_axis(1)
    store = builder.build()
 
 The datetime dimension (index 0) must have the same values in both
