@@ -34,7 +34,7 @@ public:
 
     BoundingBox();
     /// @param lower Inclusive lower corner in each dimension.
-    /// @param upper Exclusive upper corner in each dimension (must have same size as lower).
+    /// @param upper Inclusive upper corner in each dimension (must have same size as lower).
     BoundingBox(const std::vector<size_t>& lower, const std::vector<size_t>& upper);
 
     /// Number of dimensions.
@@ -44,7 +44,7 @@ public:
     /// Inclusive upper corner.
     std::vector<size_t> upper() const { return upper_; }
 
-    /// Per-axis extents (upper - lower + 1for each dimension).
+    /// Per-axis extents (upper - lower + 1 for each dimension).
     std::vector<size_t> extent() const {
         std::vector<size_t> extent;
         for (size_t i = 0; i < dimensions(); ++i) {
@@ -150,7 +150,7 @@ public:
     /// Position of the lower corner of this part in the global view index space.
     std::vector<size_t> offset() const { return offset_; }
 
-    /// Bounding box of this part in the global view index space (half-open: [offset, offset + extension)).
+    /// Bounding box of this part in the global view index space (closed: [offset, offset + extension - 1]).
     const BoundingBox& boundingBox() const { return bb_; }
 
     /// Offset of this part along a single axis in the global view index space.
