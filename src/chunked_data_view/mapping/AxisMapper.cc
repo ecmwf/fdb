@@ -54,8 +54,6 @@ bool AxisMapper::chunkSizeCheck(const Axis& axis, const size_t wishedChunkSize) 
 
     size_t prod = 1;
 
-    // Use post-decrement idiom: i starts at parameter_amount, decrements before use,
-    // and exits cleanly when i reaches 0 (avoids size_t underflow wrap-around).
     for (std::size_t i = parameter_amount; i-- > 0;) {
         if (wishedChunkSize == prod) {
             return true;

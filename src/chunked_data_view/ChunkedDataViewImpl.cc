@@ -156,9 +156,11 @@ void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, 
         auto written = extractor->extractInto(part, chunkBoundingBox, intersectionBoundingBox.value(), ptr, len);
 
         if (written != expected_msg_count) {
+            const PartBoundingBox& partRelativeBoundingBox =
+                intersectionBoundingBox.value().subtract(part.boundingBox().lower());
             std::ostringstream ss;
-            ss << "ViewPart::at: retrieved " << written << " of " << expected_msg_count
-               << " expected fields in request." << part.at(intersectionBoundingBox.value());
+            ss << "ChunkedDataViewImpl::at: retrieved " << written << " of " << expected_msg_count
+               << " expected fields in request." << part.at(partRelativeBoundingBox);
             throw eckit::UserError(ss.str());
         }
     }
