@@ -12,6 +12,8 @@
 
 namespace chunked_data_view {
 
+/// Thrown by AxisMapper when an AxisDefinition is invalid or incompatible with the MARS request
+/// (e.g. a requested chunk size that does not divide the axis extent).
 class AxisMapperException : public eckit::Exception {
 
 public:

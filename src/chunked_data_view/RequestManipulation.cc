@@ -11,11 +11,10 @@
 
 #include "Axis.h"
 
-#include "chunked_data_view/Extractor.h"
-#include "chunked_data_view/IndexMapper.h"
 #include "chunked_data_view/exception/BoundingBoxException.h"
 #include "chunked_data_view/exception/RequestManipulationException.h"
 #include "chunked_data_view/mapping/AxisMapper.h"
+#include "chunked_data_view/mapping/IndexMapper.h"
 #include "eckit/exception/Exceptions.h"
 #include "metkit/mars/MarsRequest.h"
 

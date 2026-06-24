@@ -240,7 +240,7 @@ CASE("ChunkedDataView | IndividualChunking | Multi part with combined axis with 
             .build();
 
     // Part 1 (sfc): datextime=12/IC{3}->4 chunks, param=3/IC{3}->1 chunk
-    // Part 2 (ml):  datextime=12/IC{3}->4 chunks, levelistxparam=60/IC{3}->20 chunks
+    // Part 2 (ml):  datextime=12/IC{3}->4 chunks, levelist x param=60/IC{3}->20 chunks
     // extendOnAxis(1): axis-1 total = 3+60=63, chunks = 1+20=21
     // Implicit values axis: 10, 1 chunk
     EXPECT_EQUAL(view->shape(), (std::vector<size_t>{12, 63, 10}));

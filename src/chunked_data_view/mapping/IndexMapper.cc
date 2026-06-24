@@ -9,7 +9,7 @@
  */
 #include "IndexMapper.h"
 
-#include "Axis.h"
+#include "chunked_data_view/Axis.h"
 
 #include "eckit/exception/Exceptions.h"
 

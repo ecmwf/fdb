@@ -12,10 +12,10 @@
 #include "chunked_data_view/DataLayout.h"
 #include "chunked_data_view/Extractor.h"
 #include "chunked_data_view/Fdb.h"
-#include "chunked_data_view/IndexMapper.h"
 #include "chunked_data_view/ListIterator.h"
 #include "chunked_data_view/ViewPart.h"
 #include "chunked_data_view/exception/GribExtractorException.h"
+#include "chunked_data_view/mapping/IndexMapper.h"
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/message/Reader.h"

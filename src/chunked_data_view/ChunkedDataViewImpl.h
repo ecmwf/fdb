@@ -10,10 +10,10 @@
 #pragma once
 
 #include "chunked_data_view/ChunkedDataView.h"
+#include "chunked_data_view/Extractor.h"
 #include "chunked_data_view/ViewPart.h"
 
 #include <cstddef>
-#include <utility>
 #include <vector>
 
 namespace chunked_data_view {

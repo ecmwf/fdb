@@ -15,8 +15,11 @@
 
 namespace chunked_data_view {
 
+/// Initialises the eckit main object when the library is used outside a full eckit application.
 void init_eckit_main();
 
+/// eckit library registration object for the chunked_data_view plugin.
+/// Provides version and git-SHA metadata consumed by eckit's plugin infrastructure.
 class LibChunkedDataView : public eckit::system::Library {
 public:
 

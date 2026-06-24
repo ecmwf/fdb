@@ -15,25 +15,38 @@
 
 namespace chunked_data_view {
 
-/// Describes how a axis in the resulting N Dimension data is build.
+/// Describes how one axis of the resulting N-dimensional view is formed from MARS keys
+/// and how that axis is subdivided into Zarr chunks.
+///
+/// One or more MARS keywords are combined into a single axis (e.g. ["date", "time"] forms
+/// a compound date-time axis whose size is the product of their individual value counts).
+/// The chunking type then controls how that combined axis is split:
+///   - NoChunking: the entire axis is one chunk (useful when always reading the full extent)
+///   - SingleValueChunking: each element of the axis is its own chunk
+///   - IndividualChunking: the axis is divided into fixed-size chunks of @p chunkSize elements
 struct AxisDefinition {
-    // NOTE(kkratz): Extend here for configurable number of values per chunk
-    // ChunkingType is designed as sum-type so that we can extend this with a type holding
-    // the number of values per chunk. Right now its just all in one chunk or one per chunk.
 
-    /// Indicate no chunking should be applied, the whole axis is accessed in one chunk.
+    /// The whole axis is a single chunk; the Zarr chunk extent equals the axis size.
     struct NoChunking {};
-    /// Indicate each value of this axis is one chunk
+
+    /// Each element of the axis occupies its own chunk; chunk extent is always 1.
     struct SingleValueChunking {};
-    /// Indicate individual shape of chunk
+
+    /// The axis is divided into chunks of a fixed size.
+    /// @p chunkSize must evenly divide the combined axis size, or evenly divide the
+    /// fastest-varying constituent key's value count.
     struct IndividualChunking {
         size_t chunkSize;
     };
-    /// Possible typs of chunking
+
+    /// Discriminated union of the supported chunking strategies.
     using ChunkingType = std::variant<NoChunking, SingleValueChunking, IndividualChunking>;
-    /// Which mars keys form the resuling axis.
+
+    /// Ordered list of MARS keyword names whose values form this axis.
+    /// All listed keywords must appear in the associated MARS request with more than one value.
     std::vector<std::string> keys{};
-    /// Defines how the Axis will be chunked.
+
+    /// Chunking strategy applied to this axis.
     ChunkingType chunking{};
 };
 

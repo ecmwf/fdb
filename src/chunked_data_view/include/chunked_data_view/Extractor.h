@@ -26,40 +26,32 @@ class ViewPart;
 
 namespace chunked_data_view {
 class BoundingBox;
-using ChunkedDataViewPartBoundingBox = chunked_data_view::BoundingBox;
-using PartBoundingBox = chunked_data_view::BoundingBox;
-using BufferBoundingBox = chunked_data_view::BoundingBox;
 
-}  // namespace chunked_data_view
-
-namespace chunked_data_view {
 
 class Extractor {
 public:
 
     virtual ~Extractor() = default;
 
-    /// Only first message will be read
-    /// @param handle to a stream of grib messages
-    /// @return the data
+    /// Retrieves one field for @p req and returns its layout (number of values and bytes per value).
+    /// All fields in a part are expected to share the same layout; this method establishes it.
     virtual DataLayout layout(const metkit::mars::MarsRequest& req) const = 0;
 
-    // TODO(TKR): Update description
-    /// Writes the extracted data into the out pointer.
-    /// The caller must ensure there is enough memory allocated for all values to be copied into out.
-    /// @param list_iterator to read data from
-    /// @param axes of the corresponding view.
-    /// @param layout of the expected field.
-    /// @param ptr pointer to write into.
-    /// @param len of memory pointed to by ptr in floats
-    /// @param extensionAxisIdx index of the extension axis (SIZE_MAX = no extension)
-    /// @param combinedExtSize combined size of the extension axis across all parts
-    /// @param extensionOffset offset of this part on the extension axis
-    /// @return number of messages written
-    // virtual size_t writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
-    //                          const DataLayout& layout, float* ptr, size_t len, size_t extensionAxisIdx = SIZE_MAX,
-    //                          size_t combinedExtSize = 0, size_t extensionOffset = 0) const = 0;
-
+    /// Copies the field values that fall inside @p intersectionBoundingBox into the output buffer.
+    ///
+    /// Both bounding boxes are expressed in the global ChunkedDataView index space.
+    /// @p chunkBoundingBox covers the full Zarr chunk being filled; @p intersectionBoundingBox
+    /// is the sub-region of that chunk owned by @p part (i.e. the intersection of the chunk with
+    /// the part's bounding box, guaranteed non-empty by the caller).
+    ///
+    /// The caller must ensure that @p ptr points to a buffer of at least @p len floats.
+    ///
+    /// @param part                    the ViewPart to retrieve data from
+    /// @param chunkBoundingBox        bounding box of the current chunk in global view coordinates
+    /// @param intersectionBoundingBox non-empty intersection of the chunk with @p part's bounding box
+    /// @param ptr                     output buffer to write field values into
+    /// @param len                     capacity of the output buffer in number of floats
+    /// @return number of GRIB messages written into the buffer
     virtual size_t extractInto(const ViewPart& part, const ChunkedDataViewPartBoundingBox& chunkBoundingBox,
                                const ChunkedDataViewPartBoundingBox& intersectionBoundingBox, float* ptr,
                                size_t len) const = 0;
