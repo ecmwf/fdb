@@ -297,6 +297,43 @@ CASE("ChunkedDataView | at | Partial read in multi-part extension throws") {
     EXPECT_THROWS(view->at({0, 0, 0, 0}, buf.data(), buf.size()));
 }
 
+CASE("ChunkedDataView | at | Partial read error path uses part-local coordinates") {
+    // Regression test for the error path in ChunkedDataViewImpl::at.
+    // Part 2 sits at global param offset 2. Before the fix, the error path called
+    // part.at() with global bounding box coordinates, causing an out-of-range lookup
+    // inside Part 2's two-element param axis. After the fix it uses part-local coords.
+    const std::string keys{
+        "type=an,domain=g,expver=0001,stream=oper,"
+        "date=2020-01-01/to/2020-01-04,levtype=sfc,"
+        "param=v/u,time=0/6/12/18"};
+
+    // createMockFDB(1) returns 0 messages (MockListIterator pre-increments before returning).
+    // SingleValueChunking expects 1 message per chunk -> mismatch triggers the error path.
+    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(1));
+
+    const auto view =
+        cdv::ChunkedDataViewBuilder()
+            .addPart(keys,
+                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
+                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::SingleValueChunking{}}},
+                     mock_extractor)
+            .addPart(keys,
+                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
+                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::SingleValueChunking{}}},
+                     mock_extractor)
+            .extendOnAxis(2)
+            .build();
+
+    // shape = {4, 4, 4, 10}: chunk {0,0,2,0} falls entirely inside Part 2 (param offset = 2).
+    EXPECT_EQUAL(view->shape(), (std::vector<size_t>{4, 4, 4, 10}));
+    std::vector<float> buf(view->countChunkValues());
+
+    // Must throw eckit::UserError ("retrieved 0 of 1"), not an out-of-range or underflow error.
+    EXPECT_THROWS(view->at({0, 0, 2, 0}, buf.data(), buf.size()));
+}
+
 CASE("ChunkedDataView | View from 3 requests | Can compute shape and access") {
     const std::string keys{
         "type=an,"
