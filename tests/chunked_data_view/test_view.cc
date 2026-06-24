@@ -311,20 +311,19 @@ CASE("ChunkedDataView | at | Partial read error path uses part-local coordinates
     // SingleValueChunking expects 1 message per chunk -> mismatch triggers the error path.
     auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(1));
 
-    const auto view =
-        cdv::ChunkedDataViewBuilder()
-            .addPart(keys,
-                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
-                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
-                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::SingleValueChunking{}}},
-                     mock_extractor)
-            .addPart(keys,
-                     {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
-                      cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
-                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::SingleValueChunking{}}},
-                     mock_extractor)
-            .extendOnAxis(2)
-            .build();
+    const auto view = cdv::ChunkedDataViewBuilder()
+                          .addPart(keys,
+                                   {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
+                                    cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
+                                    cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::SingleValueChunking{}}},
+                                   mock_extractor)
+                          .addPart(keys,
+                                   {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
+                                    cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
+                                    cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::SingleValueChunking{}}},
+                                   mock_extractor)
+                          .extendOnAxis(2)
+                          .build();
 
     // shape = {4, 4, 4, 10}: chunk {0,0,2,0} falls entirely inside Part 2 (param offset = 2).
     EXPECT_EQUAL(view->shape(), (std::vector<size_t>{4, 4, 4, 10}));
