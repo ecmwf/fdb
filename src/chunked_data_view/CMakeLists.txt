@@ -11,7 +11,6 @@ add_library(chunked_data_view STATIC
     ${CMAKE_CURRENT_BINARY_DIR}/chunked_data_view_version.h
     Axis.cc
     Axis.h
-    Buffer.cc
     ChunkedDataViewBuilder.cc
     ChunkedDataViewImpl.cc
     ChunkedDataViewImpl.h
@@ -35,7 +34,6 @@ add_library(chunked_data_view STATIC
     exception/RequestManipulationException.cc
     exception/AxisMapperException.cc
     include/chunked_data_view/AxisDefinition.h
-    include/chunked_data_view/Buffer.h
     include/chunked_data_view/ChunkedDataView.h
     include/chunked_data_view/ChunkedDataViewBuilder.h
     include/chunked_data_view/DataLayout.h
