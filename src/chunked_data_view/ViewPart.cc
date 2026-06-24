@@ -82,6 +82,9 @@ BoundingBox BoundingBox::subtract(const std::vector<size_t>& subtrahend) const {
     std::vector<size_t> newUpper;
 
     for (size_t i = 0; i < lower_.size(); ++i) {
+        if (lower_[i] < subtrahend[i] || upper_[i] < subtrahend[i]) {
+            throw eckit::UserError("BoundingBox::subtract:: Underflow in bounding box calculation.");
+        }
         newLower.push_back(lower_[i] - subtrahend[i]);
         newUpper.push_back(upper_[i] - subtrahend[i]);
     }
@@ -164,7 +167,6 @@ ViewPart::ViewPart(const metkit::mars::MarsRequest& request, const DataLayout& d
 
 metkit::mars::MarsRequest ViewPart::at(const ChunkedDataViewPartBoundingBox& boundingBox) const {
 
-    const chunked_data_view::PartBoundingBox& partRelativeBoundingBox = boundingBox.subtract(bb_.lower());
     const auto translatedBB = bb_.subtract(bb_.lower());
     const auto intersection = translatedBB.intersect(boundingBox);
     ASSERT(intersection.has_value());
