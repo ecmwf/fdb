@@ -9,7 +9,7 @@
  */
 #pragma once
 
-#include "Axis.h"
+#include "chunked_data_view/Axis.h"
 
 #include <cstddef>
 #include <vector>

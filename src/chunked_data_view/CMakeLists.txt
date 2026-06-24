@@ -18,8 +18,6 @@ add_library(chunked_data_view STATIC
     Fdb.cc
     GribExtractor.cc
     GribExtractor.h
-    IndexMapper.cc
-    IndexMapper.h
     LibChunkedDataView.cc
     ListIterator.cc
     RequestManipulation.cc
@@ -28,6 +26,8 @@ add_library(chunked_data_view STATIC
     ViewPart.h
     mapping/AxisMapper.cc
     mapping/AxisMapper.h
+    mapping/IndexMapper.cc
+    mapping/IndexMapper.h
     exception/GribExtractorException.cc
     exception/UnknownExtractorException.cc
     exception/BoundingBoxException.cc
@@ -41,6 +41,7 @@ add_library(chunked_data_view STATIC
     include/chunked_data_view/Fdb.h
     include/chunked_data_view/LibChunkedDataView.h
     include/chunked_data_view/ListIterator.h
+    include/chunked_data_view/Types.h
     include/chunked_data_view/exception/GribExtractorException.h
     include/chunked_data_view/exception/UnknownExtractorException.h
     include/chunked_data_view/exception/BoundingBoxException.h

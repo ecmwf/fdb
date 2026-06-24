@@ -11,6 +11,7 @@
 
 namespace chunked_data_view {
 
+/// Thrown when an unrecognised ExtractorType is supplied to the factory.
 class UnknownExtractorException : public eckit::Exception {
 
 public:
