@@ -11,7 +11,7 @@
 
 #include "Axis.h"
 #include "chunked_data_view/DataLayout.h"
-#include "chunked_data_view/Extractor.h"
+#include "chunked_data_view/Types.h"
 
 #include "metkit/mars/MarsRequest.h"
 
@@ -43,6 +43,8 @@ public:
     std::vector<size_t> lower() const { return lower_; }
     /// Inclusive upper corner.
     std::vector<size_t> upper() const { return upper_; }
+
+    /// Per-axis extents (upper - lower + 1for each dimension).
     std::vector<size_t> extent() const {
         std::vector<size_t> extent;
         for (size_t i = 0; i < dimensions(); ++i) {
@@ -87,18 +89,7 @@ public:
         return cout;
     }
 
-private:
-
-    /// Per-axis extents (upper - lower + 1for each dimension).
-    std::vector<size_t> extension() const {
-        std::vector<size_t> result;
-
-        for (size_t i = 0; i < lower_.size(); ++i) {
-            result.push_back(upper_[i] - lower_[i] + 1);
-        }
-        return result;
-    }
-
+private:  // members
 
     std::vector<size_t> lower_{};
     std::vector<size_t> upper_{};
@@ -137,7 +128,7 @@ public:
 
     /// Returns the MARS sub-request that covers the fields within @p boundingBox.
     /// The bounding box must intersect the part's own bounding box.
-    metkit::mars::MarsRequest at(const BoundingBox& boundingBox) const;
+    metkit::mars::MarsRequest at(const PartBoundingBox& boundingBox) const;
 
     /// Chunking descriptors for each axis (excluding the implicit values dimension).
     std::vector<AxisChunks> chunks() const { return chunks_; }
@@ -154,7 +145,7 @@ public:
 
     /// Number of entries (fields or values) along each dimension, including the implicit values dimension as the last
     /// entry.
-    std::vector<size_t> extension() const { return extension_; }  // TODO(TKR) redundant with bb
+    std::vector<size_t> extension() const { return extension_; }
 
     /// Position of the lower corner of this part in the global view index space.
     std::vector<size_t> offset() const { return offset_; }
@@ -171,7 +162,7 @@ public:
     /// i.e. their extents match on every axis except the extension axis.
     bool extensibleWith(const ViewPart& other, size_t extension_axis) const;
 
-private:
+private:  // members
 
     // Each keyword defines a potential axis in the resulting view.
     // No axis needs to be created if the cardinality is one.

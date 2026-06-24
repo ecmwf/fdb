@@ -12,6 +12,8 @@
 
 namespace chunked_data_view {
 
+/// Thrown by BoundingBox when a construction or arithmetic operation produces an invalid box
+/// (e.g. lower corner exceeds the upper corner after subtraction).
 class BoundingBoxException : public eckit::Exception {
 
 public:
