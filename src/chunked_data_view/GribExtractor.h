@@ -22,27 +22,35 @@
 #include <vector>
 
 namespace chunked_data_view {
+/// Concrete Extractor that retrieves GRIB fields from a real (or mock) FDB instance.
+///
+/// extractInto() converts the global bounding boxes into part-local and buffer-local
+/// coordinate spaces, builds a narrowed MARS request via ViewPart::at(), inspects FDB,
+/// and copies each returned field's float values into the correct slot of the output buffer.
 class GribExtractor final : public Extractor {
 public:
 
-    GribExtractor(const std::shared_ptr<FdbInterface> fdb);
+    explicit GribExtractor(const std::shared_ptr<FdbInterface> fdb);
 
+    /// Retrieves one representative field to determine countValues and bytesPerValue.
     DataLayout layout(const metkit::mars::MarsRequest& mars_request) const override;
 
-
+    /// Copies all fields in @p intersectionBoundingBox into @p ptr.
+    /// @p chunkBoundingBox defines the origin for computing buffer offsets.
     size_t extractInto(const ViewPart& part, const ChunkedDataViewPartBoundingBox& chunkBoundingBox,
                        const ChunkedDataViewPartBoundingBox& intersectionBoundingBox, float* ptr,
                        size_t len) const override;
 
 private:  // types
 
-    /// Bundles all index-mapping and field metadata needed by writeInto.
+    /// Bundles all index-mapping and field metadata needed by writeInto() for one call.
+    /// All members are references; the struct must not outlive the extractInto() call frame.
     struct WriteContext {
         const std::vector<Axis>& axes;
         const DataLayout& layout;
-        const std::vector<size_t>& partAxisOffset;  // Intersection start within the part's axis space
-        const std::vector<size_t>& bufferOffset;    // Intersection start within the chunk buffer
-        const std::vector<size_t>& bufferExtent;    // Total size of the chunk buffer per axis
+        const std::vector<size_t>& partAxisOffset;  ///< Intersection start in part-local axis space.
+        const std::vector<size_t>& bufferOffset;    ///< Intersection start in chunk-buffer space.
+        const std::vector<size_t>& bufferExtent;    ///< Per-axis size of the chunk buffer.
     };
 
 private:  // members
@@ -51,6 +59,8 @@ private:  // members
 
 private:  // methods
 
+    /// Iterates over @p list_iterator, maps each field's key to a buffer slot via
+    /// computeBufferIndex(), and copies the GRIB float values into that slot.
     size_t writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const WriteContext& ctx, float* ptr,
                      size_t len) const;
 };
