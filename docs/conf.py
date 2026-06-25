@@ -3,6 +3,7 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 import datetime
+import os
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
@@ -85,6 +86,7 @@ html_sidebars = {"**": ["sidebar-nav-bs"]}
 html_static_path = ["_static"]
 
 # -- Breathe configuration ---------------------------------------------------
+breathe_projects = {"FDB": os.environ.get("DOXYGEN_XML_DIR", "doxygen/xml")}
 breathe_default_project = "FDB"
 
 # -- autosectionlabel configuration ------------------------------------------

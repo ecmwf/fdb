@@ -38,7 +38,7 @@ std::string TypeDouble::toKey(const std::string& value) const {
 }
 
 void TypeDouble::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
-                           eckit::StringList& values, const Notifier&, const CatalogueReader*) const {
+                           eckit::StringList& values, const CatalogueReader*) const {
     std::vector<double> dblValues;
 
     request.getValues(keyword, dblValues, true);

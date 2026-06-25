@@ -1,9 +1,10 @@
-fdb-list
+fdb list
 ========
 
-Lists the contents of the FDB databases.  
-In the body of the output, one line is given per field that has been archived. These (by default) present the fields that are available and will be retrievable - i.e. masked duplicates are skipped.  
+Lists the contents of the FDB databases.
+In the body of the output, one line is given per field that has been archived. These (by default) present the fields that are available and will be retrievable - i.e. masked duplicates are skipped.
 The lines are broken into three segments, which represent the hierarchical nature of the schema:
+
 * The first component identifies the FDB database containing the data
 * The second component identifies the (set of) indexes
 * The third component identifies entries collocated within an index
@@ -11,7 +12,7 @@ The lines are broken into three segments, which represent the hierarchical natur
 Usage
 -----
 
-``fdb-list [options] [request1] [request2] ...``
+``fdb list [options] [request1] [request2] ...``
 
 Options
 -------
@@ -37,6 +38,18 @@ Options
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--all``                              | **(Debug and testing only)** Visit all FDB databases                                                                |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
+| ``--config=string``                    | FDB configuration filename                                                                                          |
++----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
+| ``--timestamp``                        | Also print the timestamp when the field was indexed                                                                 |
++----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
+| ``--length``                           | Also print the field size                                                                                           |
++----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
+| ``--only-duplicates``                  | List only the duplicated (older) entries                                                                            |
++----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
+| ``--compact``                          | Aggregate available fields in MARS requests                                                                         |
++----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
+| ``--depth=integer``                    | Output entries up to 'depth' levels deep [1-3]                                                                      |
++----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 
 
 Examples
@@ -46,14 +59,14 @@ You may pass a partial request (as a key) that will list all the fields in the F
 Note that this is a global search through all the databases of the FDB that match this key.
 ::
 
-  % fdb-list class=od,expver=0001,stream=oper,date=20151004
-  
+  % fdb list class=od,expver=0001,stream=oper,date=20151004
+
   retrieve,
       class=od,
       expver=0001,
       stream=oper,
       date=20151004
-  
+
   {class=od,expver=0001,stream=oper,date=20151004,time=1200,domain=g}{type=an,levtype=pl}{step=0,levelist=700,param=155}
   {class=od,expver=0001,stream=oper,date=20151004,time=1200,domain=g}{type=an,levtype=pl}{step=0,levelist=850,param=129}
   {class=od,expver=0001,stream=oper,date=20151004,time=1200,domain=g}{type=an,levtype=pl}{step=0,levelist=850,param=130}
@@ -63,32 +76,30 @@ Note that this is a global search through all the databases of the FDB that matc
 A JSON listing may be obtained for use in tools that parse the available data
 ::
 
-  % fdb-list --json class=od,expver=0001,stream=oper,date=20151004
-  
+  % fdb list --json class=od,expver=0001,stream=oper,date=20151004
+
   [{"class":"od","stream":"oper","date":"20151004","time":"1200","domain":"g","type":"an","levtype":"pl","step":"0","levelist":"700","param":"155"},{...},...]
 
 
-The ``--location`` option can be useful to identify exactly where the field is located within the database. 
+The ``--location`` option can be useful to identify exactly where the field is located within the database.
 ::
 
-  % fdb-list --location class=od,expver=0001,stream=oper,date=20151004
-  
+  % fdb list --location class=od,expver=0001,stream=oper,date=20151004
+
   retrieve,
       class=od,
       expver=0001,
       stream=oper,
       date=20151004
-  
+
   {class=od,expver=0001,stream=oper,date=20151004,time=1200,domain=g}{type=an,levtype=pl}{step=0,levelist=850,param=130} (/data/mars_p_d17_d17_1_15/fdb/od:0001:oper:20151004:1200:g/an:pl.20161103.120238.dhs1213.ecmwf.int.1739461754885.data,13121592,3280398)
   ...
 
 The ``--porcelain`` option gives stable output for use in scripts and as input to other simple tools. This will only print (exactly) one line per entry, with no extraneous output. The output of this option will remain stable across versions.
 ::
 
-  % fdb-list --porcelain class=od,expver=0001,stream=oper,date=20151004
+  % fdb list --porcelain class=od,expver=0001,stream=oper,date=20151004
   {class=od,expver=0001,stream=oper,date=20151004,time=1200,domain=g}{type=an,levtype=pl}{step=0,levelist=700,param=155}
   {class=od,expver=0001,stream=oper,date=20151004,time=1200,domain=g}{type=an,levtype=pl}{step=0,levelist=850,param=129}
   {class=od,expver=0001,stream=oper,date=20151004,time=1200,domain=g}{type=an,levtype=pl}{step=0,levelist=850,param=130}
   ...
-
-

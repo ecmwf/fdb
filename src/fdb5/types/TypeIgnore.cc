@@ -28,7 +28,7 @@ std::string TypeIgnore::toKey(const std::string&) const {
     return "";
 }
 
-void TypeIgnore::getValues(const metkit::mars::MarsRequest&, const std::string&, eckit::StringList&, const Notifier&,
+void TypeIgnore::getValues(const metkit::mars::MarsRequest&, const std::string&, eckit::StringList&,
                            const CatalogueReader*) const {}
 
 void TypeIgnore::print(std::ostream& out) const {

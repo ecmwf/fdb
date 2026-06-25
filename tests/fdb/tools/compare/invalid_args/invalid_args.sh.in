@@ -5,7 +5,7 @@ set -eux
 
 yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
 die() { yell "$*"; exit 1; }
-try() { "$@" || die "Errored HERE => '$*'"; }
+
 
 
 fdbwrite="$<TARGET_FILE:fdb-write>"
