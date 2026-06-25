@@ -25,7 +25,7 @@ for binary_path in "$BASE"/* ; do
                 elif [[ "$rpath" == *'prereqs'* ]]; then
                     # Extract the library folder name (e.g., metkitlib)
                     lib_dir=$(echo "$rpath" | sed -E 's|.*/prereqs/([^/]+)/.*|\1|')
-                    new_rpaths+=("@loader_path/../../$lib_dir/lib64")
+                    new_rpaths+=("@loader_path/../../$lib_dir/lib")
                 fi
             done
             
