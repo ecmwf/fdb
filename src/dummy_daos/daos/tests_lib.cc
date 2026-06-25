@@ -14,11 +14,7 @@
  * @date   Jun 2022
  */
 
-#include "tests_lib.h"
-
 #include <unistd.h>
-#include "../dummy_daos.h"
-
 #include <cstring>
 
 #include "eckit/exception/Exceptions.h"

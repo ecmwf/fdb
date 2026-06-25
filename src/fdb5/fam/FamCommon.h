@@ -27,7 +27,6 @@
 #include "eckit/io/fam/FamObjectName.h"
 #include "eckit/io/fam/FamRegion.h"
 #include "eckit/io/fam/FamRegionName.h"
-#include "eckit/io/fam/FamTypes.h"
 #include "eckit/serialisation/MemoryStream.h"
 
 namespace fdb5 {
