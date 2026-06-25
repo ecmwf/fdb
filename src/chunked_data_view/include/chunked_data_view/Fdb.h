@@ -11,7 +11,6 @@
 
 #include "chunked_data_view/ListIterator.h"
 
-#include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
 #include "metkit/mars/MarsRequest.h"
 
