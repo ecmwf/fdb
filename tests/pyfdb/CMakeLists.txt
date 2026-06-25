@@ -44,10 +44,12 @@ set(test_files
     integration/test_selection_mapper.py
     integration/test_stats.py
     integration/test_status.py
+    integration/test_threading.py
     integration/test_types.py
     integration/test_uri.py
     integration/test_wildcard_selection.py
     integration/test_wipe.py
+    e2e/remote_threading/test_pyfdb_remote_fdb_threading.py
 )
 
 foreach(test_file ${test_files})
