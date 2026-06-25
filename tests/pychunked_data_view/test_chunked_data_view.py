@@ -67,9 +67,6 @@ def test_builder(read_only_fdb_setup):
 
     expected = list(range(0, 5248))
 
-    print(view.chunks())
-    print(view.chunkShape())
-
     for a, b in itertools.product(range(0, 32), range(0, 3)):
         np.testing.assert_array_almost_equal_nulp(view.at((a, b, 0)), expected)
 
