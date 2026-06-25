@@ -28,13 +28,20 @@
 
 namespace chunked_data_view {
 
-ChunkedDataViewBuilder::ChunkedDataViewBuilder(const std::optional<std::filesystem::path>& fdbConfigPath) :
-    configPath_(fdbConfigPath) {}
+ChunkedDataViewBuilder::ChunkedDataViewBuilder(std::shared_ptr<Extractor> defaultExtractor) :
+    defaultGribExtractor_(defaultExtractor) {}
+
 
 ChunkedDataViewBuilder& ChunkedDataViewBuilder::addPart(std::string marsRequestKeyValues,
                                                         std::vector<AxisDefinition> axes,
                                                         std::shared_ptr<Extractor> extractor) {
     parts_.emplace_back(std::move(marsRequestKeyValues), std::move(axes), std::move(extractor));
+    return *this;
+}
+
+ChunkedDataViewBuilder& ChunkedDataViewBuilder::addPart(std::string marsRequestKeyValues,
+                                                        std::vector<AxisDefinition> axes) {
+    parts_.emplace_back(std::move(marsRequestKeyValues), std::move(axes), defaultGribExtractor_);
     return *this;
 }
 

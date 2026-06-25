@@ -37,12 +37,10 @@ CASE("ChunkedDataView | View from 1 request | Can compute shape") {
     auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB());
 
     // Then
-    const auto view = cdv::ChunkedDataViewBuilder()
-                          .addPart(keys,
-                                   {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
-                                    cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
-                                    cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
-                                   mock_extractor)
+    const auto view = cdv::ChunkedDataViewBuilder(mock_extractor)
+                          .addPart(keys, {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
+                                          cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
+                                          cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}})
                           .build();
 
     // Expect to get: 4 dates, 4 times, 2 fields, 10 values per field (implicit axis)
@@ -65,7 +63,7 @@ CASE("ChunkedDataView | View from 2 requests | Can compute shape") {
 
     auto fake_extractor = std::make_shared<FakeExtractor>(createMockFDB());
 
-    const auto view = cdv::ChunkedDataViewBuilder()
+    const auto view = cdv::ChunkedDataViewBuilder(fake_extractor)
                           .addPart(keys,
                                    {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
                                     cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
@@ -95,7 +93,7 @@ CASE("ChunkedDataView | View from 2 requests | NoChunking on extension axis") {
 
     auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(3));
 
-    const auto view = cdv::ChunkedDataViewBuilder()
+    const auto view = cdv::ChunkedDataViewBuilder(mock_extractor)
                           .addPart(keys,
                                    {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
                                     cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
@@ -132,7 +130,7 @@ CASE("ChunkedDataView | View from 2 requests | Can compute shape, combined axis"
 
     auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB());
 
-    const auto view = cdv::ChunkedDataViewBuilder()
+    const auto view = cdv::ChunkedDataViewBuilder(mock_extractor)
                           .addPart(keys,
                                    {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::SingleValueChunking{}},
                                     cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::SingleValueChunking{}}},
@@ -160,7 +158,7 @@ CASE("ChunkedDataView - Can build") {
 
     auto fake_extractor = std::make_shared<FakeExtractor>(createMockFDB());
 
-    EXPECT_NO_THROW(cdv::ChunkedDataViewBuilder()
+    EXPECT_NO_THROW(cdv::ChunkedDataViewBuilder(fake_extractor)
                         .addPart(keys,
                                  {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
                                   cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
@@ -181,7 +179,7 @@ CASE("ChunkedDataView | build | No data in FDB throws user-facing error") {
 
     auto fake_extractor = std::make_shared<FakeExtractor>(mock_fdb);
 
-    EXPECT_THROWS(cdv::ChunkedDataViewBuilder()
+    EXPECT_THROWS(cdv::ChunkedDataViewBuilder(fake_extractor)
                       .addPart(keys,
                                {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
                                 cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
@@ -198,7 +196,7 @@ CASE("ChunkedDataView | at | Wrong index dimension throws") {
 
     auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(3));
 
-    const auto view = cdv::ChunkedDataViewBuilder()
+    const auto view = cdv::ChunkedDataViewBuilder(mock_extractor)
                           .addPart(keys,
                                    {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
                                     cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
@@ -224,7 +222,7 @@ CASE("ChunkedDataView | at | Out-of-bounds chunk index throws") {
 
     auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(3));
 
-    const auto view = cdv::ChunkedDataViewBuilder()
+    const auto view = cdv::ChunkedDataViewBuilder(mock_extractor)
                           .addPart(keys,
                                    {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
                                     cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
@@ -259,7 +257,7 @@ CASE("ChunkedDataView | at | Partial read throws") {
 
     auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(2));
 
-    const auto view = cdv::ChunkedDataViewBuilder()
+    const auto view = cdv::ChunkedDataViewBuilder(mock_extractor)
                           .addPart(keys,
                                    {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
                                     cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
@@ -279,7 +277,7 @@ CASE("ChunkedDataView | at | Partial read in multi-part extension throws") {
 
     auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(2));
 
-    const auto view = cdv::ChunkedDataViewBuilder()
+    const auto view = cdv::ChunkedDataViewBuilder(mock_extractor)
                           .addPart(keys,
                                    {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
                                     cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
@@ -311,7 +309,7 @@ CASE("ChunkedDataView | at | Partial read error path uses part-local coordinates
     // SingleValueChunking expects 1 message per chunk -> mismatch triggers the error path.
     auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(1));
 
-    const auto view = cdv::ChunkedDataViewBuilder()
+    const auto view = cdv::ChunkedDataViewBuilder(mock_extractor)
                           .addPart(keys,
                                    {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
                                     cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
@@ -346,7 +344,7 @@ CASE("ChunkedDataView | View from 3 requests | Can compute shape and access") {
 
     auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(3));
 
-    const auto view = cdv::ChunkedDataViewBuilder()
+    const auto view = cdv::ChunkedDataViewBuilder(mock_extractor)
                           .addPart(keys,
                                    {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
                                     cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},

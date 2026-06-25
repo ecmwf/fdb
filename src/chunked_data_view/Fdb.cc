@@ -41,10 +41,10 @@ private:
     fdb5::FDB fdb_{};
 };
 
-std::unique_ptr<FdbInterface> makeFdb(std::optional<std::filesystem::path> configPath) {
+std::shared_ptr<FdbInterface> makeFdb(std::optional<std::filesystem::path> configPath) {
     if (configPath) {
-        return std::make_unique<FdbWrapper>(fdb5::FDB(fdb5::Config::make(configPath->string())));
+        return std::make_shared<FdbWrapper>(fdb5::FDB(fdb5::Config::make(configPath->string())));
     }
-    return std::make_unique<FdbWrapper>(fdb5::FDB());
+    return std::make_shared<FdbWrapper>(fdb5::FDB());
 }
 }  // namespace chunked_data_view

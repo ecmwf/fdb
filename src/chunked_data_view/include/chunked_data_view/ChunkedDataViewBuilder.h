@@ -39,9 +39,7 @@ class ViewPart;
 class ChunkedDataViewBuilder {
 public:
 
-    /// @param configPath  Optional path to an FDB config file. Passed through to the FDB
-    ///                    instance created when building with ExtractorType::GRIB.
-    explicit ChunkedDataViewBuilder(const std::optional<std::filesystem::path>& configPath = std::nullopt);
+    explicit ChunkedDataViewBuilder(std::shared_ptr<Extractor> defaultExtractor);
 
     /// Registers one data region (part) of the view.
     ///
@@ -53,6 +51,9 @@ public:
     /// fields) and are stitched together along the extension axis specified by extendOnAxis().
     ChunkedDataViewBuilder& addPart(std::string marsRequestKeyValues, std::vector<AxisDefinition> axes,
                                     std::shared_ptr<Extractor> extractor);
+
+    ChunkedDataViewBuilder& addPart(std::string marsRequestKeyValues, std::vector<AxisDefinition> axes);
+
 
     /// Sets the axis index along which multiple parts are concatenated.
     ///
@@ -70,15 +71,15 @@ public:
     /// @throws eckit::UserError on misconfiguration (missing parts, axis mismatch, etc.).
     std::unique_ptr<ChunkedDataView> build();
 
-    /// Returns the FDB config path supplied at construction, if any.
-    std::optional<std::filesystem::path> getFdbConfigPath() const { return configPath_; }
+    std::shared_ptr<Extractor> getDefaultGribExtractor() const { return defaultGribExtractor_; }
 
 private:
 
-    std::optional<std::filesystem::path> configPath_{};
     std::vector<std::tuple<std::string, std::vector<AxisDefinition>, std::shared_ptr<Extractor>>> parts_{};
     std::optional<size_t> extensionAxisIndex_ = std::nullopt;
     float fillValue_ = std::numeric_limits<float>::infinity();
+
+    std::shared_ptr<Extractor> defaultGribExtractor_;
 
     bool doPartsAlign(const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& viewParts);
 };

@@ -19,7 +19,7 @@ CASE("ChunkedDataView | IndividualChunking | Can compute shape") {
 
     auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB());
 
-    const auto view = cdv::ChunkedDataViewBuilder()
+    const auto view = cdv::ChunkedDataViewBuilder(mock_extractor)
                           .addPart(keys,
                                    {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{2}},
                                     cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
@@ -42,7 +42,7 @@ CASE("ChunkedDataView | IndividualChunking | Invalid chunk size throws") {
     auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB());
 
     // chunkSize=0 -- explicitly forbidden
-    EXPECT_THROWS(cdv::ChunkedDataViewBuilder()
+    EXPECT_THROWS(cdv::ChunkedDataViewBuilder(mock_extractor)
                       .addPart(keys,
                                {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{0}},
                                 cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
@@ -51,7 +51,7 @@ CASE("ChunkedDataView | IndividualChunking | Invalid chunk size throws") {
                       .build());
 
     // chunkSize=1 -- same as SingleValueChunking, redundant, but ok
-    EXPECT_NO_THROW(cdv::ChunkedDataViewBuilder()
+    EXPECT_NO_THROW(cdv::ChunkedDataViewBuilder(mock_extractor)
                         .addPart(keys,
                                  {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{1}},
                                   cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
@@ -60,7 +60,7 @@ CASE("ChunkedDataView | IndividualChunking | Invalid chunk size throws") {
                         .build());
 
     // chunkSize==axis size (4) -- same as NoChunking, redundant, but ok
-    EXPECT_NO_THROW(cdv::ChunkedDataViewBuilder()
+    EXPECT_NO_THROW(cdv::ChunkedDataViewBuilder(mock_extractor)
                         .addPart(keys,
                                  {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{4}},
                                   cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
@@ -78,7 +78,7 @@ CASE("ChunkedDataView | IndividualChunking | at() accesses each chunk") {
 
     auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(5));
 
-    const auto view = cdv::ChunkedDataViewBuilder()
+    const auto view = cdv::ChunkedDataViewBuilder(mock_extractor)
                           .addPart(keys,
                                    {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{2}},
                                     cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
@@ -112,7 +112,7 @@ CASE("ChunkedDataView | IndividualChunking | Combined axis with differently-size
 
     auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(9));
 
-    const auto view = cdv::ChunkedDataViewBuilder()
+    const auto view = cdv::ChunkedDataViewBuilder(mock_extractor)
                           .addPart(keys,
                                    {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::IndividualChunking{4}},
                                     cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{2}}},
@@ -153,7 +153,7 @@ CASE("ChunkedDataView | IndividualChunking | Combined axis with differently-size
 
     auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(46));
 
-    const auto view = cdv::ChunkedDataViewBuilder()
+    const auto view = cdv::ChunkedDataViewBuilder(mock_extractor)
                           .addPart(keys,
                                    {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::IndividualChunking{3}},
                                     cdv::AxisDefinition{{"levelist"}, cdv::AxisDefinition::IndividualChunking{5}},
@@ -189,7 +189,7 @@ CASE("ChunkedDataView | IndividualChunking | Combined axis with differently-size
 
     // Invalid chunk sizes: non-divisors of the axis extent must throw at build time
     // levelist has 10 values -> IndividualChunking{3} does not divide evenly
-    EXPECT_THROWS(cdv::ChunkedDataViewBuilder()
+    EXPECT_THROWS(cdv::ChunkedDataViewBuilder(mock_extractor)
                       .addPart(keys,
                                {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::IndividualChunking{3}},
                                 cdv::AxisDefinition{{"levelist"}, cdv::AxisDefinition::IndividualChunking{3}},
@@ -198,7 +198,7 @@ CASE("ChunkedDataView | IndividualChunking | Combined axis with differently-size
                       .build());
 
     // param has 6 values -> IndividualChunking{4} does not divide evenly
-    EXPECT_THROWS(cdv::ChunkedDataViewBuilder()
+    EXPECT_THROWS(cdv::ChunkedDataViewBuilder(mock_extractor)
                       .addPart(keys,
                                {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::IndividualChunking{3}},
                                 cdv::AxisDefinition{{"levelist"}, cdv::AxisDefinition::IndividualChunking{5}},
@@ -227,7 +227,7 @@ CASE("ChunkedDataView | IndividualChunking | Multi part with combined axis with 
     auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(10));
 
     const auto view =
-        cdv::ChunkedDataViewBuilder()
+        cdv::ChunkedDataViewBuilder(mock_extractor)
             .addPart(keys_sfc,
                      {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::IndividualChunking{3}},
                       cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{3}}},
@@ -264,6 +264,55 @@ CASE("ChunkedDataView | IndividualChunking | Multi part with combined axis with 
     EXPECT_THROWS(view->at({0, 0, 1}, buf.data(), buf.size()));
 }
 
+CASE(
+    "ChunkedDataView | IndividualChunking with default Extractor| Multi part with combined axis with differently-sized "
+    "chunk dimensions 2") {
+    // This test case is identical to the one above
+    const std::string keys_sfc{
+        "type=an,domain=g,expver=0001,stream=oper,"
+        "date=2020-01-01/to/2020-01-04,levtype=sfc,param=110/120/130,time=0/6/12"};
+
+    const std::string keys_ml{
+        "type=an,domain=g,expver=0001,stream=oper,"
+        "date=2020-01-01/to/2020-01-04,levtype=ml,levelist=100/200/300/400/500/600/700/800/900/1000,"
+        "param=10/20/30/40/50/60,time=0/6/12"};
+
+    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(10));
+
+    const auto view =
+        cdv::ChunkedDataViewBuilder(mock_extractor)
+            .addPart(keys_sfc, {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::IndividualChunking{3}},
+                                cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{3}}})
+            .addPart(keys_ml,
+                     {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::IndividualChunking{3}},
+                      {cdv::AxisDefinition{{"levelist", "param"}, cdv::AxisDefinition::IndividualChunking{3}}}})
+            .extendOnAxis(1)
+            .build();
+
+    // Part 1 (sfc): datextime=12/IC{3}->4 chunks, param=3/IC{3}->1 chunk
+    // Part 2 (ml):  datextime=12/IC{3}->4 chunks, levelist x param=60/IC{3}->20 chunks
+    // extendOnAxis(1): axis-1 total = 3+60=63, chunks = 1+20=21
+    // Implicit values axis: 10, 1 chunk
+    EXPECT_EQUAL(view->shape(), (std::vector<size_t>{12, 63, 10}));
+    EXPECT_EQUAL(view->chunkShape(), (std::vector<size_t>{3, 3, 10}));
+    EXPECT_EQUAL(view->chunks(), (std::vector<size_t>{4, 21, 1}));
+
+    std::vector<float> buf(view->countChunkValues());
+
+    // First chunk: part-1 slice, combined [0,2] x axis-1 [0,2]
+    EXPECT_NO_THROW(view->at({0, 0, 0}, buf.data(), buf.size()));
+    // First chunk of part-2 extent: combined [0,2] x axis-1 [3,5]
+    EXPECT_NO_THROW(view->at({0, 1, 0}, buf.data(), buf.size()));
+    // Last valid chunk: combined [9,11] x axis-1 [60,62]
+    EXPECT_NO_THROW(view->at({3, 20, 0}, buf.data(), buf.size()));
+
+    // Out-of-bounds on combined axis (4 chunks: 0-3)
+    EXPECT_THROWS(view->at({4, 0, 0}, buf.data(), buf.size()));
+    // Out-of-bounds on axis-1 (21 chunks: 0-20)
+    EXPECT_THROWS(view->at({0, 21, 0}, buf.data(), buf.size()));
+    // Out-of-bounds on implicit values axis (1 chunk: 0)
+    EXPECT_THROWS(view->at({0, 0, 1}, buf.data(), buf.size()));
+}
 
 int main(int argc, char** argv) {
     return ::eckit::testing::run_tests(argc, argv);

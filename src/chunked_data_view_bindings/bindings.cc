@@ -90,17 +90,18 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
     // Wrapper class ChunkedDataViewBuilder
     py::class_<cdv::ChunkedDataViewBuilder>(m, "ChunkedDataViewBuilder")
         .def(py::init([](std::optional<std::filesystem::path> fdbConfigPath) {
-            return cdv::ChunkedDataViewBuilder(fdbConfigPath);
+            auto fdb = cdv::makeFdb(fdbConfigPath);
+            auto extractor =
+                std::make_shared<chunked_data_view::GribExtractor>(chunked_data_view::GribExtractor(std::move(fdb)));
+            return cdv::ChunkedDataViewBuilder(extractor);
         }))
         .def("add_part",
              [](cdv::ChunkedDataViewBuilder& builder, std::string marsRequestKeyValues,
                 std::vector<cdv::AxisDefinition> axes, const cdv::ExtractorType extractorType) {
                  switch (extractorType) {
                      case chunked_data_view::ExtractorType::GRIB: {
-                         auto fdb = cdv::makeFdb(builder.getFdbConfigPath());
-                         auto extractor = std::make_shared<chunked_data_view::GribExtractor>(
-                             chunked_data_view::GribExtractor(std::move(fdb)));
-                         builder.addPart(std::move(marsRequestKeyValues), std::move(axes), std::move(extractor));
+                         builder.addPart(std::move(marsRequestKeyValues), std::move(axes),
+                                         builder.getDefaultGribExtractor());
                          break;
                      }
                      default:
