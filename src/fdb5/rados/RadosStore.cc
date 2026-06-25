@@ -14,8 +14,6 @@
 #include "eckit/config/Resource.h"
 #include "eckit/io/EmptyHandle.h"
 #include "eckit/io/rados/RadosWriteHandle.h"
-#include "eckit/log/Bytes.h"
-#include "eckit/log/Timer.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/FieldLocation.h"

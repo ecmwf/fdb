@@ -9,8 +9,6 @@
  */
 
 
-#include "fdb5/daos/DaosContainer.h"
-
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/TmpDir.h"
 

@@ -8,8 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/types/TypeInteger.h"
-
 #include "eckit/utils/Translator.h"
 
 #include "metkit/mars/MarsRequest.h"

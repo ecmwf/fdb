@@ -15,8 +15,9 @@
 #ifndef fdb5_TocIndex_H
 #define fdb5_TocIndex_H
 
-#include "eckit/container/BTree.h"
 #include "eckit/eckit.h"
+
+#include "eckit/container/BTree.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
 

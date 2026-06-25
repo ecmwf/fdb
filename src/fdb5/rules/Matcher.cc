@@ -8,8 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/rules/Matcher.h"
-
 #include "eckit/exception/Exceptions.h"
 
 #include "metkit/mars/MarsRequest.h"

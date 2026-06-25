@@ -12,8 +12,6 @@
 #include "fdb5/types/TypeIgnore.h"
 #include "fdb5/types/TypesFactory.h"
 
-#include "fdb5/types/TypesFactory.h"
-
 
 namespace fdb5 {
 

@@ -24,6 +24,8 @@
 #include "fdb5/database/PurgeVisitor.h"
 #include "fdb5/database/Store.h"
 
+#include "eckit/filesystem/PathName.h"
+
 
 namespace fdb5 {
 namespace api {

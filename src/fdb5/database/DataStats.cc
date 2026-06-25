@@ -8,9 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/database/DataStats.h"
-
 #include "eckit/exception/Exceptions.h"
+
+#include "fdb5/database/DataStats.h"
 
 namespace fdb5 {
 

@@ -9,10 +9,7 @@
  */
 
 
-#include "fdb5/types/TypeClimateMonthly.h"
-
 #include "eckit/types/Date.h"
-
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/types/TypeClimateMonthly.h"

@@ -8,8 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/types/TypeClimateDaily.h"
-
 #include "eckit/exception/Exceptions.h"
 #include "eckit/types/Date.h"
 #include "eckit/utils/Tokenizer.h"

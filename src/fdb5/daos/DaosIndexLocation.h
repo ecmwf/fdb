@@ -15,8 +15,9 @@
 
 #include "eckit/exception/Exceptions.h"
 
-#include "fdb5/daos/DaosName.h"
 #include "fdb5/database/IndexLocation.h"
+
+#include "fdb5/daos/DaosName.h"
 
 namespace fdb5 {
 

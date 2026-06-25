@@ -13,9 +13,10 @@
 
 #pragma once
 
-#include "fdb5/daos/DaosCommon.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/rules/Schema.h"
+
+#include "fdb5/daos/DaosCommon.h"
 
 namespace fdb5 {
 

@@ -8,8 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/toc/Root.h"
-
 #include "eckit/log/Log.h"
 #include "eckit/os/Stat.h"
 

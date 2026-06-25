@@ -8,8 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/toc/TocCatalogueReader.h"
-
 #include <algorithm>
 #include <vector>
 

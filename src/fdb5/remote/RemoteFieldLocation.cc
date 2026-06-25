@@ -22,8 +22,6 @@
 #include "eckit/filesystem/URIManager.h"
 #include "eckit/log/Log.h"
 
-#include "fdb5/api/RemoteFDB.h"
-
 namespace fdb5 {
 namespace remote {
 

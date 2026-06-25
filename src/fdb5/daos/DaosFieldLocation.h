@@ -16,8 +16,9 @@
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
 
-#include "fdb5/daos/DaosName.h"
 #include "fdb5/database/FieldLocation.h"
+
+#include "fdb5/daos/DaosName.h"
 
 namespace fdb5 {
 

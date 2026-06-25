@@ -8,10 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/daos/DaosLazyFieldLocation.h"
-
 #include "eckit/serialisation/MemoryStream.h"
 
+#include "fdb5/daos/DaosLazyFieldLocation.h"
 #include "fdb5/daos/DaosName.h"
 #include "fdb5/daos/DaosSession.h"
 

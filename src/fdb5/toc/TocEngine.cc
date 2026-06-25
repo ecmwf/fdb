@@ -8,8 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/toc/TocEngine.h"
-
 #include <dirent.h>
 
 #include <algorithm>
@@ -33,6 +31,7 @@
 #include "fdb5/rules/Rule.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/toc/RootManager.h"
+#include "fdb5/toc/TocEngine.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/types/TypesRegistry.h"
 

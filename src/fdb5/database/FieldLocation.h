@@ -19,8 +19,6 @@
 #include <eckit/filesystem/URI.h>
 #include <memory>
 
-#include <memory>
-
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/Length.h"
 #include "eckit/memory/Owned.h"

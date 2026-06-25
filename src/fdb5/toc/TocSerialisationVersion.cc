@@ -13,10 +13,6 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/toc/TocSerialisationVersion.h"
 
-#include "eckit/config/Resource.h"
-
-#include "fdb5/LibFdb5.h"
-
 namespace fdb5 {
 
 static unsigned getUserEnvSerialisationVersion() {

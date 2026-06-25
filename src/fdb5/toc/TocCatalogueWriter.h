@@ -19,8 +19,9 @@
 #include "eckit/os/AutoUmask.h"
 
 #include "fdb5/database/Index.h"
-#include "fdb5/toc/TocCatalogue.h"
 #include "fdb5/toc/TocRecord.h"
+
+#include "fdb5/toc/TocCatalogue.h"
 #include "fdb5/toc/TocSerialisationVersion.h"
 
 namespace fdb5 {

@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <sstream>
+
 #include "fdb5/toc/FileSpaceHandler.h"
 
 #include "eckit/exception/Exceptions.h"

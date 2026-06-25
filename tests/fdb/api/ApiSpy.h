@@ -28,9 +28,6 @@
 
 #include "metkit/mars/MarsRequest.h"
 
-#include "fdb5/api/FDB.h"
-#include "fdb5/api/FDBFactory.h"
-
 namespace fdb {
 namespace test {
 

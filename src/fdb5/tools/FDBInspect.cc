@@ -9,8 +9,6 @@
  */
 
 #if 0
-#include "fdb5/tools/FDBInspect.h"
-
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
@@ -22,6 +20,7 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Manager.h"
 #include "fdb5/rules/Schema.h"
+#include "fdb5/tools/FDBInspect.h"
 #include "fdb5/tools/ToolRequest.h"
 
 using eckit::Log;

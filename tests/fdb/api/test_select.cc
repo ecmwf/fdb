@@ -13,8 +13,6 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
-#include "ApiSpy.h"
-
 #include <cstdlib>
 
 #include "eckit/testing/Test.h"

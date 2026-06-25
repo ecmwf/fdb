@@ -17,8 +17,9 @@
 
 #include "eckit/config/LocalConfiguration.h"
 
-#include "fdb5/daos/DaosOID.h"
 #include "fdb5/database/Engine.h"
+
+#include "fdb5/daos/DaosOID.h"
 
 namespace fdb5 {
 

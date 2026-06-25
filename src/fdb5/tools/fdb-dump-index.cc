@@ -8,12 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-#include <string>
-
 #include "eckit/option/CmdArgs.h"
 
-#include "fdb5/database/Index.h"
-#include "fdb5/toc/BTreeIndex.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/tools/FDBTool.h"
 

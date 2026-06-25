@@ -19,7 +19,6 @@
 #include <iosfwd>
 
 #include "eckit/types/Types.h"
-
 #include "fdb5/database/Catalogue.h"
 
 namespace metkit::mars {
