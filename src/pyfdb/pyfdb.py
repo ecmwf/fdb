@@ -634,7 +634,9 @@ class FDB:
         """
         internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_internal_mars_selection(internal_mars_selection)
-        raw_control_identifiers = [control_identifier._to_raw() for control_identifier in control_identifiers]
+        raw_control_identifiers = [
+            control_identifier._to_raw() for control_identifier in control_identifiers
+        ]
         iterator = self.FDB.control(
             fdb_tool_request.tool_request,
             control_action._to_raw(),
