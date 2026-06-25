@@ -85,7 +85,7 @@ CASE("RequestManipulation | Bounding Box | Single Point") {
     }
 
     for (const auto& param : param_values) {
-        eckit::Log::debug() << param_values << " " << std::endl;
+        eckit::Log::debug() << param << " " << std::endl;
     }
 
     EXPECT_EQUAL(date_values.size(), 1);

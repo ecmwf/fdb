@@ -7,18 +7,8 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
+
 #include "ViewPart.h"
-
-#include "RequestManipulation.h"
-#include "chunked_data_view/DataLayout.h"
-
-#include "chunked_data_view/Axis.h"
-#include "chunked_data_view/Extractor.h"
-#include "chunked_data_view/exception/BoundingBoxException.h"
-#include "chunked_data_view/mapping/AxisMapper.h"
-#include "eckit/exception/Exceptions.h"
-#include "eckit/log/Log.h"
-#include "metkit/mars/MarsRequest.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -26,6 +16,15 @@
 #include <set>
 #include <string>
 #include <vector>
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/log/Log.h"
+#include "metkit/mars/MarsRequest.h"
+
+#include "chunked_data_view/Axis.h"
+#include "chunked_data_view/DataLayout.h"
+#include "chunked_data_view/RequestManipulation.h"
+#include "chunked_data_view/exception/BoundingBoxException.h"
 
 
 namespace chunked_data_view {
@@ -163,9 +162,13 @@ ViewPart::ViewPart(const metkit::mars::MarsRequest& request, const DataLayout& d
 metkit::mars::MarsRequest ViewPart::at(const PartBoundingBox& boundingBox) const {
 
     const auto translatedBB = bb_.subtract(bb_.lower());
-    const auto intersection = translatedBB.intersect(boundingBox);
-    ASSERT(intersection.has_value());
-    ASSERT(intersection->entries() > 0);
+    const auto contained = translatedBB.contains(boundingBox);
+    if (!contained) {
+        std::ostringstream msg;
+        msg << "ViewPart::at: Relative part bounding box " << translatedBB << " doesn't fully contain " << boundingBox
+            << std::endl;
+        throw chunked_data_view::BoundingBoxException(msg.str(), Here());
+    }
 
     return RequestManipulation::selectRequest(request_, axes_, boundingBox);
 }

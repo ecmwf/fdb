@@ -7,18 +7,18 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
-#include "ChunkedDataViewImpl.h"
-
-#include "chunked_data_view/ViewPart.h"
-#include "eckit/exception/Exceptions.h"
-
-#include "chunked_data_view/exception/GribExtractorException.h"
 
 #include <cstddef>
 #include <ostream>
 #include <sstream>
 #include <utility>
 #include <vector>
+
+#include "ChunkedDataViewImpl.h"
+
+#include "chunked_data_view/ViewPart.h"
+#include "eckit/exception/Exceptions.h"
+
 
 namespace chunked_data_view {
 

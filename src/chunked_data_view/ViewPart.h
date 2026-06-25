@@ -16,6 +16,7 @@
 #include "metkit/mars/MarsRequest.h"
 
 #include <cstddef>
+#include <optional>
 #include <ostream>
 #include <vector>
 
@@ -71,22 +72,16 @@ public:
     bool operator==(const BoundingBox& b) const { return lower_ == b.lower() && upper_ == b.upper(); }
     bool operator!=(const BoundingBox& right) const { return !operator==(right); }
 
-    friend std::ostream& operator<<(std::ostream& cout, BoundingBox& c) {
-        cout << "[";
-
-        for (size_t i = 0; i < c.dimensions() - 1; ++i) {
-            cout << c.lower()[i] << ", ";
+    friend std::ostream& operator<<(std::ostream& os, const BoundingBox& c) {
+        if (c.dimensions() == 0) {
+            os << "[]";
+            return os;
         }
-
-        cout << c.lower()[c.dimensions() - 1] << "] x [";
-
-        for (size_t i = 0; i < c.dimensions() - 1; ++i) {
-            cout << c.upper()[i] << ", ";
+        for (size_t i = 0; i < c.dimensions(); ++i) {
+            if (i > 0) os << " x ";
+            os << "[" << c.lower()[i] << ", " << c.upper()[i] << "]";
         }
-
-        cout << c.upper()[c.dimensions() - 1] << "]";
-
-        return cout;
+        return os;
     }
 
 private:  // members
