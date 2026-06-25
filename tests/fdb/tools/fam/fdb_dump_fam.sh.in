@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
 
-set -eux
+set -euxo pipefail
 
-yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
-die() { yell "$*"; exit 1; }
-try() { "$@" || die "Command failed => '$*'"
+yell() {
+  printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\n" "$*" >&2
+}
+
+die() {
+  yell "$*"
+  exit 1
+}
+
+command_exists() {
+  command -v "$1" >/dev/null 2>&1 || die "Required command not found: $1"
 }
 
 expect_output() {
@@ -28,6 +36,12 @@ expect_match() {
 export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
 export FDB_HOME=@PROJECT_BINARY_DIR@
 
+# Validate required commands after PATH is set
+command_exists fdb-fam
+command_exists fdb-write
+command_exists fdb-dump
+command_exists grib_set
+
 # When ECKIT_FAM_TEST_ENDPOINT is set (real OpenFAM), use it verbatim.
 # Otherwise (mock), embed PID in hostname so each test gets its own shm segment.
 fam_endpoint="${ECKIT_FAM_TEST_ENDPOINT:-localhost_$$:8880}"
@@ -39,20 +53,6 @@ bindir=@CMAKE_CURRENT_BINARY_DIR@
 
 tname="dump-fam_test"
 
-########################################################################################################################
-
-echo "=== fdb-dump FAM test ==="
-echo "endpoint : $fam_endpoint"
-echo "region   : $test_region"
-
-try cd "$bindir"
-rm -rf "$tname" || true
-mkdir -p "$tname/localroot"
-try cd "$tname"
-
-# Create the FAM region (1 MB)
-try fdb-fam --endpoint="$fam_endpoint" --create --size=1048576 --perm=0640 "/$test_region"
-
 cleanup() {
     echo "cleanup"
     fdb-fam --endpoint="$fam_endpoint" --delete "/$test_region" 2>/dev/null || true
@@ -61,6 +61,20 @@ cleanup() {
     [[ -z "${ECKIT_FAM_TEST_ENDPOINT:-}" ]] && rm -f "/dev/shm/eckit_fam_mock_localhost_$$" 2>/dev/null || true
 }
 trap cleanup EXIT
+
+########################################################################################################################
+
+echo "=== fdb-dump FAM test ==="
+echo "endpoint : $fam_endpoint"
+echo "region   : $test_region"
+
+cd "$bindir" || die "Failed to change to binary directory: $bindir"
+rm -rf "$tname"
+mkdir -p "$tname/localroot" || die "Failed to create test directory: $tname/localroot"
+cd "$tname" || die "Failed to change to test directory: $tname"
+
+# Create the FAM region (1 MB)
+fdb-fam --endpoint="$fam_endpoint" --create --size=1048576 --perm=0640 "/$test_region"
 
 ########################################################################################################################
 # Write config and schema
@@ -86,20 +100,18 @@ fam_roots:
 EOF
 
 export FDB5_CONFIG_FILE="$(pwd)/local.yaml"
-
-########################################################################################################################
-# Create GRIB test data and archive
-########################################################################################################################
+[[ -f "$FDB5_CONFIG_FILE" ]] || die "Config file not found: $FDB5_CONFIG_FILE"
 
 src_grib="$srcdir/x.grib"
+[[ -f "$src_grib" ]] || die "Source GRIB file not found: $src_grib"
 
 echo "--- Archive GRIB data ---"
 
-try grib_set -s class=rd,expver=xxxx,type=fc,step=0 "$src_grib" step0.grib
-try grib_set -s class=rd,expver=xxxx,type=an,step=0 "$src_grib" an.grib
+grib_set -s class=rd,expver=xxxx,type=fc,step=0 "$src_grib" step0.grib
+grib_set -s class=rd,expver=xxxx,type=an,step=0 "$src_grib" an.grib
 
-try fdb-write step0.grib
-try fdb-write an.grib
+fdb-write step0.grib
+fdb-write an.grib
 
 ########################################################################################################################
 # Test: fdb-dump --simple
@@ -107,7 +119,7 @@ try fdb-write an.grib
 
 echo "--- TEST: fdb-dump --simple ---"
 
-out=$(try fdb-dump --simple class=rd,expver=xxxx)
+out=$(fdb-dump --simple class=rd,expver=xxxx)
 echo "$out"
 
 echo "$out" | grep -qF "FamCatalogue"    || die "Expected 'FamCatalogue' in simple dump"
@@ -119,7 +131,7 @@ echo "$out" | grep -qF "Key:"            || die "Expected 'Key:' in simple dump"
 
 echo "--- TEST: fdb-dump (verbose) ---"
 
-out=$(try fdb-dump class=rd,expver=xxxx)
+out=$(fdb-dump class=rd,expver=xxxx)
 echo "$out"
 
 echo "$out" | grep -qF "FamCatalogue"        || die "Expected 'FamCatalogue' in verbose dump"

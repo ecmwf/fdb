@@ -1,13 +1,28 @@
 #!/usr/bin/env bash
 
-set -eu
+set -euxo pipefail
 
-yell() { echo "$(basename "$0"): $*" >&2; }
-die() { yell "$*"; exit 1; }
-try() { "$@" || die "Errored HERE => '$*'"; }
+yell() {
+  echo "$(basename "$0"): $*" >&2
+}
+
+die() {
+  yell "$*"
+  exit 1
+}
+
+command_exists() {
+  command -v "$1" >/dev/null 2>&1 || die "Required command not found: $1"
+}
 
 export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
 export FDB_HOME=@PROJECT_BINARY_DIR@
+
+# Validate required commands after PATH is set
+command_exists fdb-fam
+command_exists fdb-write
+command_exists fdb-inspect
+command_exists grib_set
 
 tname=fam_inspect_test
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
@@ -19,18 +34,6 @@ fam_endpoint="${ECKIT_FAM_TEST_ENDPOINT:-localhost_$$:8880}"
 test_region="fdb_inspect_fam_$$"
 fam_uri="fam://${fam_endpoint}/${test_region}"
 
-########################################################################################################################
-
-try cd $bindir
-
-rm -rf $tname || true
-mkdir -p $tname/localroot
-
-try cd $tname
-
-# Create the FAM region (10 MB)
-try fdb-fam --endpoint="$fam_endpoint" --create --size=10485760 --perm=0640 "/$test_region"
-
 cleanup() {
     echo "cleanup"
     fdb-fam --endpoint="$fam_endpoint" --delete "/$test_region" 2>/dev/null || true
@@ -39,6 +42,18 @@ cleanup() {
     [[ -z "${ECKIT_FAM_TEST_ENDPOINT:-}" ]] && rm -f "/dev/shm/eckit_fam_mock_localhost_$$" 2>/dev/null || true
 }
 trap cleanup EXIT
+
+########################################################################################################################
+
+cd "$bindir" || die "Failed to change to binary directory: $bindir"
+
+rm -rf "$tname"
+mkdir -p "$tname/localroot" || die "Failed to create test directory: $tname/localroot"
+
+cd "$tname" || die "Failed to change to test directory: $tname"
+
+# Create the FAM region (10 MB)
+fdb-fam --endpoint="$fam_endpoint" --create --size=10485760 --perm=0640 "/$test_region"
 
 schema_src="$FDB_HOME/etc/fdb/schema"
 
@@ -68,19 +83,19 @@ done
 ########################################################################################################################
 # Create a grib file with 4 steps and populate FDB
 
-try grib_set -s step=0 x.grib 0.grib
-try grib_set -s step=6 x.grib 6.grib
-try grib_set -s step=9 x.grib 9.grib
+grib_set -s step=0 x.grib 0.grib
+grib_set -s step=6 x.grib 6.grib
+grib_set -s step=9 x.grib 9.grib
 
 for f in *.grib; do
-  try grib_set -s type=an "$f" "cf.$f"
+grib_set -s type=an "$f" "cf.$f"
 done
 
 for f in *.grib; do
-  try cat "$f" >> "$tname.grib"
+cat "$f" >> "$tname.grib"
 done
 
-try fdb-write "$tname.grib"
+fdb-write "$tname.grib"
 
 ########################################################################################################################
 # test all
@@ -99,4 +114,4 @@ out=$(fdb-inspect $requests)
 exp="Number of requests: 8
 Number of elements: 8"
 
-try test "$exp" = "$out"
+test "$exp" = "$out"
