@@ -5,7 +5,6 @@ build:
     - ecmwf/ecbuild@develop
     - ecmwf/eccodes@develop
     - ecmwf/eckit@feature/ECKIT-635_fam-backend-map
-    - ecmwf/odc@develop
     - ecmwf/metkit@develop
   cmake_options:
     - -DENABLE_LUSTRE=OFF
