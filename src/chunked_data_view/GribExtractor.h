@@ -14,7 +14,6 @@
 #include "chunked_data_view/Extractor.h"
 #include "chunked_data_view/Fdb.h"
 #include "chunked_data_view/ListIterator.h"
-
 #include "chunked_data_view/ViewPart.h"
 
 #include <cstddef>
