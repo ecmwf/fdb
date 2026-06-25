@@ -78,7 +78,9 @@ public:
             return os;
         }
         for (size_t i = 0; i < c.dimensions(); ++i) {
-            if (i > 0) os << " x ";
+            if (i > 0) {
+                os << " x ";
+            }
             os << "[" << c.lower()[i] << ", " << c.upper()[i] << "]";
         }
         return os;
