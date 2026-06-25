@@ -4,6 +4,8 @@
 
 #include "eckit/testing/Test.h"
 
+#include <sstream>
+
 CASE("Bounding Box | Initialization") {
 
     chunked_data_view::BoundingBox bb{{3, 2, 1}, {5, 3, 2}};
@@ -98,6 +100,20 @@ CASE("Bounding Box | Equals pperator") {
 
     EXPECT(bb == equal);
     EXPECT(bb != not_equal);
+};
+
+CASE("Bounding Box | operator<< prints per-dimension intervals") {
+    chunked_data_view::BoundingBox bb{{1, 2, 3}, {4, 5, 6}};
+    std::ostringstream oss;
+    oss << bb;
+    EXPECT_EQUAL(oss.str(), std::string("[1, 4] x [2, 5] x [3, 6]"));
+};
+
+CASE("Bounding Box | operator<< prints [] for zero-dimension box") {
+    chunked_data_view::BoundingBox bb{};
+    std::ostringstream oss;
+    oss << bb;
+    EXPECT_EQUAL(oss.str(), std::string("[]"));
 };
 
 
