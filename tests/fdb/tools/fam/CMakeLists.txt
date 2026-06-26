@@ -2,7 +2,7 @@ if( eckit_HAVE_OPENFAM_MOCK )
     list( APPEND _fam_environment
         "ECKIT_FAM_MOCK_SHM_SIZE=67108864"
     )
-else()
+elseif( eckit_HAVE_OPENFAM )
     list( APPEND _fam_environment ${_test_environment}
         "OPENFAM_ROOT=/workspace/cis-rpc_meta-direct_mem-rpc"
         "ECKIT_FAM_TEST_ENDPOINT=172.24.0.2:8880"
