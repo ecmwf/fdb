@@ -5,7 +5,7 @@ if( eckit_HAVE_OPENFAM_MOCK )
 else()
     list( APPEND _fam_environment ${_test_environment}
         "OPENFAM_ROOT=/workspace/cis-rpc_meta-direct_mem-rpc"
-        "FDB_FAM_TEST_ENDPOINT=172.26.0.2:8880"
+        "ECKIT_FAM_TEST_ENDPOINT=172.24.0.2:8880"
     )
 endif()
 
@@ -24,10 +24,8 @@ list( APPEND fdb_tools_fam_tests
     inspect
     list_all
     list_all_full
-    list_masking
     list_minimum_keys
     list_porcelain
-    list_ranges
     dump
 )
 

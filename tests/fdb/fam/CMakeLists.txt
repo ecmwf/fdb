@@ -11,7 +11,7 @@ if( HAVE_FAMFDB )
         )
     else()
         list( APPEND _fam_environment ${_test_environment}
-            "ECKIT_FAM_TEST_ENDPOINT=172.26.0.2:8880"
+            "ECKIT_FAM_TEST_ENDPOINT=172.24.0.2:8880"
         )
     endif()
 
