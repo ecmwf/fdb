@@ -29,7 +29,7 @@ namespace fdb5 {
 
 
 FDBBase::FDBBase(const Config& config, const std::string& name) :
-    name_(name), config_(config), controlIdentifiers_(config) {
+    name_(name), config_(config), controlIdentifiers_(ControlIdentifiers::parse(config)) {
 
     LOG_DEBUG_LIB(LibFdb5) << "FDBBase: " << config << std::endl;
 }

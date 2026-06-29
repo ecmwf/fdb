@@ -314,7 +314,7 @@ Store& StoreHandler::store(uint32_t clientID, const Key& dbKey) {
     if (!single_) {
         numDataConnection_++;
     }
-    return *((stores_.emplace(clientID, StoreHelper(!single_, dbKey, config_)).first)->second.store);
+    return *((stores_.emplace(clientID, StoreHelper(!single_, dbKey, innerConfig_)).first)->second.store);
 }
 
 Store& StoreHandler::getStore(uint32_t clientID, const eckit::URI& uri) {
@@ -329,7 +329,7 @@ Store& StoreHandler::getStore(uint32_t clientID, const eckit::URI& uri) {
     if (!single_) {
         numDataConnection_++;
     }
-    return *((stores_.emplace(clientID, StoreHelper(!single_, uri, config_)).first)->second.store);
+    return *((stores_.emplace(clientID, StoreHelper(!single_, uri, innerConfig_)).first)->second.store);
 }
 
 void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) const {
@@ -341,7 +341,7 @@ void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, con
     {
         eckit::MemoryStream stream(payload);
         const Key dbKey(stream);
-        exists = StoreFactory::instance().build(dbKey, config_)->exists();
+        exists = StoreFactory::instance().build(dbKey, innerConfig_)->exists();
     }
 
     eckit::Buffer existBuf(5);
