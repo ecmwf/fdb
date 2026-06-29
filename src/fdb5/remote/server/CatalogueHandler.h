@@ -61,8 +61,6 @@ private:  // methods
     Handled handleControl(Message message, uint32_t clientID, uint32_t requestID) override;
     Handled handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) override;
 
-    void checkIsEnabled(ControlIdentifier identifier);
-
     // API functionality
     template <typename HelperClass>
     void handleApiCall(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
