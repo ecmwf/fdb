@@ -53,6 +53,7 @@ constexpr const char* archive_lock_file = "archive.lock";
 constexpr const char* list_lock_file = "list.lock";
 constexpr const char* wipe_lock_file = "wipe.lock";
 constexpr const char* allow_duplicates_file = "duplicates.allow";
+constexpr const char* unsafe_wipe_lock_file = "unsafe_wipe.lock";
 }  // namespace
 
 const std::map<ControlIdentifier, const char*> controlfile_lookup{
@@ -60,7 +61,8 @@ const std::map<ControlIdentifier, const char*> controlfile_lookup{
     {ControlIdentifier::Archive, archive_lock_file},
     {ControlIdentifier::List, list_lock_file},
     {ControlIdentifier::Wipe, wipe_lock_file},
-    {ControlIdentifier::UniqueRoot, allow_duplicates_file}};
+    {ControlIdentifier::UniqueRoot, allow_duplicates_file},
+    {ControlIdentifier::UnsafeWipeAll, unsafe_wipe_lock_file}};
 
 //----------------------------------------------------------------------------------------------------------------------
 

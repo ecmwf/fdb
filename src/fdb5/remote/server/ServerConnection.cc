@@ -72,6 +72,7 @@ ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& 
     archiveQueue_(eckit::Resource<size_t>("fdbServerMaxQueueSize", defaultArchiveQueueSize)),
     controlSocket_(socket) {
 
+    innerConfig_ = config_.has("fdb") ? Config{config_.getSubConfiguration("fdb"), config_.userConfig()} : config_;
     LOG_DEBUG_LIB(LibFdb5) << "ServerConnection::ServerConnection initialized" << std::endl;
 }
 
@@ -515,6 +516,12 @@ void ServerConnection::waitForWorkers() {
     std::lock_guard<std::mutex> lock(readLocationMutex_);
     if (readLocationWorker_.joinable()) {
         readLocationWorker_.join();
+    }
+}
+
+void ServerConnection::isEnabled(ControlIdentifier identifier) {
+    if (!controlIdentifiers_.enabled(identifier)) {
+        throw UnauthorisedException(identifier);
     }
 }
 

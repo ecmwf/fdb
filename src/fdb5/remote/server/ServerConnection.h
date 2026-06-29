@@ -46,11 +46,11 @@ enum class Handled {
     Replied,
 };
 
-class UnhandledOperationException : public eckit::Exception {
+class UnauthorisedException : public eckit::Exception {
 public:
 
-    UnhandledOperationException(ControlIdentifier ci) :
-        eckit::Exception("UnhandledOperationException: " + std::to_string(static_cast<int>(ci))), ci_(ci) {}
+    UnauthorisedException(ControlIdentifier ci) :
+        eckit::Exception("UnauthorisedException: " + std::to_string(static_cast<int>(ci))), ci_(ci) {}
 
     ControlIdentifier controlIdentifier() const { return ci_; }
 
@@ -136,6 +136,8 @@ protected:
     void archiver();
     void queue(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
 
+    void isEnabled(ControlIdentifier identifier);
+
     void handleException(std::exception_ptr e) override;
 
 private:
@@ -154,6 +156,10 @@ protected:
     virtual bool remove(bool control, uint32_t clientID) = 0;
 
     Config config_;
+    Config innerConfig_;
+
+    ControlIdentifiers controlIdentifiers_;
+
     std::string dataListenHostname_;
 
     eckit::Queue<readLocationElem> readLocationQueue_;
