@@ -100,6 +100,8 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
 Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint32_t requestID,
                                         eckit::Buffer&& payload) {
 
+    static bool wipeEnabled = Resource<bool>("fdbWipeEnabled;$FDB_WIPE_ENABLED", false);
+
     try {
         switch (message) {
 
@@ -132,27 +134,51 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 return Handled::Replied;
 
             case Message::Wipe:  // Initial wipe request
+                if (!wipeEnabled) {
+                    error("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::No;
+                }
                 wipe(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoMaskIndexEntries:
+                if (!wipeEnabled) {
+                    error("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::No;
+                }
                 // doit! We expect DoMaskIndexEntries, doWipeURIs, DoWipeUnknowns and doWipeEmptyDatabase in succession
                 doMaskIndexEntries(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoWipeURIs:  // Do the wipe on our currentWipeState
+                if (!wipeEnabled) {
+                    error("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::No;
+                }
                 doWipeURIs(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoWipeFinish:  // Finish wipe by deleting empty DBs
+                if (!wipeEnabled) {
+                    error("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::No;
+                }
                 doWipeEmptyDatabase(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoWipeUnknowns:  // Wipe a set of unknown URIs
+                if (!wipeEnabled) {
+                    error("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::No;
+                }
                 doWipeUnknowns(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoUnsafeFullWipe:  // wipe a full database including its content
+                if (!wipeEnabled) {
+                    error("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::No;
+                }
                 doUnsafeFullWipe(clientID, requestID, std::move(payload));
                 return Handled::Replied;
 

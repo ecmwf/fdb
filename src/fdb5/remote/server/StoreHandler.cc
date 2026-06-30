@@ -77,6 +77,8 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
 
 Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
 
+    static bool wipeEnabled = Resource<bool>("fdbWipeEnabled;$FDB_WIPE_ENABLED", false);
+
     try {
         switch (message) {
 
@@ -93,22 +95,42 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 return Handled::Replied;
 
             case Message::Wipe:  // Initial wipe request
+                if (!wipeEnabled) {
+                    error("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::No;
+                }
                 finaliseWipeState(clientID, requestID, payload);
                 return Handled::Replied;
 
             case Message::DoWipeURIs:  // request to delete data marked for wipe
+                if (!wipeEnabled) {
+                    error("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::No;
+                }
                 doWipeURIs(clientID, requestID, payload);
                 return Handled::Yes;
 
             case Message::DoWipeFinish:  // request to delete empty databases and finish the wipe.
+                if (!wipeEnabled) {
+                    error("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::No;
+                }
                 doWipeFinish(clientID, requestID, payload);
                 return Handled::Yes;
 
             case Message::DoWipeUnknowns:  // request to delete unknown URIs as part of a wipe
+                if (!wipeEnabled) {
+                    error("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::No;
+                }
                 doWipeUnknowns(clientID, requestID, payload);
                 return Handled::Yes;
 
             case Message::DoUnsafeFullWipe:  // request to delete full database and content
+                if (!wipeEnabled) {
+                    error("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::No;
+                }
                 doUnsafeFullWipe(clientID, requestID, payload);
                 return Handled::Replied;
 
