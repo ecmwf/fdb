@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <cstdlib>
 #include <mutex>
+#include <random>
 
 namespace {
 class ConnectionError : public eckit::Exception {
@@ -64,7 +65,8 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
     while (fullEndpoints.size() > 0) {
 
         // select a random endpoint
-        size_t idx = std::rand() % fullEndpoints.size();
+        std::mt19937 rd;
+        size_t idx = std::uniform_int_distribution<size_t>(0, fullEndpoints.size() - 1)(rd);
         eckit::net::Endpoint endpoint = fullEndpoints.at(idx).first;
 
         // look for the selected endpoint
@@ -116,10 +118,7 @@ void ClientConnectionRouter::deregister(ClientConnection& connection) {
     }
 }
 
-ClientConnectionRouter::ClientConnectionRouter() {
-    ::srand(static_cast<unsigned int>(::getpid()) + static_cast<unsigned int>(::time(nullptr)));
-    ::srandom(static_cast<unsigned int>(::getpid()) + static_cast<unsigned int>(::time(nullptr)));
-}
+ClientConnectionRouter::ClientConnectionRouter() {}
 
 ClientConnectionRouter& ClientConnectionRouter::instance() {
     std::lock_guard<std::mutex> lock(initMutex);
