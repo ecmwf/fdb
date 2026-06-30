@@ -10,6 +10,8 @@
 
 #include "fdb5/api/helpers/ControlIterator.h"
 
+#include <optional>
+
 #include "eckit/serialisation/Stream.h"
 
 #include "fdb5/database/Catalogue.h"
@@ -116,7 +118,7 @@ ControlIdentifiers::ControlIdentifiers(eckit::Stream& s) {
     s >> value_;
 }
 
-ControlIdentifiers ControlIdentifiers::parse(const eckit::LocalConfiguration& config, bool unsafeWipeAllDefault) {
+ControlIdentifiers parseControlIdentifiers(const eckit::LocalConfiguration& config, bool unsafeWipeAllDefault) {
     ControlIdentifiers identifiers;
 
     bool writable = config.getBool("writable", true);
@@ -133,11 +135,39 @@ ControlIdentifiers ControlIdentifiers::parse(const eckit::LocalConfiguration& co
     if (!config.getBool("wipe", writable)) {
         identifiers.value_ |= static_cast<value_type>(ControlIdentifier::Wipe);
     }
-    if (!config.getBool("wipe", writable)) {
+    // Unsafe Wipe all is disabled by default, unless explicitly enabled in the configuration file
+    if (!config.getBool("unsafeWipeAll", identifiers.enabled(ControlIdentifier::Wipe) && unsafeWipeAllDefault)) {
+        identifiers.value_ |= static_cast<value_type>(ControlIdentifier::UnsafeWipeAll);
+    }
+    return identifiers;
+}
+
+ControlIdentifiers ControlIdentifiers::parse(const eckit::LocalConfiguration& config, ControlIdentifiers defaultValue) {
+    ControlIdentifiers identifiers = defaultValue;
+
+    std::optional<bool> writable;
+    if (config.has("writable")) {
+        writable = config.getBool("writable");
+    }
+    std::optional<bool> visitable;
+    if (config.has("visitable")) {
+        visitable = config.getBool("visitable");
+    }
+    if (!config.getBool("list", visitable ? *visitable : defaultValue.enabled(ControlIdentifier::List))) {
+        identifiers.value_ |= static_cast<value_type>(ControlIdentifier::List);
+    }
+    if (!config.getBool("retrieve", visitable ? *visitable : defaultValue.enabled(ControlIdentifier::Retrieve))) {
+        identifiers.value_ |= static_cast<value_type>(ControlIdentifier::Retrieve);
+    }
+    if (!config.getBool("archive", writable ? *writable : defaultValue.enabled(ControlIdentifier::Archive))) {
+        identifiers.value_ |= static_cast<value_type>(ControlIdentifier::Archive);
+    }
+    if (!config.getBool("wipe", writable ? *writable : defaultValue.enabled(ControlIdentifier::Wipe))) {
         identifiers.value_ |= static_cast<value_type>(ControlIdentifier::Wipe);
     }
     // Unsafe Wipe all is disabled by default, unless explicitly enabled in the configuration file
-    if (!config.getBool("unsafeWipeAll", unsafeWipeAllDefault)) {
+    if (!config.getBool("unsafeWipeAll", identifiers.enabled(ControlIdentifier::Wipe) &&
+                                             defaultValue.enabled(ControlIdentifier::UnsafeWipeAll))) {
         identifiers.value_ |= static_cast<value_type>(ControlIdentifier::UnsafeWipeAll);
     }
     return identifiers;
