@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <ctime>
+#include <random>
 
 #include "eckit/config/Resource.h"
 #include "eckit/io/Buffer.h"
@@ -141,7 +142,9 @@ const net::Endpoint& RemoteFDB::storeEndpoint() const {
     if (storesLocalFields_.empty()) {
         throw SeriousBug("Unable to find a store to serve local data");
     }
-    return storesLocalFields_.at(std::rand() % storesLocalFields_.size());
+    static std::mt19937 rd;
+    static std::uniform_int_distribution<size_t> dist(0, storesLocalFields_.size() - 1);
+    return storesLocalFields_.at(dist(rd));
 }
 const net::Endpoint& RemoteFDB::storeEndpoint(const net::Endpoint& fieldLocationEndpoint) const {
     // looking for an alias for the given endpoint
