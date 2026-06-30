@@ -101,6 +101,7 @@ public:
     ControlIdentifiers(eckit::Stream& s);
 
     static ControlIdentifiers parse(const eckit::LocalConfiguration& config, bool unsafeWipeAllDefault = true);
+    static ControlIdentifiers parse(const eckit::LocalConfiguration& config, ControlIdentifiers defaultValue);
 
     static ControlIdentifiers parse(const eckit::LocalConfiguration& config, bool unsafeWipeAllDefault = true);
     static ControlIdentifiers parse(const eckit::LocalConfiguration& config, ControlIdentifiers defaultValue);
