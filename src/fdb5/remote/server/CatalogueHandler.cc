@@ -56,7 +56,7 @@ CatalogueHandler::CatalogueHandler(eckit::net::TCPSocket& socket, const Config& 
                 eckit::net::NetMask netmask{net.getString("netmask")};
                 if (netmask.contains(clientIPaddress)) {
                     clientNetwork_ = net.getString("name");
-                    controlIdentifiers_ = ControlIdentifiers::parse(net, false);
+                    controlIdentifiers_ = ControlIdentifiers::parse(net, controlIdentifiers_);
                     break;
                 }
             }
