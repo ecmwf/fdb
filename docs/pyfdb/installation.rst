@@ -160,3 +160,31 @@ Set the `FDB_HOME` environment variable accordingly:
 
     export FDB_HOME=<path_to_fdb_home>
 
+Diagnosing Library Resolution
+******************************
+
+``PyFDB`` uses `findlibs <https://github.com/ecmwf/findlibs>`__ to locate the ``fdb5``
+shared library and its runtime dependencies at import time. If you encounter errors caused
+by the wrong library version being loaded, the built-in CLI can help you inspect what
+``findlibs`` resolves on your system.
+
+Print the installation root of the ``fdb5`` library:
+
+.. code-block:: sh
+
+    python -m pyfdb --print-home
+
+Print the resolved home directories for all runtime dependencies (``fdb5``, ``eckit``,
+``metkit``, ``eccodes``), together with any active ``FINDLIBS_DISABLE_*`` environment
+variables that suppress specific search paths:
+
+.. code-block:: sh
+
+    python -m pyfdb --findlibs-setup
+
+If a dependency is resolved from an unexpected location, set the corresponding
+``<LIBNAME>_HOME`` environment variable (e.g. ``FDB5_HOME``, ``ECKIT_HOME``) to point
+``findlibs`` at the correct installation. See the
+`findlibs documentation <https://github.com/ecmwf/findlibs>`__ for the full list of
+supported variables and search-path precedence rules.
+
