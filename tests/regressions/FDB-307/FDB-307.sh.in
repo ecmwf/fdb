@@ -21,7 +21,7 @@ function post_process {
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 
-export FDB5_HOME=$bindir
+export FDB_HOME=$bindir
 
 export FDB_DEBUG=0
 export ECKIT_DEBUG=0

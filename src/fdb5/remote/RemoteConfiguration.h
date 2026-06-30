@@ -8,59 +8,67 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Simon Smart
-/// @date   Mar 2018
+#pragma once
 
-#ifndef fdb5_remote_RemoteConfiguration_H
-#define fdb5_remote_RemoteConfiguration_H
+#include <optional>
+#include <string>
+#include <vector>
 
-namespace eckit { class Stream; }
+#include "eckit/exception/Exceptions.h"
 
-namespace fdb5 {
+namespace eckit {
 
-class FDB;
+class Configuration;
+class Stream;
+class Value;
+
+}  // namespace eckit
+
+namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// This class handles negotiation between client/server for which functionality will be used
-// over the wire
-//
-// n.b. This includes cases where there is version mismatches
-//      --> The over-the-wire negotiation needs to take this into account.
+class RemoteConnectionNegotiationException : public eckit::Exception {
+public:
 
-#if 0
+    RemoteConnectionNegotiationException(const std::string& msg, const eckit::CodeLocation& here) :
+        eckit::Exception(std::string("RemoteConnectionNegotiationException: ") + msg, here) {}
+};
 
-// TODO
+//----------------------------------------------------------------------------------------------------------------------
+
+/// We use a dictionary to negotiate FDB remote protocol:
+/// * the server recives a dictionary describing client capabilities
+/// * server computes the intersection of client and server capabilities and then sends the enabled features to
+///   the client
+/// On-the-wire protocol is thus independent of the FDB version:  we negotiate using the values which happen to be
+/// present. This is to make rolling forward easier (i.e. if a client/server doesn't provide a value, then we know
+/// that it isn't supported).
 
 class RemoteConfiguration {
 
-public: // methods
+public:
 
-    RemoteConfiguration();
+    RemoteConfiguration() = default;
+    RemoteConfiguration(const eckit::Configuration& config);
     RemoteConfiguration(eckit::Stream& s);
 
+    static RemoteConfiguration common(RemoteConfiguration& clientConf, RemoteConfiguration& serverConf);
 
+    bool singleConnection() const;
 
+    friend eckit::Stream& operator<<(eckit::Stream& s, const RemoteConfiguration& r);
 
-private: // methods
+private:
 
-    void encode(eckit::Stream& s) const override;
+    std::vector<int> remoteFieldLocationVersions_;
+    std::vector<int> numberOfConnections_;
 
-private: // members
+    std::optional<bool> preferSingleConnection_;
 
-    friend eckit::Stream& operator<< (eckit::Stream& s, const RemoteConfiguration& rc) {
-        rc.encode(s);
-        return s;
-    }
-
-
+    bool singleConnection_{false};
 };
-
-#endif
-
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
-
-#endif // fdb5_remote_RemoteFDB_H
+}  // namespace fdb5::remote

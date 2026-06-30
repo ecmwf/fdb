@@ -13,73 +13,106 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
+#include "fdb5/remote/FdbServer.h"
+
+#include <cstdlib>
+#include <sstream>
+
+#include "eckit/exception/Exceptions.h"
 #include "eckit/thread/Thread.h"
 #include "eckit/thread/ThreadControler.h"
 
 #include "fdb5/remote/FdbServer.h"
 
-#include "fdb5/remote/AvailablePortList.h"
-#include "fdb5/remote/Handler.h"
+#include "fdb5/remote/server/AvailablePortList.h"
+#include "fdb5/remote/server/CatalogueHandler.h"
+#include "fdb5/remote/server/StoreHandler.h"
 
 using namespace eckit;
 
 
-namespace fdb5 {
-namespace remote {
+namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FDBForker::FDBForker(net::TCPSocket &socket, const Config &config) :
-    ProcessControler(true),
-    socket_(socket),
-    config_(config) {}
+FDBForker::FDBForker(net::TCPSocket& socket, const Config& config) :
+    ProcessControler(true), socket_(socket), config_(config) {}
 
 FDBForker::~FDBForker() {}
 
 void FDBForker::run() {
 
-    eckit::Monitor::instance().reset(); // needed to the monitor to work on forked (but not execed process)
+    eckit::Monitor::instance().reset();  // needed to the monitor to work on forked (but not execed process)
 
     // Ensure random state is reset after fork
     ::srand(::getpid() + ::time(nullptr));
     ::srandom(::getpid() + ::time(nullptr));
 
-    eckit::Log::info() << "FDB forked pid " << ::getpid() << std::endl;
+    eckit::Log::info() << "FDB forked pid " << ::getpid() << "  --  connection: " << socket_.localHost() << ":"
+                       << socket_.localPort() << "-->" << socket_.remoteHost() << ":" << socket_.remotePort()
+                       << std::endl;
 
-    RemoteHandler handler(socket_, config_);
-    handler.handle();
+    std::string type = config_.getString("type", "local");
+    if (type == "catalogue") {
+        eckit::Log::info() << "FDB using Catalogue Handler" << std::endl;
+        CatalogueHandler handler(socket_, config_);
+        handler.handle();
+    }
+    else if (type == "store") {
+        eckit::Log::info() << "FDB using Store Handler" << std::endl;
+        StoreHandler handler(socket_, config_);
+        handler.handle();
+    }
+    else {
+        std::ostringstream ss;
+        ss << "ERROR: Could not start fdb server. Unexpected type (" << type
+           << "). Expected either 'catalogue' or 'store'.";
+        throw UserError(ss.str(), Here());
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class FDBServerThread : public eckit::Thread {
 
-public: // methods
+public:  // methods
 
     FDBServerThread(eckit::net::TCPSocket& socket, const Config& config);
 
-private: // methods
+private:  // methods
 
     virtual void run();
 
-private: // members
+private:  // members
 
     eckit::net::TCPSocket socket_;
     eckit::LocalConfiguration config_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FDBServerThread::FDBServerThread(net::TCPSocket& socket, const Config& config) :
-    socket_(socket),
-    config_(config) {}
+FDBServerThread::FDBServerThread(net::TCPSocket& socket, const Config& config) : socket_(socket), config_(config) {}
 
 void FDBServerThread::run() {
     eckit::Log::info() << "FDB started handler thread" << std::endl;
 
-    RemoteHandler handler(socket_, config_);
-    handler.handle();
+    std::string type = config_.getString("type", "local");
+    if (type == "catalogue") {
+        eckit::Log::info() << "FDB using Catalogue Handler" << std::endl;
+        CatalogueHandler handler(socket_, config_);
+        handler.handle();
+    }
+    else if (type == "store") {
+        eckit::Log::info() << "FDB using Store Handler" << std::endl;
+        StoreHandler handler(socket_, config_);
+        handler.handle();
+    }
+    else {
+        std::ostringstream ss;
+        ss << "ERROR: Could not start fdb server. Unexpected type (" << type
+           << "). Expected either 'catalogue' or 'store'.";
+        throw UserError(ss.str(), Here());
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -125,7 +158,7 @@ void FdbServerBase::doRun() {
     }
 }
 
-void FdbServerBase::startPortReaperThread(const Config &config) {
+void FdbServerBase::startPortReaperThread(const Config& config) {
 
     if (config.has("dataPortStart")) {
         ASSERT(config.has("dataPortCount"));
@@ -133,14 +166,12 @@ void FdbServerBase::startPortReaperThread(const Config &config) {
         int startPort = config.getInt("dataPortStart");
         size_t count = config.getLong("dataPortCount");
 
-        eckit::Log::info() << "Using custom port list. startPort=" << startPort
-                           << ", count=" << count << std::endl;
+        eckit::Log::info() << "Using custom port list. startPort=" << startPort << ", count=" << count << std::endl;
 
         AvailablePortList portList(startPort, count);
         portList.initialise();
 
         reaperThread_ = std::thread([startPort, count]() {
-
             AvailablePortList portList(startPort, count);
 
             while (true) {
@@ -149,16 +180,11 @@ void FdbServerBase::startPortReaperThread(const Config &config) {
             }
         });
     }
-
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FdbServer::FdbServer(int argc, char **argv, const char *home) :
-    eckit::Application(argc, argv, home),
-    FdbServerBase()
-{
-}
+FdbServer::FdbServer(int argc, char** argv, const char* home) : eckit::Application(argc, argv, home), FdbServerBase() {}
 
 FdbServer::~FdbServer() {}
 
@@ -170,5 +196,4 @@ void FdbServer::hookUnique() {}
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace remote
-} // namespace fdb5
+}  // namespace fdb5::remote

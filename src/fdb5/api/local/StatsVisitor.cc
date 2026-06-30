@@ -16,7 +16,7 @@
 
 #include "fdb5/api/local/StatsVisitor.h"
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/StatsReportVisitor.h"
 
 namespace fdb5 {
@@ -25,36 +25,34 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-bool StatsVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool StatsVisitor::visitDatabase(const Catalogue& catalogue) {
 
-    EntryVisitor::visitDatabase(catalogue, store);
+    EntryVisitor::visitDatabase(catalogue);
 
     ASSERT(!internalVisitor_);
     internalVisitor_.reset(catalogue.statsReportVisitor());
 
-    internalVisitor_->visitDatabase(catalogue, store);
+    internalVisitor_->visitDatabase(catalogue);
 
-    return true; // Explore contained indexes
+    return true;  // Explore contained indexes
 }
 
 bool StatsVisitor::visitIndex(const Index& index) {
     internalVisitor_->visitIndex(index);
 
-    return true; // Explore contained entries
+    return true;  // Explore contained entries
 }
 
 void StatsVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {
     internalVisitor_->visitDatum(field, keyFingerprint);
 }
 
-void StatsVisitor::visitDatum(const Field&, const Key&) { NOTIMP; }
-
 void StatsVisitor::catalogueComplete(const Catalogue& catalogue) {
     internalVisitor_->catalogueComplete(catalogue);
 
     // Construct the object to push onto the queue
 
-    queue_.emplace(StatsElement { internalVisitor_->indexStatistics(), internalVisitor_->dbStatistics() });
+    queue_.emplace(StatsElement{internalVisitor_->indexStatistics(), internalVisitor_->dbStatistics()});
 
     // Cleanup
 
@@ -63,6 +61,6 @@ void StatsVisitor::catalogueComplete(const Catalogue& catalogue) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace local
+}  // namespace api
+}  // namespace fdb5

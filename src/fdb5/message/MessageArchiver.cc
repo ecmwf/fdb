@@ -10,24 +10,23 @@
 
 #include <vector>
 
-#include "eckit/log/Timer.h"
-#include "eckit/log/Plural.h"
 #include "eckit/log/Bytes.h"
-#include "eckit/log/Seconds.h"
+#include "eckit/log/Plural.h"
 #include "eckit/log/Progress.h"
+#include "eckit/log/Seconds.h"
+#include "eckit/log/Timer.h"
 
 #include "eckit/utils/Tokenizer.h"
 
-#include "eckit/message/Reader.h"
 #include "eckit/message/Message.h"
+#include "eckit/message/Reader.h"
 
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsParser.h"
-#include "metkit/mars/MarsExpension.h"
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/message/MessageArchiver.h"
-#include "fdb5/database/ArchiveVisitor.h"
 
 // For HAVE_FAIL_ON_CCSDS
 #include "metkit/metkit_config.h"
@@ -37,22 +36,13 @@ namespace fdb5 {
 using eckit::Log;
 
 //----------------------------------------------------------------------------------------------------------------------
+namespace {
 
-MessageArchiver::MessageArchiver(const fdb5::Key& key, bool completeTransfers, bool verbose, const Config& config) :
-    MessageDecoder(),
-    fdb_(config),
-    key_(key),
-    completeTransfers_(completeTransfers),
-    verbose_(verbose)
-{
-}
-
-
-static std::vector<metkit::mars::MarsRequest> str_to_requests(const std::string& str) {
+std::vector<metkit::mars::MarsRequest> str_to_requests(const std::string& str) {
 
     // parse requests
 
-    std::string rs = std::string("retrieve,")  + str;
+    std::string rs = std::string("retrieve,") + str;
 
     LOG_DEBUG_LIB(LibFdb5) << "Parsing request string : " << rs << std::endl;
 
@@ -61,31 +51,37 @@ static std::vector<metkit::mars::MarsRequest> str_to_requests(const std::string&
 
     std::vector<metkit::mars::MarsParsedRequest> p = parser.parse();
 
-    LOG_DEBUG_LIB(LibFdb5) << "Parsed requests:" << std::endl;
-    for (auto j = p.begin(); j != p.end(); ++j) {
-        j->dump(Log::debug<LibFdb5>());
+    if (LibFdb5::instance().debug()) {
+        Log::debug<LibFdb5>() << "Parsed requests:" << std::endl;
+        for (auto j = p.begin(); j != p.end(); ++j) {
+            j->dump(Log::debug<LibFdb5>());
+        }
     }
 
     // expand requests
 
     bool inherit = true;
-    metkit::mars::MarsExpension expand(inherit);
+    metkit::mars::MarsExpansion expand(inherit);
 
     std::vector<metkit::mars::MarsRequest> v = expand.expand(p);
 
-    LOG_DEBUG_LIB(LibFdb5) << "Expanded requests:" << std::endl;
-    for (auto j = v.begin(); j != v.end(); ++j) {
-        j->dump(Log::debug<LibFdb5>());
+    if (LibFdb5::instance().debug()) {
+        Log::debug<LibFdb5>() << "Expanded requests:" << std::endl;
+        for (auto j = v.begin(); j != v.end(); ++j) {
+            j->dump(Log::debug<LibFdb5>());
+        }
     }
 
     return v;
 }
 
-static std::vector<metkit::mars::MarsRequest> make_filter_requests(const std::string& str) {
+std::vector<metkit::mars::MarsRequest> make_filter_requests(const std::string& str) {
 
-    if(str.empty()) return std::vector<metkit::mars::MarsRequest>();
+    if (str.empty()) {
+        return {};
+    }
 
-    std::set<std::string> keys = fdb5::Key::parseStringUntyped(str).keys(); //< keys to filter from that request
+    std::set<std::string> keys = Key::parse(str).keys();  //< keys to filter from that request
 
     std::vector<metkit::mars::MarsRequest> v = str_to_requests(str);
 
@@ -98,37 +94,34 @@ static std::vector<metkit::mars::MarsRequest> make_filter_requests(const std::st
     return r;
 }
 
-void MessageArchiver::filters(const std::string& include, const std::string& exclude) {
+}  // namespace
+
+//----------------------------------------------------------------------------------------------------------------------
+
+MessageArchiver::MessageArchiver(const fdb5::Key& key, bool completeTransfers, bool verbose, const Config& config) :
+    MessageDecoder(), fdb_(config), key_(key), completeTransfers_(completeTransfers), verbose_(verbose) {}
+
+void MessageArchiver::setFilters(const std::string& include, const std::string& exclude) {
     include_ = make_filter_requests(include);
     exclude_ = make_filter_requests(exclude);
 }
 
-void MessageArchiver::modifiers(const std::string& modify) {
-    // split string in form k1=v1,k2=v2,...
-    eckit::Tokenizer comma(',');
-    eckit::Tokenizer equal('=');
-
-    std::vector<std::string> pairs = comma.tokenize(modify);
-
-    // Log::info() << "pairs : " << pairs << std::endl;
-
-    for(auto& pair: pairs) {
-        std::vector<std::string> kv = equal.tokenize(pair);
-        if(kv.size() != 2)
-            throw eckit::BadValue("Invalid key-value pair " + pair);
-        // Log::info() << "kv : " << kv[0] << " = " << kv[1] << std::endl;
-        modifiers_[kv[0]] = kv[1];
+void MessageArchiver::setModifiers(const fdb5::Key& key) {
+    modifiers_.reserve(key.size());
+    for (const auto& n : key.names()) {
+        modifiers_.emplace_back(n, key.get(n));
     }
-    // Log::info() << "modifiers : " << modifiers_ << std::endl;
 }
 
-eckit::message::Message MessageArchiver::transform(eckit::message::Message& msg) {
-    return msg.transform(modifiers_);
+void MessageArchiver::transform(eckit::message::Message& msg) {
+    msg.transform(modifiers_);
 }
 
 static bool matchAny(const metkit::mars::MarsRequest& f, const std::vector<metkit::mars::MarsRequest>& v) {
     for (auto r = v.begin(); r != v.end(); ++r) {
-        if(f.matches(*r)) return true;
+        if (f.matches(*r)) {
+            return true;
+        }
     }
     return false;
 }
@@ -146,11 +139,15 @@ bool MessageArchiver::filterOut(const Key& k) const {
 
     // filter includes
 
-    if(include_.size() && not matchAny(field, include_)) return out;
+    if (include_.size() && not matchAny(field, include_)) {
+        return out;
+    }
 
     // filter excludes
 
-    if(exclude_.size() && matchAny(field, exclude_)) return out;
+    if (exclude_.size() && matchAny(field, exclude_)) {
+        return out;
+    }
 
     // datum wasn't filtered out
 
@@ -159,7 +156,10 @@ bool MessageArchiver::filterOut(const Key& k) const {
 
 eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
-    eckit::Timer timer("fdb::service::archive");
+    std::optional<eckit::Timer> timer;
+    if (verbose_) {
+        timer.emplace("fdb::service::archive");
+    }
 
     eckit::message::Reader reader(source);
 
@@ -172,11 +172,11 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
         eckit::message::Message msg;
 
-        while ( (msg = reader.next()) ) {
+        while ((msg = reader.next())) {
 
 #ifdef metkit_HAVE_FAIL_ON_CCSDS
 
-            if(msg.getString("packingType") == "grid_ccsds") {
+            if (msg.getString("packingType") == "grid_ccsds") {
                 throw eckit::SeriousBug("grid_ccsds is disabled");
             }
 
@@ -187,23 +187,24 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
             messageToKey(msg, key);
 
             LOG_DEBUG_LIB(LibFdb5) << "Archiving message "
-                                   << " key: " << key_ << " data: " << msg.data() << " length:" << msg.length()
-                                   << std::endl;
+                                   << " key: " << key << " length:" << msg.length() << std::endl;
 
             ASSERT(key.match(key_));
 
-            if (filterOut(key))
+            if (filterOut(key)) {
                 continue;
+            }
 
             if (modifiers_.size()) {
-                msg = transform(msg);
+                transform(msg);
                 key.clear();
                 messageToKey(msg, key);  // re-build the key, as it may have changed
             }
 
             if (verbose_) {
                 Log::info() << "Archiving " << key << std::endl;
-            } else {
+            }
+            else {
                 LOG_DEBUG_LIB(LibFdb5) << "Archiving " << key << std::endl;
             }
 
@@ -215,23 +216,26 @@ eckit::Length MessageArchiver::archive(eckit::DataHandle& source) {
 
             // flush();
         }
-
-    } catch (...) {
+    }
+    catch (...) {
 
         if (completeTransfers_) {
             eckit::Log::error() << "Exception received. Completing transfer." << std::endl;
             // Consume rest of datahandle otherwise client retries for ever
-            while ( reader.next() ) { /* empty */ }
+            while (reader.next()) { /* empty */
+            }
         }
         throw;
     }
 
     eckit::Log::userInfo() << "Archived " << eckit::Plural(count, "message") << std::endl;
 
-    eckit::Log::info() << "FDB archive " << eckit::Plural(count, "message") << ","
-                       << " size " << eckit::Bytes(total_size) << ","
-                       << " in " << eckit::Seconds(timer.elapsed()) << " (" << eckit::Bytes(total_size, timer) << ")"
-                       << std::endl;
+    if (verbose_) {
+        eckit::Log::info() << "FDB archive " << eckit::Plural(count, "message") << ","
+                           << " size " << eckit::Bytes(total_size) << ","
+                           << " in " << eckit::Seconds(timer->elapsed()) << " ("
+                           << eckit::Bytes(total_size, timer.value()) << ")" << std::endl;
+    }
 
     return total_size;
 }
@@ -242,4 +246,4 @@ void MessageArchiver::flush() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

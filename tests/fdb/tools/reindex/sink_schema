@@ -1,0 +1,14 @@
+# Types
+
+param:      Param;
+step:       Step;
+date:       Date;
+levelist:   Double;
+expver:     Expver;
+time:       Time;
+
+########################################################
+[ class, expver, stream=oper, date: Year, domain?
+       [ date: Month, type, levtype
+               [ date: Date, time, levelist?, param, step]]
+]

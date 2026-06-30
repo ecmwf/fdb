@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+set -eux
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB5_CONFIG_FILE="local.yaml"
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+tname=inspect_test
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+########################################################################################################################
+
+cd $bindir
+
+rm -rf $tname || true
+mkdir -p $tname/localroot
+
+cd $tname
+
+for f in local.yaml x.grib; do
+  cp "$srcdir/$f" ./
+done
+
+########################################################################################################################
+# Create a grib file with 4 steps and populate FDB
+
+grib_set -s step=0 x.grib 0.grib
+grib_set -s step=6 x.grib 6.grib
+grib_set -s step=9 x.grib 9.grib
+
+for f in *.grib; do
+  grib_set -s type=an "$f" "cf.$f"
+done
+
+for f in *.grib; do
+  cat "$f" >> "$tname.grib"
+done
+
+fdb-write "$tname.grib"
+
+########################################################################################################################
+# test all
+
+requests="class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=fc,levtype=sfc,step=0,param=166 \
+class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=fc,levtype=sfc,step=12,param=166 \
+class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=fc,levtype=sfc,step=6,param=166 \
+class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=fc,levtype=sfc,step=9,param=166 \
+class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=an,levtype=sfc,step=0,param=166 \
+class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=an,levtype=sfc,step=12,param=166 \
+class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=an,levtype=sfc,step=6,param=166 \
+class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g,type=an,levtype=sfc,step=9,param=166"
+
+out=$(fdb-inspect $requests)
+
+exp="Number of requests: 8
+Number of elements: 8"
+
+test "$exp" = "$out"

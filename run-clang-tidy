@@ -1,0 +1,35 @@
+#! /bin/bash
+
+tidy_path=${TIDY_PATH:-clang-tidy}
+
+function print_usage() {
+    echo "Usage: run-clang-tidy <BUILD-FOLDER>"
+    echo "  - This script depends on clang-tidy, jq and parallel all need to be on PATH"
+    echo "  - You can supply a custom clang-tidy path by exporting TIDY_PATH 
+    echo "  - Note that you need to have used cmake with CMAKE_EXPORT_COMPILE_COMMANDS=ON and"
+    echo "    you will have needed to build sources once to generate headers files that otherwise"
+    echo "    cannot be found, e.g. 'metkit/mars/StepRange.b'
+}
+
+function ensure_bin() {
+    local _binary="${1}" 
+    if ! command -v "${_binary}" 2>&1 >/dev/null
+    then
+        echo "Mising executable ${_binary}!"
+        print_usage
+        exit 1
+    fi
+}
+
+if [ $# -ne 1 ]
+then
+    print_usage
+    exit 1
+fi
+build_path="${1}"
+
+ensure_bin parallel
+ensure_bin jq 
+ensure_bin "${tidy_path}"
+
+cat ${build_path}/compile_commands.json | jq -r '.[].file | select(contains("/fdb/"))' | parallel "${tidy_path}" -p ${build_path} {}

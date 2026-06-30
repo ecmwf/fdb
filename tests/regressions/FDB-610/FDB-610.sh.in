@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# This test ensures that we can retrieve data multiple times when using
+# Month/Year aliases for date. The test imports 1 field and expects this field
+# to be able to be read twice. A simple size comparison between imported field
+# and retrieved field is done to check for correct retrieval. Retrieved data
+# needs to be 2x the bytes of the data available.
+
+set -ex
+
+export FDB_HOME=@CMAKE_CURRENT_BINARY_DIR@
+export FDB_DEBUG=1
+
+cleanup() {
+    local exit_code=$?
+    echo "Shutting down..."
+    kill $PID_STORE $PID_CATALOGUE 2>/dev/null || true
+    exit $exit_code
+}
+trap cleanup SIGINT SIGTERM EXIT
+
+TEST_ROOT=@CMAKE_CURRENT_SOURCE_DIR@
+LOGS_DIR="logs"
+FDB_SERVER="$<TARGET_FILE:fdb-server>"
+mkdir -p "$LOGS_DIR"
+
+echo "Starting Store..."
+STORE_LOG="$LOGS_DIR/store.log"
+FDB5_CONFIG_FILE="$TEST_ROOT/fdb_config_store.yaml" "$FDB_SERVER" > "$STORE_LOG" 2>&1 &
+PID_STORE=$!
+
+echo "Starting Catalogue..."
+CATALOGUE_LOG="$LOGS_DIR/catalogue.log"
+FDB5_CONFIG_FILE="$TEST_ROOT/fdb_config_catalogue.yaml" "$FDB_SERVER" > "$CATALOGUE_LOG" 2>&1 &
+PID_CATALOGUE=$!
+
+sleep 5
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+
+data="$TEST_ROOT/data.grib"
+
+size=$(wc -c < $data)
+expected_size=$((size + size))
+$fdbwrite --config $TEST_ROOT/fdb-remote.yaml $data
+$fdbread --config $TEST_ROOT/fdb-remote.yaml $TEST_ROOT/test.req out.grib
+actual_size=$(wc -c < out.grib)
+
+if [[ $actual_size -ne $expected_size ]]; then
+    echo "Error: Did not read 2 messages!" >&2
+    exit 1
+fi
+
+cleanup

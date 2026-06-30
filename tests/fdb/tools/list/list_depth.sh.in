@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+
+set -eux
+
+
+########################################################################################################################
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB5_CONFIG_FILE="local.yaml"
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+test_name=depth
+src_data=x.grib
+src_dir=@CMAKE_CURRENT_SOURCE_DIR@
+bin_dir=@CMAKE_CURRENT_BINARY_DIR@
+
+########################################################################################################################
+
+echo "running test '$test_name' on $(hostname)"
+
+cd $bin_dir
+
+rm -rf $test_name
+mkdir -p $test_name/localroot
+
+cd $test_name
+
+for f in local.yaml $src_data; do
+  cp "$src_dir/$f" ./
+done
+
+########################################################################################################################
+# Create a grib file with 4 steps and populate FDB
+
+grib_set -s step=0 $src_data data.0.grib
+grib_set -s step=6 $src_data data.6.grib
+grib_set -s step=9 $src_data data.9.grib
+
+for f in *.grib; do
+  grib_set -s type=an "$f" "data.an.${f#*.}"
+done
+
+for f in *.grib; do
+  cat "$f" >> "data.$test_name.grib"
+done
+
+fdb-write "data.$test_name.grib"
+
+work_dir=$(pwd)
+echo "Working directory: $work_dir"
+
+mv "localroot/rd:xxxx:oper:20201102:0000:g" "localroot/rd:XXXX:oper:20201102:0000:g"
+########################################################################################################################
+
+echo "Test: all"
+exp="{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=0,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=12,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=6,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}{step=9,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}{step=0,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}{step=12,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}{step=6,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}{step=9,param=166}"
+out=$(fdb-list --all --minimum-keys= --porcelain)
+test "$exp" = "$out"
+
+echo "Test: date depth=1"
+exp="{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}"
+out=$(fdb-list date=20201102 --minimum-keys="" --porcelain --depth=1)
+test "$exp" = "$out"
+
+echo "Test: date depth=2"
+exp="{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=fc,levtype=sfc}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}"
+out=$(fdb-list date=20201102 --minimum-keys="" --porcelain --depth=2)
+test "$exp" = "$out"
+
+echo "Test: cf depth=1"
+exp="{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}"
+out=$(fdb-list type=an --minimum-keys="" --porcelain --depth=1)
+test "$exp" = "$out"
+
+echo "Test: cf depth=2"
+exp="{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}"
+out=$(fdb-list type=an --minimum-keys="" --porcelain --depth=2)
+test "$exp" = "$out"
+
+echo "Test: cf depth=3"
+exp="{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}{step=0,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}{step=12,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}{step=6,param=166}
+{class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}{type=an,levtype=sfc}{step=9,param=166}"
+out=$(fdb-list type=an --minimum-keys="" --porcelain --depth=3)
+test "$exp" = "$out"
+
+
+echo "cleanup"
+rm -rf "$work_dir/localroot" "$work_dir"/*data.*.grib

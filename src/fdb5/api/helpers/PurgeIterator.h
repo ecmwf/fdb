@@ -35,10 +35,8 @@ using PurgeIterator = APIIterator<PurgeElement>;
 
 using PurgeAggregateIterator = APIAggregateIterator<PurgeElement>;
 
-using PurgeAsyncIterator = APIAsyncIterator<PurgeElement>;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

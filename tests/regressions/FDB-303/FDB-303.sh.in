@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+fdboverlay="$<TARGET_FILE:fdb-overlay>"
+fdbpurge="$<TARGET_FILE:fdb-purge>"
+fdbwipe="$<TARGET_FILE:fdb-wipe>"
+fdbmove="$<TARGET_FILE:fdb-move>"
+
+gribls="$<TARGET_FILE:grib_ls>"
+gribset="$<TARGET_FILE:grib_set>"
+
+function post_process {
+  num=0
+  while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+}
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+export FDB_HOME=$bindir
+
+export FDB_DEBUG=0
+export ECKIT_DEBUG=0
+export METKIT_RAW_PARAM=1
+
+### cleanup and prepare test
+
+rm -f out.*
+rm -rf ${bindir}/root*
+mkdir -p ${bindir}/root
+mkdir -p ${bindir}/root2
+
+for f in config.yaml schema climate.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+export FDB5_CONFIG_FILE=config.yaml
+
+$gribset -s time=0000 climate.grib climate0.grib
+
+cat > list <<EOF
+{class=od,expver=0001,stream=wamo,domain=g}{type=cl,levtype=sfc}{date=1,time=1200,param=140241}
+{class=od,expver=0001,stream=wamo,domain=g}{type=cl,levtype=sfc}{date=1,time=0000,param=140241}
+EOF
+
+cat > list12 <<EOF
+{class=od,expver=0001,stream=wamo,domain=g}{type=cl,levtype=sfc}{date=1,time=1200,param=140241}
+EOF
+
+cat > none <<EOF
+EOF
+
+cat > req1 <<EOF
+retrieve,class=od,expver=0001,stream=wamo,domain=g,type=cl,levtype=sfc,date=1,time=1200,param=140241
+EOF
+
+cat > reqJan <<EOF
+retrieve,class=od,expver=0001,stream=wamo,domain=g,type=cl,levtype=sfc,date=jan,time=1200,param=140241
+EOF
+
+cat > reqDate <<EOF
+retrieve,class=od,expver=0001,stream=wamo,domain=g,type=cl,levtype=sfc,date=20240102,time=1200,param=140241
+EOF
+
+$fdbwrite climate0.grib
+$fdbwrite climate.grib
+
+$fdblist --all --minimum-keys="" --porcelain | tee out
+cmp out list
+
+$fdblist class=od,expver=0001,stream=wamo,domain=g,type=cl,levtype=sfc,date=1,time=12 --porcelain | tee out
+cmp out list12
+
+# $fdblist class=od,expver=0001,stream=wamo,domain=g,type=cl,levtype=sfc,date=jan,time=12 --porcelain | tee out
+# cmp out list12
+
+# $fdblist class=od,expver=0001,stream=wamo,domain=g,type=cl,levtype=sfc,date=20240102 --porcelain | tee out
+# cmp out list
+
+cat > read <<EOF
+{ "messages" : [
+  {
+    "domain": "g",
+    "levtype": "sfc",
+    "date": "jan",
+    "time": 1200,
+    "param": 241.140,
+    "class": "od",
+    "type": "cl",
+    "stream": "wamo",
+    "expver": "0001"
+  }
+]}
+EOF
+
+cat read                       | post_process | tee expected
+
+# $fdbread req1 out.grib
+# $gribls -jm out.grib           | post_process | tee out
+# diff out expected
+
+# $fdbread reqJan out.grib
+# $gribls -jm out.grib           | post_process | tee out
+# diff out expected
+
+$fdbread reqDate out.grib
+$gribls -jm out.grib           | post_process | tee out
+diff out expected

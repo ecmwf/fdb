@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+
+set -eux
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+
+
+line_count() {
+  [[ $# -eq 1 ]] || die "line_count requires 1 argument; expected line count"
+  val=$(wc -l < out) && val=$((val + 0))
+  [[ $val -eq $1 ]] || die "Incorrect count => [$val != $1]"
+}
+
+########################################################################################################################
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB5_CONFIG_FILE="local.yaml"
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+test_name=minimum_keys
+src_data="../../../od.oper.grib"
+src_dir=@CMAKE_CURRENT_SOURCE_DIR@
+bin_dir=@CMAKE_CURRENT_BINARY_DIR@
+
+########################################################################################################################
+
+echo "running test '$test_name' on $(hostname)"
+
+cd $bin_dir
+
+rm -rf $test_name
+mkdir -p $test_name/localroot
+
+cd $test_name
+
+cp "$src_dir/local.yaml" ./
+
+work_dir=$(pwd)
+echo "Working directory: $work_dir"
+
+########################################################################################################################
+
+# Ensure that we can wipe specified databases, but only when fully specified
+
+grib_set -s class=rd,expver=xxxx "$src_data" data.xxxx.grib
+grib_ls -m data.xxxx.grib
+fdb-write data.xxxx.grib
+
+
+echo "Test: check all output"
+fdb-list --all --full --minimum-keys= --porcelain | tee out
+line_count 24
+
+
+echo "Test: nothing happens if any of the keys are missing"
+for invalid_key in class=rd expver=xxxx; do
+  rc=0
+  fdb-list $invalid_key || rc=$?
+  [[ $rc = 0 ]] && die "Should not have succeeded: $invalid_key"
+done
+
+
+echo "Test: supplying the key"
+fdb-list class=rd,expver=xxxx --porcelain | tee out
+line_count 24
+
+
+echo "Test: changing the minimum keys"
+for invalid_key in class=rd,expver=xxxx class=rd,time=1200 expver=xxxx,time=1200; do
+  rc=0
+  fdb-list --minimum-keys="class,expver,time" $invalid_key || rc=$?
+  [[ $rc = 0 ]] && die "Should not have succeeded: $invalid_key"
+done
+
+
+echo "Test: the purge works now this is supplied"
+fdb-list --minimum-keys="class,expver,time" class=rd,expver=xxxx,time=1200 --porcelain | tee out
+line_count 12
+
+echo "cleanup"
+rm -rf "$work_dir/localroot" "$work_dir"/data.*.grib

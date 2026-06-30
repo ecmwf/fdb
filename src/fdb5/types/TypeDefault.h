@@ -24,20 +24,19 @@ namespace fdb5 {
 
 class TypeDefault : public Type {
 
-public: // methods
+public:  // methods
 
-    TypeDefault(const std::string &name, const std::string &type);
+    TypeDefault(const std::string& name, const std::string& type);
 
-    virtual ~TypeDefault() override;
+    ~TypeDefault() override;
 
-private: // methods
+private:  // methods
 
-    virtual void print( std::ostream &out ) const override;
-
+    void print(std::ostream& out) const override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

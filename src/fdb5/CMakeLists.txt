@@ -17,8 +17,6 @@ list( APPEND fdb5_srcs
 
     api/fdb_c.cc
     api/fdb_c.h
-    api/DistFDB.cc
-    api/DistFDB.h
     api/FDB.cc
     api/FDB.h
     api/FDBFactory.cc
@@ -39,15 +37,19 @@ list( APPEND fdb5_srcs
     api/helpers/FDBToolRequest.cc
     api/helpers/FDBToolRequest.h
     api/helpers/DumpIterator.h
+    api/helpers/ListElement.cc
+    api/helpers/ListElement.h
     api/helpers/ListIterator.cc
     api/helpers/ListIterator.h
     api/helpers/LockIterator.h
     api/helpers/MoveIterator.h
     api/helpers/StatusIterator.h
+    api/helpers/WipeIterator.cc
     api/helpers/WipeIterator.h
     api/helpers/PurgeIterator.h
     api/helpers/StatsIterator.cc
     api/helpers/StatsIterator.h
+    api/helpers/Callback.h
 
     api/local/QueryVisitor.h
     api/local/QueueStringLogTarget.h
@@ -77,10 +79,10 @@ list( APPEND fdb5_srcs
     database/AxisRegistry.h
     database/BaseArchiveVisitor.cc
     database/BaseArchiveVisitor.h
+    database/BaseKey.cc
+    database/BaseKey.h
     database/Catalogue.cc
     database/Catalogue.h
-    database/DB.cc
-    database/DB.h
     database/DatabaseNotFoundException.cc
     database/DatabaseNotFoundException.h
     database/DataStats.cc
@@ -109,14 +111,17 @@ list( APPEND fdb5_srcs
     database/IndexStats.h
     database/Inspector.cc
     database/Inspector.h
+    database/Signature.h
     database/StatsReportVisitor.cc
     database/StatsReportVisitor.h
     database/Store.cc
     database/Store.h
     database/PurgeVisitor.cc
     database/PurgeVisitor.h
-    database/WipeVisitor.cc
-    database/WipeVisitor.h
+    database/WipeCoordinator.cc
+    database/WipeCoordinator.h
+    database/WipeState.cc
+    database/WipeState.h
     database/MoveVisitor.cc
     database/MoveVisitor.h
     database/IndexAxis.cc
@@ -127,6 +132,10 @@ list( APPEND fdb5_srcs
     database/Key.h
     database/ReadVisitor.cc
     database/ReadVisitor.h
+    database/ReindexVisitor.cc
+    database/ReindexVisitor.h
+    database/Reindexer.cc
+    database/Reindexer.h
     database/Report.cc
     database/Report.h
     database/RetrieveVisitor.cc
@@ -135,16 +144,13 @@ list( APPEND fdb5_srcs
     database/MultiRetrieveVisitor.h
     database/WriteVisitor.cc
     database/WriteVisitor.h
-    database/Notifier.cc
-    database/Notifier.h
+
     database/Manager.cc
     database/Manager.h
     message/MessageArchiver.cc
     message/MessageArchiver.h
     message/MessageDecoder.cc
     message/MessageDecoder.h
-    message/MessageIndexer.cc
-    message/MessageIndexer.h
     io/FDBFileHandle.cc
     io/FDBFileHandle.h
     io/LustreSettings.cc
@@ -152,6 +158,8 @@ list( APPEND fdb5_srcs
     io/LustreFileHandle.h
     io/HandleGatherer.cc
     io/HandleGatherer.h
+    io/FieldHandle.cc
+    io/FieldHandle.h
     rules/MatchAlways.cc
     rules/MatchAlways.h
     rules/MatchAny.cc
@@ -160,6 +168,8 @@ list( APPEND fdb5_srcs
     rules/Matcher.h
     rules/MatchHidden.cc
     rules/MatchHidden.h
+    rules/ExcludeAll.cc
+    rules/ExcludeAll.h
     rules/MatchOptional.cc
     rules/MatchOptional.h
     rules/MatchValue.cc
@@ -172,6 +182,8 @@ list( APPEND fdb5_srcs
     rules/Schema.h
     rules/SchemaParser.cc
     rules/SchemaParser.h
+    rules/SelectMatcher.cc
+    rules/SelectMatcher.h
     tools/FDBTool.cc
     tools/FDBTool.h
     tools/FDBVisitTool.cc
@@ -202,6 +214,10 @@ list( APPEND fdb5_srcs
     types/TypeInteger.h
     types/TypeMonth.cc
     types/TypeMonth.h
+    types/TypeMonthOfDate.cc
+    types/TypeMonthOfDate.h
+    types/TypeYear.cc
+    types/TypeYear.h
     types/TypeParam.cc
     types/TypeParam.h
     types/TypesFactory.cc
@@ -215,22 +231,42 @@ list( APPEND fdb5_srcs
 )
 
 if(HAVE_FDB_REMOTE)
-    list( APPEND fdb5_srcs 
+    list( APPEND fdb5_srcs
         api/RemoteFDB.cc
         api/RemoteFDB.h
 
-        remote/RemoteConfiguration.h
-        remote/RemoteConfiguration.cc
+        remote/Connection.h
+        remote/Connection.cc
         remote/RemoteFieldLocation.h
         remote/RemoteFieldLocation.cc
         remote/Messages.h
         remote/Messages.cc
-        remote/Handler.h
-        remote/Handler.cc
-        remote/AvailablePortList.cc
-        remote/AvailablePortList.h
         remote/FdbServer.h
         remote/FdbServer.cc
+        remote/RemoteConfiguration.h
+        remote/RemoteConfiguration.cc
+
+        remote/client/Client.h
+        remote/client/Client.cc
+        remote/client/ClientConnection.h
+        remote/client/ClientConnection.cc
+        remote/client/ClientConnectionRouter.h
+        remote/client/ClientConnectionRouter.cc
+        remote/client/RemoteStore.cc
+        remote/client/RemoteStore.h
+        remote/client/RemoteCatalogue.h
+        remote/client/RemoteCatalogue.cc
+        remote/client/ReadLimiter.h
+        remote/client/ReadLimiter.cc
+
+        remote/server/AvailablePortList.cc
+        remote/server/AvailablePortList.h
+        remote/server/CatalogueHandler.h
+        remote/server/CatalogueHandler.cc
+        remote/server/StoreHandler.h
+        remote/server/StoreHandler.cc
+        remote/server/ServerConnection.h
+        remote/server/ServerConnection.cc
     )
 endif()
 
@@ -285,8 +321,6 @@ if( HAVE_TOCFDB )
         toc/TocPurgeVisitor.h
         toc/TocSerialisationVersion.cc
         toc/TocSerialisationVersion.h
-        toc/TocWipeVisitor.cc
-        toc/TocWipeVisitor.h
         toc/TocMoveVisitor.cc
         toc/TocMoveVisitor.h
         toc/TocRecord.cc
@@ -307,58 +341,6 @@ if( HAVE_TOCFDB )
         fdb-dump-index
         fdb-move
         fdb-reconsolidate-toc )
-endif()
-
-if( HAVE_PMEMFDB )
-
-    list( APPEND fdb5_srcs
-        pmem/DataPool.cc
-        pmem/DataPool.h
-        pmem/DataPoolManager.cc
-        pmem/DataPoolManager.h
-        pmem/MemoryBufferStream.h
-        pmem/MemoryBufferStream.cc
-        pmem/PBaseNode.cc
-        pmem/PBaseNode.h
-        pmem/PBranchingNode.cc
-        pmem/PBranchingNode.h
-        pmem/PDataNode.cc
-        pmem/PDataNode.h
-        pmem/PDataRoot.cc
-        pmem/PDataRoot.h
-        pmem/PIndexRoot.cc
-        pmem/PIndexRoot.h
-        pmem/PMemDB.cc
-        pmem/PMemDB.h
-        pmem/PMemDBReader.cc
-        pmem/PMemDBReader.h
-        pmem/PMemDBWriter.cc
-        pmem/PMemDBWriter.h
-        pmem/PMemFieldLocation.cc
-        pmem/PMemFieldLocation.h
-        pmem/PMemIndex.cc
-        pmem/PMemIndex.h
-        pmem/PMemIndexLocation.cc
-        pmem/PMemIndexLocation.h
-        pmem/PRoot.cc
-        pmem/PRoot.h
-        pmem/Pool.cc
-        pmem/Pool.h
-        pmem/PoolEntry.cc
-        pmem/PoolEntry.h
-        pmem/PoolGroup.cc
-        pmem/PoolGroup.h
-        pmem/PoolManager.cc
-        pmem/PoolManager.h
-        pmem/PMemStats.cc
-        pmem/PMemStats.h
-        pmem/PMemEngine.cc
-        pmem/PMemEngine.h
-    )
-
-else()
-    set( PMEM_LIBRARIES "" )
-    set( PMEM_INCLUDE_DIRS "" )
 endif()
 
 if( HAVE_RADOSFDB )
@@ -404,19 +386,19 @@ if( HAVE_DAOSFDB )
         daos/DaosArrayHandle.h
         daos/DaosKeyValueHandle.cc
         daos/DaosKeyValueHandle.h
-        daos/DaosStore.h 
-        daos/DaosStore.cc 
-        daos/DaosFieldLocation.h 
+        daos/DaosStore.h
+        daos/DaosStore.cc
+        daos/DaosFieldLocation.h
         daos/DaosFieldLocation.cc
         daos/DaosException.h
         daos/DaosException.cc
         daos/DaosEngine.h
-        daos/DaosEngine.cc 
-        daos/DaosCatalogue.h 
-        daos/DaosCatalogue.cc 
-        daos/DaosCatalogueWriter.h 
+        daos/DaosEngine.cc
+        daos/DaosCatalogue.h
+        daos/DaosCatalogue.cc
+        daos/DaosCatalogueWriter.h
         daos/DaosCatalogueWriter.cc
-        daos/DaosCatalogueReader.h 
+        daos/DaosCatalogueReader.h
         daos/DaosCatalogueReader.cc
         daos/DaosIndex.h
         daos/DaosIndex.cc
@@ -424,11 +406,9 @@ if( HAVE_DAOSFDB )
         daos/DaosIndexLocation.cc
         daos/DaosCommon.h
         daos/DaosCommon.cc
-        daos/DaosWipeVisitor.h 
-        daos/DaosWipeVisitor.cc
-        daos/DaosArrayPartHandle.h 
+        daos/DaosArrayPartHandle.h
         daos/DaosArrayPartHandle.cc
-        daos/DaosLazyFieldLocation.h 
+        daos/DaosLazyFieldLocation.h
         daos/DaosLazyFieldLocation.cc
         daos/UUID.h
         daos/UUID.cc
@@ -443,7 +423,7 @@ endif()
 ecbuild_add_library(
 
     TARGET  fdb5
-    
+
     TYPE SHARED # Library needs to be shared for dynamic factory self registration
 
     SOURCES
@@ -465,17 +445,15 @@ ecbuild_add_library(
         "${UUID_LIBRARIES}"
 
     PRIVATE_INCLUDES
-        "${PMEM_INCLUDE_DIRS}"
         "${LUSTREAPI_INCLUDE_DIRS}"
         "${DAOS_INCLUDE_DIRS}"
         "${DAOS_TESTS_INCLUDE_DIRS}"
 
     PRIVATE_LIBS
-        ${grib_handling_pkg}
-        ${PMEM_LIBRARIES}
         ${LUSTREAPI_LIBRARIES}
         "${DAOS_LIBRARIES}"
         "${DAOS_TESTS_LIBRARIES}"
+        $<$<BOOL:${HAVE_GRIB}>:eccodes>
 )
 
 if(HAVE_FDB_BUILD_TOOLS)
@@ -498,14 +476,21 @@ list( APPEND fdb5_tools
     fdb-schema
     fdb-where
     fdb-info
+    fdb-inspect
     fdb-status
     fdb-lock
     fdb-unlock
+    fdb-reindex
 )
 
 if ( HAVE_GRIB )
     list( APPEND fdb5_tools
         fdb-hammer
+    )
+endif()
+
+if ( HAVE_GRIB AND ( metkit_VERSION VERSION_GREATER_EQUAL 1.16 ))
+    list( APPEND fdb5_tools
         fdb-patch
     )
 endif()
@@ -550,6 +535,32 @@ ecbuild_add_executable(
         SOURCES
             remote/fdb-server.cc
         LIBS fdb5 )
+
+if ( HAVE_GRIB AND ( metkit_VERSION VERSION_GREATER_EQUAL 1.16 ))
+    ecbuild_add_executable( TARGET    fdb-compare
+                            CONDITION HAVE_FDB_BUILD_TOOLS
+                            SOURCES   tools/compare/fdb-compare.cc
+                                      tools/compare/common/Types.cc
+                                      tools/compare/common/Types.h
+                                      tools/compare/common/Util.cc
+                                      tools/compare/common/Util.h
+                                      tools/compare/mars/Compare.cc
+                                      tools/compare/mars/Compare.h
+                                      tools/compare/grib/Compare.cc
+                                      tools/compare/grib/Compare.h
+                                      tools/compare/grib/CompareKeys.cc
+                                      tools/compare/grib/CompareKeys.h
+                                      tools/compare/grib/CompareHash.cc
+                                      tools/compare/grib/CompareHash.h
+                                      tools/compare/grib/CompareDatasection.cc
+                                      tools/compare/grib/CompareDatasection.h
+                                      tools/compare/grib/CompareBitwise.cc
+                                      tools/compare/grib/CompareBitwise.h
+                                      tools/compare/grib/Utils.cc
+                                      tools/compare/grib/Utils.h
+                            INCLUDES  ${ECCODES_INCLUDE_DIRS}  # Please don't remove me, I am needed
+                            LIBS      fdb5 eckit metkit eccodes)
+endif()
 
 if ( HAVE_FDB_BUILD_TOOLS )
     target_sources( fdb-lock PRIVATE tools/FDBLock.cc tools/FDBLock.h )

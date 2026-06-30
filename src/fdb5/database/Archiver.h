@@ -16,15 +16,19 @@
 #ifndef fdb5_Archiver_H
 #define fdb5_Archiver_H
 
-#include <time.h>
-#include <utility>
+#include <cstddef>
+#include <ctime>
+#include <iosfwd>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <vector>
 
-#include "eckit/memory/NonCopyable.h"
-
-#include "fdb5/database/DB.h"
+#include "fdb5/api/helpers/Callback.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/database/Catalogue.h"
 
-namespace eckit   {
+namespace eckit {
 class DataHandle;
 }
 
@@ -38,49 +42,67 @@ class Schema;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Archiver : public eckit::NonCopyable {
+struct Database {
+    time_t time_;
+    std::shared_ptr<CatalogueWriter> catalogue_;
+    std::unique_ptr<Store> store_;
+};
+class Archiver {
 
-public: // methods
+public:  // methods
 
-    Archiver(const Config& dbConfig = Config().expandConfig());
+    Archiver(const Config& dbConfig = Config().expandConfig(), const ArchiveCallback& callback = CALLBACK_ARCHIVE_NOOP);
+
+    Archiver(const Archiver&) = delete;
+    Archiver& operator=(const Archiver&) = delete;
+    Archiver(Archiver&&) = delete;
+    Archiver& operator=(Archiver&&) = delete;
 
     virtual ~Archiver();
 
-    void archive(const Key &key, BaseArchiveVisitor& visitor);
-    void archive(const Key &key, const void* data, size_t len);
+    void archive(const Key& key, BaseArchiveVisitor& visitor);
+    void archive(const Key& key, const void* data, size_t len);
 
     /// Flushes all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call
     void flush();
 
-    friend std::ostream &operator<<(std::ostream &s, const Archiver &x) {
+    friend std::ostream& operator<<(std::ostream& s, const Archiver& x) {
         x.print(s);
         return s;
     }
 
-private: // methods
+protected:  // methods
 
-    void print(std::ostream &out) const;
+    virtual void flushDatabase(Database& db);
 
-    DB& database(const Key &key);
+private:  // methods
 
-private: // members
+    void print(std::ostream& out) const;
+
+    void selectDatabase(const Key& key);
+
+protected:  // members
+
+    std::map<Key, Database> databases_;
+
+private:  // members
 
     friend class BaseArchiveVisitor;
 
-    typedef std::map< Key, std::pair<time_t, std::unique_ptr<DB> > > store_t;
-
     Config dbConfig_;
-
-    store_t databases_;
 
     std::vector<Key> prev_;
 
-    DB* current_;
+    Database* db_;
+
+    std::recursive_mutex flushMutex_;
+    std::mutex cacheMutex_;
+    const ArchiveCallback& callback_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

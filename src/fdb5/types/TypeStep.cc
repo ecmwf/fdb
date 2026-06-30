@@ -8,15 +8,17 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/container/DenseSet.h"
 #include "eckit/utils/Translator.h"
 
 #include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/StepRange.h"
 #include "metkit/mars/StepRangeNormalise.h"
 
-#include "fdb5/types/TypesFactory.h"
+#include <string>
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/types/TypeStep.h"
-#include "fdb5/database/DB.h"
+#include "fdb5/types/TypesFactory.h"
 
 using metkit::mars::StepRange;
 using metkit::mars::StepRangeNormalise;
@@ -26,37 +28,35 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeStep::TypeStep(const std::string &name, const std::string &type) :
-    Type(name, type) {
-}
+TypeStep::TypeStep(const std::string& name, const std::string& type) : Type(name, type) {}
 
-TypeStep::~TypeStep() {
-}
+TypeStep::~TypeStep() {}
 
 
-std::string TypeStep::toKey(const std::string&,
-                            const std::string& value) const {
+std::string TypeStep::toKey(const std::string& value) const {
     return StepRange(value);
 }
 
-bool TypeStep::match(const std::string&, const std::string& value1, const std::string& value2) const
-{
-    if(value1 == value2) { return true; }
+bool TypeStep::match(const std::string&, const std::string& value1, const std::string& value2) const {
+    if (value1 == value2) {
+        return true;
+    }
 
     std::string z1 = "0-" + value1;
-    if(z1 == value2) { return true; }
+    if (z1 == value2) {
+        return true;
+    }
 
     std::string z2 = "0-" + value2;
-    if(z2 == value1) { return true; }
+    if (z2 == value1) {
+        return true;
+    }
 
     return false;
 }
 
-void TypeStep::getValues(const metkit::mars::MarsRequest& request,
-                         const std::string& keyword,
-                         eckit::StringList& values,
-                         const Notifier&,
-                         const DB *db) const {
+void TypeStep::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                         eckit::StringList& values, const CatalogueReader* cat) const {
 
     // Get the steps / step ranges from the request
 
@@ -66,38 +66,32 @@ void TypeStep::getValues(const metkit::mars::MarsRequest& request,
     std::vector<StepRange> ranges;
     std::copy(steps.begin(), steps.end(), std::back_inserter(ranges));
 
-    // If this is before knowing the DB, we are constrained on what we can do.
-
-    if (db) {
-
+    // If this is before knowing the Catalogue, we are constrained on what we can do.
+    if (cat) {
         // Get the axis
-
-        eckit::StringSet ax;
-        db->axis("step", ax);
-
-        std::vector<StepRange> axis;
-        for (auto step: ax) {
-            if (!step.empty()) {
-                axis.push_back(StepRange(step));
+        auto ax = cat->axis("step");
+        if (ax) {
+            std::vector<StepRange> axis;
+            for (auto step : ax->get()) {
+                if (!step.empty()) {
+                    axis.push_back(StepRange(step));
+                }
             }
+            std::sort(axis.begin(), axis.end());
+
+            // Match the step range to the axis
+            StepRangeNormalise::normalise(ranges, axis);
         }
-        std::sort(axis.begin(), axis.end());
-
-        // Match the step range to the axis
-
-        StepRangeNormalise::normalise(ranges, axis);
     }
 
     // Convert the ranges back into strings for the FDB
-
     eckit::Translator<StepRange, std::string> t;
 
     values.reserve(ranges.size());
-    std::transform(ranges.begin(), ranges.end(), std::back_inserter(values),
-                   [&](const StepRange& r) { return t(r); });
+    std::transform(ranges.begin(), ranges.end(), std::back_inserter(values), [&](const StepRange& r) { return t(r); });
 }
 
-void TypeStep::print(std::ostream &out) const {
+void TypeStep::print(std::ostream& out) const {
     out << "TypeStep[name=" << name_ << "]";
 }
 
@@ -105,4 +99,4 @@ static TypeBuilder<TypeStep> type("Step");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

@@ -14,30 +14,33 @@
 #include <unistd.h>
 
 #include "eckit/config/Resource.h"
+#include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/URIManager.h"
 #include "eckit/log/Timer.h"
+#include "eckit/os/Stat.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/toc/RootManager.h"
 #include "fdb5/io/LustreSettings.h"
+#include "fdb5/toc/RootManager.h"
 
 namespace fdb5 {
 
-eckit::PathName TocCommon::findRealPath(const eckit::PathName& path) {
+eckit::LocalPathName TocCommon::findRealPath(const eckit::LocalPathName& path) {
 
     // realpath only works on existing paths, so work back up the path until
     // we find one that does, get the realpath on that, then reconstruct.
-    if (path.exists()) return path.realName();
+    if (path.exists()) {
+        return path.realName();
+    }
 
     return findRealPath(path.dirName()) / path.baseName();
 }
 
 TocCommon::TocCommon(const eckit::PathName& directory) :
-    directory_(findRealPath(directory)),
+    directory_(findRealPath(eckit::LocalPathName{directory})),
     schemaPath_(directory_ / "schema"),
     dbUID_(static_cast<uid_t>(-1)),
-    userUID_(::getuid()),
-    dirty_(false) {}
+    userUID_(::getuid()) {}
 
 void TocCommon::checkUID() const {
     static bool fdbOnlyCreatorCanWrite = eckit::Resource<bool>("fdbOnlyCreatorCanWrite", true);
@@ -46,14 +49,12 @@ void TocCommon::checkUID() const {
     }
 
     static std::vector<std::string> fdbSuperUsers =
-        eckit::Resource<std::vector<std::string> >("fdbSuperUsers", "", true);
+        eckit::Resource<std::vector<std::string>>("fdbSuperUsers", "", true);
 
     if (dbUID() != userUID_) {
-        if (std::find(fdbSuperUsers.begin(), fdbSuperUsers.end(), userName(userUID_)) ==
-            fdbSuperUsers.end()) {
+        if (std::find(fdbSuperUsers.begin(), fdbSuperUsers.end(), userName(userUID_)) == fdbSuperUsers.end()) {
             std::ostringstream oss;
-            oss << "Only user '" << userName(dbUID())
-                << "' can write to FDB " << directory_ << ", current user is '"
+            oss << "Only user '" << userName(dbUID()) << "' can write to FDB " << directory_ << ", current user is '"
                 << userName(userUID_) << "'";
 
             throw eckit::UserError(oss.str());
@@ -62,8 +63,12 @@ void TocCommon::checkUID() const {
 }
 
 uid_t TocCommon::dbUID() const {
-    if (dbUID_ == static_cast<uid_t>(-1))
-        dbUID_ = directory_.owner();
+    if (dbUID_ == static_cast<uid_t>(-1)) {
+        // TODO: Do properly in eckit
+        struct stat s;
+        SYSCALL(::stat(directory_.localPath(), &s));
+        dbUID_ = s.st_uid;
+    }
 
     return dbUID_;
 }
@@ -79,4 +84,50 @@ std::string TocCommon::userName(uid_t uid) {
     }
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+
+StdDir::StdDir(const eckit::PathName& p) : path_(p), d_(opendir(p.localPath())) {
+
+    if (!d_) {
+        std::stringstream ss;
+        ss << "Failed to open directory " << p << " (" << errno << "): " << strerror(errno);
+        throw eckit::SeriousBug(ss.str(), Here());
+    }
 }
+
+StdDir::~StdDir() {
+    if (d_) {
+        closedir(d_);
+    }
+}
+
+void StdDir::children(std::vector<eckit::PathName>& paths) {
+
+    // Implemented here as PathName::match() does not return hidden files starting with '.'
+
+    struct dirent* e;
+
+    while ((e = readdir(d_)) != nullptr) {
+
+        if (e->d_name[0] == '.') {
+            if (e->d_name[1] == '\0' || (e->d_name[1] == '.' && e->d_name[2] == '\0')) {
+                continue;
+            }
+        }
+
+        eckit::PathName p(path_ / e->d_name);
+
+        eckit::Stat::Struct info;
+        SYSCALL(eckit::Stat::lstat(p.localPath(), &info));
+
+        if (S_ISDIR(info.st_mode)) {
+            StdDir d(p);
+            d.children(paths);
+        }
+
+        // n.b. added after all children
+        paths.push_back(p);
+    }
+}
+
+}  // namespace fdb5

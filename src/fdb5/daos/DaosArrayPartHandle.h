@@ -13,10 +13,12 @@
 
 #pragma once
 
+#include <optional>
+
 #include "eckit/io/DataHandle.h"
 
-#include "fdb5/daos/DaosSession.h"
 #include "fdb5/daos/DaosName.h"
+#include "fdb5/daos/DaosSession.h"
 
 namespace fdb5 {
 
@@ -26,53 +28,53 @@ class DaosArray;
 
 class DaosArrayName;
 
-/// @note: because daos_array_read does not report actual amount of bytes read, 
-///   DaosArrayHandle::read must check the actual size and returns it if smaller 
-///   than the provided buffer, which reduces performance. DaosArrayPartHandle 
+/// @note: because daos_array_read does not report actual amount of bytes read,
+///   DaosArrayHandle::read must check the actual size and returns it if smaller
+///   than the provided buffer, which reduces performance. DaosArrayPartHandle
 ///   circumvents that check for cases where the object size is known.
-/// @note: see DaosArray::read 
+/// @note: see DaosArray::read
 class DaosArrayPartHandle : public eckit::DataHandle {
 
-public: // methods
+public:  // methods
 
     DaosArrayPartHandle(const fdb5::DaosArrayName&, const eckit::Offset&, const eckit::Length&);
 
     ~DaosArrayPartHandle();
 
-    virtual void print(std::ostream&) const override;
+    void print(std::ostream&) const override;
 
-    // virtual void openForWrite(const eckit::Length&) override;
-    // virtual void openForAppend(const eckit::Length&) override;
-    virtual eckit::Length openForRead() override;
+    // void openForWrite(const eckit::Length&) override;
+    // void openForAppend(const eckit::Length&) override;
+    eckit::Length openForRead() override;
 
-    // virtual long write(const void*, long) override;
-    virtual long read(void*, long) override;
-    virtual void close() override;
-    virtual void flush() override;
+    // long write(const void*, long) override;
+    long read(void*, long) override;
+    void close() override;
+    void flush() override;
 
-    virtual eckit::Length size() override;
-    virtual eckit::Length estimate() override;
-    virtual eckit::Offset position() override;
-    virtual eckit::Offset seek(const eckit::Offset&) override;
-    virtual bool canSeek() const override;
-    // virtual void skip(const eckit::Length&) override;
+    eckit::Length size() override;
+    eckit::Length estimate() override;
+    eckit::Offset position() override;
+    eckit::Offset seek(const eckit::Offset&) override;
+    bool canSeek() const override;
+    // void skip(const eckit::Length&) override;
 
-    // virtual void rewind() override;
-    // virtual void restartReadFrom(const Offset&) override;
-    // virtual void restartWriteFrom(const Offset&) override;
+    // void rewind() override;
+    // void restartReadFrom(const Offset&) override;
+    // void restartWriteFrom(const Offset&) override;
 
-    virtual std::string title() const override;
+    std::string title() const override;
 
-    // virtual void encode(Stream&) const override;
-    // virtual const ReanimatorBase& reanimator() const override { return reanimator_; }
+    // void encode(Stream&) const override;
+    // const ReanimatorBase& reanimator() const override { return reanimator_; }
 
     // static const ClassSpec& classSpec() { return classSpec_; }
 
-private: // methods
+private:  // methods
 
     fdb5::DaosSession& session();
 
-private: // members
+private:  // members
 
     // mutable because title() calls DaosArrayName::asString which may update (generate) OID
     mutable fdb5::DaosArrayName name_;
@@ -84,7 +86,6 @@ private: // members
 
     // static ClassSpec classSpec_;
     // static Reanimator<DataHandle> reanimator_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

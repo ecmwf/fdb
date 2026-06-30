@@ -20,11 +20,11 @@
 #include "eckit/container/BTree.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
-#include "eckit/memory/NonCopyable.h"
 
 #include "eckit/types/FixedString.h"
 
 #include "fdb5/database/Index.h"
+#include "fdb5/database/Key.h"
 
 namespace fdb5 {
 
@@ -34,15 +34,17 @@ class FieldRef;
 
 class BTreeIndexVisitor {
 public:
+
     virtual ~BTreeIndexVisitor();
     virtual void visit(const std::string& key, const FieldRef&) = 0;
 };
 
 class BTreeIndex {
 public:
+
     virtual ~BTreeIndex();
     virtual bool get(const std::string& key, FieldRef& data) const = 0;
-    virtual bool set(const std::string& key, const FieldRef& data)= 0;
+    virtual bool set(const std::string& key, const FieldRef& data) = 0;
     virtual void flush() = 0;
     virtual void sync() = 0;
     virtual void visit(BTreeIndexVisitor& visitor) const = 0;
@@ -51,47 +53,46 @@ public:
     virtual void preload() = 0;
 
 
-    static const std::string& defaulType();
-
+    static const std::string& defaultType(size_t keySize);
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class BTreeIndexFactory {
 
-    virtual BTreeIndex *make(const eckit::PathName& path, bool readOnly, off_t offset) const = 0 ;
+    virtual BTreeIndex* make(const eckit::PathName& path, bool readOnly, off_t offset) const = 0;
 
 protected:
 
-    BTreeIndexFactory(const std::string &);
+    BTreeIndexFactory(const std::string&);
     virtual ~BTreeIndexFactory();
 
     std::string name_;
 
 public:
 
-    static void list(std::ostream &);
-    static BTreeIndex *build(const std::string &name, const eckit::PathName& path, bool readOnly, off_t offset);
-
+    static void list(std::ostream&);
+    static BTreeIndex* build(const std::string& name, const eckit::PathName& path, bool readOnly, off_t offset);
 };
 
 /// Templated specialisation of the self-registering factory,
 /// that does the self-registration, and the construction of each object.
 
-template< class T>
+template <class T>
 class BTreeIndexBuilder : public BTreeIndexFactory {
 
-    virtual BTreeIndex *make(const eckit::PathName& path, bool readOnly, off_t offset) const override {
+    BTreeIndex* make(const eckit::PathName& path, bool readOnly, off_t offset) const override {
         return new T(path, readOnly, offset);
     }
 
 public:
-    BTreeIndexBuilder(const std::string &name) : BTreeIndexFactory(name) {}
+
+    BTreeIndexBuilder(const std::string& name) : BTreeIndexFactory(name) {}
 };
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

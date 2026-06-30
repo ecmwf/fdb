@@ -21,93 +21,93 @@
 
 #include <memory>
 
-#include "eckit/distributed/Transport.h"
-#include "eckit/utils/Regex.h"
-#include "eckit/memory/NonCopyable.h"
-
-#include "fdb5/database/DB.h"
-#include "fdb5/config/Config.h"
-#include "fdb5/api/FDBStats.h"
 #include "fdb5/api/helpers/AxesIterator.h"
-#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/Callback.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/DumpIterator.h"
-#include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/api/helpers/StatusIterator.h"
+#include "fdb5/config/Config.h"
+#include "fdb5/database/WipeState.h"
 
-namespace eckit {
-namespace message {
+namespace eckit::message {
+
 class Message;
-}
-}  // namespace eckit
 
-namespace metkit { class MarsRequest; }
+}  // namespace eckit::message
+
+namespace metkit::mars {
+
+class MarsRequest;
+
+}  // namespace metkit::mars
 
 namespace fdb5 {
 
 class Key;
 class FDBToolRequest;
+class FieldLocation;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 /// The base class that FDB implementations are derived from
 
-class FDBBase : private eckit::NonCopyable {
+class FDBBase : public std::enable_shared_from_this<FDBBase>, public CallbackRegistry {
 
-public: // methods
+public:  // methods
 
     FDBBase(const Config& config, const std::string& name);
-    virtual ~FDBBase();
+
+    FDBBase(const FDBBase&) = delete;
+    FDBBase& operator=(const FDBBase&) = delete;
+    FDBBase(FDBBase&&) = delete;
+    FDBBase& operator=(FDBBase&&) = delete;
+
+    virtual ~FDBBase() = default;
+
+    std::shared_ptr<FDBBase> shared() { return shared_from_this(); }
 
     // -------------- Primary API functions ----------------------------
 
     virtual void archive(const Key& key, const void* data, size_t length) = 0;
 
+    virtual void reindex(const Key& key, const FieldLocation& location) { NOTIMP; }
+
     virtual void flush() = 0;
 
     virtual ListIterator inspect(const metkit::mars::MarsRequest& request) = 0;
 
-    virtual ListIterator list(const FDBToolRequest& request) = 0;
+    virtual ListIterator list(const FDBToolRequest& request, int level) = 0;
 
     virtual DumpIterator dump(const FDBToolRequest& request, bool simple) = 0;
 
     virtual StatusIterator status(const FDBToolRequest& request) = 0;
 
-    virtual WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) = 0;
+    virtual WipeStateIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) = 0;
 
     virtual PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) = 0;
 
     virtual StatsIterator stats(const FDBToolRequest& request) = 0;
 
-    virtual ControlIterator control(const FDBToolRequest& request,
-                                    ControlAction action,
+    virtual ControlIterator control(const FDBToolRequest& request, ControlAction action,
                                     ControlIdentifiers identifier) = 0;
 
     virtual MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) = 0;
 
-    virtual AxesIterator axes(const FDBToolRequest& request, int axes) { NOTIMP; }
+    virtual AxesIterator axesIterator(const FDBToolRequest& request, int axes) = 0;
 
     // -------------- API management ----------------------------
-
-    /// ID used for hashing in the Rendezvous hash. Should be unique amongst those used
-    /// within a DistFDB (i.e. within one Rendezvous hash).
-    virtual std::string id() const;
-
-    virtual FDBStats stats() const;
 
     const std::string& name() const;
 
     const Config& config() const;
 
-    void disable();
-    bool disabled();
-
     bool enabled(const ControlIdentifier& controlIdentifier) const;
 
-private: // methods
+private:  // methods
 
     virtual void print(std::ostream& s) const = 0;
 
@@ -116,15 +116,13 @@ private: // methods
         return s;
     }
 
-protected: // members
+protected:  // members
 
     const std::string name_;
 
     Config config_;
 
     ControlIdentifiers controlIdentifiers_;
-
-    bool disabled_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -138,55 +136,52 @@ public:
 
     void add(const std::string& name, const FDBBuilderBase*);
 
-    std::unique_ptr<FDBBase> build(const Config& config);
+    std::shared_ptr<FDBBase> build(const Config& config);
 
 private:
 
-    FDBFactory() {} ///< private constructor only used by singleton
+    FDBFactory() {}  ///< private constructor only used by singleton
 
     eckit::Mutex mutex_;
 
     std::map<std::string, const FDBBuilderBase*> registry_;
-
 };
 
 
 class FDBBuilderBase {
-public: // methods
+public:  // methods
 
-    virtual std::unique_ptr<FDBBase> make(const Config& config) const = 0;
+    virtual std::shared_ptr<FDBBase> make(const Config& config) const = 0;
 
-protected: // methods
+protected:  // methods
 
     FDBBuilderBase(const std::string& name);
 
     virtual ~FDBBuilderBase();
 
-protected: // members
+protected:  // members
 
     std::string name_;
 };
 
 
-
 template <typename T>
 class FDBBuilder : public FDBBuilderBase {
 
-    static_assert(std::is_base_of<FDBBase, T>::value, "FDB Factorys can only build implementations of the FDB interface");
+    static_assert(std::is_base_of<FDBBase, T>::value,
+                  "FDB Factorys can only build implementations of the FDB interface");
 
-public: // methods
+public:  // methods
 
     FDBBuilder(const std::string& name) : FDBBuilderBase(name) {}
 
-private: // methods
+private:  // methods
 
-    virtual std::unique_ptr<FDBBase> make(const Config& config) const override {
-        return std::unique_ptr<T>(new T(config, name_));
-    }
+    std::shared_ptr<FDBBase> make(const Config& config) const override { return std::make_shared<T>(config, name_); }
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
-#endif // fdb5_api_FDBFactory_H
+#endif  // fdb5_api_FDBFactory_H

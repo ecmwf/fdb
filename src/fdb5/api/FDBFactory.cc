@@ -14,14 +14,12 @@
  */
 
 
-#include "eckit/config/YAMLConfiguration.h"
+#include "fdb5/api/FDBFactory.h"
+
 #include "eckit/log/Log.h"
-#include "eckit/message/Message.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/Mutex.h"
 
-#include "fdb5/api/FDBFactory.h"
-#include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/LibFdb5.h"
 
 
@@ -30,10 +28,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-FDBBase::FDBBase(const Config& config, const std::string& name) :
-    name_(name),
-    config_(config),
-    disabled_(false) {
+FDBBase::FDBBase(const Config& config, const std::string& name) : name_(name), config_(config) {
 
     bool writable = config.getBool("writable", true);
     bool visitable = config.getBool("visitable", true);
@@ -53,21 +48,7 @@ FDBBase::FDBBase(const Config& config, const std::string& name) :
     LOG_DEBUG_LIB(LibFdb5) << "FDBBase: " << config << std::endl;
 }
 
-
-FDBBase::~FDBBase() {}
-
-std::string FDBBase::id() const {
-    std::stringstream ss;
-    ss << config_;
-    return ss.str();
-}
-
-FDBStats FDBBase::stats() const {
-    /// By default we have no additional internal statistics
-    return FDBStats();
-}
-
-const std::string &FDBBase::name() const {
+const std::string& FDBBase::name() const {
     return name_;
 }
 
@@ -79,23 +60,12 @@ bool FDBBase::enabled(const ControlIdentifier& controlIdentifier) const {
     return controlIdentifiers_.enabled(controlIdentifier);
 }
 
-void FDBBase::disable() {
-    eckit::Log::warning() << "Disabling FDB " << *this << std::endl;
-    disabled_ = true;
-}
-
-bool FDBBase::disabled() {
-    return disabled_;
-}
-
-FDBFactory& FDBFactory::instance()
-{
+FDBFactory& FDBFactory::instance() {
     static FDBFactory fdbfactory;
     return fdbfactory;
 }
 
-void FDBFactory::add(const std::string& name, const FDBBuilderBase* b)
-{
+void FDBFactory::add(const std::string& name, const FDBBuilderBase* b) {
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
 
     ASSERT(registry_.find(name) == registry_.end());
@@ -103,7 +73,7 @@ void FDBFactory::add(const std::string& name, const FDBBuilderBase* b)
     registry_[name] = b;
 }
 
-std::unique_ptr<FDBBase> FDBFactory::build(const Config& config) {
+std::shared_ptr<FDBBase> FDBFactory::build(const Config& config) {
 
     // Allow expanding of the config to make use of fdb_home supplied in a previous
     // configuration file, or to pick up the default configuration from ~fdb/etc/fdb/...
@@ -121,25 +91,23 @@ std::unique_ptr<FDBBase> FDBFactory::build(const Config& config) {
     auto it = registry_.find(key);
 
     if (it == registry_.end()) {
-        std::stringstream ss;
+        std::ostringstream ss;
         ss << "FDB factory \"" << key << "\" not found";
         throw eckit::SeriousBug(ss.str(), Here());
     }
 
-    std::unique_ptr<FDBBase> ret = it->second->make(actualConfig);
+    std::shared_ptr<FDBBase> ret = it->second->make(actualConfig);
     LOG_DEBUG_LIB(LibFdb5) << "Constructed FDB implementation: " << *ret << std::endl;
     return ret;
 }
 
-FDBBuilderBase::FDBBuilderBase(const std::string &name) :
-    name_(name) {
+FDBBuilderBase::FDBBuilderBase(const std::string& name) : name_(name) {
 
     FDBFactory::instance().add(name, this);
 }
 
-FDBBuilderBase::~FDBBuilderBase() {
-}
+FDBBuilderBase::~FDBBuilderBase() {}
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

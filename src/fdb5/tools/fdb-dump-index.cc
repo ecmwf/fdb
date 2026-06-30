@@ -11,11 +11,7 @@
 #include "eckit/option/CmdArgs.h"
 
 #include "fdb5/toc/TocHandler.h"
-#include "fdb5/toc/TocIndex.h"
 #include "fdb5/tools/FDBTool.h"
-
-#include "fdb5/toc/BTreeIndex.h"
-#include "fdb5/database/Index.h"
 
 #include <string>
 
@@ -23,27 +19,25 @@ using namespace eckit;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FDBDumpToc : public fdb5::FDBTool {
+class FDBDumpIndex : public fdb5::FDBTool {
 
-  public: // methods
+public:  // methods
 
-    FDBDumpToc(int argc, char **argv) :
-        fdb5::FDBTool(argc, argv) {}
+    FDBDumpIndex(int argc, char** argv) : fdb5::FDBTool(argc, argv) {}
 
-  private: // methods
+private:  // methods
 
-    virtual void usage(const std::string &tool) const;
+    virtual void usage(const std::string& tool) const;
     virtual void execute(const option::CmdArgs& args);
 };
 
-void FDBDumpToc::usage(const std::string &tool) const {
-    Log::info() << std::endl
-                << "Usage: " << tool << " [path1] [path2] ..." << std::endl;
+void FDBDumpIndex::usage(const std::string& tool) const {
+    Log::info() << std::endl << "Usage: " << tool << " [path1] [path2] ..." << std::endl;
     fdb5::FDBTool::usage(tool);
 }
 
 
-void FDBDumpToc::execute(const option::CmdArgs& args) {
+void FDBDumpIndex::execute(const option::CmdArgs& args) {
 
     // n.b. We don't just open the toc, then check if in the list of indexes, as there
     //      is no reason to think that the indexes map to the same toc (or directory).
@@ -61,8 +55,7 @@ void FDBDumpToc::execute(const option::CmdArgs& args) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-int main(int argc, char **argv) {
-    FDBDumpToc app(argc, argv);
+int main(int argc, char** argv) {
+    FDBDumpIndex app(argc, argv);
     return app.start();
 }
-

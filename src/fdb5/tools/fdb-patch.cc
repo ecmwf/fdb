@@ -12,19 +12,19 @@
 
 #include "eccodes.h"
 
-#include "eckit/config/Resource.h"
-#include "eckit/option/CmdArgs.h"
-#include "eckit/option/SimpleOption.h"
 #include "eckit/log/Bytes.h"
 #include "eckit/log/Plural.h"
 #include "eckit/message/Message.h"
+#include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
 
 #include "fdb5/api/helpers/ListIterator.h"
-#include "fdb5/message/MessageArchiver.h"
 #include "fdb5/io/HandleGatherer.h"
+#include "fdb5/message/MessageArchiver.h"
 #include "fdb5/tools/FDBVisitTool.h"
 
-#include "metkit/codes/CodesContent.h"
+#include "metkit/codes/CodesDataContent.h"
+#include "metkit/codes/api/CodesAPI.h"
 
 using namespace eckit;
 using namespace eckit::option;
@@ -36,59 +36,48 @@ namespace tools {
 
 class PatchArchiver : public MessageArchiver {
 
-public: // methods
+public:  // methods
 
     explicit PatchArchiver(const Key& key) : key_(key) {}
 
-private: // methods
+private:  // methods
 
-    virtual eckit::message::Message patch(const eckit::message::Message& msg) override;
+    eckit::message::Message patch(const eckit::message::Message& msg) override;
 
-private: // members
+private:  // members
 
     const Key& key_;
 };
 
 eckit::message::Message PatchArchiver::patch(const eckit::message::Message& msg) {
+    auto h = metkit::codes::codesHandleFromMessage({reinterpret_cast<const uint8_t*>(msg.data()), msg.length()});
 
-    codes_handle* h = codes_handle_new_from_message(nullptr, msg.data(), msg.length());
-    ASSERT(h);
-
-    try {
-        for (Key::const_iterator j = key_.begin(); j != key_.end(); ++j) {
-            size_t len = j->second.size();
-            ASSERT(grib_set_string(h, j->first.c_str(), j->second.c_str(), &len) == 0);
-        }
-
-        return eckit::message::Message(new metkit::codes::CodesContent(h, true));
+    for (const auto& [key, value] : key_) {
+        h->set(key, value);
     }
-    catch (...)
-    {
-        grib_handle_delete(h);
-        throw;
-    }
+
+    return eckit::message::Message(new metkit::codes::CodesDataContent(std::move(h), msg.offset()));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class FDBPatch : public FDBVisitTool {
 
-public: // methods
+public:  // methods
 
-    FDBPatch(int argc, char **argv) :
-        FDBVisitTool(argc, argv, "class,expver,stream,date,time") {
+    FDBPatch(int argc, char** argv) : FDBVisitTool(argc, argv, "class,expver,stream,date,time") {
 
         options_.push_back(new SimpleOption<std::string>("expver", "Set the expver"));
         options_.push_back(new SimpleOption<std::string>("class", "Set the class"));
     }
 
-private: // methods
+private:  // methods
 
     virtual void execute(const CmdArgs& args);
-    virtual void init(const CmdArgs &args);
+    virtual void init(const CmdArgs& args);
     virtual int minimumPositionalArguments() const;
 
-private: // members
+private:  // members
 
     fdb5::Key key_;
 };
@@ -144,7 +133,7 @@ void FDBPatch::execute(const CmdArgs& args) {
             //    (n.b. listed key is broken down as-per the schema)
 
             Key key;
-            for (const Key& k : elem.keyParts_) {
+            for (const Key& k : elem.keys()) {
                 for (const auto& kv : k) {
                     key.set(kv.first, kv.second);
                 }
@@ -155,7 +144,7 @@ void FDBPatch::execute(const CmdArgs& args) {
         }
 
         if (count == 0 && fail()) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "No FDB entries found for: " << request << std::endl;
             throw FDBToolException(ss.str());
         }
@@ -179,30 +168,19 @@ void FDBPatch::execute(const CmdArgs& args) {
 
     // Status report
 
-    Log::info() << std::endl
-                << "Summary" << std::endl
-                << "=======" << std::endl << std::endl;
-    Log::info() << Plural(uniqueKeys.size(), "field")
-                << " ("
-                << Bytes(bytes)
-                << ") copied to "
-                << key_
-                << std::endl;
+    Log::info() << std::endl << "Summary" << std::endl << "=======" << std::endl << std::endl;
+    Log::info() << Plural(uniqueKeys.size(), "field") << " (" << Bytes(bytes) << ") copied to " << key_ << std::endl;
 
-    Log::info() << "Rates: "
-                << Bytes(bytes, timer)
-                << ", "
-                << uniqueKeys.size()  / timer.elapsed()
-                << " fields/s"
+    Log::info() << "Rates: " << Bytes(bytes, timer) << ", " << uniqueKeys.size() / timer.elapsed() << " fields/s"
                 << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace tools
-} // namespace fdb5
+}  // namespace tools
+}  // namespace fdb5
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FDBPatch app(argc, argv);
     return app.start();
 }

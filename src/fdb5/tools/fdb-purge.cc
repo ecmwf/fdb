@@ -8,9 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/tools/FDBVisitTool.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/tools/FDBVisitTool.h"
 
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
@@ -28,9 +28,9 @@ namespace tools {
 
 class FDBPurge : public FDBVisitTool {
 
-public: // methods
+public:  // methods
 
-    FDBPurge(int argc, char **argv) :
+    FDBPurge(int argc, char** argv) :
         FDBVisitTool(argc, argv, "class,expver,stream,date,time"),
         doit_(false),
         porcelain_(false),
@@ -41,11 +41,11 @@ public: // methods
         options_.push_back(new SimpleOption<bool>("porcelain", "List only the deleted files"));
     }
 
-private: // methods
+private:  // methods
 
-    virtual void init(const CmdArgs &args);
+    virtual void init(const CmdArgs& args);
     virtual void execute(const CmdArgs& args);
-    virtual void finish(const CmdArgs &args);
+    virtual void finish(const CmdArgs& args);
 
     bool doit_;
     bool porcelain_;
@@ -61,9 +61,7 @@ void FDBPurge::init(const CmdArgs& args) {
 }
 
 void FDBPurge::execute(const CmdArgs& args) {
-
-    FDB fdb;
-
+    FDB fdb(config(args));
     for (const FDBToolRequest& request : requests()) {
 
         if (!porcelain_) {
@@ -82,7 +80,7 @@ void FDBPurge::execute(const CmdArgs& args) {
         }
 
         if (count == 0 && fail() && !ignoreNoData_) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "No FDB entries found for: " << request << std::endl;
             throw FDBToolException(ss.str());
         }
@@ -93,20 +91,17 @@ void FDBPurge::execute(const CmdArgs& args) {
 void FDBPurge::finish(const CmdArgs&) {
 
     if (!doit_ && !porcelain_) {
-        Log::info() << std::endl
-                    << "Rerun command with --doit flag to delete unused files"
-                    << std::endl
-                    << std::endl;
+        Log::info() << std::endl << "Rerun command with --doit flag to delete unused files" << std::endl << std::endl;
     }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace tools
-} // namespace fdb5
+}  // namespace tools
+}  // namespace fdb5
 
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     fdb5::tools::FDBPurge app(argc, argv);
     return app.start();
 }

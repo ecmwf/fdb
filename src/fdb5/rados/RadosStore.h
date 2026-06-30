@@ -29,9 +29,10 @@ namespace fdb5 {
 
 class RadosStore : public Store, public RadosCommon {
 
-public: // methods
+public:  // methods
 
     RadosStore(const Schema& schema, const Key& key, const Config& config);
+    RadosStore(const eckit::URI& uri);
 
     ~RadosStore() override {}
 
@@ -42,26 +43,27 @@ public: // methods
     std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const override;
 
     bool open() override { return true; }
-    void flush() override;
+    size_t flush() override;
     void close() override;
 
     void checkUID() const override { /* nothing to do */ }
 
-protected: // methods
+protected:  // methods
 
     std::string type() const override { return "rados"; }
-
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field) const override;
-    std::unique_ptr<FieldLocation> archive(const Key& key, const void * data, eckit::Length length) override;
+    std::unique_ptr<const FieldLocation> archive(const uint32_t, const Key& key, const void* data,
+                                                 eckit::Length length) override;
 
+    using Store::remove;
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
-    void print(std::ostream &out) const override;
+    void print(std::ostream& out) const override;
 
     void parseConfig(const fdb5::Config& config);
-    
+
     eckit::RadosObject generateDataObject(const Key& key) const;
 
 #ifndef fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD
@@ -70,36 +72,36 @@ protected: // methods
     void closeDataHandles();
     void flushDataHandles();
 
-private: // types
+private:  // types
 
     typedef std::map<Key, eckit::DataHandle*> HandleStore;
     typedef std::map<Key, eckit::RadosObject> ObjectStore;
 #endif
 
-private: // members
-    
+private:  // members
+
     const Config& config_;
 
     // mutable bool dirty_;
+    size_t archivedFields_;
 
 #ifdef fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD
-  #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
+#ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
     std::vector<eckit::DataHandle*> handles_;
     size_t maxHandleBuffSize_;
-  #endif
+#endif
 #else
     HandleStore handles_;
     mutable ObjectStore dataObjects_;
-  #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
+#ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
     size_t maxAioBuffSize_;
-    #ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
+#ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
     size_t maxPartHandleBuffSize_;
-    #endif
-  #endif
 #endif
-
+#endif
+#endif
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

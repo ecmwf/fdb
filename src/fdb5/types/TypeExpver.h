@@ -24,23 +24,21 @@ namespace fdb5 {
 
 class TypeExpver : public Type {
 
-public: // methods
+public:  // methods
 
-    TypeExpver(const std::string &name, const std::string &type);
+    TypeExpver(const std::string& name, const std::string& type);
 
-    virtual ~TypeExpver() override;
+    ~TypeExpver() override;
 
-    virtual std::string tidy(const std::string &keyword,
-                             const std::string &value) const override;
+    std::string tidy(const std::string& value) const override;
 
-private: // methods
+private:  // methods
 
-    virtual void print( std::ostream &out ) const override;
-
+    void print(std::ostream& out) const override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

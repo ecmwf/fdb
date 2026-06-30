@@ -1,0 +1,10 @@
+---
+type: catalogue
+serverPort: 10000
+stores:
+- default: "localhost:10001"
+schema: @CMAKE_CURRENT_SOURCE_DIR@/schema
+spaces:
+- handler: Default
+  roots:
+    - path: @CMAKE_CURRENT_BINARY_DIR@/catalogue_root

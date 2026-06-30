@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include <optional>
+
 #include "eckit/io/DataHandle.h"
 
 #include "fdb5/daos/DaosName.h"
@@ -28,34 +30,34 @@ class DaosKeyValueName;
 
 class DaosKeyValueHandle : public eckit::DataHandle {
 
-public: // methods
+public:  // methods
 
     DaosKeyValueHandle(const fdb5::DaosKeyValueName&, const std::string& key);
 
     ~DaosKeyValueHandle();
 
-    virtual void print(std::ostream&) const override;
+    void print(std::ostream&) const override;
 
-    virtual void openForWrite(const eckit::Length&) override;
-    virtual eckit::Length openForRead() override;
+    void openForWrite(const eckit::Length&) override;
+    eckit::Length openForRead() override;
 
-    virtual long write(const void*, long) override;
-    virtual long read(void*, long) override;
-    virtual void close() override;
-    virtual void flush() override;
+    long write(const void*, long) override;
+    long read(void*, long) override;
+    void close() override;
+    void flush() override;
 
-    virtual eckit::Length size() override;
-    virtual eckit::Length estimate() override;
-    virtual eckit::Offset position() override;
-    virtual bool canSeek() const override;
+    eckit::Length size() override;
+    eckit::Length estimate() override;
+    eckit::Offset position() override;
+    bool canSeek() const override;
 
-    virtual std::string title() const override;
+    std::string title() const override;
 
-private: // methods
+private:  // methods
 
     fdb5::DaosSession& session();
 
-private: // members
+private:  // members
 
     mutable fdb5::DaosKeyValueName name_;
     std::string key_;
@@ -63,7 +65,6 @@ private: // members
     std::optional<fdb5::DaosKeyValue> kv_;
     bool open_;
     eckit::Offset offset_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
