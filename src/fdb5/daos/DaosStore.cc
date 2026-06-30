@@ -62,7 +62,7 @@ bool DaosStore::uriExists(const eckit::URI& uri) const {
     fdb5::DaosName n(uri);
     ASSERT(n.hasContainerName());
     ASSERT(n.poolName() == pool_);
-    ASSERT(n.containerName() == db_str_);
+    ASSERT(n.containerName() == db_cont_);
 
     return n.exists();
 }
