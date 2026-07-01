@@ -9,7 +9,7 @@
  */
 
 #include "fdb5/remote/server/CatalogueHandler.h"
-#include "eckit/serialisation/ResizableMemoryStream.h"
+
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -24,6 +24,7 @@
 #include "eckit/net/NetMask.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/serialisation/ResizableMemoryStream.h"
 #include "eckit/utils/Literals.h"
 
 #include <future>
@@ -44,7 +45,26 @@ namespace fdb5::remote {
 // ***************************************************************************************
 
 CatalogueHandler::CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config) :
-    ServerConnection(socket, config), fdbControlConnection_(false), fdbDataConnection_(false) {}
+    ServerConnection(socket, config), fdbControlConnection_(false), fdbDataConnection_(false) {
+
+    eckit::net::IPAddress clientIPaddress{controlSocket_.remoteAddr()};
+
+    clientNetwork_ = "";
+    if (config_.has("networks")) {
+        for (const auto& net : config_.getSubConfigurations("networks")) {
+            if (net.has("name") && net.has("netmask")) {
+                eckit::net::NetMask netmask{net.getString("netmask")};
+                if (netmask.contains(clientIPaddress)) {
+                    clientNetwork_ = net.getString("name");
+                    controlIdentifiers_ = ControlIdentifiers::parse(net, controlIdentifiers_);
+                    break;
+                }
+            }
+        }
+    }
+
+    LOG_DEBUG_LIB(LibFdb5) << "Client " << clientIPaddress << " from network '" << clientNetwork_ << "'" << std::endl;
+}
 
 CatalogueHandler::~CatalogueHandler() {}
 
@@ -57,7 +77,7 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 std::lock_guard<std::mutex> lock(handlerMutex_);
                 auto it = fdbs_.find(clientID);
                 if (it == fdbs_.end()) {
-                    fdbs_[clientID];
+                    fdbs_.emplace(clientID, innerConfig_);
                     fdbControlConnection_ = true;
                     fdbDataConnection_ = !single_;
                     numControlConnection_++;
@@ -73,7 +93,6 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 stores(clientID, requestID);
                 return Handled::Replied;
 
-
             case Message::Archive:  // notification that the client is starting to send data locations for archival
                 archiver();
                 return Handled::YesAddArchiveListener;
@@ -86,6 +105,13 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 throw SeriousBug(ss.str(), Here());
             }
         }
+    }
+    catch (UnauthorisedException& e) {
+        std::ostringstream ss;
+        ss << "ERROR: Operation " << e.controlIdentifier() << " is not enabled for client " << clientID;
+        Log::status() << ss.str() << std::endl;
+        Log::error() << ss.str() << std::endl;
+        error(ss.str(), clientID, requestID);
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
@@ -132,29 +158,36 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 return Handled::Replied;
 
             case Message::Wipe:  // Initial wipe request
+                isEnabled(ControlIdentifier::Wipe);
                 wipe(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoMaskIndexEntries:
-                // doit! We expect DoMaskIndexEntries, doWipeURIs, DoWipeUnknowns and doWipeEmptyDatabase in succession
+                isEnabled(ControlIdentifier::Wipe);
+                // doit! We expect DoMaskIndexEntries, doWipeURIs, DoWipeUnknowns and doWipeEmptyDatabase in
+                // succession
                 doMaskIndexEntries(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoWipeURIs:  // Do the wipe on our currentWipeState
+                isEnabled(ControlIdentifier::Wipe);
                 doWipeURIs(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoWipeFinish:  // Finish wipe by deleting empty DBs
+                isEnabled(ControlIdentifier::Wipe);
                 doWipeEmptyDatabase(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoWipeUnknowns:  // Wipe a set of unknown URIs
+                isEnabled(ControlIdentifier::Wipe);
                 doWipeUnknowns(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoUnsafeFullWipe:  // wipe a full database including its content
+                isEnabled(ControlIdentifier::Wipe);
                 doUnsafeFullWipe(clientID, requestID, std::move(payload));
-                return Handled::Replied;
+                return Handled::Yes;
 
             default: {
                 std::ostringstream ss;
@@ -165,6 +198,13 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
             }
         }
     }
+    catch (UnauthorisedException& e) {
+        std::ostringstream ss;
+        ss << "ERROR: Operation " << e.controlIdentifier() << " is not enabled for client " << clientID;
+        Log::status() << ss.str() << std::endl;
+        Log::error() << ss.str() << std::endl;
+        error(ss.str(), clientID, requestID);
+    }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
         error(e.what(), clientID, requestID);
@@ -174,7 +214,6 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
     }
     return Handled::No;
 }
-
 
 // API forwarding logic, adapted from original remoteHandler
 // Used for Inspect and List
@@ -250,8 +289,11 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
             // Expect this dbKey not to already be in progress
             ASSERT(handler.wipesInProgress_.find(dbKey) == handler.wipesInProgress_.end());
 
+            if (unsafeWipeAll_) {
+                handler.isEnabled(ControlIdentifier::UnsafeWipeAll);
+            }
             handler.wipesInProgress_[dbKey] = {
-                unsafeWipeAll_, CatalogueReaderFactory::instance().build(dbKey, handler.config_),
+                unsafeWipeAll_, CatalogueReaderFactory::instance().build(dbKey, handler.innerConfig_),
                 CatalogueWipeState(dbKey, state.safeURIs(), state.deleteMap(), state.indexesToMask())};
         }
         else {
@@ -266,8 +308,6 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
     }
 
     WipeStateIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        // XXX: I'm inclined to say that in a multi-server scenario, unsafe wipe all is a bad idea.
-        ASSERT(!unsafeWipeAll_);
         return fdb.internal_->wipe(request, doit_, false, unsafeWipeAll_);
     }
 
@@ -301,7 +341,7 @@ void CatalogueHandler::handleApiCall(uint32_t clientID, uint32_t requestID, ecki
         std::lock_guard<std::mutex> lock(fdbMutex_);
         auto it = fdbs_.find(clientID);
         if (it == fdbs_.end()) {
-            fdbs_[clientID];
+            fdbs_.emplace(clientID, innerConfig_);
         }
     }
 
@@ -336,22 +376,27 @@ void CatalogueHandler::handleApiCall(uint32_t clientID, uint32_t requestID, ecki
 }
 
 void CatalogueHandler::list(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    isEnabled(ControlIdentifier::List);
     handleApiCall<ListHelper>(clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::axes(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    isEnabled(ControlIdentifier::List);
     handleApiCall<AxesHelper>(clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::wipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    isEnabled(ControlIdentifier::Wipe);
     handleApiCall<WipeHelper>(clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::inspect(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    isEnabled(ControlIdentifier::Retrieve);
     handleApiCall<InspectHelper>(clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::stats(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    isEnabled(ControlIdentifier::List);
     handleApiCall<StatsHelper>(clientID, requestID, std::move(payload));
 }
 
@@ -361,7 +406,7 @@ void CatalogueHandler::schema(uint32_t clientID, uint32_t requestID, eckit::Buff
     eckit::MemoryStream stream(schemaBuffer);
 
     if (payload.size() == 0) {  // client requesting the top-level schema
-        stream << config_.schema();
+        stream << innerConfig_.schema();
     }
     else {
         // 1. Read dbkey to select catalogue
@@ -370,6 +415,7 @@ void CatalogueHandler::schema(uint32_t clientID, uint32_t requestID, eckit::Buff
 
         // 2. Get catalogue
         Catalogue& cat = catalogue(clientID, dbKey);
+        cat.controlIdentifiers().enabled(ControlIdentifier::List);
         const Schema& schema = cat.schema();
         stream << schema;
     }
@@ -379,32 +425,15 @@ void CatalogueHandler::schema(uint32_t clientID, uint32_t requestID, eckit::Buff
 
 void CatalogueHandler::stores(uint32_t clientID, uint32_t requestID) {
 
-    eckit::net::IPAddress clientIPaddress{controlSocket_.remoteAddr()};
-
-    std::string clientNetwork = "";
-    if (config_.has("networks")) {
-        for (const auto& net : config_.getSubConfigurations("networks")) {
-            if (net.has("name") && net.has("netmask")) {
-                eckit::net::NetMask netmask{net.getString("netmask")};
-                if (netmask.contains(clientIPaddress)) {
-                    clientNetwork = net.getString("name");
-                    break;
-                }
-            }
-        }
-    }
-
-    LOG_DEBUG_LIB(LibFdb5) << "Client " << clientIPaddress << " from network '" << clientNetwork << "'" << std::endl;
-
     ASSERT(config_.has("stores"));
     std::map<std::string, std::vector<eckit::net::Endpoint>> stores;
     for (const auto& configStore : config_.getSubConfigurations("stores")) {
         ASSERT(configStore.has("default"));
         eckit::net::Endpoint fieldLocationEndpoint{configStore.getString("default")};
         eckit::net::Endpoint storeEndpoint{fieldLocationEndpoint};
-        if (!clientNetwork.empty()) {
-            if (configStore.has(clientNetwork)) {
-                storeEndpoint = eckit::net::Endpoint{configStore.getString(clientNetwork)};
+        if (!clientNetwork_.empty()) {
+            if (configStore.has(clientNetwork_)) {
+                storeEndpoint = eckit::net::Endpoint{configStore.getString(clientNetwork_)};
             }
         }
 
@@ -451,7 +480,7 @@ void CatalogueHandler::exists(uint32_t clientID, uint32_t requestID, eckit::Buff
     {
         eckit::MemoryStream stream(payload);
         const Key dbKey(stream);
-        exists = CatalogueReaderFactory::instance().build(dbKey, config_)->exists();
+        exists = CatalogueReaderFactory::instance().build(dbKey, innerConfig_)->exists();
     }
 
     eckit::Buffer existBuf(5);
@@ -462,6 +491,8 @@ void CatalogueHandler::exists(uint32_t clientID, uint32_t requestID, eckit::Buff
 }
 
 void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+
+    isEnabled(ControlIdentifier::Archive);
 
     ASSERT(payload.size() > 0);
 
@@ -579,7 +610,7 @@ CatalogueWriter& CatalogueHandler::catalogue(uint32_t id, const Key& dbKey) {
     if (!single_) {
         numDataConnection_++;
     }
-    return *((catalogues_.emplace(id, CatalogueArchiver(!single_, dbKey, config_)).first)->second.catalogue);
+    return *((catalogues_.emplace(id, CatalogueArchiver(!single_, dbKey, innerConfig_)).first)->second.catalogue);
 }
 
 const CatalogueHandler::WipeInProgress& CatalogueHandler::cachedWipeState(Key dbKey) const {

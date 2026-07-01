@@ -106,10 +106,6 @@ private:
     // not implemented since the catalogue traversal is performed on the remote side
     std::optional<Axis> computeAxis(const std::string& keyword) const override { NOTIMP; }
 
-protected:
-
-    ControlIdentifiers controlIdentifiers_;
-
 private:
 
     Key currentIndexKey_;

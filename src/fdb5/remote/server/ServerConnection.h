@@ -21,12 +21,14 @@
 #include <mutex>
 
 #include "eckit/container/Queue.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/net/TCPServer.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/runtime/SessionID.h"
 
+#include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
@@ -42,6 +44,19 @@ enum class Handled {
     YesAddReadListener,
     YesRemoveReadListener,
     Replied,
+};
+
+class UnauthorisedException : public eckit::Exception {
+public:
+
+    UnauthorisedException(ControlIdentifier ci) :
+        eckit::Exception("UnauthorisedException: " + std::to_string(static_cast<int>(ci))), ci_(ci) {}
+
+    ControlIdentifier controlIdentifier() const { return ci_; }
+
+private:
+
+    ControlIdentifier ci_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -121,6 +136,8 @@ protected:
     void archiver();
     void queue(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
 
+    void isEnabled(ControlIdentifier identifier);
+
     void handleException(std::exception_ptr e) override;
 
 private:
@@ -139,6 +156,10 @@ protected:
     virtual bool remove(bool control, uint32_t clientID) = 0;
 
     Config config_;
+    Config innerConfig_;
+
+    ControlIdentifiers controlIdentifiers_;
+
     std::string dataListenHostname_;
 
     eckit::Queue<readLocationElem> readLocationQueue_;

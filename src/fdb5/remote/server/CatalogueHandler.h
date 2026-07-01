@@ -56,6 +56,8 @@ public:  // methods
 
 private:  // methods
 
+    friend struct WipeHelper;
+
     Handled handleControl(Message message, uint32_t clientID, uint32_t requestID) override;
     Handled handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) override;
 
@@ -85,8 +87,6 @@ private:  // methods
     void doWipeEmptyDatabase(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void doUnsafeFullWipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
 
-    const Config& config() const { return config_; }
-
     const WipeInProgress& cachedWipeState(Key dbKey) const;
 
 private:  // member
@@ -100,6 +100,8 @@ private:  // member
 
     bool fdbControlConnection_;
     bool fdbDataConnection_;
+
+    std::string clientNetwork_;
 
     struct WipeInProgress {
         bool unsafeWipeAll = false;
