@@ -182,6 +182,34 @@ variables that suppress specific search paths:
 
     python -m pyfdb --print-home-deps
 
+Example output:
+
+.. code-block:: text
+
+    λ python -m pyfdb --print-home-deps
+    2026-07-01 18:24:07 | INFO   | Findlibs Environment:
+    2026-07-01 18:24:07 | INFO   |     FINDLIBS_DISABLE_PACKAGE: yes
+    2026-07-01 18:24:07 | INFO   |     FINDLIBS_DISABLE_PYTHON: yes
+    2026-07-01 18:24:07 | INFO   | Findlibs Lookup
+    2026-07-01 18:24:07 | ERROR  |     eckit: not found by findlibs
+    2026-07-01 18:24:07 | INFO   |     eccodes [Optional]: /path/to/install
+    2026-07-01 18:24:07 | ERROR  |     metkit: not found by findlibs
+    2026-07-01 18:24:07 | INFO   |     fdb5: /path/to/install
+    2026-07-01 18:24:07 | INFO   | Dependency Versions:
+    2026-07-01 18:24:07 | INFO   |     eccodes 2.48.0 (bd5b4ca0) /path/to/install/lib/libeccodes.dylib
+    2026-07-01 18:24:07 | INFO   |     eckit 2.0.7 (9daf0377) /path/to/install/lib/libeckit.dylib
+    2026-07-01 18:24:07 | INFO   |     eckit_geo 2.0.7 (9daf0377) /path/to/install/lib/libeckit_geo.dylib
+    2026-07-01 18:24:07 | INFO   |     eckit_spec 2.0.7 (9daf0377) /path/to/install/lib/libeckit_spec.dylib
+    2026-07-01 18:24:07 | INFO   |     fdb 5.21.4 (9da45883) /path/to/install/lib/libfdb5.dylib
+    2026-07-01 18:24:07 | INFO   |     gribjump 0.10.4 (fc510969) /path/to/install/lib/libgribjump.dylib
+    2026-07-01 18:24:07 | INFO   |     metkit 1.18.1 (cbfcd750) /path/to/install/lib/libmetkit.dylib
+
+In this example, ``eckit`` and ``metkit`` were not found by ``findlibs`` because
+``FINDLIBS_DISABLE_PACKAGE`` and ``FINDLIBS_DISABLE_PYTHON`` suppressed those search paths,
+yet the libraries were still loaded and their versions reported via the system linker.
+``ERROR`` lines indicate dependencies ``findlibs`` could not locate — set the corresponding
+``<LIBNAME>_HOME`` environment variable to resolve them explicitly.
+
 If a dependency is resolved from an unexpected location, consult
 the `findlibs documentation <https://github.com/ecmwf/findlibs>`__ for the full list of
 supported variables and search-path precedence rules.
