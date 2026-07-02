@@ -1,20 +1,12 @@
-# Set the labels to the simple and yaml config subset for the 'default' tests
-if(HAVE_PYTHON_EXTENDED_FDB_TOOL_TESTS) 
-    set(labels "")
-else()
-    set(labels "-m (simple or yaml)")
-endif()
+function(add_py_test_marker_combo test_file config_marker op_marker)
+    get_filename_component(stem ${test_file} NAME_WLE)
 
-message("Labels for the execution of e2e tests: ${labels}")
-
-function(add_py_test test)
-    get_filename_component(stem ${test} NAME_WLE)
     add_test(
-        NAME fdb_tool_tests_${stem}
+        NAME ${stem}_fdb_tools_${config_marker}_${op_marker}
         COMMAND ${Python_EXECUTABLE}
-            -m pytest ${labels}
-            --basetemp ${CMAKE_CURRENT_BINARY_DIR}/pytest-tmp
-            -vv -s ${CMAKE_CURRENT_SOURCE_DIR}/${test}
+            -m pytest -m "${config_marker} and ${op_marker}"
+            --basetemp ${CMAKE_CURRENT_BINARY_DIR}/pytest-tmp/${stem}_${config_marker}_${op_marker}
+            -vv -s ${CMAKE_CURRENT_SOURCE_DIR}/${test_file}
     )
     set(_env
         "PYTHONPATH=${CMAKE_BINARY_DIR}/pyfdb-python-package-staging:$ENV{PYTHONPATH}"
@@ -25,19 +17,32 @@ function(add_py_test test)
         "ECCODES_PYTHON_USE_FINDLIBS=1"
         "ECCODES_DIR=$<TARGET_FILE_DIR:eccodes>/.."
     )
-    set_tests_properties(fdb_tool_tests_${stem}
+    make_directory("${CMAKE_CURRENT_BINARY_DIR}/pytest-tmp/")
+    set_tests_properties(${stem}_fdb_tools_${config_marker}_${op_marker}
         PROPERTIES
-        RESOURCE_LOCK pytest
         ENVIRONMENT "${_env}"
-        LABELS fdb_tool_tests
+        LABELS "fdb_tool_tests;fdb_tool_tests_${config_marker};fdb_tool_tests_${op_marker}"
     )
 endfunction()
 
-set(test_files
-    test_fdb_no_subtocs.py    
-    test_fdb_subtocs.py    
-)
+set(operation_markers info hide grib2fdb list purge read root wipe write overlay)
 
-foreach(test_file ${test_files})
-    add_py_test(${test_file})
+if(HAVE_PYTHON_EXTENDED_FDB_TOOL_TESTS)
+    set(no_subtoc_config_markers simple yaml files json yaml_mars_disks yaml_tools json_tools)
+    set(subtoc_config_markers simple files)
+else()
+    set(no_subtoc_config_markers simple yaml)
+    set(subtoc_config_markers simple)
+endif()
+
+foreach(config_marker ${no_subtoc_config_markers})
+    foreach(op_marker ${operation_markers})
+        add_py_test_marker_combo(test_fdb_no_subtocs.py ${config_marker} ${op_marker})
+    endforeach()
+endforeach()
+
+foreach(config_marker ${subtoc_config_markers})
+    foreach(op_marker ${operation_markers})
+        add_py_test_marker_combo(test_fdb_subtocs.py ${config_marker} ${op_marker})
+    endforeach()
 endforeach()

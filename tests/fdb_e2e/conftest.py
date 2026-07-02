@@ -24,6 +24,26 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--env",
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help="Extra environment variable forwarded to shell scripts (repeatable).",
+    )
+
+
+@pytest.fixture(scope="session")
+def cli_env(request) -> dict[str, str]:
+    """Environment variables supplied via --env KEY=VALUE on the command line."""
+    result = {}
+    for entry in request.config.getoption("--env"):
+        key, _, value = entry.partition("=")
+        result[key] = value
+    return result
+
+
 @pytest.fixture
 def test_logger():
     return logger
@@ -67,7 +87,7 @@ def session_tmp(tmp_path_factory) -> Generator[pathlib.Path, None, None]:
 
 @pytest.fixture(scope="function")
 def function_tmp(tmp_path_factory) -> Generator[pathlib.Path, None, None]:
-    tmp_function_dir = tmp_path_factory.mktemp("test_data_", numbered=True)
+    tmp_function_dir = tmp_path_factory.mktemp("pytest-tmp", numbered=True)
     yield tmp_function_dir
 
 
@@ -182,12 +202,12 @@ def simple_fdb_setup_no_subtocs_no_expver_handler(data_path, function_tmp) -> FD
 
 
 @pytest.fixture(scope="function", autouse=False)
-def simple_env_no_subtocs_no_expver_handler(function_tmp) -> dict[str, str]:
+def simple_env_no_subtocs_no_expver_handler(function_tmp, cli_env) -> dict[str, str]:
     env = {}
     env["PATH"] = os.environ["PATH"]
     env["FDB_HOME"] = str(function_tmp)
     env["FDB5_CONFIG_FILE"] = str(function_tmp / "config.yaml")
-
+    env.update(cli_env)
     return env
 
 
@@ -211,7 +231,7 @@ def simple_fdb_setup_no_subtocs_expver_handler(data_path, function_tmp) -> FDB:
 
 
 @pytest.fixture(scope="function", autouse=False)
-def simple_env_no_subtocs_expver_handler(function_tmp) -> dict[str, str]:
+def simple_env_no_subtocs_expver_handler(function_tmp, cli_env) -> dict[str, str]:
     env = {}
     env["PATH"] = os.environ["PATH"]
     env["FDB_HOME"] = str(function_tmp)
@@ -223,6 +243,7 @@ def simple_env_no_subtocs_expver_handler(function_tmp) -> dict[str, str]:
 
     assert file.exists()
 
+    env.update(cli_env)
     return env
 
 
@@ -246,13 +267,13 @@ def simple_fdb_setup_subtocs_no_expver_handler(data_path, function_tmp) -> FDB:
 
 
 @pytest.fixture(scope="function", autouse=False)
-def simple_env_subtocs_no_expver_handler(function_tmp) -> dict[str, str]:
+def simple_env_subtocs_no_expver_handler(function_tmp, cli_env) -> dict[str, str]:
     env = {}
     env["PATH"] = os.environ["PATH"]
     env["FDB_HOME"] = str(function_tmp)
     env["FDB5_SUB_TOCS"] = "1"
     env["FDB5_CONFIG_FILE"] = str(function_tmp / "config.yaml")
-
+    env.update(cli_env)
     return env
 
 
@@ -276,7 +297,7 @@ def simple_fdb_setup_subtocs_expver_handler(data_path, function_tmp) -> FDB:
 
 
 @pytest.fixture(scope="function", autouse=False)
-def simple_env_subtocs_expver_handler(function_tmp) -> dict[str, str]:
+def simple_env_subtocs_expver_handler(function_tmp, cli_env) -> dict[str, str]:
     env = {}
     env["PATH"] = os.environ["PATH"]
     env["FDB_HOME"] = str(function_tmp)
@@ -289,6 +310,7 @@ def simple_env_subtocs_expver_handler(function_tmp) -> dict[str, str]:
 
     assert file.exists()
 
+    env.update(cli_env)
     return env
 
 
@@ -355,11 +377,11 @@ def files_fdb_setup_no_subtocs_no_expver_handler(data_path, function_tmp) -> FDB
 
 
 @pytest.fixture(scope="function", autouse=False)
-def files_env_no_subtocs_no_expver_handler(function_tmp) -> dict[str, str]:
+def files_env_no_subtocs_no_expver_handler(function_tmp, cli_env) -> dict[str, str]:
     env = {}
     env["PATH"] = os.environ["PATH"]
     env["FDB_HOME"] = str(function_tmp)
-
+    env.update(cli_env)
     return env
 
 
@@ -381,7 +403,7 @@ def files_fdb_setup_no_subtocs_expver_handler(data_path, function_tmp) -> FDB:
 
 
 @pytest.fixture(scope="function", autouse=False)
-def files_env_no_subtocs_expver_handler(function_tmp) -> dict[str, str]:
+def files_env_no_subtocs_expver_handler(function_tmp, cli_env) -> dict[str, str]:
     fdb_schema_dir = function_tmp / "etc" / "fdb"
 
     env = {}
@@ -395,6 +417,7 @@ def files_env_no_subtocs_expver_handler(function_tmp) -> dict[str, str]:
 
     assert file.exists()
 
+    env.update(cli_env)
     return env
 
 
@@ -415,12 +438,12 @@ def files_fdb_setup_subtocs_no_expver_handler(data_path, function_tmp) -> FDB:
 
 
 @pytest.fixture(scope="function", autouse=False)
-def files_env_subtocs_no_expver_handler(function_tmp) -> dict[str, str]:
+def files_env_subtocs_no_expver_handler(function_tmp, cli_env) -> dict[str, str]:
     env = {}
     env["PATH"] = os.environ["PATH"]
     env["FDB_HOME"] = str(function_tmp)
     env["FDB5_SUB_TOCS"] = "1"
-
+    env.update(cli_env)
     return env
 
 
@@ -442,7 +465,7 @@ def files_fdb_setup_subtocs_expver_handler(data_path, function_tmp) -> FDB:
 
 
 @pytest.fixture(scope="function", autouse=False)
-def files_env_subtocs_expver_handler(function_tmp) -> dict[str, str]:
+def files_env_subtocs_expver_handler(function_tmp, cli_env) -> dict[str, str]:
     fdb_schema_dir = function_tmp / "etc" / "fdb"
 
     env = {}
@@ -457,6 +480,7 @@ def files_env_subtocs_expver_handler(function_tmp) -> dict[str, str]:
 
     assert file.exists()
 
+    env.update(cli_env)
     return env
 
 
@@ -513,11 +537,11 @@ def config_yaml_fdb_setup(
 
 
 @pytest.fixture(scope="function", autouse=False)
-def config_yaml_env_no_subtocs_no_expver_handler(function_tmp) -> dict[str, str]:
+def config_yaml_env_no_subtocs_no_expver_handler(function_tmp, cli_env) -> dict[str, str]:
     env = {}
     env["PATH"] = os.environ["PATH"]
     env["FDB_HOME"] = str(function_tmp)
-
+    env.update(cli_env)
     return env
 
 
@@ -591,11 +615,11 @@ def config_json_fdb_setup(
 
 
 @pytest.fixture(scope="function", autouse=False)
-def config_json_env_no_subtocs_no_expver_handler(function_tmp) -> dict[str, str]:
+def config_json_env_no_subtocs_no_expver_handler(function_tmp, cli_env) -> dict[str, str]:
     env = {}
     env["PATH"] = os.environ["PATH"]
     env["FDB_HOME"] = str(function_tmp)
-
+    env.update(cli_env)
     return env
 
 
@@ -670,11 +694,11 @@ def config_mars_disks_fdb_setup(
 
 
 @pytest.fixture(scope="function", autouse=False)
-def config_yaml_mars_disks_env_no_subtocs_no_expver_handler(function_tmp) -> dict[str, str]:
+def config_yaml_mars_disks_env_no_subtocs_no_expver_handler(function_tmp, cli_env) -> dict[str, str]:
     env = {}
     env["PATH"] = os.environ["PATH"]
     env["FDB_HOME"] = str(function_tmp)
-
+    env.update(cli_env)
     return env
 
 
@@ -775,11 +799,11 @@ def config_tools_fdb_setup(
 
 
 @pytest.fixture(scope="function", autouse=False)
-def config_yaml_tools_env_no_subtocs_no_expver_handler(function_tmp) -> dict[str, str]:
+def config_yaml_tools_env_no_subtocs_no_expver_handler(function_tmp, cli_env) -> dict[str, str]:
     env = {}
     env["PATH"] = os.environ["PATH"]
     env["FDB_HOME"] = str(function_tmp)
-
+    env.update(cli_env)
     return env
 
 
@@ -801,11 +825,11 @@ def config_yaml_tools_fdb_setup_no_subtocs_no_expver_handler(data_path, function
 
 
 @pytest.fixture(scope="function", autouse=False)
-def config_json_tools_env_no_subtocs_no_expver_handler(function_tmp) -> dict[str, str]:
+def config_json_tools_env_no_subtocs_no_expver_handler(function_tmp, cli_env) -> dict[str, str]:
     env = {}
     env["PATH"] = os.environ["PATH"]
     env["FDB_HOME"] = str(function_tmp)
-
+    env.update(cli_env)
     return env
 
 
