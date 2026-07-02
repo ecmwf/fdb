@@ -1,0 +1,6 @@
+eccodes
+findlibs
+GitPython
+pyfdb
+pytest
+PyYAML
