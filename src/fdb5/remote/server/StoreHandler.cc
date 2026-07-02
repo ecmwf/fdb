@@ -434,7 +434,8 @@ const StoreHandler::WipeInProgress& StoreHandler::cachedWipeState(const Key& uri
 
 void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
 
-    static bool acceptUnsigned = eckit::Resource<bool>("$FDB_ACCEPT_UNSIGNED_WIPE_STATE;fdbAcceptUnsignedWipeState", false);
+    static bool acceptUnsigned =
+        eckit::Resource<bool>("$FDB_ACCEPT_UNSIGNED_WIPE_STATE;fdbAcceptUnsignedWipeState", false);
 
     bool unsafeAll = false;
     bool doit = false;

@@ -245,7 +245,8 @@ Store& StoreWipeState::store(const Config& config) const {
 
 void StoreWipeState::encode(eckit::Stream& s) const {
 
-    static bool acceptUnsigned = eckit::Resource<bool>("$FDB_ACCEPT_UNSIGNED_WIPE_STATE;fdbAcceptUnsignedWipeState", false);
+    static bool acceptUnsigned =
+        eckit::Resource<bool>("$FDB_ACCEPT_UNSIGNED_WIPE_STATE;fdbAcceptUnsignedWipeState", false);
 
     if (!signature_.isSigned() && !acceptUnsigned) {
         throw eckit::SeriousBug("StoreWipeState must be signed before encoding");
