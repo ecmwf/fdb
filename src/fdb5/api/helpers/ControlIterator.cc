@@ -118,7 +118,7 @@ ControlIdentifiers::ControlIdentifiers(eckit::Stream& s) {
     s >> value_;
 }
 
-ControlIdentifiers parseControlIdentifiers(const eckit::LocalConfiguration& config, bool unsafeWipeAllDefault) {
+ControlIdentifiers ControlIdentifiers::parse(const eckit::LocalConfiguration& config, bool unsafeWipeAllDefault) {
     ControlIdentifiers identifiers;
 
     bool writable = config.getBool("writable", true);
