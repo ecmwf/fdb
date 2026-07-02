@@ -357,7 +357,12 @@ void StoreHandler::doWipeUnknowns(const uint32_t clientID, const uint32_t reques
 
     const WipeInProgress& currentWipe = cachedWipeState(key);
 
-    std::set<eckit::URI> uris{s};
+    size_t numUnknowns = 0;
+    s >> numUnknowns;
+    std::set<eckit::URI> uris;
+    for (size_t i = 0; i < numUnknowns; ++i) {
+        uris.emplace(s);
+    }
 
     // Only proceed if unsafeWipeAll is set.
     ASSERT(currentWipe.unsafeWipeAll);
@@ -429,6 +434,8 @@ const StoreHandler::WipeInProgress& StoreHandler::cachedWipeState(const Key& uri
 
 void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
 
+    static bool acceptUnsigned = eckit::Resource<bool>("$FDB_ACCEPT_UNSIGNED_WIPE_STATE;fdbAcceptUnsignedWipeState", false);
+
     bool unsafeAll = false;
     bool doit = false;
     eckit::MemoryStream inStream(payload);
@@ -440,11 +447,12 @@ void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t req
 
     // XXX Validate signature.
     const std::string dummy_secret = eckit::Resource<std::string>("$FDB_WIPE_SECRET;fdbWipeSecret", "");
-    ASSERT(!dummy_secret.empty());
+    if (!acceptUnsigned) {
+        ASSERT(!dummy_secret.empty());
 
-    uint64_t expected_hash = inState.hash(dummy_secret);
-    ASSERT(inState.signature().validSignature(expected_hash));
-
+        uint64_t expected_hash = inState.hash(dummy_secret);
+        ASSERT(inState.signature().validSignature(expected_hash));
+    }
     // -- From here on, we can trust the state came from the catalogue. --
 
     // The URIs need to be converted to internal URIs for this store.
@@ -477,7 +485,9 @@ void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t req
 
     // keep state for doWipeURIs
     if (doit) {
-        ASSERT(!unsafeAll);  // Until Im explicitly told otherwise, we dont support unsafeAll on remote fdb.
+        if (unsafeAll) {
+            isEnabled(ControlIdentifier::UnsafeWipeAll);
+        }
         wipesInProgress_.emplace(dbkey, WipeInProgress{unsafeAll, std::move(storeState)});
     }
 }

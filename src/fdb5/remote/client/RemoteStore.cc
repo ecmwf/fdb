@@ -540,7 +540,10 @@ bool RemoteStore::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const 
     eckit::Buffer sendBuf(1_KiB * unknownURIs.size() + 100);
     eckit::ResizableMemoryStream stream(sendBuf);
     stream << dbKey_;
-    stream << unknownURIs;
+    stream << unknownURIs.size();
+    for (const auto& uri : unknownURIs) {
+        stream << uri;
+    }
     controlWriteCheckResponse(Message::DoWipeUnknowns, generateRequestID(), true, sendBuf, stream.position());
     return true;
 }
