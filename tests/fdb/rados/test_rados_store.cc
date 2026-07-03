@@ -18,8 +18,8 @@
 #include "eckit/filesystem/TmpFile.h"
 // #include "eckit/filesystem/TmpDir.h"
 // #include "eckit/io/FileHandle.h"
-#include "eckit/io/MemoryHandle.h"
 #include "eckit/config/YAMLConfiguration.h"
+#include "eckit/io/MemoryHandle.h"
 
 // #include "metkit/mars/MarsRequest.h"
 
@@ -28,16 +28,16 @@
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
-#include "fdb5/toc/TocCatalogueWriter.h"
 #include "fdb5/toc/TocCatalogueReader.h"
+#include "fdb5/toc/TocCatalogueWriter.h"
 
 // #include "eckit/io/s3/S3Client.h"
 // #include "eckit/io/s3/S3Session.h"
 // #include "eckit/io/s3/S3Credential.h"
 #include "eckit/io/rados/RadosPartHandle.h"
 
-#include "fdb5/rados/RadosStore.h"
 #include "fdb5/rados/RadosFieldLocation.h"
+#include "fdb5/rados/RadosStore.h"
 // #include "fdb5/daos/DaosException.h"
 
 using namespace eckit::testing;
@@ -45,46 +45,46 @@ using namespace eckit;
 
 namespace {
 
-    void deldir(eckit::PathName& p) {
-        if (!p.exists()) {
-            return;
-        }
+void deldir(eckit::PathName& p) {
+    if (!p.exists()) {
+        return;
+    }
 
-        std::vector<eckit::PathName> files;
-        std::vector<eckit::PathName> dirs;
-        p.children(files, dirs);
+    std::vector<eckit::PathName> files;
+    std::vector<eckit::PathName> dirs;
+    p.children(files, dirs);
 
-        for (auto& f : files) {
-            f.unlink();
-        }
-        for (auto& d : dirs) {
-            deldir(d);
-        }
+    for (auto& f : files) {
+        f.unlink();
+    }
+    for (auto& d : dirs) {
+        deldir(d);
+    }
 
-        p.rmdir();
-    };
+    p.rmdir();
+};
 
-    void ensureCleanNamespaces(const std::string& pool, const std::string& prefix) {
-        ASSERT(prefix.length() > 3);
-        for (const std::string& name : eckit::RadosCluster::instance().listNamespaces(pool)) {
-            if (name.rfind(prefix, 0) == 0) {
-                eckit::RadosNamespace{pool, name}.destroy();
-            }
+void ensureCleanNamespaces(const std::string& pool, const std::string& prefix) {
+    ASSERT(prefix.length() > 3);
+    for (const std::string& name : eckit::RadosCluster::instance().listNamespaces(pool)) {
+        if (name.rfind(prefix, 0) == 0) {
+            eckit::RadosNamespace{pool, name}.destroy();
         }
     }
+}
 
 #ifdef fdb5_HAVE_RADOS_ADMIN
-    void ensureClean(const std::string& prefix) {
-        ASSERT(prefix.length() > 3);
-        for (const std::string& name : eckit::RadosCluster::instance().listPools()) {
-            if (name.rfind(prefix, 0) == 0) {
-                eckit::RadosPool{name}.destroy();
-            }
+void ensureClean(const std::string& prefix) {
+    ASSERT(prefix.length() > 3);
+    for (const std::string& name : eckit::RadosCluster::instance().listPools()) {
+        if (name.rfind(prefix, 0) == 0) {
+            eckit::RadosPool{name}.destroy();
         }
     }
+}
 #endif
 
-}
+}  // namespace
 
 // temporary schema,spaces,root files common to all DAOS Store tests
 
@@ -101,7 +101,7 @@ eckit::PathName& store_tests_tmp_root() {
 namespace fdb {
 namespace test {
 
-CASE( "Setup" ) {
+CASE("Setup") {
 
 #if !defined(fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL) && !defined(fdb5_HAVE_RADOS_ADMIN)
     throw eckit::Exception(
@@ -109,9 +109,11 @@ CASE( "Setup" ) {
         "RADOS_BACKENDS_SINGLE_POOL=OFF, and require enabling RADOS_ADMIN=ON.");
 #endif
 
-    // ensure fdb root directory exists. If not, then that root is 
+    // ensure fdb root directory exists. If not, then that root is
     // registered as non existing and Store tests fail.
-    if (store_tests_tmp_root().exists()) deldir(store_tests_tmp_root());
+    if (store_tests_tmp_root().exists()) {
+        deldir(store_tests_tmp_root());
+    }
     store_tests_tmp_root().mkdir();
     ::setenv("FDB_ROOT_DIRECTORY", store_tests_tmp_root().path().c_str(), 1);
 
@@ -130,7 +132,6 @@ CASE( "Setup" ) {
     // LibFdb5::instance().defaultConfig().schema() is called
     // due to no specified schema file (e.g. in Key::registry())
     ::setenv("FDB_SCHEMA_FILE", schema_file().path().c_str(), 1);
-
 }
 
 CASE("RadosStore tests") {
@@ -139,40 +140,48 @@ CASE("RadosStore tests") {
 
         std::string test_id = "test-store1";
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-  #ifdef eckit_HAVE_RADOS_ADMIN
+#ifdef eckit_HAVE_RADOS_ADMIN
         std::string pool = test_id;
         eckit::RadosPool{pool}.ensureDestroyed();
         eckit::RadosPool{pool}.ensureCreated();  /// @todo: auto pool destroyer
-  #else
+#else
         std::string pool;
-        pool = eckit::Resource<std::string>(
-            "fdbRadosTestPool;$FDB_RADOS_TEST_POOL", pool
-        );
+        pool = eckit::Resource<std::string>("fdbRadosTestPool;$FDB_RADOS_TEST_POOL", pool);
         EXPECT(pool.length() > 0);
         ensureCleanNamespaces(pool, test_id);
-  #endif
+#endif
         std::string config_str{
             "spaces:\n"
             "- roots:\n"
-            "  - path: " + store_tests_tmp_root().asString() + "\n"
+            "  - path: " +
+            store_tests_tmp_root().asString() +
+            "\n"
             "rados:\n"
             "  store:\n"
-            "    pool: " + pool + "\n"
-            "    root_namespace: " + test_id + "_root\n"
-            "    namespace_prefix: " + test_id + "\n" 
-        };
+            "    pool: " +
+            pool +
+            "\n"
+            "    root_namespace: " +
+            test_id +
+            "_root\n"
+            "    namespace_prefix: " +
+            test_id + "\n"};
 #else
         std::string prefix = test_id;
         ensureClean(prefix);
         std::string config_str{
             "spaces:\n"
             "- roots:\n"
-            "  - path: " + store_tests_tmp_root().asString() + "\n"
+            "  - path: " +
+            store_tests_tmp_root().asString() +
+            "\n"
             "rados:\n"
             "  namespace: default\n"
-            "  root_pool: " + prefix + "_root\n"
-            "  pool_prefix: " + prefix + "\n"
-        };
+            "  root_pool: " +
+            prefix +
+            "_root\n"
+            "  pool_prefix: " +
+            prefix + "\n"};
 #endif
 
         fdb5::Config config{YAMLConfiguration(config_str)};
@@ -199,7 +208,7 @@ CASE("RadosStore tests") {
         std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
         EXPECT(dynamic_cast<eckit::RadosPartHandle*>(dh.get()));
         /// @todo: if multiparts is enabled, RadosMultiObjReadHandle
-    
+
         eckit::MemoryHandle mh;
         dh->copyTo(mh);
         EXPECT(mh.size() == eckit::Length(sizeof(data)));
@@ -227,49 +236,60 @@ CASE("RadosStore tests") {
         EXPECT_NOT(field_name.exists());
         EXPECT_NOT(store_name.exists());
 #endif
-
     }
 
     SECTION("with POSIX Catalogue") {
 
         std::string test_id = "test-store2";
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-  #ifdef eckit_HAVE_RADOS_ADMIN
+#ifdef eckit_HAVE_RADOS_ADMIN
         std::string pool = test_id;
         eckit::RadosPool{pool}.ensureDestroyed();
         eckit::RadosPool{pool}.ensureCreated();  /// @todo: auto pool destroyer
-  #else
+#else
         std::string pool;
-        pool = eckit::Resource<std::string>(
-            "fdbRadosTestPool;$FDB_RADOS_TEST_POOL", pool
-        );
+        pool = eckit::Resource<std::string>("fdbRadosTestPool;$FDB_RADOS_TEST_POOL", pool);
         EXPECT(pool.length() > 0);
         ensureCleanNamespaces(pool, test_id);
-  #endif
+#endif
         std::string config_str{
             "spaces:\n"
             "- roots:\n"
-            "  - path: " + store_tests_tmp_root().asString() + "\n"
-            "schema : " + schema_file().path() + "\n"
+            "  - path: " +
+            store_tests_tmp_root().asString() +
+            "\n"
+            "schema : " +
+            schema_file().path() +
+            "\n"
             "rados:\n"
             "  store:\n"
-            "    pool: " + pool + "\n"
-            "    root_namespace: " + test_id + "_root\n"
-            "    namespace_prefix: " + test_id + "\n" 
-        };
+            "    pool: " +
+            pool +
+            "\n"
+            "    root_namespace: " +
+            test_id +
+            "_root\n"
+            "    namespace_prefix: " +
+            test_id + "\n"};
 #else
         std::string prefix = test_id;
         ensureClean(prefix);
         std::string config_str{
             "spaces:\n"
             "- roots:\n"
-            "  - path: " + store_tests_tmp_root().asString() + "\n"
-            "schema : " + schema_file().path() + "\n"
+            "  - path: " +
+            store_tests_tmp_root().asString() +
+            "\n"
+            "schema : " +
+            schema_file().path() +
+            "\n"
             "rados:\n"
             "  namespace: default\n"
-            "  root_pool: " + prefix + "_root\n"
-            "  pool_prefix: " + prefix + "\n"
-        };
+            "  root_pool: " +
+            prefix +
+            "_root\n"
+            "  pool_prefix: " +
+            prefix + "\n"};
 #endif
 
         fdb5::Config config{YAMLConfiguration(config_str)};
@@ -301,8 +321,8 @@ CASE("RadosStore tests") {
             fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);
             cat.deselectIndex();
             cat.selectIndex(index_key);
-            //const fdb5::Index& idx = tcat.currentIndex();
-            static_cast<fdb5::CatalogueWriter&>(tcat).archive(field_key, std::move(loc));
+            // const fdb5::Index& idx = tcat.currentIndex();
+            static_cast<fdb5::CatalogueWriter&>(tcat).archive(index_key, field_key, std::move(loc));
 
             /// flush store before flushing catalogue
             rados_store.flush();
@@ -324,7 +344,7 @@ CASE("RadosStore tests") {
         std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
         EXPECT(dynamic_cast<eckit::RadosPartHandle*>(dh.get()));
         /// @todo: if multiparts is enabled, RadosMultiObjReadHandle
-    
+
         eckit::MemoryHandle mh;
         dh->copyTo(mh);
         EXPECT(mh.size() == eckit::Length(sizeof(data)));
@@ -362,25 +382,22 @@ CASE("RadosStore tests") {
             std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
             cat.visitEntries(*wv, store, false);
         }
-
     }
 
     SECTION("VIA FDB API") {
 
         std::string test_id = "test-store3";
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-  #ifdef eckit_HAVE_RADOS_ADMIN
+#ifdef eckit_HAVE_RADOS_ADMIN
         std::string pool = test_id;
         eckit::RadosPool{pool}.ensureDestroyed();
         eckit::RadosPool{pool}.ensureCreated();  /// @todo: auto pool destroyer
-  #else
+#else
         std::string pool;
-        pool = eckit::Resource<std::string>(
-            "fdbRadosTestPool;$FDB_RADOS_TEST_POOL", pool
-        );
+        pool = eckit::Resource<std::string>("fdbRadosTestPool;$FDB_RADOS_TEST_POOL", pool);
         EXPECT(pool.length() > 0);
         ensureCleanNamespaces(pool, test_id);
-  #endif
+#endif
 #else
         std::string prefix = test_id;
         ensureClean(prefix);
@@ -389,43 +406,54 @@ CASE("RadosStore tests") {
         std::string config_str{
             "spaces:\n"
             "- roots:\n"
-            "  - path: " + store_tests_tmp_root().asString() + "\n"
+            "  - path: " +
+            store_tests_tmp_root().asString() +
+            "\n"
             "type: local\n"
-            "schema : " + schema_file().path() + "\n"
+            "schema : " +
+            schema_file().path() +
+            "\n"
             "engine: toc\n"
             "store: rados\n"
-            "rados:\n"
-        };
+            "rados:\n"};
 
 #ifndef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-        config_str += "  namespace: default\n"
-            "  root_pool: " + prefix + "_root\n"
-            "  pool_prefix: " + prefix + "\n";
+        config_str +=
+            "  namespace: default\n"
+            "  root_pool: " +
+            prefix +
+            "_root\n"
+            "  pool_prefix: " +
+            prefix + "\n";
 #endif
 
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && ! defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && !defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
         config_str += "  maxPartSize: 16\n";
 #endif
 
         config_str += "  store:\n";
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-        config_str += "    pool: " + pool + "\n"
-            "    root_namespace: " + test_id + "_root\n"
-            "    namespace_prefix: " + test_id + "\n";
+        config_str += "    pool: " + pool +
+                      "\n"
+                      "    root_namespace: " +
+                      test_id +
+                      "_root\n"
+                      "    namespace_prefix: " +
+                      test_id + "\n";
 #endif
 
 #if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
-  #if defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+#if defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
         config_str += "    maxHandleBuffSize: 100\n";
-  #else
-    #ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
+#else
+#ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
         config_str += "    maxAioBuffSize: 10\n";
         config_str += "    maxPartHandleBuffSize: 10\n";
-    #else
+#else
         config_str += "    maxAioBuffSize: 100\n";
-    #endif
-  #endif
+#endif
+#endif
 #endif
 
         fdb5::Config config{YAMLConfiguration(config_str)};
@@ -436,21 +464,9 @@ CASE("RadosStore tests") {
         fdb5::Key db_key({{"a", "1"}, {"b", "2"}});
         fdb5::Key index_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}});
 
-        fdb5::FDBToolRequest full_req{
-            request_key.request("retrieve"), 
-            false, 
-            std::vector<std::string>{"a", "b"}
-        };
-        fdb5::FDBToolRequest index_req{
-            index_key.request("retrieve"), 
-            false, 
-            std::vector<std::string>{"a", "b"}
-        };
-        fdb5::FDBToolRequest db_req{
-            db_key.request("retrieve"), 
-            false, 
-            std::vector<std::string>{"a", "b"}
-        };
+        fdb5::FDBToolRequest full_req{request_key.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+        fdb5::FDBToolRequest index_req{index_key.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+        fdb5::FDBToolRequest db_req{db_key.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
 
         // initialise store
 
@@ -475,11 +491,12 @@ CASE("RadosStore tests") {
 
         char data[] = "test123456";
 
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && ! defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && !defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
         /// @note: maxPartSize is set to 16, and four 10-byte fields are archived, spanning 3 objects
         for (int i = 0; i < 4; i++) {
             std::cout << "Archive field " << i << std::endl;
-            fdb5::Key request_key_i({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", std::to_string(6 + i)}});
+            fdb5::Key request_key_i(
+                {{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", std::to_string(6 + i)}});
             fdb.archive(request_key_i, data, sizeof(data));
         }
 #else
@@ -490,13 +507,14 @@ CASE("RadosStore tests") {
 
         // retrieve data
 
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && ! defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && !defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
         for (int i = 0; i < 4; i++) {
             std::cout << "Retrieve field " << i << std::endl;
-            fdb5::Key request_key_i({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", std::to_string(6 + i)}});
+            fdb5::Key request_key_i(
+                {{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", std::to_string(6 + i)}});
             metkit::mars::MarsRequest r_i = request_key_i.request("retrieve");
             std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(r_i));
-        
+
             eckit::MemoryHandle mh;
             dh->copyTo(mh);
             EXPECT(mh.size() == eckit::Length(sizeof(data)));
@@ -505,7 +523,7 @@ CASE("RadosStore tests") {
 #else
         metkit::mars::MarsRequest r = request_key.request("retrieve");
         std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(r));
-    
+
         eckit::MemoryHandle mh;
         dh->copyTo(mh);
         EXPECT(mh.size() == eckit::Length(sizeof(data)));
@@ -520,19 +538,25 @@ CASE("RadosStore tests") {
 
         auto wipeObject = fdb.wipe(full_req);
         count = 0;
-        while (wipeObject.next(elem)) count++;
+        while (wipeObject.next(elem)) {
+            count++;
+        }
         EXPECT(count == 0);
 
         // dry run wipe index and store unit
         wipeObject = fdb.wipe(index_req);
         count = 0;
-        while (wipeObject.next(elem)) count++;
+        while (wipeObject.next(elem)) {
+            count++;
+        }
         EXPECT(count > 0);
 
         // dry run wipe database
         wipeObject = fdb.wipe(db_req);
         count = 0;
-        while (wipeObject.next(elem)) count++;
+        while (wipeObject.next(elem)) {
+            count++;
+        }
         EXPECT(count > 0);
 
         // ensure field still exists
@@ -548,7 +572,9 @@ CASE("RadosStore tests") {
         // attempt to wipe with too specific request
         wipeObject = fdb.wipe(full_req, true);
         count = 0;
-        while (wipeObject.next(elem)) count++;
+        while (wipeObject.next(elem)) {
+            count++;
+        }
         EXPECT(count == 0);
         /// @todo: really needed?
         fdb.flush();
@@ -556,7 +582,9 @@ CASE("RadosStore tests") {
         // wipe index and store unit (and DB pool or namespace as there is only one index)
         wipeObject = fdb.wipe(index_req, true);
         count = 0;
-        while (wipeObject.next(elem)) count++;
+        while (wipeObject.next(elem)) {
+            count++;
+        }
         EXPECT(count > 0);
         /// @todo: really needed?
         fdb.flush();
@@ -564,9 +592,10 @@ CASE("RadosStore tests") {
         // ensure field does not exist
         listObject = fdb.list(full_req);
         count = 0;
-        while (listObject.next(info)) count++;
+        while (listObject.next(info)) {
+            count++;
+        }
         EXPECT(count == 0);
-
     }
 
     /// @todo: if doing what's in this section at the end of the previous section reusing the same FDB object,
@@ -575,18 +604,16 @@ CASE("RadosStore tests") {
 
         std::string test_id = "test-store4";
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-  #ifdef eckit_HAVE_RADOS_ADMIN
+#ifdef eckit_HAVE_RADOS_ADMIN
         std::string pool = test_id;
         eckit::RadosPool{pool}.ensureDestroyed();
         eckit::RadosPool{pool}.ensureCreated();  /// @todo: auto pool destroyer
-  #else
+#else
         std::string pool;
-        pool = eckit::Resource<std::string>(
-            "fdbRadosTestPool;$FDB_RADOS_TEST_POOL", pool
-        );
+        pool = eckit::Resource<std::string>("fdbRadosTestPool;$FDB_RADOS_TEST_POOL", pool);
         EXPECT(pool.length() > 0);
         ensureCleanNamespaces(pool, test_id);
-  #endif
+#endif
 #else
         std::string prefix = test_id;
         ensureClean(prefix);
@@ -595,43 +622,54 @@ CASE("RadosStore tests") {
         std::string config_str{
             "spaces:\n"
             "- roots:\n"
-            "  - path: " + store_tests_tmp_root().asString() + "\n"
+            "  - path: " +
+            store_tests_tmp_root().asString() +
+            "\n"
             "type: local\n"
-            "schema : " + schema_file().path() + "\n"
+            "schema : " +
+            schema_file().path() +
+            "\n"
             "engine: toc\n"
             "store: rados\n"
-            "rados:\n"
-        };
+            "rados:\n"};
 
 #ifndef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-        config_str += "  namespace: default\n"
-            "  root_pool: " + prefix + "_root\n"
-            "  pool_prefix: " + prefix + "\n";
+        config_str +=
+            "  namespace: default\n"
+            "  root_pool: " +
+            prefix +
+            "_root\n"
+            "  pool_prefix: " +
+            prefix + "\n";
 #endif
 
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && ! defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && !defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
         config_str += "  maxPartSize: 16\n";
 #endif
 
         config_str += "  store:\n";
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-        config_str += "    pool: " + pool + "\n"
-            "    root_namespace: " + test_id + "_root\n"
-            "    namespace_prefix: " + test_id + "\n";
+        config_str += "    pool: " + pool +
+                      "\n"
+                      "    root_namespace: " +
+                      test_id +
+                      "_root\n"
+                      "    namespace_prefix: " +
+                      test_id + "\n";
 #endif
 
 #if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
-  #if defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+#if defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
         config_str += "    maxHandleBuffSize: 100\n";
-  #else
-    #ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
+#else
+#ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
         config_str += "    maxAioBuffSize: 10\n";
         config_str += "    maxPartHandleBuffSize: 10\n";
-    #else
+#else
         config_str += "    maxAioBuffSize: 100\n";
-    #endif
-  #endif
+#endif
+#endif
 #endif
 
         fdb5::Config config{YAMLConfiguration(config_str)};
@@ -642,21 +680,9 @@ CASE("RadosStore tests") {
         fdb5::Key db_key({{"a", "1"}, {"b", "2"}});
         fdb5::Key index_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}});
 
-        fdb5::FDBToolRequest full_req{
-            request_key.request("retrieve"), 
-            false, 
-            std::vector<std::string>{"a", "b"}
-        };
-        fdb5::FDBToolRequest index_req{
-            index_key.request("retrieve"), 
-            false, 
-            std::vector<std::string>{"a", "b"}
-        };
-        fdb5::FDBToolRequest db_req{
-            db_key.request("retrieve"), 
-            false, 
-            std::vector<std::string>{"a", "b"}
-        };
+        fdb5::FDBToolRequest full_req{request_key.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+        fdb5::FDBToolRequest index_req{index_key.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+        fdb5::FDBToolRequest db_req{db_key.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
 
         // initialise store
 
@@ -667,17 +693,19 @@ CASE("RadosStore tests") {
         char data[] = "test";
 
         fdb.archive(request_key, data, sizeof(data));
-        
+
         fdb.flush();
 
         size_t count;
-        
+
         // wipe all database
 
         fdb5::WipeElement elem;
         auto wipeObject = fdb.wipe(db_req, true);
         count = 0;
-        while (wipeObject.next(elem)) count++;
+        while (wipeObject.next(elem)) {
+            count++;
+        }
         EXPECT(count > 0);
         /// @todo: really needed?
         fdb.flush();
@@ -693,22 +721,21 @@ CASE("RadosStore tests") {
             count++;
         }
         EXPECT(count == 0);
-
     }
-
 }
 
 }  // namespace test
 }  // namespace fdb
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
 
     int ret = -1;
 
     try {
-        ret = run_tests ( argc, argv );
-    } catch(...) {}
+        ret = run_tests(argc, argv);
+    }
+    catch (...) {
+    }
 
 #ifdef fdb5_HAVE_RADOS_ADMIN
     ensureClean("test-store");
