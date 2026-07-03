@@ -13,9 +13,9 @@
 
 #pragma once
 
-#include "eckit/utils/Optional.h"
+// #include "eckit/utils/Optional.h"
 #include "eckit/io/rados/RadosKeyValue.h"
-#include "eckit/io/rados/RadosAsyncKeyValue.h"
+// #include "eckit/io/rados/RadosAsyncKeyValue.h"
 
 #include "fdb5/database/Engine.h"
 #include "fdb5/fdb5_config.h"
@@ -26,32 +26,33 @@ namespace fdb5 {
 
 class RadosEngine : public fdb5::Engine {
 
-public: // methods
+public:  // methods
 
     RadosEngine() {};
 
     static const char* typeName() { return "rados"; }
 
-protected: // methods
+protected:  // methods
 
     virtual std::string name() const override;
 
     virtual std::string dbType() const override { NOTIMP; };
 
-    virtual eckit::URI location(const Key &key, const Config& config) const override { NOTIMP; };
+    virtual eckit::URI location(const Key& key, const Config& config) const override { NOTIMP; };
 
     virtual bool canHandle(const eckit::URI&, const Config&) const override { NOTIMP; };
 
     virtual std::vector<eckit::URI> allLocations(const Key& key, const Config& config) const override { NOTIMP; };
 
     virtual std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const override;
-    virtual std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq, const Config& config) const override;
+    virtual std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq,
+                                                       const Config& config) const override;
 
     virtual std::vector<eckit::URI> writableLocations(const Key& key, const Config& config) const override { NOTIMP; };
 
-    virtual void print( std::ostream &out ) const override { NOTIMP; };
+    virtual void print(std::ostream& out) const override { NOTIMP; };
 
-private: // methods
+private:  // methods
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
     void readConfig(const fdb5::Config& config, const std::string& component, bool readPool) const;
@@ -59,7 +60,7 @@ private: // methods
     void readConfig(const fdb5::Config& config, const std::string& component, bool readNamespace) const;
 #endif
 
-protected: // members
+protected:  // members
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
     mutable std::string pool_;
@@ -81,17 +82,16 @@ protected: // members
 
     // eckit::Length maxPartSize_;
 
-private: // members
+private:  // members
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
     mutable std::string nspace_prefix_;
 #else
     mutable std::string pool_prefix_;
 #endif
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
-} // namespace fdb5
+}  // namespace fdb5
