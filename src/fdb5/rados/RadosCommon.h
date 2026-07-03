@@ -13,25 +13,26 @@
 
 #pragma once
 
+#include <optional>
 #include "eckit/filesystem/URI.h"
-#include "eckit/utils/Optional.h"
+// #include "eckit/utils/Optional.h"
+// #include "eckit/io/rados/RadosAsyncKeyValue.h"
 #include "eckit/io/rados/RadosKeyValue.h"
-#include "eckit/io/rados/RadosAsyncKeyValue.h"
 
-#include "fdb5/fdb5_config.h"
-#include "fdb5/database/Key.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/fdb5_config.h"
 
 namespace fdb5 {
 
 class RadosCommon {
 
-public: // methods
+public:  // methods
 
     RadosCommon(const fdb5::Config&, const std::string& component, const fdb5::Key&);
     RadosCommon(const fdb5::Config&, const std::string& component, const eckit::URI&);
 
-private: // methods
+private:  // methods
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
     void readConfig(const fdb5::Config& config, const std::string& component, bool readPool);
@@ -39,7 +40,7 @@ private: // methods
     void readConfig(const fdb5::Config& config, const std::string& component, bool readNamespace);
 #endif
 
-protected: // members
+protected:  // members
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
     std::string pool_;
@@ -52,25 +53,22 @@ protected: // members
 #endif
 
 #if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
-    eckit::Optional<eckit::RadosAsyncKeyValue> root_kv_;
-    eckit::Optional<eckit::RadosAsyncKeyValue> db_kv_;
+    std::optional<eckit::RadosAsyncKeyValue> root_kv_;
+    std::optional<eckit::RadosAsyncKeyValue> db_kv_;
 #else
-    eckit::Optional<eckit::RadosKeyValue> root_kv_;
-    eckit::Optional<eckit::RadosKeyValue> db_kv_;
+    std::optional<eckit::RadosKeyValue> root_kv_;
+    std::optional<eckit::RadosKeyValue> db_kv_;
 #endif
 
     eckit::Length maxPartSize_;
 
-private: // members
+private:  // members
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
     std::string nspace_prefix_;
 #else
     std::string pool_prefix_;
 #endif
-
 };
 
-}
-
-
+}  // namespace fdb5
