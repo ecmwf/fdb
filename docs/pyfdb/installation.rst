@@ -180,11 +180,9 @@ variables that suppress specific search paths:
 
 .. code-block:: sh
 
-    python -m pyfdb --findlibs-setup
+    python -m pyfdb --print-home-deps
 
-If a dependency is resolved from an unexpected location, set the corresponding
-``<LIBNAME>_HOME`` environment variable (e.g. ``FDB5_HOME``, ``ECKIT_HOME``) to point
-``findlibs`` at the correct installation. See the
-`findlibs documentation <https://github.com/ecmwf/findlibs>`__ for the full list of
+If a dependency is resolved from an unexpected location, consult
+the `findlibs documentation <https://github.com/ecmwf/findlibs>`__ for the full list of
 supported variables and search-path precedence rules.
 
