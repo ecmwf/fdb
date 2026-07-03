@@ -13,6 +13,8 @@ import sys
 
 import findlibs
 
+import pyfdb._internal as _internal
+
 # INFO: This is in place because we currently can't (at runtime)
 # tell which order the dependencies are in. This needs to be available in findlibs
 DEPENDENCY_ORDER = ["eckit", "eccodes", "metkit", "fdb5"]
@@ -58,9 +60,10 @@ def main():
         )
 
     def _print_dep_path(lib, dependency_path, optional):
+        missing = []
         if dependency_path is None:
             msg = f"\t{lib} [Optional]" if optional else f"\t{lib}"
-            msg += ": not found"
+            msg += ": not found by findlibs"
             missing.append(lib)
             if optional:
                 logging.info(msg)
@@ -71,25 +74,39 @@ def main():
             msg += f": {_lib_home(dependency_path)}"
             logging.info(msg)
 
+        return missing
+
+    library_info_tuple = _internal.version_info()
+
     if args.print_home:
         dependency_path = findlibs.find("fdb5")
         if dependency_path is None:
-            logging.error("fdb5 library not found")
+            logging.error("fdb5 library not found by findlibs")
             sys.exit(1)
-        logging.info(f"{_lib_home(dependency_path)}")
+        for name, version, gitSha, path in library_info_tuple:
+            if name == "fdb":
+                logging.info(f"\t{name} {version} ({gitSha}) {path}")
 
     if args.print_home_deps:
         logging.info("Findlibs Environment:")
         for key, value in os.environ.items():
             if key.upper().startswith("FINDLIBS_DISABLE"):
-                logging.info(f"\t{key}: {value}")
+                logging.info(f"\t{key: <15}: {value: <10}")
 
-        logging.info("Dependency Home:")
+        logging.info("Findlibs Lookup")
 
         missing = []
         for lib in DEPENDENCY_ORDER:
             dependency_path = findlibs.find(lib)
-            _print_dep_path(lib, dependency_path, lib in OPTIONAL_DEPENDENCIES)
+            missing += _print_dep_path(
+                lib, dependency_path, lib in OPTIONAL_DEPENDENCIES
+            )
+
+        logging.info("Dependency Versions:")
+
+        for name, version, gitSha, path in library_info_tuple:
+            logging.info(f"\t{name} {version} ({gitSha}) {path}")
+
         if missing:
             sys.exit(1)
 

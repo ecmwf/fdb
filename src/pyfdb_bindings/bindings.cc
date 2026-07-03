@@ -36,7 +36,10 @@
 #include "eckit/io/DataHandle.h"
 #include "eckit/log/JSON.h"
 #include "eckit/runtime/Main.h"
+#include "eckit/system/Library.h"
+#include "eckit/system/LibraryManager.h"
 #include "eckit/value/Content.h"
+#include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -108,6 +111,17 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
     m.def("init_bindings", []() {
         const char* args[] = {"pyfdb", ""};
         eckit::Main::initialise(1, const_cast<char**>(args));
+    });
+
+    m.def("version_info", []() {
+        std::vector<std::tuple<std::string, std::string, std::string, std::string>> dependencyInformation;
+
+        for (const std::string& libname : eckit::system::LibraryManager::list()) {
+            const eckit::system::Library& lib = eckit::system::LibraryManager::lookup(libname);
+            dependencyInformation.emplace_back(lib.name(), lib.version(), lib.gitsha1(), lib.libraryPath());
+        }
+
+        return dependencyInformation;
     });
 
     //--------------------------------------------------
