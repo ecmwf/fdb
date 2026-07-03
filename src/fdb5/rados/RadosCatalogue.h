@@ -13,9 +13,10 @@
 
 #pragma once
 
-#include "fdb5/database/DB.h"
-#include "fdb5/rules/Schema.h"
+// #include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/rados/RadosCommon.h"
+#include "fdb5/rules/Schema.h"
 // #include "fdb5/rados/RadosEngine.h"
 
 namespace fdb5 {
@@ -26,14 +27,14 @@ namespace fdb5 {
 
 class RadosCatalogue : public Catalogue, public RadosCommon {
 
-public: // methods
+public:  // methods
 
     RadosCatalogue(const Key& key, const fdb5::Config& config);
     RadosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config);
 
     // static const char* catalogueTypeName() { return fdb5::RadosEngine::typeName(); }
     static const char* catalogueTypeName() { return "rados"; }
-    
+
     eckit::URI uri() const override;
     const Key& indexKey() const override { return currentIndexKey_; }
 
@@ -49,30 +50,35 @@ public: // methods
 
     StatsReportVisitor* statsReportVisitor() const override { NOTIMP; };
     PurgeVisitor* purgeVisitor(const Store& store) const override { NOTIMP; };
-    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const override;
-    MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const override { NOTIMP; };
+    WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit,
+                             bool porcelain, bool unsafeWipeAll) const override;
+    MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest,
+                             eckit::Queue<MoveElement>& queue) const override {
+        NOTIMP;
+    };
     void maskIndexEntry(const Index& index) const override { NOTIMP; };
 
     void loadSchema() override;
 
-    std::vector<Index> indexes(bool sorted=false) const override;
+    std::vector<Index> indexes(bool sorted = false) const override;
 
     void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
-                   std::set<eckit::URI>& data) const override { NOTIMP; };
+                   std::set<eckit::URI>& data) const override {
+        NOTIMP;
+    };
 
     // Control access properties of the DB
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override { NOTIMP; };
 
-protected: // members
+protected:  // members
 
     Key currentIndexKey_;
 
-private: // members
+private:  // members
 
     Schema schema_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

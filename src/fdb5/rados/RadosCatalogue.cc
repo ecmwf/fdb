@@ -9,12 +9,12 @@
  */
 
 // #include "eckit/config/Resource.h"
-#include "eckit/serialisation/MemoryStream.h"
-#include "eckit/io/rados/RadosException.h"
+// #include "eckit/serialisation/MemoryStream.h"
+// #include "eckit/io/rados/RadosException.h"
 
 // #include "fdb5/api/helpers/ControlIterator.h"
-#include "fdb5/LibFdb5.h"
-#include "fdb5/database/DatabaseNotFoundException.h"
+// #include "fdb5/LibFdb5.h"
+// #include "fdb5/database/DatabaseNotFoundException.h"
 
 #include "fdb5/rados/RadosCatalogue.h"
 // #include "fdb5/daos/DaosName.h"
@@ -35,10 +35,10 @@ RadosCatalogue::RadosCatalogue(const Key& key, const fdb5::Config& config) :
     //   FileSpaceTables to determine root_pool_name_ according to key
     //   and using DbPathNamerTables to determine db_cont_name_ according
     //   to key
-
 }
 
-RadosCatalogue::RadosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config) :
+RadosCatalogue::RadosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers,
+                               const fdb5::Config& config) :
     Catalogue(Key(), controlIdentifiers, config), RadosCommon(config, "catalogue", uri) {
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
@@ -55,34 +55,27 @@ RadosCatalogue::RadosCatalogue(const eckit::URI& uri, const ControlIdentifiers& 
         std::vector<char> data;
         eckit::MemoryStream ms = db_kv_->getMemoryStream(data, "key", "DB kv");
         dbKey_ = fdb5::Key(ms);
-
-    } catch (eckit::RadosEntityNotFoundException& e) {
-
-        throw fdb5::DatabaseNotFoundException(
-            std::string("RadosCatalogue database not found ") +
-            "(pool: '" + pool + "', namespace: '" + nspace + "')"
-        );
-
     }
+    catch (eckit::RadosEntityNotFoundException& e) {
 
+        throw fdb5::DatabaseNotFoundException(std::string("RadosCatalogue database not found ") + "(pool: '" + pool +
+                                              "', namespace: '" + nspace + "')");
+    }
 }
 
 bool RadosCatalogue::exists() const {
 
     return db_kv_->exists();
-
 }
 
 eckit::URI RadosCatalogue::uri() const {
 
     return db_kv_->nspace().uri();
-
 }
 
 const Schema& RadosCatalogue::schema() const {
 
     return schema_;
-
 }
 
 void RadosCatalogue::loadSchema() {
@@ -99,10 +92,10 @@ void RadosCatalogue::loadSchema() {
 
     std::istringstream stream{std::string(data.begin(), data.end())};
     schema_.load(stream);
-
 }
 
-WipeVisitor* RadosCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {
+WipeVisitor* RadosCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request,
+                                         std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {
     NOTIMP;
     // return new RadosWipeVisitor(*this, store, request, out, doit, porcelain, unsafeWipeAll);
 }
@@ -121,7 +114,9 @@ std::vector<Index> RadosCatalogue::indexes(bool) const {
 
         /// @todo: document these well. Single source these reserved values.
         ///    Ensure where appropriate that user-provided keys do not collide.
-        if (key == "schema" || key == "key") continue;
+        if (key == "schema" || key == "key") {
+            continue;
+        }
 
         /// @note: performed RPCs:
         /// - db kv get index location size (daos_kv_get without a buffer)
@@ -135,10 +130,10 @@ std::vector<Index> RadosCatalogue::indexes(bool) const {
         /// - index kv open (daos_kv_open)
         /// - index kv get size (daos_kv_get without a buffer)
         /// - index kv get key (daos_kv_get)
-        /// @note: the following three lines intend to check whether the index kv exists 
+        /// @note: the following three lines intend to check whether the index kv exists
         ///   or not. The DaosKeyValue constructor calls kv open, which always succeeds,
         ///   so it is not useful on its own to check whether the index KV existed or not.
-        ///   Instead, presence of a "key" key in the KV is used to determine if the index 
+        ///   Instead, presence of a "key" key in the KV is used to determine if the index
         ///   KV existed.
         eckit::RadosKeyValue index_kv{uri};
         std::optional<fdb5::Key> index_key;
@@ -146,26 +141,25 @@ std::vector<Index> RadosCatalogue::indexes(bool) const {
             std::vector<char> data;
             eckit::MemoryStream ms = index_kv.getMemoryStream(data, "key", "index KV");
             index_key.emplace(ms);
-        } catch (eckit::RadosEntityNotFoundException& e) {
-            continue; /// @note: the index_kv may not exist after a failed wipe
+        }
+        catch (eckit::RadosEntityNotFoundException& e) {
+            continue;  /// @note: the index_kv may not exist after a failed wipe
             /// @todo: the index_kv may exist even if it does not have the "key" key
         }
 
         res.push_back(Index(new fdb5::RadosIndex(index_key.value(), index_kv, false)));
-
     }
 
     return res;
-    
 }
 
 std::string RadosCatalogue::type() const {
 
     return RadosCatalogue::catalogueTypeName();
-    
 }
 
-// void RadosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways, std::ostream& logVerbose, bool doit) {
+// void RadosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways, std::ostream& logVerbose, bool
+// doit) {
 
 //     ASSERT(n.hasContainerName());
 
@@ -177,4 +171,4 @@ std::string RadosCatalogue::type() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
