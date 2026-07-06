@@ -9,8 +9,9 @@ if (HAVE_RADOSFDB)
 
   foreach( _test ${rados_tests} )
 
-    ecbuild_add_test( TARGET test_fdb5_rados_${_test}
+    ecbuild_add_test( TARGET  fdb_test_${_test}
                       SOURCES test_${_test}.cc
+                      LABELS  rados
                       LIBS "${unit_test_libraries}"
                       INCLUDES "${unit_test_include_dirs}"
                       ENVIRONMENT FDB_RADOS_TEST_POOL=${FDB_RADOS_TEST_POOL} )
