@@ -13,12 +13,19 @@
 
 #pragma once
 
-// #include "eckit/utils/Optional.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
 #include "eckit/io/rados/RadosKeyValue.h"
-// #include "eckit/io/rados/RadosAsyncKeyValue.h"
+
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/database/Engine.h"
 #include "fdb5/fdb5_config.h"
+
+#include <optional>
+#include <ostream>
+#include <string>
+#include <vector>
 
 namespace fdb5 {
 
@@ -34,23 +41,23 @@ public:  // methods
 
 protected:  // methods
 
-    virtual std::string name() const override;
+    std::string name() const override;
 
-    virtual std::string dbType() const override { NOTIMP; };
+    std::string dbType() const override { NOTIMP; };
 
-    virtual eckit::URI location(const Key& key, const Config& config) const override { NOTIMP; };
+    eckit::URI location(const Key& key, const Config& config) const override { NOTIMP; };
 
-    virtual bool canHandle(const eckit::URI&, const Config&) const override { NOTIMP; };
+    bool canHandle(const eckit::URI&, const Config&) const override { NOTIMP; };
 
-    virtual std::vector<eckit::URI> allLocations(const Key& key, const Config& config) const override { NOTIMP; };
+    // std::vector<eckit::URI> allLocations(const Key& key, const Config& config) const override { NOTIMP; };
 
-    virtual std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const override;
-    virtual std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq,
-                                                       const Config& config) const override;
+    std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const override;
+    std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq,
+                                               const Config& config) const override;
 
-    virtual std::vector<eckit::URI> writableLocations(const Key& key, const Config& config) const override { NOTIMP; };
+    // std::vector<eckit::URI> writableLocations(const Key& key, const Config& config) const override { NOTIMP; };
 
-    virtual void print(std::ostream& out) const override { NOTIMP; };
+    void print(std::ostream& out) const override { NOTIMP; };
 
 private:  // methods
 
@@ -73,11 +80,11 @@ protected:  // members
 #endif
 
 #if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
-    mutable eckit::Optional<eckit::RadosAsyncKeyValue> root_kv_;
-    // eckit::Optional<eckit::RadosAsyncKeyValue> db_kv_;
+    mutable std::optional<eckit::RadosAsyncKeyValue> root_kv_;
+    // std::optional<eckit::RadosAsyncKeyValue> db_kv_;
 #else
-    mutable eckit::Optional<eckit::RadosKeyValue> root_kv_;
-    // eckit::Optional<eckit::RadosKeyValue> db_kv_;
+    mutable std::optional<eckit::RadosKeyValue> root_kv_;
+    // std::optional<eckit::RadosKeyValue> db_kv_;
 #endif
 
     // eckit::Length maxPartSize_;
