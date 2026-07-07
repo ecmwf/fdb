@@ -31,16 +31,18 @@ class RadosStore : public Store, public RadosCommon {
 
 public:  // methods
 
+    RadosStore(const Key& key, const Config& config);
     RadosStore(const Schema& schema, const Key& key, const Config& config);
-    RadosStore(const eckit::URI& uri);
+    RadosStore(const eckit::URI& uri, const Config& config);
 
     ~RadosStore() override {}
 
     eckit::URI uri() const override;
+    static eckit::URI uri(const eckit::URI& dataURI);
     bool uriBelongs(const eckit::URI&) const override;
     bool uriExists(const eckit::URI&) const override;
-    std::vector<eckit::URI> collocatedDataURIs() const override;
-    std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const override;
+    std::set<eckit::URI> collocatedDataURIs() const override;
+    std::set<eckit::URI> asCollocatedDataURIs(const std::set<eckit::URI>&) const override;
 
     bool open() override { return true; }
     size_t flush() override;
@@ -48,14 +50,25 @@ public:  // methods
 
     void checkUID() const override { /* nothing to do */ }
 
+    /// Wipe-related methods (not implemented for the Rados backend)
+    void finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override;
+    bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const override;
+    bool doWipeURIs(const StoreWipeState& wipeState) const override;
+    void doWipeEmptyDatabase() const override;
+    bool doUnsafeFullWipe() const override;
+
+    // Rados store does not currently support auxiliary objects
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override {
+        return {};
+    }
+
 protected:  // methods
 
     std::string type() const override { return "rados"; }
     bool exists() const override;
 
     eckit::DataHandle* retrieve(Field& field) const override;
-    std::unique_ptr<const FieldLocation> archive(const uint32_t, const Key& key, const void* data,
-                                                 eckit::Length length) override;
+    std::unique_ptr<const FieldLocation> archive(const Key& key, const void* data, eckit::Length length) override;
 
     using Store::remove;
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
@@ -83,7 +96,7 @@ private:  // members
     const Config& config_;
 
     // mutable bool dirty_;
-    size_t archivedFields_;
+    size_t archivedFields_{0};
 
 #ifdef fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD
 #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
