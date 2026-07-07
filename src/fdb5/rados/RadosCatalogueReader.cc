@@ -8,9 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/rados/RadosCatalogueReader.h"
+
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rados/RadosIndex.h"
-#include "fdb5/rados/RadosCatalogueReader.h"
 
 namespace fdb5 {
 
@@ -19,18 +20,16 @@ namespace fdb5 {
 /// @note: as opposed to the TOC catalogue, the DAOS catalogue does not pre-load all indexes from storage.
 ///   Instead, it selects and loads only those indexes that are required to fulfil the request.
 
-RadosCatalogueReader::RadosCatalogueReader(const Key& key, const fdb5::Config& config) :
-    RadosCatalogue(key, config) {
+RadosCatalogueReader::RadosCatalogueReader(const Key& key, const Config& config) : RadosCatalogue(key, config) {
 
     /// @todo: schema is being loaded at DaosCatalogueWriter creation for write, but being loaded
     ///        at DaosCatalogueReader::open for read. Is this OK?
-
 }
 
-RadosCatalogueReader::RadosCatalogueReader(const eckit::URI& uri, const fdb5::Config& config) :
+RadosCatalogueReader::RadosCatalogueReader(const eckit::URI& uri, const Config& config) :
     RadosCatalogue(uri, ControlIdentifiers{}, config) {}
 
-bool RadosCatalogueReader::selectIndex(const Key &key) {
+bool RadosCatalogueReader::selectIndex(const Key& key) {
 
     if (currentIndexKey_ == key) {
         return true;
@@ -46,7 +45,7 @@ bool RadosCatalogueReader::selectIndex(const Key &key) {
         /// - ensure catalogue kv exists (daos_kv_open)
 
         int idx_loc_max_len = 512;  /// @todo: take from config
-        std::vector<char> n((long) idx_loc_max_len);
+        std::vector<char> n((long)idx_loc_max_len);
         long res;
 
         try {
@@ -54,42 +53,38 @@ bool RadosCatalogueReader::selectIndex(const Key &key) {
             /// @note: performed RPCs:
             /// - retrieve index kv location from catalogue kv (daos_kv_get)
             res = db_kv_->get(key.valuesToString(), &n[0], idx_loc_max_len);
-
-        } catch (eckit::RadosEntityNotFoundException& e) {
+        }
+        catch (eckit::RadosEntityNotFoundException& e) {
 
             /// @note: performed RPCs:
             /// - close catalogue kv (daos_obj_close)
 
             return false;
-
         }
 
         eckit::URI uri{std::string{n.begin(), std::next(n.begin(), res)}};
-// #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
-//         eckit::RadosPersistentKeyValue index_kv{uri, true};
-// #elif fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-//         eckit::RadosPersistentKeyValue index_kv{uri};
-// #else
+        // #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
+        //         eckit::RadosPersistentKeyValue index_kv{uri, true};
+        // #elif fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
+        //         eckit::RadosPersistentKeyValue index_kv{uri};
+        // #else
         eckit::RadosKeyValue index_kv{uri};
-// #endif
+        // #endif
 
-        indexes_[key] = Index(new fdb5::RadosIndex(key, index_kv, true));
+        indexes_[key] = Index(new RadosIndex(key, index_kv, true));
 
         /// @note: performed RPCs:
         /// - close catalogue kv (daos_obj_close)
-
     }
 
     current_ = indexes_[key];
 
     return true;
-
 }
 
 void RadosCatalogueReader::deselectIndex() {
 
-    NOTIMP; //< should not be called
-    
+    NOTIMP;  //< should not be called
 }
 
 bool RadosCatalogueReader::open() {
@@ -105,19 +100,22 @@ bool RadosCatalogueReader::open() {
 
     RadosCatalogue::loadSchema();
     return true;
-
 }
 
-bool RadosCatalogueReader::axis(const std::string &keyword, eckit::StringSet &s) const {
+std::optional<Axis> RadosCatalogueReader::computeAxis(const std::string& keyword) const {
+
+    Axis s;
 
     bool found = false;
     if (current_.axes().has(keyword)) {
         found = true;
-        const eckit::DenseSet<std::string>& a = current_.axes().values(keyword);
-        s.insert(a.begin(), a.end());
+        s.merge(current_.axes().values(keyword));
     }
-    return found;
 
+    if (found) {
+        return s;
+    }
+    return std::nullopt;
 }
 
 bool RadosCatalogueReader::retrieve(const Key& key, Field& field) const {
@@ -125,14 +123,14 @@ bool RadosCatalogueReader::retrieve(const Key& key, Field& field) const {
     eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
     eckit::Log::debug<LibFdb5>() << "Scanning index " << current_.location() << std::endl;
 
-    if (!current_.mayContain(key)) return false;
+    if (!current_.mayContain(key))
+        return false;
 
-    return current_.get(key, fdb5::Key(), field);
-
+    return current_.get(key, Key(), field);
 }
 
-static fdb5::CatalogueBuilder<fdb5::RadosCatalogueReader> builder("rados.reader");
+static CatalogueReaderBuilder<RadosCatalogueReader> builder("rados");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

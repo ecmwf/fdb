@@ -13,7 +13,22 @@
 
 #pragma once
 
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/types/Types.h"
+
+#include "fdb5/config/Config.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/DbStats.h"
+#include "fdb5/database/Field.h"
+#include "fdb5/database/Index.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/rados/RadosCatalogue.h"
+
+#include <map>
+#include <optional>
+#include <ostream>
+#include <string>
 
 namespace fdb5 {
 
@@ -23,38 +38,39 @@ namespace fdb5 {
 
 class RadosCatalogueReader : public RadosCatalogue, public CatalogueReader {
 
-public: // methods
+public:  // methods
 
     RadosCatalogueReader(const Key& key, const fdb5::Config& config);
     RadosCatalogueReader(const eckit::URI& uri, const fdb5::Config& config);
 
     DbStats stats() const override { NOTIMP; }
 
-    bool selectIndex(const Key &key) override;
+    bool selectIndex(const Key& key) override;
     void deselectIndex() override;
 
     bool open() override;
-    void flush() override {}
+    void flush(size_t archivedFields) override {}
     void clean() override {}
     void close() override {}
-    
-    bool axis(const std::string &keyword, eckit::StringSet &s) const override;
 
     bool retrieve(const Key& key, Field& field) const override;
 
-    void print( std::ostream &out ) const override { NOTIMP; }
+    void print(std::ostream& out) const override { NOTIMP; }
 
-private: // types
+private:  // methods
 
-    typedef std::map< Key, Index> IndexStore;
+    std::optional<Axis> computeAxis(const std::string& keyword) const override;
 
-private: // members
+private:  // types
+
+    typedef std::map<Key, Index> IndexStore;
+
+private:  // members
 
     IndexStore indexes_;
     Index current_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
