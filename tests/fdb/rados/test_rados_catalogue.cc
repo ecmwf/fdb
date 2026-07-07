@@ -20,6 +20,7 @@
 // #include "eckit/io/FileHandle.h"
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/io/MemoryHandle.h"
+#include "eckit/io/PartHandle.h"
 #include "eckit/io/rados/RadosPartHandle.h"
 
 // #include "metkit/mars/MarsRequest.h"
@@ -376,7 +377,13 @@ CASE("RadosCatalogue tests") {
         // retrieve data
 
         std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
+#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && !defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+        /// @note: with multipart enabled, the field spans potentially several objects and is
+        ///   returned as an eckit::PartHandle wrapping a RadosMultiObjReadHandle.
+        EXPECT(dynamic_cast<eckit::PartHandle*>(dh.get()));
+#else
         EXPECT(dynamic_cast<eckit::RadosPartHandle*>(dh.get()));
+#endif
 
         eckit::MemoryHandle mh;
         dh->copyTo(mh);
@@ -502,6 +509,19 @@ CASE("RadosCatalogue tests") {
     // }
 
     SECTION("Via FDB API with a Rados catalogue and store") {
+
+        /// @note: earlier sections share the same catalogue namespaces/pool; reset them so this
+        ///   section starts from a clean, empty catalogue (it asserts the FDB is initially empty).
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
+#ifdef eckit_HAVE_RADOS_ADMIN
+        eckit::RadosPool{pool}.ensureDestroyed();
+        eckit::RadosPool{pool}.ensureCreated();
+#else
+        ensureCleanNamespaces(pool, test_id);
+#endif
+#else
+        ensureClean(prefix);
+#endif
 
         // FDB configuration
 

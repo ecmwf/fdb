@@ -27,12 +27,14 @@
 // #include "fdb5/config/Config.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/toc/TocCatalogueReader.h"
 #include "fdb5/toc/TocCatalogueWriter.h"
 
 // #include "eckit/io/s3/S3Client.h"
 // #include "eckit/io/s3/S3Session.h"
 // #include "eckit/io/s3/S3Credential.h"
+#include "eckit/io/PartHandle.h"
 #include "eckit/io/rados/RadosPartHandle.h"
 
 #include "fdb5/rados/RadosFieldLocation.h"
@@ -95,6 +97,23 @@ eckit::TmpFile& schema_file() {
 eckit::PathName& store_tests_tmp_root() {
     static eckit::PathName sd("./rados_store_tests_fdb_root");
     return sd;
+}
+
+/// @note: counts only the URIs that would actually be deleted, filtering out purely
+///   informational wipe elements (safe/info/error) so a too-specific request yields 0.
+size_t countWipeable(fdb5::WipeIterator& wipeObject, bool print = true) {
+    size_t count = 0;
+    fdb5::WipeElement elem;
+    while (wipeObject.next(elem)) {
+        if (print) {
+            std::cout << elem << std::endl;
+        }
+        if (elem.type() != fdb5::WipeElementType::ERROR && elem.type() != fdb5::WipeElementType::CATALOGUE_INFO &&
+            elem.type() != fdb5::WipeElementType::CATALOGUE_SAFE && elem.type() != fdb5::WipeElementType::STORE_SAFE) {
+            count += elem.uris().size();
+        }
+    }
+    return count;
 }
 
 namespace fdb {
@@ -205,8 +224,13 @@ CASE("RadosStore tests") {
         fdb5::Field field(std::move(loc), std::time(nullptr));
         std::cout << "Read location: " << field.location() << std::endl;
         std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
+#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && !defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+        /// @note: with multipart enabled, the field spans potentially several objects and is
+        ///   returned as an eckit::PartHandle wrapping a RadosMultiObjReadHandle.
+        EXPECT(dynamic_cast<eckit::PartHandle*>(dh.get()));
+#else
         EXPECT(dynamic_cast<eckit::RadosPartHandle*>(dh.get()));
-        /// @todo: if multiparts is enabled, RadosMultiObjReadHandle
+#endif
 
         eckit::MemoryHandle mh;
         dh->copyTo(mh);
@@ -341,8 +365,13 @@ CASE("RadosStore tests") {
         // retrieve data
 
         std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
+#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && !defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+        /// @note: with multipart enabled, the field spans potentially several objects and is
+        ///   returned as an eckit::PartHandle wrapping a RadosMultiObjReadHandle.
+        EXPECT(dynamic_cast<eckit::PartHandle*>(dh.get()));
+#else
         EXPECT(dynamic_cast<eckit::RadosPartHandle*>(dh.get()));
-        /// @todo: if multiparts is enabled, RadosMultiObjReadHandle
+#endif
 
         eckit::MemoryHandle mh;
         dh->copyTo(mh);
@@ -386,6 +415,13 @@ CASE("RadosStore tests") {
     SECTION("VIA FDB API") {
 
         std::string test_id = "test-store3";
+
+        /// @note: the POSIX toc catalogue root is shared across sections; reset it so this
+        ///   section is not polluted by entries left behind by previous sections.
+        if (store_tests_tmp_root().exists()) {
+            deldir(store_tests_tmp_root());
+        }
+        store_tests_tmp_root().mkdir();
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 #ifdef eckit_HAVE_RADOS_ADMIN
         std::string pool = test_id;
@@ -531,32 +567,18 @@ CASE("RadosStore tests") {
 
         // wipe data
 
-        fdb5::WipeElement elem;
-
         // dry run attempt to wipe with too specific request
 
         auto wipeObject = fdb.wipe(full_req);
-        count           = 0;
-        while (wipeObject.next(elem)) {
-            count++;
-        }
-        EXPECT(count == 0);
+        EXPECT(countWipeable(wipeObject) == 0);
 
         // dry run wipe index and store unit
         wipeObject = fdb.wipe(index_req);
-        count      = 0;
-        while (wipeObject.next(elem)) {
-            count++;
-        }
-        EXPECT(count > 0);
+        EXPECT(countWipeable(wipeObject) > 0);
 
         // dry run wipe database
         wipeObject = fdb.wipe(db_req);
-        count      = 0;
-        while (wipeObject.next(elem)) {
-            count++;
-        }
-        EXPECT(count > 0);
+        EXPECT(countWipeable(wipeObject) > 0);
 
         // ensure field still exists
         listObject = fdb.list(full_req);
@@ -570,21 +592,13 @@ CASE("RadosStore tests") {
 
         // attempt to wipe with too specific request
         wipeObject = fdb.wipe(full_req, true);
-        count      = 0;
-        while (wipeObject.next(elem)) {
-            count++;
-        }
-        EXPECT(count == 0);
+        EXPECT(countWipeable(wipeObject) == 0);
         /// @todo: really needed?
         fdb.flush();
 
         // wipe index and store unit (and DB pool or namespace as there is only one index)
         wipeObject = fdb.wipe(index_req, true);
-        count      = 0;
-        while (wipeObject.next(elem)) {
-            count++;
-        }
-        EXPECT(count > 0);
+        EXPECT(countWipeable(wipeObject) > 0);
         /// @todo: really needed?
         fdb.flush();
 
@@ -602,6 +616,13 @@ CASE("RadosStore tests") {
     SECTION("FDB API RE-STORE AND WIPE DB") {
 
         std::string test_id = "test-store4";
+
+        /// @note: the POSIX toc catalogue root is shared across sections; reset it so this
+        ///   section is not polluted by entries left behind by previous sections.
+        if (store_tests_tmp_root().exists()) {
+            deldir(store_tests_tmp_root());
+        }
+        store_tests_tmp_root().mkdir();
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 #ifdef eckit_HAVE_RADOS_ADMIN
         std::string pool = test_id;
@@ -699,13 +720,8 @@ CASE("RadosStore tests") {
 
         // wipe all database
 
-        fdb5::WipeElement elem;
         auto wipeObject = fdb.wipe(db_req, true);
-        count           = 0;
-        while (wipeObject.next(elem)) {
-            count++;
-        }
-        EXPECT(count > 0);
+        EXPECT(countWipeable(wipeObject) > 0);
         /// @todo: really needed?
         fdb.flush();
 
