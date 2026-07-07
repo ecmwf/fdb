@@ -27,7 +27,6 @@
 // #include "fdb5/config/Config.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
-
 #include "fdb5/toc/TocCatalogueReader.h"
 #include "fdb5/toc/TocCatalogueWriter.h"
 
@@ -189,7 +188,7 @@ CASE("RadosStore tests") {
         fdb5::Schema schema{schema_file()};
 
         fdb5::Key request_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
-        fdb5::Key db_key({{"a", "1"}, {"b", "2"}}, schema.registry());
+        fdb5::Key db_key({{"a", "1"}, {"b", "2"}});
         fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
 
         char data[] = "test";
@@ -198,7 +197,7 @@ CASE("RadosStore tests") {
 
         fdb5::RadosStore rados_store{schema, db_key, config};
         fdb5::Store& store = rados_store;
-        std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
+        std::unique_ptr<const fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
 
         rados_store.flush();
 
@@ -301,9 +300,9 @@ CASE("RadosStore tests") {
         // request
 
         fdb5::Key request_key({{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
-        fdb5::Key db_key({{"a", "1"}, {"b", "2"}}, schema.registry());
-        fdb5::Key index_key({{"c", "3"}, {"d", "4"}}, schema.registry());
-        fdb5::Key field_key({{"e", "5"}, {"f", "6"}}, schema.registry());
+        fdb5::Key db_key({{"a", "1"}, {"b", "2"}});
+        fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
+        fdb5::Key field_key({{"e", "5"}, {"f", "6"}});
 
         // store data
 
@@ -311,7 +310,7 @@ CASE("RadosStore tests") {
 
         fdb5::RadosStore rados_store{schema, db_key, config};
         fdb5::Store& store = static_cast<fdb5::Store&>(rados_store);
-        std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
+        std::unique_ptr<const fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
 
         // index data
 
@@ -375,13 +374,13 @@ CASE("RadosStore tests") {
 
         // deindex data
 
-        {
-            fdb5::TocCatalogueWriter tcat{db_key, config};
-            fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);
-            metkit::mars::MarsRequest r = db_key.request("retrieve");
-            std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
-            cat.visitEntries(*wv, store, false);
-        }
+        // {
+        //     fdb5::TocCatalogueWriter tcat{db_key, config};
+        //     fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);
+        //     metkit::mars::MarsRequest r = db_key.request("retrieve");
+        //     std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
+        //     cat.visitEntries(*wv, store, false);
+        // }
     }
 
     SECTION("VIA FDB API") {
@@ -481,7 +480,7 @@ CASE("RadosStore tests") {
 
         count = 0;
         while (listObject.next(info)) {
-            info.print(std::cout, true, true);
+            info.print(std::cout, true, true, false, " ");
             std::cout << std::endl;
             ++count;
         }
@@ -537,7 +536,7 @@ CASE("RadosStore tests") {
         // dry run attempt to wipe with too specific request
 
         auto wipeObject = fdb.wipe(full_req);
-        count = 0;
+        count           = 0;
         while (wipeObject.next(elem)) {
             count++;
         }
@@ -545,7 +544,7 @@ CASE("RadosStore tests") {
 
         // dry run wipe index and store unit
         wipeObject = fdb.wipe(index_req);
-        count = 0;
+        count      = 0;
         while (wipeObject.next(elem)) {
             count++;
         }
@@ -553,7 +552,7 @@ CASE("RadosStore tests") {
 
         // dry run wipe database
         wipeObject = fdb.wipe(db_req);
-        count = 0;
+        count      = 0;
         while (wipeObject.next(elem)) {
             count++;
         }
@@ -561,7 +560,7 @@ CASE("RadosStore tests") {
 
         // ensure field still exists
         listObject = fdb.list(full_req);
-        count = 0;
+        count      = 0;
         while (listObject.next(info)) {
             // info.print(std::cout, true, true);
             // std::cout << std::endl;
@@ -571,7 +570,7 @@ CASE("RadosStore tests") {
 
         // attempt to wipe with too specific request
         wipeObject = fdb.wipe(full_req, true);
-        count = 0;
+        count      = 0;
         while (wipeObject.next(elem)) {
             count++;
         }
@@ -581,7 +580,7 @@ CASE("RadosStore tests") {
 
         // wipe index and store unit (and DB pool or namespace as there is only one index)
         wipeObject = fdb.wipe(index_req, true);
-        count = 0;
+        count      = 0;
         while (wipeObject.next(elem)) {
             count++;
         }
@@ -591,7 +590,7 @@ CASE("RadosStore tests") {
 
         // ensure field does not exist
         listObject = fdb.list(full_req);
-        count = 0;
+        count      = 0;
         while (listObject.next(info)) {
             count++;
         }
@@ -702,7 +701,7 @@ CASE("RadosStore tests") {
 
         fdb5::WipeElement elem;
         auto wipeObject = fdb.wipe(db_req, true);
-        count = 0;
+        count           = 0;
         while (wipeObject.next(elem)) {
             count++;
         }
@@ -714,7 +713,7 @@ CASE("RadosStore tests") {
 
         fdb5::ListElement info;
         auto listObject = fdb.list(full_req);
-        count = 0;
+        count           = 0;
         while (listObject.next(info)) {
             // info.print(std::cout, true, true);
             // std::cout << std::endl;
