@@ -25,6 +25,7 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/rados/RadosFieldLocation.h"
 #include "fdb5/rules/Rule.h"
 
@@ -425,26 +426,117 @@ void RadosStore::print(std::ostream& out) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// Wipe-related methods are not implemented for the Rados backend.
+/// @note: for SINGLE_POOL the database maps to a Rados namespace, otherwise to a Rados pool.
+///   Only the namespace/pool holding this database's objects is ever touched here.
 
-void RadosStore::finaliseWipeState(StoreWipeState&, bool, bool) {
-    NOTIMP;
+void RadosStore::finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) {
+    /// @note: doit and unsafeWipeAll do not affect the preparation of a Rados store wipe.
+
+    const std::set<eckit::URI>& dataURIs = storeState.includedDataURIs();  // included according to cat
+    const std::set<eckit::URI>& safeURIs = storeState.safeURIs();          // excluded according to cat
+
+    // Objects included by the catalogue may no longer exist (e.g. due to a prior incomplete wipe).
+    std::set<eckit::URI> nonExistingURIs;
+    for (const auto& uri : dataURIs) {
+        if (!eckit::RadosObject{uri}.exists()) {
+            nonExistingURIs.insert(uri);
+        }
+    }
+    for (const auto& uri : nonExistingURIs) {
+        storeState.markAsMissing(uri);
+    }
+
+    const bool all = safeURIs.empty();
+    if (!all) {
+        return;
+    }
+
+    // Full wipe: scan the database namespace/pool for any objects unaccounted for by the catalogue.
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
+    eckit::RadosNamespace db{pool_, db_namespace_};
+#else
+    eckit::RadosNamespace db{db_pool_, namespace_};
+#endif
+
+    if (!db.exists()) {
+        return;
+    }
+
+    for (const auto& obj : db.listObjects()) {
+
+#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && !defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+        // Parts belong to a main object and are removed together with it.
+        if (obj.name().find(";part-") != std::string::npos) {
+            continue;
+        }
+#endif
+
+        const eckit::URI uri = obj.uri();
+        if (dataURIs.find(uri) == dataURIs.end() && safeURIs.find(uri) == safeURIs.end()) {
+            storeState.insertUnrecognised(uri);
+        }
+    }
 }
 
-bool RadosStore::doWipeUnknowns(const std::set<eckit::URI>&) const {
-    NOTIMP;
+bool RadosStore::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
+    for (const auto& uri : unknownURIs) {
+        if (eckit::RadosObject{uri}.exists()) {
+            remove(uri, std::cout, std::cout, true);
+        }
+    }
+    return true;
 }
 
-bool RadosStore::doWipeURIs(const StoreWipeState&) const {
-    NOTIMP;
+bool RadosStore::doWipeURIs(const StoreWipeState& wipeState) const {
+    const bool wipeAll = wipeState.safeURIs().empty();
+
+    for (const auto& uri : wipeState.includedDataURIs()) {
+        remove(uri, std::cout, std::cout, true);
+    }
+
+    if (wipeAll) {
+        cleanupEmptyDatabase_ = true;
+    }
+
+    return true;
 }
 
 void RadosStore::doWipeEmptyDatabase() const {
-    NOTIMP;
+
+    if (!cleanupEmptyDatabase_) {
+        return;
+    }
+
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
+    eckit::RadosNamespace db{pool_, db_namespace_};
+#else
+    eckit::RadosNamespace db{db_pool_, namespace_};
+#endif
+
+    if (db.exists()) {
+        remove(db.uri(), std::cout, std::cout, true);
+    }
 }
 
 bool RadosStore::doUnsafeFullWipe() const {
-    NOTIMP;
+
+    /// @note: if the database namespace/pool also holds a catalogue, the wiping is skipped as the
+    ///   catalogue is in charge. The presence of a "key" entry in the database key-value is used to
+    ///   determine whether a catalogue exists here.
+    if (db_kv_ && (!db_kv_->exists() || !db_kv_->has("key"))) {
+
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
+        eckit::RadosNamespace db{pool_, db_namespace_};
+#else
+        eckit::RadosNamespace db{db_pool_, namespace_};
+#endif
+
+        if (db.exists()) {
+            remove(db.uri(), std::cout, std::cout, true);
+        }
+    }
+
+    return true;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
