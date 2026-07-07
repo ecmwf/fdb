@@ -32,6 +32,7 @@ from pyfdb_bindings.pyfdb_bindings import (
     WipeElementType,
     PurgeElement,
     init_bindings,
+    version_info,
 )
 from pyfdb_bindings.pyfdb_bindings import (
     ControlAction as _ControlAction,
@@ -45,6 +46,7 @@ from pyfdb_bindings.pyfdb_bindings import (
 
 __all__ = [
     "init_bindings",
+    "version_info",
     "_DataHandle",
     "_URI",
     "_FDB",
