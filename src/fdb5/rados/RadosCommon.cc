@@ -15,6 +15,7 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/rados/RadosKeyValue.h"
+#include "eckit/utils/Tokenizer.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
@@ -56,15 +57,18 @@ RadosCommon::RadosCommon(const Config& config, const std::string& component, con
 
 RadosCommon::RadosCommon(const Config& config, const std::string& component, const eckit::URI& uri) {
 
-    /// @note: validity of input URI is not checked here because this constructor is only triggered
-    ///   by DB::buildReader in EntryVisitMechanism, where validity of URIs is ensured beforehand
+    /// @note: this constructor is triggered both by DB::buildReader in EntryVisitMechanism (with a
+    ///   catalogue key-value URI, i.e. pool/namespace/oid) and by StoreFactory during wipe (with a
+    ///   store namespace URI, i.e. pool/namespace). Only the pool and namespace are needed here, so
+    ///   parse them directly and accept both the 2-token and 3-token forms.
 
-    eckit::RadosKeyValue db_name{uri};
+    const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
+    ASSERT(parts.size() == 2 || parts.size() == 3);
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 
-    pool_         = db_name.nspace().pool().name();
-    db_namespace_ = db_name.nspace().name();
+    pool_         = parts[0];
+    db_namespace_ = parts[1];
 
     readConfig(config, component, false);
 
@@ -73,8 +77,8 @@ RadosCommon::RadosCommon(const Config& config, const std::string& component, con
 
 #else
 
-    db_pool_   = db_name.nspace().pool().name();
-    namespace_ = db_name.nspace().name();
+    db_pool_   = parts[0];
+    namespace_ = parts[1];
 
     readConfig(config, component, false);
 
