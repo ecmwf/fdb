@@ -22,8 +22,8 @@
 #include "eckit/io/rados/RadosException.h"
 #include "eckit/io/rados/RadosKeyValue.h"
 
-#include "fdb5/rados/RadosIndex.h"
 #include "fdb5/rados/RadosCatalogueWriter.h"
+#include "fdb5/rados/RadosIndex.h"
 
 // using namespace eckit;
 
@@ -31,7 +31,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RadosCatalogueWriter::RadosCatalogueWriter(const Key &key, const fdb5::Config& config) :
+RadosCatalogueWriter::RadosCatalogueWriter(const Key& key, const fdb5::Config& config) :
     RadosCatalogue(key, config), firstIndexWrite_(false) {
 
     /// @note: performed RPCs:
@@ -62,12 +62,8 @@ RadosCatalogueWriter::RadosCatalogueWriter(const Key &key, const fdb5::Config& c
         db_kv_->ensureCreated();
 
         /// write schema under "schema"
-        eckit::Log::debug<LibFdb5>() << "Copy schema from "
-                                     << config_.schemaPath()
-                                     << " to "
-                                     << db_kv_->uri().asString()
-                                     << " at key 'schema'."
-                                     << std::endl;
+        eckit::Log::debug<LibFdb5>() << "Copy schema from " << config_.schemaPath() << " to "
+                                     << db_kv_->uri().asString() << " at key 'schema'." << std::endl;
 
         eckit::FileHandle in(config_.schemaPath());
         std::vector<char> data;
@@ -80,7 +76,7 @@ RadosCatalogueWriter::RadosCatalogueWriter(const Key &key, const fdb5::Config& c
         db_kv_->put("schema", &data[0], data.size());
 
         /// write dbKey under "key"
-        eckit::MemoryHandle h{(size_t) PATH_MAX};
+        eckit::MemoryHandle h{(size_t)PATH_MAX};
         eckit::HandleStream hs{h};
         h.openForWrite(eckit::Length(0));
         {
@@ -91,19 +87,18 @@ RadosCatalogueWriter::RadosCatalogueWriter(const Key &key, const fdb5::Config& c
         int db_key_max_len = 512;  // @todo: take from config
         if (hs.bytesWritten() > db_key_max_len)
             throw eckit::Exception("Serialised db key exceeded configured maximum db key length.");
-        
-        db_kv_->put("key", h.data(), hs.bytesWritten());   
+
+        db_kv_->put("key", h.data(), hs.bytesWritten());
 
         /// index newly created catalogue kv in main kv
         int db_loc_max_len = 512;  // @todo: take from config
-        std::string nstr = db_kv_->uri().asString();
-        if (nstr.length() > db_loc_max_len) 
+        std::string nstr   = db_kv_->uri().asString();
+        if (nstr.length() > db_loc_max_len)
             throw eckit::Exception("Serialised db location exceeded configured maximum db location length.");
 
         root_kv_->put(db_name, nstr.data(), nstr.length());
-
     }
-    
+
     /// @todo: record or read dbUID
 
     /// @note: performed RPCs:
@@ -112,30 +107,31 @@ RadosCatalogueWriter::RadosCatalogueWriter(const Key &key, const fdb5::Config& c
     RadosCatalogue::loadSchema();
 
     /// @todo: TocCatalogue::checkUID();
-
 }
 
-RadosCatalogueWriter::RadosCatalogueWriter(const eckit::URI &uri, const fdb5::Config& config) :
+RadosCatalogueWriter::RadosCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config) :
     RadosCatalogue(uri, ControlIdentifiers{}, config), firstIndexWrite_(false) {
 
     NOTIMP;
-
 }
 
 RadosCatalogueWriter::~RadosCatalogueWriter() {
 
     clean();
     close();
+}
 
+bool RadosCatalogueWriter::createIndex(const Key& /* idxKey */, size_t /* datumKeySize */) {
+    return true;
 }
 
 bool RadosCatalogueWriter::selectIndex(const Key& key) {
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-    std::string pool = pool_;
+    std::string pool   = pool_;
     std::string nspace = db_namespace_;
 #else
-    std::string pool = db_pool_;
+    std::string pool   = db_pool_;
     std::string nspace = namespace_;
 #endif
 
@@ -151,82 +147,71 @@ bool RadosCatalogueWriter::selectIndex(const Key& key) {
 
         try {
 
-            std::vector<char> n((long) idx_loc_max_len);
+            std::vector<char> n((long)idx_loc_max_len);
             long res;
 
             /// @note: performed RPCs:
             /// - get index location from catalogue kv (daos_kv_get)
             res = db_kv_->get(key.valuesToString(), &n[0], idx_loc_max_len);
 
-            indexes_[key] = Index(
-                new fdb5::RadosIndex(
-                    key, 
-// #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
-//                     eckit::RadosPersistentKeyValue{eckit::URI{std::string{n.begin(), std::next(n.begin(), res)}}, true},
-// #elif fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-//                     eckit::RadosPersistentKeyValue{eckit::URI{std::string{n.begin(), std::next(n.begin(), res)}}},
-// #else
-                    eckit::RadosKeyValue{eckit::URI{std::string{n.begin(), std::next(n.begin(), res)}}},
-// #endif
-                    false
-                )
-            );
-
-        } catch (eckit::RadosEntityNotFoundException& e) {
+            indexes_[key] = Index(new fdb5::RadosIndex(
+                key,
+                // #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
+                //                     eckit::RadosPersistentKeyValue{eckit::URI{std::string{n.begin(),
+                //                     std::next(n.begin(), res)}}, true},
+                // #elif fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
+                //                     eckit::RadosPersistentKeyValue{eckit::URI{std::string{n.begin(),
+                //                     std::next(n.begin(), res)}}},
+                // #else
+                eckit::RadosKeyValue{eckit::URI{std::string{n.begin(), std::next(n.begin(), res)}}},
+                // #endif
+                false));
+        }
+        catch (eckit::RadosEntityNotFoundException& e) {
 
             firstIndexWrite_ = true;
- 
-            indexes_[key] = Index(
-                new fdb5::RadosIndex(
-                    key, 
-                    eckit::RadosNamespace{pool, nspace}
-                )
-            );
+
+            indexes_[key] = Index(new fdb5::RadosIndex(key, eckit::RadosNamespace{pool, nspace}));
 
             /// index index kv in catalogue kv
             std::string nstr{indexes_[key].location().uri().asString()};
             if (nstr.length() > idx_loc_max_len)
                 throw eckit::Exception("Serialised index location exceeded configured maximum index location length.");
-            /// @note: performed RPCs (only if the index wasn't visited yet and index kv doesn't exist yet, i.e. only on first write to an index key):
+            /// @note: performed RPCs (only if the index wasn't visited yet and index kv doesn't exist yet, i.e. only on
+            /// first write to an index key):
             /// - record index kv location into catalogue kv (daos_kv_put) -- always performed
             db_kv_->put(key.valuesToString(), nstr.data(), nstr.length());
 
             /// @note: performed RPCs:
             /// - close index kv when destroyed (daos_obj_close)
-
         }
 
         /// @note: performed RPCs:
         /// - close catalogue kv (daos_obj_close)
-
     }
 
     current_ = indexes_[key];
 
     return true;
-
 }
 
 void RadosCatalogueWriter::deselectIndex() {
 
-    current_ = Index();
+    current_         = Index();
     currentIndexKey_ = Key();
     firstIndexWrite_ = false;
-
 }
 
 void RadosCatalogueWriter::clean() {
 
-    flush();
+    flush(0);
 
     deselectIndex();
-
 }
 
 void RadosCatalogueWriter::close() {
 
     closeIndexes();
-
 }
 
 const Index& RadosCatalogueWriter::currentIndex() {
@@ -237,19 +222,19 @@ const Index& RadosCatalogueWriter::currentIndex() {
     }
 
     return current_;
-
 }
 
 /// @todo: other writers may be simultaneously updating the axes KeyValues in DAOS. Should these
 ///        new updates be retrieved and put into in-memory axes from time to time, e.g. every
 ///        time a value is put in an axis KeyValue?
-void RadosCatalogueWriter::archive(const Key& key, std::unique_ptr<FieldLocation> fieldLocation) {
+void RadosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
+                                   std::shared_ptr<const FieldLocation> fieldLocation) {
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-    std::string pool = pool_;
+    std::string pool   = pool_;
     std::string nspace = db_namespace_;
 #else
-    std::string pool = db_pool_;
+    std::string pool   = db_pool_;
     std::string nspace = namespace_;
 #endif
 
@@ -270,15 +255,16 @@ void RadosCatalogueWriter::archive(const Key& key, std::unique_ptr<FieldLocation
     std::vector<std::string> axesToExpand;
     std::vector<std::string> valuesToAdd;
     std::string axisNames = "";
-    std::string sep = "";
+    std::string sep       = "";
 
-    for (Key::const_iterator i = key.begin(); i != key.end(); ++i) {
+    for (Key::const_iterator i = datumKey.begin(); i != datumKey.end(); ++i) {
 
-        const std::string &keyword = i->first;
+        const std::string& keyword = i->first;
 
-        std::string value = key.canonicalValue(keyword);
+        const std::string& value = i->second;
 
-        if (value.length() == 0) continue;
+        if (value.length() == 0)
+            continue;
 
         axisNames += sep + keyword;
         sep = ",";
@@ -288,18 +274,16 @@ void RadosCatalogueWriter::archive(const Key& key, std::unique_ptr<FieldLocation
         ///   empty sets. This is fine.
         const auto& axis_set = current_.axes().values(keyword);
 
-        //if (!axis_set.has_value() || !axis_set->get().contains(value)) {
+        // if (!axis_set.has_value() || !axis_set->get().contains(value)) {
         if (!axis_set.contains(value)) {
 
             axesToExpand.push_back(keyword);
             valuesToAdd.push_back(value);
-
         }
-
     }
 
     /// index the field and update in-memory axes
-    current_.put(key, field);
+    current_.put(datumKey, field);
 
     /// persist axis names
     if (firstIndexWrite_) {
@@ -318,13 +302,13 @@ void RadosCatalogueWriter::archive(const Key& key, std::unique_ptr<FieldLocation
         dynamic_cast<fdb5::RadosIndex*>(current_.content())->putAxisNames(axisNames);
 
         firstIndexWrite_ = false;
-
     }
 
     /// @todo: axes are supposed to be sorted before persisting. How do we do this with the DAOS approach?
     ///        sort axes every time they are loaded in the read pathway?
 
-    if (axesToExpand.empty()) return;
+    if (axesToExpand.empty())
+        return;
 
     /// expand axis info in DAOS
     while (!axesToExpand.empty()) {
@@ -340,32 +324,29 @@ void RadosCatalogueWriter::archive(const Key& key, std::unique_ptr<FieldLocation
 
         axesToExpand.pop_back();
         valuesToAdd.pop_back();
-
     }
-
 }
 
-void RadosCatalogueWriter::flush() {
+void RadosCatalogueWriter::flush(size_t archivedFields) {
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-    for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j )
+    for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j)
         j->second.flush();
     db_kv_->flush();
     root_kv_->flush();
 #endif
 
-    if (!current_.null()) current_ = Index();
-
+    if (!current_.null())
+        current_ = Index();
 }
 
 void RadosCatalogueWriter::closeIndexes() {
 
-    indexes_.clear(); // all indexes instances destroyed
-
+    indexes_.clear();  // all indexes instances destroyed
 }
 
-static fdb5::CatalogueBuilder<fdb5::RadosCatalogueWriter> builder("rados.writer");
+static fdb5::CatalogueWriterBuilder<fdb5::RadosCatalogueWriter> builder("rados");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
