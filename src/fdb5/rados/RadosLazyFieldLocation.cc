@@ -8,9 +8,21 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/serialisation/MemoryStream.h"
-
 #include "fdb5/rados/RadosLazyFieldLocation.h"
+
+#include "eckit/filesystem/PathName.h"
+#include "eckit/io/rados/RadosKeyValue.h"
+#include "eckit/serialisation/MemoryStream.h"
+#include "eckit/serialisation/Reanimator.h"
+
+#include "fdb5/database/FieldLocation.h"
+
+#include <ctime>
+#include <memory>
+#include <ostream>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace fdb5 {
 
@@ -22,17 +34,16 @@ RadosLazyFieldLocation::RadosLazyFieldLocation(const fdb5::RadosLazyFieldLocatio
 RadosLazyFieldLocation::RadosLazyFieldLocation(const eckit::RadosKeyValue& index, const std::string& key) :
     FieldLocation(), index_(index), key_(key) {}
 
-std::shared_ptr<FieldLocation> RadosLazyFieldLocation::make_shared() const {
+std::shared_ptr<const FieldLocation> RadosLazyFieldLocation::make_shared() const {
     return std::make_shared<RadosLazyFieldLocation>(std::move(*this));
 }
 
 eckit::DataHandle* RadosLazyFieldLocation::dataHandle() const {
 
     return realise()->dataHandle();
-    
 }
 
-void RadosLazyFieldLocation::print(std::ostream &out) const {
+void RadosLazyFieldLocation::print(std::ostream& out) const {
     out << *realise();
 }
 
@@ -40,13 +51,15 @@ void RadosLazyFieldLocation::visit(FieldLocationVisitor& visitor) const {
     realise()->visit(visitor);
 }
 
-std::shared_ptr<FieldLocation> RadosLazyFieldLocation::stableLocation() const {
+std::shared_ptr<const FieldLocation> RadosLazyFieldLocation::stableLocation() const {
     return realise()->make_shared();
 }
 
 std::unique_ptr<fdb5::FieldLocation>& RadosLazyFieldLocation::realise() const {
 
-    if (fl_) return fl_;
+    if (fl_) {
+        return fl_;
+    }
 
     /// @note: performed RPCs:
     /// - index kv get (daos_kv_get)
@@ -60,7 +73,6 @@ std::unique_ptr<fdb5::FieldLocation>& RadosLazyFieldLocation::realise() const {
     fl_.reset(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms));
 
     return fl_;
-
 }
 
-} // namespace fdb5
+}  // namespace fdb5
