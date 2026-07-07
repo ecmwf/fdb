@@ -8,19 +8,27 @@
  * does it submit to any jurisdiction.
  */
 
-#include <algorithm>
+#include "fdb5/rados/RadosCommon.h"
 
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
-// #include "eckit/utils/Tokenizer.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/rados/RadosKeyValue.h"
 
-#include "fdb5/rados/RadosCommon.h"
+#include "fdb5/config/Config.h"
+#include "fdb5/database/Key.h"
+
+#include <algorithm>
+#include <cctype>
+#include <string>
+#include <vector>
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RadosCommon::RadosCommon(const fdb5::Config& config, const std::string& component, const fdb5::Key& key) {
+RadosCommon::RadosCommon(const Config& config, const std::string& component, const Key& key) {
 
     std::vector<std::string> valid{"catalogue", "store"};
     ASSERT(std::find(valid.begin(), valid.end(), component) != valid.end());
@@ -46,7 +54,7 @@ RadosCommon::RadosCommon(const fdb5::Config& config, const std::string& componen
 #endif
 }
 
-RadosCommon::RadosCommon(const fdb5::Config& config, const std::string& component, const eckit::URI& uri) {
+RadosCommon::RadosCommon(const Config& config, const std::string& component, const eckit::URI& uri) {
 
     /// @note: validity of input URI is not checked here because this constructor is only triggered
     ///   by DB::buildReader in EntryVisitMechanism, where validity of URIs is ensured beforehand
@@ -55,7 +63,7 @@ RadosCommon::RadosCommon(const fdb5::Config& config, const std::string& componen
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 
-    pool_ = db_name.nspace().pool().name();
+    pool_         = db_name.nspace().pool().name();
     db_namespace_ = db_name.nspace().name();
 
     readConfig(config, component, false);
@@ -65,13 +73,13 @@ RadosCommon::RadosCommon(const fdb5::Config& config, const std::string& componen
 
 #else
 
-    db_pool_ = db_name.nspace().pool().name();
+    db_pool_   = db_name.nspace().pool().name();
     namespace_ = db_name.nspace().name();
 
     readConfig(config, component, false);
 
     const auto parts = eckit::Tokenizer("_").tokenize(db_pool_);
-    const auto n = parts.size();
+    const auto n     = parts.size();
     ASSERT(n > 1);
     pool_prefix_ = parts[0];
 
@@ -82,9 +90,9 @@ RadosCommon::RadosCommon(const fdb5::Config& config, const std::string& componen
 }
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-void RadosCommon::readConfig(const fdb5::Config& config, const std::string& component, bool readPool) {
+void RadosCommon::readConfig(const Config& config, const std::string& component, bool readPool) {
 #else
-void RadosCommon::readConfig(const fdb5::Config& config, const std::string& component, bool readNamespace) {
+void RadosCommon::readConfig(const Config& config, const std::string& component, bool readNamespace) {
 #endif
 
     eckit::LocalConfiguration c{};
@@ -168,7 +176,7 @@ void RadosCommon::readConfig(const fdb5::Config& config, const std::string& comp
 #endif
 
     // if (c.has("client"))
-    //     fdb5::DaosManager::instance().configure(c.getSubConfiguration("client"));
+    //     DaosManager::instance().configure(c.getSubConfiguration("client"));
 }
 
 //----------------------------------------------------------------------------------------------------------------------

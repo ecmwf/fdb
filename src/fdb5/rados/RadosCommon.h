@@ -13,15 +13,16 @@
 
 #pragma once
 
-#include <optional>
 #include "eckit/filesystem/URI.h"
-// #include "eckit/utils/Optional.h"
-// #include "eckit/io/rados/RadosAsyncKeyValue.h"
+#include "eckit/io/Length.h"
 #include "eckit/io/rados/RadosKeyValue.h"
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/fdb5_config.h"
+
+#include <optional>
+#include <string>
 
 namespace fdb5 {
 
@@ -29,15 +30,15 @@ class RadosCommon {
 
 public:  // methods
 
-    RadosCommon(const fdb5::Config&, const std::string& component, const fdb5::Key&);
-    RadosCommon(const fdb5::Config&, const std::string& component, const eckit::URI&);
+    RadosCommon(const Config&, const std::string& component, const Key&);
+    RadosCommon(const Config&, const std::string& component, const eckit::URI&);
 
 private:  // methods
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-    void readConfig(const fdb5::Config& config, const std::string& component, bool readPool);
+    void readConfig(const Config& config, const std::string& component, bool readPool);
 #else
-    void readConfig(const fdb5::Config& config, const std::string& component, bool readNamespace);
+    void readConfig(const Config& config, const std::string& component, bool readNamespace);
 #endif
 
 protected:  // members
