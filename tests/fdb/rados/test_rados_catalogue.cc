@@ -116,8 +116,9 @@ CASE("Setup") {
 
     // ensure fdb root directory exists. If not, then that root is
     // registered as non existing and Catalogue/Store tests fail.
-    if (catalogue_tests_tmp_root().exists())
+    if (catalogue_tests_tmp_root().exists()) {
         deldir(catalogue_tests_tmp_root());
+    }
     catalogue_tests_tmp_root().mkdir();
     ::setenv("FDB_ROOT_DIRECTORY", catalogue_tests_tmp_root().path().c_str(), 1);
 
@@ -616,7 +617,7 @@ CASE("RadosCatalogue tests") {
         // list all
 
         listObject = fdb.list(all_req);
-        count      = 0;
+        count = 0;
         while (listObject.next(info)) {
             // info.print(std::cout, true, true);
             // std::cout << std::endl;

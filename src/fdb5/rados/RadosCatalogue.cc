@@ -61,10 +61,10 @@ RadosCatalogue::RadosCatalogue(const eckit::URI& uri, const ControlIdentifiers& 
     CatalogueImpl(Key(), controlIdentifiers, config), RadosCommon(config, "catalogue", uri) {
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-    std::string pool   = pool_;
+    std::string pool = pool_;
     std::string nspace = db_namespace_;
 #else
-    std::string pool   = db_pool_;
+    std::string pool = db_pool_;
     std::string nspace = namespace_;
 #endif
 
@@ -72,7 +72,7 @@ RadosCatalogue::RadosCatalogue(const eckit::URI& uri, const ControlIdentifiers& 
     try {
         std::vector<char> data;
         eckit::MemoryStream ms = db_kv_->getMemoryStream(data, "key", "DB kv");
-        dbKey_                 = fdb5::Key(ms);
+        dbKey_ = fdb5::Key(ms);
     }
     catch (eckit::RadosEntityNotFoundException& e) {
 
@@ -187,7 +187,7 @@ std::string RadosCatalogue::type() const {
 bool RadosCatalogue::uriBelongs(const eckit::URI& uri) const {
 
     const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
-    const auto n     = parts.size();
+    const auto n = parts.size();
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 

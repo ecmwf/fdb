@@ -44,7 +44,7 @@ bool RadosCatalogueReader::selectIndex(const Key& key) {
         /// - generate catalogue kv oid (daos_obj_generate_oid)
         /// - ensure catalogue kv exists (daos_kv_open)
 
-        int idx_loc_max_len = 512;  /// @todo: take from config
+        int idx_loc_max_len = RADOS_MAX_SERIALISED_LEN;  /// @todo: take from config
         std::vector<char> n((long)idx_loc_max_len);
         long res;
 
@@ -123,8 +123,9 @@ bool RadosCatalogueReader::retrieve(const Key& key, Field& field) const {
     eckit::Log::debug<LibFdb5>() << "Trying to retrieve key " << key << std::endl;
     eckit::Log::debug<LibFdb5>() << "Scanning index " << current_.location() << std::endl;
 
-    if (!current_.mayContain(key))
+    if (!current_.mayContain(key)) {
         return false;
+    }
 
     return current_.get(key, Key(), field);
 }

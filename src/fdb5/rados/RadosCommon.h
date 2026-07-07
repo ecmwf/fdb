@@ -26,6 +26,11 @@
 
 namespace fdb5 {
 
+/// @note: maximum length (in bytes) of the serialised blobs exchanged with Rados key-values
+///   (index/field/db locations, serialised keys, axis names).
+/// @todo: make configurable (the call sites currently carry a "take from config" note).
+constexpr long RADOS_MAX_SERIALISED_LEN = 512;
+
 class RadosCommon {
 
 public:  // methods

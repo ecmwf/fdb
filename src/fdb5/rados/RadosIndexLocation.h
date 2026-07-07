@@ -14,8 +14,8 @@
 #pragma once
 
 #include "eckit/exception/Exceptions.h"
-#include "eckit/io/rados/RadosKeyValue.h"
 #include "eckit/io/rados/RadosAsyncKeyValue.h"
+#include "eckit/io/rados/RadosKeyValue.h"
 
 #include "fdb5/database/IndexLocation.h"
 
@@ -26,42 +26,41 @@ namespace fdb5 {
 
 class RadosIndexLocation : public IndexLocation {
 
-public: // methods
+public:  // methods
 
-// #if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE) || defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
-//     RadosIndexLocation(const eckit::RadosPersistentKeyValue& name, off_t offset);
+    // #if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE) || defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
+    //     RadosIndexLocation(const eckit::RadosPersistentKeyValue& name, off_t offset);
 
-//     const eckit::RadosPersistentKeyValue& radosName() const { return name_; };
-// #else
+    //     const eckit::RadosPersistentKeyValue& radosName() const { return name_; };
+    // #else
     RadosIndexLocation(const eckit::RadosKeyValue& name, off_t offset);
 
     const eckit::RadosKeyValue& radosName() const { return name_; };
-// #endif
+    // #endif
 
     eckit::URI uri() const override { return name_.uri(); }
 
     IndexLocation* clone() const override { NOTIMP; }
 
-protected: // For Streamable
+protected:  // For Streamable
 
     void encode(eckit::Stream&) const override { NOTIMP; }
 
-private: // methods
+private:  // methods
 
-    void print(std::ostream &out) const override;
+    void print(std::ostream& out) const override;
 
-private: // members
+private:  // members
 
-// #if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE) || defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
-//     eckit::RadosPersistentKeyValue name_;
-// #else
+    // #if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE) || defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
+    //     eckit::RadosPersistentKeyValue name_;
+    // #else
     eckit::RadosKeyValue name_;
-// #endif
+    // #endif
 
     off_t offset_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

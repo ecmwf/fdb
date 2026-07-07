@@ -84,17 +84,19 @@ RadosCatalogueWriter::RadosCatalogueWriter(const Key& key, const fdb5::Config& c
             hs << dbKey_;
         }
 
-        int db_key_max_len = 512;  // @todo: take from config
-        if (hs.bytesWritten() > db_key_max_len)
+        int db_key_max_len = RADOS_MAX_SERIALISED_LEN;  // @todo: take from config
+        if (hs.bytesWritten() > db_key_max_len) {
             throw eckit::Exception("Serialised db key exceeded configured maximum db key length.");
+        }
 
         db_kv_->put("key", h.data(), hs.bytesWritten());
 
         /// index newly created catalogue kv in main kv
-        int db_loc_max_len = 512;  // @todo: take from config
-        std::string nstr   = db_kv_->uri().asString();
-        if (nstr.length() > db_loc_max_len)
+        int db_loc_max_len = RADOS_MAX_SERIALISED_LEN;  // @todo: take from config
+        std::string nstr = db_kv_->uri().asString();
+        if (nstr.length() > db_loc_max_len) {
             throw eckit::Exception("Serialised db location exceeded configured maximum db location length.");
+        }
 
         root_kv_->put(db_name, nstr.data(), nstr.length());
     }
@@ -128,10 +130,10 @@ bool RadosCatalogueWriter::createIndex(const Key& /* idxKey */, size_t /* datumK
 bool RadosCatalogueWriter::selectIndex(const Key& key) {
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-    std::string pool   = pool_;
+    std::string pool = pool_;
     std::string nspace = db_namespace_;
 #else
-    std::string pool   = db_pool_;
+    std::string pool = db_pool_;
     std::string nspace = namespace_;
 #endif
 
@@ -143,7 +145,7 @@ bool RadosCatalogueWriter::selectIndex(const Key& key) {
         /// - generate catalogue kv oid (daos_obj_generate_oid)
         /// - ensure catalogue kv exists (daos_kv_open)
 
-        int idx_loc_max_len = 512;  /// @todo: take from config
+        int idx_loc_max_len = RADOS_MAX_SERIALISED_LEN;  /// @todo: take from config
 
         try {
 
@@ -175,8 +177,9 @@ bool RadosCatalogueWriter::selectIndex(const Key& key) {
 
             /// index index kv in catalogue kv
             std::string nstr{indexes_[key].location().uri().asString()};
-            if (nstr.length() > idx_loc_max_len)
+            if (nstr.length() > idx_loc_max_len) {
                 throw eckit::Exception("Serialised index location exceeded configured maximum index location length.");
+            }
             /// @note: performed RPCs (only if the index wasn't visited yet and index kv doesn't exist yet, i.e. only on
             /// first write to an index key):
             /// - record index kv location into catalogue kv (daos_kv_put) -- always performed
@@ -197,7 +200,7 @@ bool RadosCatalogueWriter::selectIndex(const Key& key) {
 
 void RadosCatalogueWriter::deselectIndex() {
 
-    current_         = Index();
+    current_ = Index();
     currentIndexKey_ = Key();
     firstIndexWrite_ = false;
 }
@@ -231,10 +234,10 @@ void RadosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
                                    std::shared_ptr<const FieldLocation> fieldLocation) {
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-    std::string pool   = pool_;
+    std::string pool = pool_;
     std::string nspace = db_namespace_;
 #else
-    std::string pool   = db_pool_;
+    std::string pool = db_pool_;
     std::string nspace = namespace_;
 #endif
 
@@ -255,7 +258,7 @@ void RadosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
     std::vector<std::string> axesToExpand;
     std::vector<std::string> valuesToAdd;
     std::string axisNames = "";
-    std::string sep       = "";
+    std::string sep = "";
 
     for (Key::const_iterator i = datumKey.begin(); i != datumKey.end(); ++i) {
 
@@ -263,8 +266,9 @@ void RadosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
 
         const std::string& value = i->second;
 
-        if (value.length() == 0)
+        if (value.length() == 0) {
             continue;
+        }
 
         axisNames += sep + keyword;
         sep = ",";
@@ -292,9 +296,10 @@ void RadosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
         /// - generate index kv oid (daos_obj_generate_oid)
         /// - ensure index kv exists (daos_obj_open)
 
-        int axis_names_max_len = 512;
-        if (axisNames.length() > axis_names_max_len)
+        int axis_names_max_len = RADOS_MAX_SERIALISED_LEN;
+        if (axisNames.length() > axis_names_max_len) {
             throw eckit::Exception("Serialised axis names exceeded configured maximum axis names length.");
+        }
 
         /// @note: performed RPCs:
         /// - record axis names into index kv (daos_kv_put)
@@ -307,8 +312,9 @@ void RadosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
     /// @todo: axes are supposed to be sorted before persisting. How do we do this with the DAOS approach?
     ///        sort axes every time they are loaded in the read pathway?
 
-    if (axesToExpand.empty())
+    if (axesToExpand.empty()) {
         return;
+    }
 
     /// expand axis info in DAOS
     while (!axesToExpand.empty()) {
@@ -330,14 +336,16 @@ void RadosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
 void RadosCatalogueWriter::flush(size_t archivedFields) {
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-    for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j)
+    for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j) {
         j->second.flush();
+    }
     db_kv_->flush();
     root_kv_->flush();
 #endif
 
-    if (!current_.null())
+    if (!current_.null()) {
         current_ = Index();
+    }
 }
 
 void RadosCatalogueWriter::closeIndexes() {

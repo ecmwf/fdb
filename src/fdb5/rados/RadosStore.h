@@ -58,9 +58,7 @@ public:  // methods
     bool doUnsafeFullWipe() const override;
 
     // Rados store does not currently support auxiliary objects
-    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override {
-        return {};
-    }
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override { return {}; }
 
 protected:  // methods
 
@@ -92,8 +90,6 @@ private:  // types
 #endif
 
 private:  // members
-
-    const Config& config_;
 
     // mutable bool dirty_;
     size_t archivedFields_{0};

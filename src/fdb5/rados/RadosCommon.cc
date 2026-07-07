@@ -14,7 +14,6 @@
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
-#include "eckit/io/rados/RadosKeyValue.h"
 #include "eckit/utils/Tokenizer.h"
 
 #include "fdb5/config/Config.h"
@@ -67,7 +66,7 @@ RadosCommon::RadosCommon(const Config& config, const std::string& component, con
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 
-    pool_         = parts[0];
+    pool_ = parts[0];
     db_namespace_ = parts[1];
 
     readConfig(config, component, false);
@@ -77,15 +76,14 @@ RadosCommon::RadosCommon(const Config& config, const std::string& component, con
 
 #else
 
-    db_pool_   = parts[0];
+    db_pool_ = parts[0];
     namespace_ = parts[1];
 
     readConfig(config, component, false);
 
-    const auto parts = eckit::Tokenizer("_").tokenize(db_pool_);
-    const auto n     = parts.size();
-    ASSERT(n > 1);
-    pool_prefix_ = parts[0];
+    const auto poolParts = eckit::Tokenizer("_").tokenize(db_pool_);
+    ASSERT(poolParts.size() > 1);
+    pool_prefix_ = poolParts[0];
 
     root_kv_.emplace(root_pool_, namespace_, "main_kv");
     db_kv_.emplace(db_pool_, namespace_, "catalogue_kv");

@@ -22,6 +22,7 @@
 #include "fdb5/database/Engine.h"
 #include "fdb5/fdb5_config.h"
 
+#include <functional>
 #include <optional>
 #include <ostream>
 #include <string>
@@ -60,6 +61,11 @@ protected:  // methods
     void print(std::ostream& out) const override { NOTIMP; };
 
 private:  // methods
+
+    /// @note: shared implementation of the two visitableLocations overloads; lists all databases
+    ///   registered in the root key-value and returns those whose key satisfies the predicate.
+    std::vector<eckit::URI> visitableLocations(const std::function<bool(const fdb5::Key&)>& matches,
+                                               const Config& config) const;
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
     void readConfig(const fdb5::Config& config, const std::string& component, bool readPool) const;

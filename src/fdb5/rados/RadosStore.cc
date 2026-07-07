@@ -38,17 +38,17 @@ namespace fdb5 {
 static StoreBuilder<RadosStore> builder("rados");
 
 RadosStore::RadosStore(const Key& key, const Config& config) :
-    Store(), RadosCommon(config, "store", key), config_(config), archivedFields_(0) {
+    Store(), RadosCommon(config, "store", key), archivedFields_(0) {
 
-    parseConfig(config_);
+    parseConfig(config);
 }
 
 RadosStore::RadosStore(const Schema& schema, const Key& key, const Config& config) : RadosStore(key, config) {}
 
 RadosStore::RadosStore(const eckit::URI& uri, const Config& config) :
-    Store(), RadosCommon(config, "store", uri), config_(config), archivedFields_(0) {
+    Store(), RadosCommon(config, "store", uri), archivedFields_(0) {
 
-    parseConfig(config_);
+    parseConfig(config);
 }
 
 eckit::URI RadosStore::uri() const {
@@ -82,7 +82,7 @@ eckit::URI RadosStore::uri(const eckit::URI& dataURI) {
 bool RadosStore::uriBelongs(const eckit::URI& uri) const {
 
     const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
-    const auto n     = parts.size();
+    const auto n = parts.size();
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 
@@ -102,7 +102,7 @@ bool RadosStore::uriExists(const eckit::URI& uri) const {
     /// @todo: revisit the name of this method
 
     const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
-    const auto n     = parts.size();
+    const auto n = parts.size();
 
     ASSERT(uri.scheme() == type());
 
@@ -304,7 +304,7 @@ size_t RadosStore::flush() {
 
 #endif
 
-    size_t out      = archivedFields_;
+    size_t out = archivedFields_;
     archivedFields_ = 0;
     return out;
 }
@@ -333,7 +333,7 @@ void RadosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ost
     ASSERT(uri.scheme() == type());
 
     const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
-    const auto n     = parts.size();
+    const auto n = parts.size();
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 
@@ -591,15 +591,11 @@ eckit::RadosObject RadosStore::generateDataObject(const Key& key) const {
 
 const eckit::RadosObject& RadosStore::getDataObject(const Key& key) const {
 
-    ObjectStore::const_iterator j = dataObjects_.find(key);
-
-    if (j != dataObjects_.end()) {
-        return j->second;
+    auto it = dataObjects_.find(key);
+    if (it == dataObjects_.end()) {
+        it = dataObjects_.emplace(key, generateDataObject(key)).first;
     }
-
-    dataObjects_.insert(std::pair(key, generateDataObject(key)));
-
-    return dataObjects_.find(key)->second;
+    return it->second;
 }
 
 eckit::DataHandle& RadosStore::getDataHandle(const Key& key, const eckit::RadosObject& name) {
@@ -675,7 +671,7 @@ void RadosStore::parseConfig(const fdb5::Config& config) {
 
 #if (!defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)) && defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
 #ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
-    maxAioBuffSize_        = store_conf.getInt("maxAioBuffSize", 1024);
+    maxAioBuffSize_ = store_conf.getInt("maxAioBuffSize", 1024);
     maxPartHandleBuffSize_ = store_conf.getInt("maxPartHandleBuffSize", 1024);
 #else
     maxAioBuffSize_ = store_conf.getInt("maxAioBuffSize", 1024 * 1024);

@@ -23,6 +23,8 @@
 #include "eckit/serialisation/Reanimator.h"
 #include "eckit/utils/Tokenizer.h"
 
+#include "fdb5/rados/RadosCommon.h"
+
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldDetails.h"
@@ -83,10 +85,11 @@ RadosIndex::RadosIndex(const Key& key, const eckit::RadosNamespace& name) :
         hs << key;
     }
 
-    int idx_key_max_len = 512;
+    int idx_key_max_len = RADOS_MAX_SERIALISED_LEN;
 
-    if (hs.bytesWritten() > idx_key_max_len)
+    if (hs.bytesWritten() > idx_key_max_len) {
         throw eckit::Exception("Serialised index key exceeded configured maximum index key length.");
+    }
 
     /// @note: performed RPCs:
     /// - record index key into index kv (daos_kv_put)
@@ -132,7 +135,7 @@ void RadosIndex::updateAxes() {
     /// @note: performed RPCs:
     /// - ensure axis kv exists (daos_obj_open)
 
-    int axis_names_max_len = 512;  /// @todo: take from config
+    int axis_names_max_len = RADOS_MAX_SERIALISED_LEN;  /// @todo: take from config
     std::vector<char> axes_data((long)axis_names_max_len);
 
     /// @note: performed RPCs:
@@ -165,7 +168,7 @@ bool RadosIndex::get(const Key& key, const Key& remapKey, Field& field) const {
 
     std::string query{key.valuesToString()};
 
-    int field_loc_max_len = 512;  /// @todo: read from config
+    int field_loc_max_len = RADOS_MAX_SERIALISED_LEN;  /// @todo: read from config
     std::vector<char> loc_data((long)field_loc_max_len);
     long res;
 
@@ -190,7 +193,7 @@ bool RadosIndex::get(const Key& key, const Key& remapKey, Field& field) const {
     ms >> ts;
 
     fdb5::FieldLocation* loc = eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms);
-    field                    = fdb5::Field(std::move(*loc), ts, fdb5::FieldDetails());
+    field = fdb5::Field(std::move(*loc), ts, fdb5::FieldDetails());
 
     /// @note: performed RPCs:
     /// - close index kv (daos_obj_close)
@@ -220,9 +223,10 @@ void RadosIndex::add(const Key& key, const Field& field) {
         hs << field.location();
     }
 
-    int field_loc_max_len = 512;  /// @todo: read from config
-    if (hs.bytesWritten() > field_loc_max_len)
+    int field_loc_max_len = RADOS_MAX_SERIALISED_LEN;  /// @todo: read from config
+    if (hs.bytesWritten() > field_loc_max_len) {
         throw eckit::Exception("Serialised field location exceeded configured maximum location length.");
+    }
 
     /// @note: performed RPCs:
     /// - ensure index kv exists (daos_obj_open)
@@ -244,8 +248,9 @@ void RadosIndex::entries(EntryVisitor& visitor) const {
 
         for (const auto& key : idx_kv_.keys()) {
 
-            if (key == "axes" || key == "key")
+            if (key == "axes" || key == "key") {
                 continue;
+            }
 
             /// @note: the DaosCatalogue is currently indexing a serialised DaosFieldLocation for each
             ///   archived field key. In the list pathway, DaosLazyFieldLocations are built for all field
@@ -280,8 +285,9 @@ std::vector<eckit::URI> RadosIndex::dataURIs() const {
 
     for (const auto& key : idx_kv_.keys()) {
 
-        if (key == "axes" || key == "key")
+        if (key == "axes" || key == "key") {
             continue;
+        }
 
         std::vector<char> data;
         eckit::MemoryStream ms = idx_kv_.getMemoryStream(data, key, "index kv");

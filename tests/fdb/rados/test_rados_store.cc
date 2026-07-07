@@ -582,7 +582,7 @@ CASE("RadosStore tests") {
 
         // ensure field still exists
         listObject = fdb.list(full_req);
-        count      = 0;
+        count = 0;
         while (listObject.next(info)) {
             // info.print(std::cout, true, true);
             // std::cout << std::endl;
@@ -604,7 +604,7 @@ CASE("RadosStore tests") {
 
         // ensure field does not exist
         listObject = fdb.list(full_req);
-        count      = 0;
+        count = 0;
         while (listObject.next(info)) {
             count++;
         }
@@ -729,7 +729,7 @@ CASE("RadosStore tests") {
 
         fdb5::ListElement info;
         auto listObject = fdb.list(full_req);
-        count           = 0;
+        count = 0;
         while (listObject.next(info)) {
             // info.print(std::cout, true, true);
             // std::cout << std::endl;
