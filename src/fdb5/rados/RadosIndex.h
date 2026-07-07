@@ -65,7 +65,9 @@ private:  // methods
     bool dirty() const override { NOTIMP; }
 
     void open() override { NOTIMP; };
-    void close() override { NOTIMP; }
+    /// @note: the Rados KV index holds no open file/handle state, so closing is a no-op.
+    ///   This must not throw: it is invoked during normal read/list flows via eckit::AutoCloser.
+    void close() override {}
     void reopen() override { NOTIMP; }
 
     void visit(IndexLocationVisitor& visitor) const override { NOTIMP; }
