@@ -17,19 +17,38 @@
 // #include "fdb5/database/DatabaseNotFoundException.h"
 
 #include "fdb5/rados/RadosCatalogue.h"
-// #include "fdb5/daos/DaosName.h"
-// #include "fdb5/daos/DaosSession.h"
-#include "fdb5/rados/RadosIndex.h"
-// #include "fdb5/daos/DaosWipeVisitor.h"
 
-// using namespace eckit;
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/rados/RadosException.h"
+#include "eckit/io/rados/RadosKeyValue.h"
+#include "eckit/log/Timer.h"
+#include "eckit/serialisation/MemoryStream.h"
+#include "eckit/utils/Tokenizer.h"
+
+#include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/config/Config.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/DatabaseNotFoundException.h"
+#include "fdb5/database/Index.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/database/WipeState.h"
+#include "fdb5/rados/RadosCommon.h"
+#include "fdb5/rados/RadosIndex.h"
+#include "fdb5/rules/Rule.h"
+#include "fdb5/rules/Schema.h"
+
+#include <optional>
+#include <sstream>
+#include <string>
+#include <vector>
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 RadosCatalogue::RadosCatalogue(const Key& key, const fdb5::Config& config) :
-    Catalogue(key, ControlIdentifiers{}, config), RadosCommon(config, "catalogue", key) {
+    CatalogueImpl(key, ControlIdentifiers{}, config), RadosCommon(config, "catalogue", key) {
 
     // TODO: apply the mechanism in RootManager::directory, using
     //   FileSpaceTables to determine root_pool_name_ according to key
@@ -39,22 +58,21 @@ RadosCatalogue::RadosCatalogue(const Key& key, const fdb5::Config& config) :
 
 RadosCatalogue::RadosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers,
                                const fdb5::Config& config) :
-    Catalogue(Key(), controlIdentifiers, config), RadosCommon(config, "catalogue", uri) {
+    CatalogueImpl(Key(), controlIdentifiers, config), RadosCommon(config, "catalogue", uri) {
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-    std::string pool = pool_;
+    std::string pool   = pool_;
     std::string nspace = db_namespace_;
 #else
-    std::string pool = db_pool_;
+    std::string pool   = db_pool_;
     std::string nspace = namespace_;
 #endif
 
     // Read the real DB key into the DB base object
     try {
-
         std::vector<char> data;
         eckit::MemoryStream ms = db_kv_->getMemoryStream(data, "key", "DB kv");
-        dbKey_ = fdb5::Key(ms);
+        dbKey_                 = fdb5::Key(ms);
     }
     catch (eckit::RadosEntityNotFoundException& e) {
 
@@ -78,6 +96,12 @@ const Schema& RadosCatalogue::schema() const {
     return schema_;
 }
 
+const Rule& RadosCatalogue::rule() const {
+
+    ASSERT(rule_);
+    return *rule_;
+}
+
 void RadosCatalogue::loadSchema() {
 
     eckit::Timer timer("RadosCatalogue::loadSchema()", eckit::Log::debug<fdb5::LibFdb5>());
@@ -92,13 +116,15 @@ void RadosCatalogue::loadSchema() {
 
     std::istringstream stream{std::string(data.begin(), data.end())};
     schema_.load(stream);
+
+    rule_ = &schema_.matchingRule(dbKey_);
 }
 
-WipeVisitor* RadosCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request,
-                                         std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {
-    NOTIMP;
-    // return new RadosWipeVisitor(*this, store, request, out, doit, porcelain, unsafeWipeAll);
-}
+// WipeVisitor* RadosCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request,
+//                                          std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {
+//     NOTIMP;
+//     // return new RadosWipeVisitor(*this, store, request, out, doit, porcelain, unsafeWipeAll);
+// }
 
 std::vector<Index> RadosCatalogue::indexes(bool) const {
 
@@ -156,6 +182,54 @@ std::vector<Index> RadosCatalogue::indexes(bool) const {
 std::string RadosCatalogue::type() const {
 
     return RadosCatalogue::catalogueTypeName();
+}
+
+bool RadosCatalogue::uriBelongs(const eckit::URI& uri) const {
+
+    const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
+    const auto n     = parts.size();
+
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
+
+    return (uri.scheme() == type()) && (n >= 2) && (parts[0] == pool_) && (parts[1] == db_namespace_);
+
+#else
+
+    return (uri.scheme() == type()) && (n >= 2) && (parts[0] == db_pool_) && (parts[1] == namespace_);
+
+#endif
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+/// Wipe-related methods are not implemented for the Rados backend.
+
+CatalogueWipeState RadosCatalogue::wipeInit() const {
+    NOTIMP;
+}
+
+bool RadosCatalogue::markIndexForWipe(const Index&, bool, CatalogueWipeState&) const {
+    NOTIMP;
+}
+
+void RadosCatalogue::finaliseWipeState(CatalogueWipeState&) const {
+    NOTIMP;
+}
+
+bool RadosCatalogue::doWipeUnknowns(const std::set<eckit::URI>&) const {
+    NOTIMP;
+}
+
+bool RadosCatalogue::doWipeURIs(const CatalogueWipeState&) const {
+    NOTIMP;
+}
+
+void RadosCatalogue::doWipeEmptyDatabase() const {
+    NOTIMP;
+}
+
+bool RadosCatalogue::doUnsafeFullWipe() const {
+    NOTIMP;
 }
 
 // void RadosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways, std::ostream& logVerbose, bool
