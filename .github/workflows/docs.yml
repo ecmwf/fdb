@@ -78,3 +78,17 @@ jobs:
                  || github.ref_name == 'develop' && 'latest' }}
     secrets:
       sites-token: ${{ secrets.ECMWF_SITES_DOCS_FDB_TOKEN }}
+  publish-fdb-new:
+    if: ${{ github.event_name == 'pull_request' &&  github.head_ref == 'tmp/cicd-gen-versions' }}
+    needs: build-fdb
+    uses: ecmwf/reusable-workflows/.github/workflows/docs-publish.yml@hotfix/version_gen_no_path
+    with:
+      artifact-id: ${{ needs.build-fdb.outputs.artifact-id }}
+      space: docs
+      name: fdb
+      path: ""
+      id: ${{ github.ref_name }}
+      softlink: ${{ github.ref_name == 'master'   && 'stable'
+                 || github.ref_name == 'develop' && 'latest' }}
+    secrets:
+      sites-token: ${{ secrets.ECMWF_SITES_DOCS_FDB_TOKEN }}
