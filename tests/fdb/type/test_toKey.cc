@@ -17,6 +17,7 @@
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/rules/Rule.h"
+#include "fdb5/types/TypeYearMonth.h"
 
 using namespace eckit::testing;
 using namespace eckit;
@@ -336,6 +337,16 @@ CASE("Date - string ctor - expansion") {
 
     EXPECT_EQUAL(key["date"], t(now.yyyymmdd()));
     EXPECT_EQUAL(key.valuesToString(), "od:0001:oper:ofb:" + t(now.yyyymmdd()) + ":0000:mhs:3001");
+}
+
+CASE("YearMonth - toKey") {
+    fdb5::TypeYearMonth type("date", "YearMonth");
+
+    EXPECT_EQUAL(type.toKey("20210427"), "202104");
+    EXPECT_EQUAL(type.toKey("20021201"), "200212");
+    EXPECT_EQUAL(type.toKey("20030101"), "200301");
+    EXPECT_EQUAL(type.toKey("20211231"), "202112");
+    EXPECT_EQUAL(type.toKey("20210101"), "202101");
 }
 
 //----------------------------------------------------------------------------------------------------------------------
