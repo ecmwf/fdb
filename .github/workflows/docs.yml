@@ -67,7 +67,7 @@ jobs:
         github.ref_type == 'tag'
       ) }}
     needs: build-fdb
-    uses: ecmwf/reusable-workflows/.github/workflows/docs-publish.yml@main
+    uses: ecmwf/reusable-workflows/.github/workflows/docs-publish.yml@hotfix/version_gen_no_path
     with:
       artifact-id: ${{ needs.build-fdb.outputs.artifact-id }}
       space: docs
