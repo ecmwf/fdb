@@ -35,6 +35,7 @@ jobs:
       APT_CACHE: ${{ github.workspace }}/.apt-cache
       CEPH_IMAGE: quay.io/ceph/demo:latest-squid
       CEPH_IMAGE_CACHE: ${{ github.workspace }}/.docker-ceph
+      CMAKE_FLAGS: -DENABLE_AEC=ON -DENABLE_EXAMPLES=OFF -DENABLE_EXPERIMENTAL=OFF -DENABLE_NETCDF=OFF
 
     steps:
       - name: Checkout ecbuild
@@ -83,6 +84,8 @@ jobs:
             build-essential \
             cmake \
             ninja-build \
+            gfortran \
+            libopenmpi-dev \
             libssl-dev \
             uuid-dev \
             libbz2-dev \
@@ -147,6 +150,8 @@ jobs:
           cmake -S eckit -B build/eckit -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
+            ${CMAKE_FLAGS} \
+            -DENABLE_MPI=ON \
             -DENABLE_RADOS=ON \
             -DENABLE_RADOS_ADMIN=OFF
           cmake --build build/eckit --parallel
@@ -158,7 +163,11 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
             -DCMAKE_PREFIX_PATH="${INSTALL_PREFIX}" \
-            -DENABLE_MEMFS=ON
+            ${CMAKE_FLAGS} \
+            -DENABLE_JPG=OFF \
+            -DENABLE_FORTRAN=ON \
+            -DENABLE_MEMFS=ON \
+            -DENABLE_ECCODES_THREADS=ON
           cmake --build build/eccodes --parallel
           cmake --install build/eccodes
 
@@ -167,7 +176,8 @@ jobs:
           cmake -S metkit -B build/metkit -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
-            -DCMAKE_PREFIX_PATH="${INSTALL_PREFIX}"
+            -DCMAKE_PREFIX_PATH="${INSTALL_PREFIX}" \
+            ${CMAKE_FLAGS}
           cmake --build build/metkit --parallel
           cmake --install build/metkit
 
@@ -177,11 +187,13 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
             -DCMAKE_PREFIX_PATH="${INSTALL_PREFIX}" \
+            ${CMAKE_FLAGS} \
             -DENABLE_RADOSFDB=ON \
+            -DENABLE_RADOS_ADMIN=OFF \
             -DFDB_RADOS_TEST_POOL="${FDB_RADOS_TEST_POOL}"
           cmake --build build/fdb --parallel
 
-      - name: Run RADOS tests
+      - name: Run RADOS FDB tests
         env:
           FDB_RADOS_CLUSTER_CONF: /etc/ceph/ceph.conf
         run: |
