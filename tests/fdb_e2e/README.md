@@ -1,16 +1,16 @@
 # fdb_e2e — End-to-End Test Suite
 
-This directory contains the end-to-end (e2e) test suite for FDB (Fields
-Database). It tests the FDB command-line tools and the `pyfdb` Python API
-against a real FDB installation, exercising write, read, list, purge, wipe,
-hide, overlay, and other operations across multiple FDB configuration
+This directory contains the end-to-end (e2e) test suite for FDB. It tests the
+FDB command-line tools and the `pyfdb` Python API against a real FDB
+installation, exercising write, read, list, purge, wipe, hide, overlay, and
+other operations across multiple FDB configuration
 strategies and subtoc variants.
 
 ## Prerequisites
 
-A working FDB installation is required. The FDB executables (`fdb-write`,
-`fdb-read`, `fdb-list`, etc.) must be accessible via `PATH`, and the shared
-libraries (`libfdb5.so`, `libeckit.so`, etc.) must be loadable by `pyfdb` via
+The FDB executables (`fdb-write`, `fdb-read`, `fdb-list`, etc.) must be
+accessible via `PATH`, and the shared libraries (`libfdb5.so`, `libeckit.so`,
+etc.) must be loadable by `pyfdb` via
 [findlibs](https://github.com/ecmwf/findlibs).
 
 `findlibs` locates shared libraries by searching standard paths and the
