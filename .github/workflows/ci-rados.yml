@@ -29,6 +29,8 @@ jobs:
       FDB_RADOS_TEST_POOL: fdb_test
       FDB_RADOS_CLUSTER_NAME: ceph
       FDB_RADOS_CLUSTER_USER: client.admin
+      # Install prefix shared by all bundle projects (eckit, eccodes, metkit, fdb).
+      INSTALL_PREFIX: ${{ github.workspace }}/install
       # Local dirs used to cache apt archives and the Ceph docker image.
       APT_CACHE: ${{ github.workspace }}/.apt-cache
       CEPH_IMAGE: quay.io/ceph/demo:latest-squid
@@ -44,7 +46,25 @@ jobs:
       - name: Checkout eckit
         uses: actions/checkout@v4
         with:
+          repository: ecmwf/eckit
           path: eckit
+
+      - name: Checkout eccodes
+        uses: actions/checkout@v4
+        with:
+          repository: ecmwf/eccodes
+          path: eccodes
+
+      - name: Checkout metkit
+        uses: actions/checkout@v4
+        with:
+          repository: ecmwf/metkit
+          path: metkit
+
+      - name: Checkout fdb
+        uses: actions/checkout@v4
+        with:
+          path: fdb
 
       - name: Cache apt packages
         uses: actions/cache@v4
@@ -120,24 +140,52 @@ jobs:
           docker exec ceph-demo ceph osd pool ls
           sudo chmod 0644 "${CEPH_ETC}/ceph.client.admin.keyring"
 
-      - name: Configure
+      - name: Build eckit
         run: |
           # eckit locates ecbuild via find_package(ecbuild ... HINTS .../../ecbuild),
           # which resolves to the sibling ecbuild checkout above.
-          cmake -S eckit -B build -G Ninja \
+          cmake -S eckit -B build/eckit -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
             -DENABLE_RADOS=ON \
-            -DENABLE_RADOS_ADMIN=OFF \
-            -DFDB_RADOS_TEST_POOL="${FDB_RADOS_TEST_POOL}"
+            -DENABLE_RADOS_ADMIN=OFF
+          cmake --build build/eckit --parallel
+          cmake --install build/eckit
 
-      - name: Build
-        run: cmake --build build --parallel
+      - name: Build eccodes
+        run: |
+          cmake -S eccodes -B build/eccodes -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
+            -DCMAKE_PREFIX_PATH="${INSTALL_PREFIX}" \
+            -DENABLE_MEMFS=ON
+          cmake --build build/eccodes --parallel
+          cmake --install build/eccodes
+
+      - name: Build metkit
+        run: |
+          cmake -S metkit -B build/metkit -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
+            -DCMAKE_PREFIX_PATH="${INSTALL_PREFIX}"
+          cmake --build build/metkit --parallel
+          cmake --install build/metkit
+
+      - name: Build fdb
+        run: |
+          cmake -S fdb -B build/fdb -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
+            -DCMAKE_PREFIX_PATH="${INSTALL_PREFIX}" \
+            -DENABLE_RADOSFDB=ON \
+            -DFDB_RADOS_TEST_POOL="${FDB_RADOS_TEST_POOL}"
+          cmake --build build/fdb --parallel
 
       - name: Run RADOS tests
         env:
           FDB_RADOS_CLUSTER_CONF: /etc/ceph/ceph.conf
         run: |
-          ctest --test-dir build -L FDB_rados --output-on-failure
+          ctest --test-dir build/fdb -L rados --output-on-failure
 
       - name: Dump Ceph logs on failure
         if: failure()
