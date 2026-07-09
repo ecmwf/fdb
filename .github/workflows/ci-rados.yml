@@ -39,7 +39,7 @@ jobs:
       APT_CACHE: ${{ github.workspace }}/.apt-cache
       CEPH_IMAGE: quay.io/ceph/demo:latest-squid
       CEPH_IMAGE_CACHE: ${{ github.workspace }}/.docker-ceph
-      CMAKE_FLAGS: -DENABLE_AEC=ON -DENABLE_EXAMPLES=OFF -DENABLE_EXPERIMENTAL=OFF -DENABLE_NETCDF=OFF
+      CMAKE_FLAGS: -DENABLE_AEC=OFF -DENABLE_EXAMPLES=OFF -DENABLE_EXPERIMENTAL=OFF -DENABLE_NETCDF=OFF
 
     steps:
       - name: Checkout ecbuild
@@ -52,6 +52,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ecmwf/eckit
+          ref: feature/ECKIT-684-ceph-backend
           path: eckit
 
       - name: Checkout eccodes
