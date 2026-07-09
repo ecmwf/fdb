@@ -1,8 +1,7 @@
 import datetime
 
 import pytest
-from python_api.util.tools import generate_test_files_key_value
-from util.run_sh import run_script
+from util import run_script, generate_test_files_key_value
 
 no_subtoc_combinations = [
     pytest.param(
@@ -11,7 +10,9 @@ no_subtoc_combinations = [
         marks=pytest.mark.simple,
     ),
     pytest.param(
-        "simple_fdb_setup_no_subtocs_expver_handler", "simple_env_no_subtocs_expver_handler", marks=pytest.mark.simple
+        "simple_fdb_setup_no_subtocs_expver_handler",
+        "simple_env_no_subtocs_expver_handler",
+        marks=pytest.mark.simple,
     ),
     pytest.param(
         "files_fdb_setup_no_subtocs_no_expver_handler",
@@ -19,7 +20,9 @@ no_subtoc_combinations = [
         marks=pytest.mark.files,
     ),
     pytest.param(
-        "files_fdb_setup_no_subtocs_expver_handler", "files_env_no_subtocs_expver_handler", marks=pytest.mark.files
+        "files_fdb_setup_no_subtocs_expver_handler",
+        "files_env_no_subtocs_expver_handler",
+        marks=pytest.mark.files,
     ),
     pytest.param(
         "config_yaml_fdb_setup_no_subtocs_no_expver_handler",
@@ -60,7 +63,9 @@ def test_info(fdb_setup, env_setup, function_tmp, info_no_subtoc_script, request
 
 @pytest.mark.hide
 @pytest.mark.parametrize("fdb_setup, env_setup", no_subtoc_combinations)
-def test_hide(fdb_setup, env_setup, function_tmp, test_data_path, hide_no_subtoc_script, request):
+def test_hide(
+    fdb_setup, env_setup, function_tmp, test_data_path, hide_no_subtoc_script, request
+):
     _ = request.getfixturevalue(fdb_setup)
     env = request.getfixturevalue(env_setup)
 
@@ -71,18 +76,39 @@ def test_hide(fdb_setup, env_setup, function_tmp, test_data_path, hide_no_subtoc
         source_file_path,
         function_tmp,
         [
-            [("class", "rd"), ("expver", "xxxx"), ("type", "fc"), ("step", "0"), ("date", int(yesterday))],
-            [("class", "rd"), ("expver", "xxxx"), ("type", "fc"), ("step", "1"), ("date", int(yesterday))],
+            [
+                ("class", "rd"),
+                ("expver", "xxxx"),
+                ("type", "fc"),
+                ("step", "0"),
+                ("date", int(yesterday)),
+            ],
+            [
+                ("class", "rd"),
+                ("expver", "xxxx"),
+                ("type", "fc"),
+                ("step", "1"),
+                ("date", int(yesterday)),
+            ],
         ],
         ["xxxx.0", "xxxx.1"],
     )
 
-    run_script(script=hide_no_subtoc_script, args=[yesterday], cwd=function_tmp, env=env)
+    run_script(
+        script=hide_no_subtoc_script, args=[yesterday], cwd=function_tmp, env=env
+    )
 
 
 @pytest.mark.grib2fdb
 @pytest.mark.parametrize("fdb_setup, env_setup", no_subtoc_combinations)
-def test_grib2fdb(fdb_setup, env_setup, function_tmp, test_data_path, grib2fdb5_no_subtoc_script, request):
+def test_grib2fdb(
+    fdb_setup,
+    env_setup,
+    function_tmp,
+    test_data_path,
+    grib2fdb5_no_subtoc_script,
+    request,
+):
     _ = request.getfixturevalue(fdb_setup)
     env = request.getfixturevalue(env_setup)
 
@@ -109,7 +135,9 @@ def test_grib2fdb(fdb_setup, env_setup, function_tmp, test_data_path, grib2fdb5_
 
 @pytest.mark.list
 @pytest.mark.parametrize("fdb_setup, env_setup", no_subtoc_combinations)
-def test_list(fdb_setup, env_setup, function_tmp, test_data_path, list_no_subtoc_script, request):
+def test_list(
+    fdb_setup, env_setup, function_tmp, test_data_path, list_no_subtoc_script, request
+):
     _ = request.getfixturevalue(fdb_setup)
     env = request.getfixturevalue(env_setup)
 
@@ -129,7 +157,18 @@ def test_list(fdb_setup, env_setup, function_tmp, test_data_path, list_no_subtoc
             [("class", "rd"), ("expver", "xxxx"), ("date", 20170101)],
             [("class", "rd"), ("expver", "xxxx"), ("date", 20180103)],
         ],
-        ["xxxx", "xxxx.0", "xxxx.1", "xxxx.2", "xxxy.0", "xxxy.1", "xxxy.2", "xxxx.d1", "xxxx.d2", "xxxx.d3"],
+        [
+            "xxxx",
+            "xxxx.0",
+            "xxxx.1",
+            "xxxx.2",
+            "xxxy.0",
+            "xxxy.1",
+            "xxxy.2",
+            "xxxx.d1",
+            "xxxx.d2",
+            "xxxx.d3",
+        ],
     )
 
     assert len(target_files) == 10
@@ -140,7 +179,14 @@ def test_list(fdb_setup, env_setup, function_tmp, test_data_path, list_no_subtoc
 
 @pytest.mark.overlay
 @pytest.mark.parametrize("fdb_setup, env_setup", no_subtoc_combinations)
-def test_overlay(fdb_setup, env_setup, function_tmp, test_data_path, overlay_no_subtoc_script, request):
+def test_overlay(
+    fdb_setup,
+    env_setup,
+    function_tmp,
+    test_data_path,
+    overlay_no_subtoc_script,
+    request,
+):
     _ = request.getfixturevalue(fdb_setup)
     env = request.getfixturevalue(env_setup)
 
@@ -161,12 +207,16 @@ def test_overlay(fdb_setup, env_setup, function_tmp, test_data_path, overlay_no_
     yesterday = (datetime.date.today() - datetime.timedelta(days=1)).strftime("%Y%m%d")
 
     # We are skipping the archive as the tests are expecting an empty FDB
-    run_script(script=overlay_no_subtoc_script, args=[yesterday], cwd=function_tmp, env=env)
+    run_script(
+        script=overlay_no_subtoc_script, args=[yesterday], cwd=function_tmp, env=env
+    )
 
 
 @pytest.mark.purge
 @pytest.mark.parametrize("fdb_setup, env_setup", no_subtoc_combinations)
-def test_purge(fdb_setup, env_setup, function_tmp, test_data_path, purge_no_subtoc_script, request):
+def test_purge(
+    fdb_setup, env_setup, function_tmp, test_data_path, purge_no_subtoc_script, request
+):
     _ = request.getfixturevalue(fdb_setup)
     env = request.getfixturevalue(env_setup)
 
@@ -188,7 +238,9 @@ def test_purge(fdb_setup, env_setup, function_tmp, test_data_path, purge_no_subt
 
 @pytest.mark.read
 @pytest.mark.parametrize("fdb_setup, env_setup", no_subtoc_combinations)
-def test_read(fdb_setup, env_setup, function_tmp, test_data_path, read_no_subtoc_script, request):
+def test_read(
+    fdb_setup, env_setup, function_tmp, test_data_path, read_no_subtoc_script, request
+):
     _ = request.getfixturevalue(fdb_setup)
     env = request.getfixturevalue(env_setup)
 
@@ -230,8 +282,12 @@ def test_read(fdb_setup, env_setup, function_tmp, test_data_path, read_no_subtoc
 
     today = (datetime.date.today()).strftime("%Y%m%d")
     yesterday = (datetime.date.today() - datetime.timedelta(days=1)).strftime("%Y%m%d")
-    before_yesterday = (datetime.date.today() - datetime.timedelta(days=2)).strftime("%Y%m%d")
-    before_before_yesterday = (datetime.date.today() - datetime.timedelta(days=3)).strftime("%Y%m%d")
+    before_yesterday = (datetime.date.today() - datetime.timedelta(days=2)).strftime(
+        "%Y%m%d"
+    )
+    before_before_yesterday = (
+        datetime.date.today() - datetime.timedelta(days=3)
+    ).strftime("%Y%m%d")
 
     source_file_path = test_data_path / "oper.grib"
     target_files.extend(
@@ -242,12 +298,24 @@ def test_read(fdb_setup, env_setup, function_tmp, test_data_path, read_no_subtoc
                 [("class", "rd"), ("expver", "xxxx"), ("date", int(today))],
                 [("class", "rd"), ("expver", "xxxx"), ("date", int(yesterday))],
                 [("class", "rd"), ("expver", "xxxx"), ("date", int(before_yesterday))],
-                [("class", "rd"), ("expver", "xxxx"), ("date", int(before_before_yesterday))],
+                [
+                    ("class", "rd"),
+                    ("expver", "xxxx"),
+                    ("date", int(before_before_yesterday)),
+                ],
                 [("class", "rd"), ("expver", "xxxx")],
                 [("class", "rd"), ("expver", "xxxy")],
                 [("class", "rd"), ("expver", "xxxz")],
             ],
-            ["xxxx.0", "xxxx.-1", "xxxx.-2", "xxxx.-3", "source.xxxx", "source.xxxy", "source.xxxz"],
+            [
+                "xxxx.0",
+                "xxxx.-1",
+                "xxxx.-2",
+                "xxxx.-3",
+                "source.xxxx",
+                "source.xxxy",
+                "source.xxxz",
+            ],
         )
     )
 
@@ -353,7 +421,9 @@ def test_root(fdb_setup, env_setup, function_tmp, root_no_subtoc_script, request
 
 @pytest.mark.wipe
 @pytest.mark.parametrize("fdb_setup, env_setup", no_subtoc_combinations)
-def test_wipe(fdb_setup, env_setup, function_tmp, test_data_path, wipe_no_subtoc_script, request):
+def test_wipe(
+    fdb_setup, env_setup, function_tmp, test_data_path, wipe_no_subtoc_script, request
+):
     _ = request.getfixturevalue(fdb_setup)
     env = request.getfixturevalue(env_setup)
 
@@ -382,7 +452,9 @@ def test_wipe(fdb_setup, env_setup, function_tmp, test_data_path, wipe_no_subtoc
 
 @pytest.mark.write
 @pytest.mark.parametrize("fdb_setup, env_setup", no_subtoc_combinations)
-def test_write(fdb_setup, env_setup, function_tmp, test_data_path, write_no_subtoc_script, request):
+def test_write(
+    fdb_setup, env_setup, function_tmp, test_data_path, write_no_subtoc_script, request
+):
     _ = request.getfixturevalue(fdb_setup)
     env = request.getfixturevalue(env_setup)
 

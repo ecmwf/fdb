@@ -17,7 +17,7 @@ function(add_py_test_marker_combo test_file config_marker op_marker)
         "ECCODES_PYTHON_USE_FINDLIBS=1"
         "ECCODES_DIR=$<TARGET_FILE_DIR:eccodes>/.."
     )
-    make_directory("${CMAKE_CURRENT_BINARY_DIR}/pytest-tmp/")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/pytest-tmp/")
     set_tests_properties(${stem}_fdb_tools_${config_marker}_${op_marker}
         PROPERTIES
         ENVIRONMENT "${_env}"
