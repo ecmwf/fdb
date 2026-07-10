@@ -30,9 +30,9 @@ jobs:
 
     env:
       CEPH_ETC: /etc/ceph
+      ECKIT_RADOS_CLUSTER_NAME: ceph
+      ECKIT_RADOS_CLUSTER_USER: client.admin
       FDB_RADOS_TEST_POOL: fdb_test
-      FDB_RADOS_CLUSTER_NAME: ceph
-      FDB_RADOS_CLUSTER_USER: client.admin
       # Install prefix shared by all bundle projects (eckit, eccodes, metkit, fdb).
       INSTALL_PREFIX: ${{ github.workspace }}/install
       # Local dirs used to cache apt archives and the Ceph docker image.
@@ -200,7 +200,7 @@ jobs:
 
       - name: Run RADOS FDB tests
         env:
-          FDB_RADOS_CLUSTER_CONF: /etc/ceph/ceph.conf
+          ECKIT_RADOS_CLUSTER_CONF: /etc/ceph/ceph.conf
         run: |
           ctest --test-dir build/fdb -L rados --output-on-failure
 
