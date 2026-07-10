@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdbread="$<TARGET_FILE:fdb-read>"
+gribset="$<TARGET_FILE:grib_set>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+### cleanup and prepare test
+###
+### root/ (checked in under this test) is a pre-existing FDB database
+### (class=ea,expver=0001,stream=wamo,domain=g -> root/ea:0001:wamo:g/) that
+### already holds one archived field (date=20200601,param=140254,type=an,
+### levtype=sfc), simulating data archived by the old FDB. Its persisted
+### schema copy, root/ea:0001:wamo:g/schema, is the real 'wamo' schema
+### fragment and still says 'date: Month'. TocCatalogue::loadSchema always
+### reads THIS per-database copy on every open, never the top-level ./schema
+### referenced by config.yaml (that copy is only used once, to seed a
+### brand-new database) -- so editing root/ea:0001:wamo:g/schema directly is
+### what actually changes how further writes to this database are validated,
+### exactly as in the real incident.
+###
+### Everything is copied into the CMake binary dir first (never mutated
+### in-place in the checked-in source tree), matching the convention used by
+### the other regression tests in this directory.
+
+rm -rf ${bindir}/root
+cp -r $srcdir/root ${bindir}/root
+chmod -R o+w ${bindir}/root
+chown -R $(whoami):$(whoami) ${bindir}/root
+
+for f in config.yaml schema minimal.grib mars_request_wamo.req
+do
+    cp $srcdir/$f $bindir
+done
+
+cd $bindir
+
+export FDB5_CONFIG_FILE=config.yaml
+
+dbdir="$bindir/root/ea:0001:wamo:g"
+
+### 1. Archive a NEW field (July 2020, a month not yet in the database) into
+###    this existing database. The persisted schema still says date:Month, so
+###    this reproduces the original FDB-691 bug: TypeMonth's alias ("month")
+###    replaces the canonical key name, so 'date' no longer survives key
+###    validation.
+
+$gribset -s date=20200701 minimal.grib minimal_july.grib
+
+set +e
+$fdbwrite minimal_july.grib > write1.log 2>&1
+rc=$?
+set -e
+
+cat write1.log
+
+if [ $rc -eq 0 ]; then
+    echo "FDB-691: expected fdb-write to FAIL while the persisted schema said date:Month, but it succeeded" >&2
+    exit 1
+fi
+
+grep -q "Keywords not used: {date}" write1.log
+
+### 2. Fix the persisted schema copy of THIS database (not the top-level
+###    ./schema) by switching date:Month to date:YearMonth.
+
+sed -i.bak 's/date: Month/date: YearMonth/' "$dbdir/schema"
+rm -f "$dbdir/schema.bak"
+
+### 3. The field the database was set up with from the very beginning
+###    (date=20200601, archived before this test ran, under the old
+###    date:Month-labelled schema) is still correctly retrievable immediately
+###    after the persisted schema is switched to YearMonth -- switching the
+###    type does not strand or corrupt data written before the switch.
+
+$fdbread --raw mars_request_wamo.req out_legacy.grib
+cmp out_legacy.grib minimal.grib
+
+### 4. Archive another NEW field (August 2020, a fresh month not used in the
+###    failed attempt above) and confirm writing to this database now
+###    succeeds.
+
+$gribset -s date=20200801 minimal.grib minimal_august.grib
+
+$fdbwrite minimal_august.grib
+
+### 5. The newly-archived August field is retrievable too.
+
+sed 's/date=20200601/date=20200801/' mars_request_wamo.req > mars_request_wamo_august.req
+
+$fdbread --raw mars_request_wamo_august.req out_august.grib
+cmp out_august.grib minimal_august.grib
+
+### 6. Finally, check the other side of the fix: for a COMPLETELY FRESH
+###    database (never opened before), it is enough to fix the TOP-LEVEL
+###    ./schema (the one referenced by config.yaml) -- there is no persisted
+###    per-database copy yet, so TocHandler::writeInitRecord seeds the new
+###    database's schema straight from the corrected top-level file, and no
+###    persisted-copy edit is needed at all. A different expver
+###    (0002 instead of 0001) guarantees a brand-new dataset key/directory
+###    (root/ea:0002:wamo:g), distinct from the pre-existing database used
+###    above.
+
+sed -i.bak 's/date: Month/date: YearMonth/' "$bindir/schema"
+rm -f "$bindir/schema.bak"
+
+$gribset -s expver=0002,date=20200901 minimal.grib minimal_fresh.grib
+
+$fdbwrite minimal_fresh.grib
+
+sed 's/expver=0001/expver=0002/;s/date=20200601/date=20200901/' mars_request_wamo.req > mars_request_wamo_fresh.req
+
+$fdbread --raw mars_request_wamo_fresh.req out_fresh.grib
+cmp out_fresh.grib minimal_fresh.grib
