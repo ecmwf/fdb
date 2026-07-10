@@ -10,6 +10,9 @@
 
 #pragma once
 
+#include <ostream>
+#include <string>
+
 #include "fdb5/types/Type.h"
 
 namespace fdb5 {
@@ -20,8 +23,6 @@ class TypeYearMonth : public Type {
 public:  // methods
 
     TypeYearMonth(const std::string& name, const std::string& type);
-
-    ~TypeYearMonth() override;
 
     std::string toKey(const std::string& value) const override;
 

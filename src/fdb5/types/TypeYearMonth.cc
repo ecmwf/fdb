@@ -8,28 +8,21 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/types/TypeYearMonth.h"
 
 #include "eckit/types/Date.h"
-#include "metkit/mars/MarsRequest.h"
-
-#include "fdb5/types/TypeYearMonth.h"
+#include "eckit/utils/Translator.h"
 #include "fdb5/types/TypesFactory.h"
+#include "metkit/mars/MarsRequest.h"
 
 
 namespace fdb5 {
 
 TypeYearMonth::TypeYearMonth(const std::string& name, const std::string& type) : Type(name, type) {}
 
-TypeYearMonth::~TypeYearMonth() {}
-
-static long yearMonth(const std::string& value) {
-    eckit::Date date(value);
-    return date.year() * 100 + date.month();
-}
-
 std::string TypeYearMonth::toKey(const std::string& value) const {
-
-    return std::to_string(yearMonth(value));
+    eckit::Date date(value);
+    return std::to_string(date.year() * 100 + date.month());
 }
 
 void TypeYearMonth::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
@@ -38,13 +31,10 @@ void TypeYearMonth::getValues(const metkit::mars::MarsRequest& request, const st
 
     request.getValues(keyword, dates, true);
 
-    values.reserve(dates.size());
-
     eckit::Translator<eckit::Date, std::string> t;
 
-    for (std::vector<eckit::Date>::const_iterator i = dates.begin(); i != dates.end(); ++i) {
-        const eckit::Date& date = *i;
-        values.push_back(t(date));
+    for (const auto& date : dates) {
+        values.emplace_back(t(date));
     }
 }
 
