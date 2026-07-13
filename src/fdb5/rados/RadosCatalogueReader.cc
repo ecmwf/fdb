@@ -10,7 +10,25 @@
 
 #include "fdb5/rados/RadosCatalogueReader.h"
 
+#include <iterator>
+#include <optional>
+#include <ostream>
+#include <string>
+#include <vector>
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/rados/RadosException.h"
+#include "eckit/io/rados/RadosKeyValue.h"
+#include "eckit/log/Log.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Field.h"
+#include "fdb5/database/Index.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/rados/RadosCatalogue.h"
+#include "fdb5/rados/RadosCommon.h"
 #include "fdb5/rados/RadosIndex.h"
 
 namespace fdb5 {
