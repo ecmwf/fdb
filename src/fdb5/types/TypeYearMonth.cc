@@ -10,13 +10,20 @@
 
 #include "fdb5/types/TypeYearMonth.h"
 
+#include "fdb5/types/TypesFactory.h"
+
+#include "metkit/mars/MarsRequest.h"
+
 #include "eckit/types/Date.h"
 #include "eckit/utils/Translator.h"
-#include "fdb5/types/TypesFactory.h"
-#include "metkit/mars/MarsRequest.h"
+
+#include <string>
+#include <vector>
 
 
 namespace fdb5 {
+
+//----------------------------------------------------------------------------------------------------------------------
 
 TypeYearMonth::TypeYearMonth(const std::string& name, const std::string& type) : Type(name, type) {}
 
@@ -31,6 +38,8 @@ void TypeYearMonth::getValues(const metkit::mars::MarsRequest& request, const st
 
     request.getValues(keyword, dates, true);
 
+    values.reserve(dates.size());
+
     eckit::Translator<eckit::Date, std::string> t;
 
     for (const auto& date : dates) {
@@ -42,7 +51,10 @@ void TypeYearMonth::print(std::ostream& out) const {
     out << "TypeYearMonth[name=" << name_ << "]";
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+
 static TypeBuilder<TypeYearMonth> type("YearMonth");
 
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
