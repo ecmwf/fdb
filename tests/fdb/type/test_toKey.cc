@@ -9,6 +9,7 @@
  */
 
 #include <cstdlib>
+#include <sstream>
 
 #include "eckit/testing/Test.h"
 
@@ -17,6 +18,8 @@
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/rules/Rule.h"
+#include "fdb5/rules/Schema.h"
+#include "fdb5/types/TypeYearMonth.h"
 
 using namespace eckit::testing;
 using namespace eckit;
@@ -336,6 +339,67 @@ CASE("Date - string ctor - expansion") {
 
     EXPECT_EQUAL(key["date"], t(now.yyyymmdd()));
     EXPECT_EQUAL(key.valuesToString(), "od:0001:oper:ofb:" + t(now.yyyymmdd()) + ":0000:mhs:3001");
+}
+
+CASE("YearMonth - toKey") {
+    fdb5::TypeYearMonth type("date", "YearMonth");
+
+    EXPECT_EQUAL(type.toKey("20210427"), "202104");
+    EXPECT_EQUAL(type.toKey("20021201"), "200212");
+    EXPECT_EQUAL(type.toKey("20030101"), "200301");
+    EXPECT_EQUAL(type.toKey("20211231"), "202112");
+    EXPECT_EQUAL(type.toKey("20210101"), "202101");
+}
+
+// FDB-691: a custom, self-contained schema is used here (rather than the shared
+// tests/fdb/etc/fdb/schema) so this test doesn't depend on, or need to modify, the
+// schema used by every other CASE in this file.
+CASE("YearMonth - string ctor - expansion") {
+
+    fdb5::Key key;
+
+    fdb5::Config yearMonthConfig;
+    {
+        std::istringstream schemaStream(
+            "[ class, expver, stream=wamo, domain\n"
+            "       [ type, levtype\n"
+            "               [ date: YearMonth, time, step?, param ]]\n"
+            "]\n");
+        yearMonthConfig.overrideSchema("test_toKey_YearMonth_schema", new fdb5::Schema(schemaStream));
+    }
+
+
+    // Check string output of tidy is the same as in the original request
+    {
+        auto parsed = fdb5::Key::parse(
+            "class=ea,expver=0001,stream=wamo,domain=g,type=an,levtype=sfc,date=20200601,time=0000,step=0,param="
+            "140254");
+        fdb5::TypedKey tKey(yearMonthConfig.schema().registry());
+        tKey.pushFrom(parsed);
+        key = tKey.tidy();
+    }
+
+    EXPECT_EQUAL(key["date"], "20200601");
+    EXPECT_EQUAL(key.valuesToString(), "ea:0001:wamo:g:an:sfc:20200601:0000:0:140254");
+
+    // Check string output of canonical is the expected YYYYMM format which is needed from the Archiver
+    {
+        // Note: we deliberately don't go through Archiver/ArchiveVisitor here. On
+        // write, RuleDatabase::expand() only uses the passed-in schema to match the
+        // top-level (database) rule. The index/datum rules are re-resolved from
+        // the WriteVisitor's *actual, on-disk* catalogue schema
+        // (BaseArchiveVisitor::databaseSchema() -> catalogue()->schema()), which
+        // would sidestep this self-contained schema entirely. Schema::matchingRule()
+        // gives direct access to the matched RuleDatum (and its registry) without
+        // needing a real catalogue.
+        const fdb5::RuleDatum& rule = yearMonthConfig.schema().matchingRule(key, key);
+        fdb5::TypedKey tKey(rule.registry());
+        tKey.pushFrom(key);
+        EXPECT_NO_THROW(key = tKey.canonical());
+    }
+
+    EXPECT_EQUAL(key["date"], "202006");
+    EXPECT_EQUAL(key.valuesToString(), "ea:0001:wamo:g:an:sfc:202006:0000:0:140254");
 }
 
 //----------------------------------------------------------------------------------------------------------------------

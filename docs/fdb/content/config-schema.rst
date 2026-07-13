@@ -286,6 +286,8 @@ used to form a key.
       - Represents time as 'HHMM' with leading zeros.
     * - Year
       - Represents the year as digits without leading zeros.
+    * - YearMonth
+      - Represents dates as 'YYYYMM', truncating the day.
 
 Operational Considerations
 ==========================
