@@ -13,12 +13,7 @@ bindir=@CMAKE_CURRENT_BINARY_DIR@
 
 ### cleanup and prepare test
 ###
-### This test used to ship a pre-built binary FDB database as a fixture
-### (root/ea:0001:wamo:g/toc etc.) to simulate data archived by an old FDB.
-### That is not portable: a toc written on one platform/architecture (e.g.
-### macOS) failed to deserialise when read back on another (e.g. Linux CI),
-### with "Bad tag found in stream MemoryStream. Expecting a 'long', got a
-### 'long long'". Instead, this test builds its own database at run time
+### This test builds its own database at run time
 ### with the tools from the current build, then edits its persisted
 ### per-database schema copy directly to simulate the 'date: Month'
 ### misconfiguration that FDB-691 is about.
