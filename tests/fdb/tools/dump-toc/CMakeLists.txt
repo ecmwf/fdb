@@ -4,6 +4,7 @@ configure_file( ${test_name}.sh.in ${test_name}.sh @ONLY )
 
 ecbuild_add_test(
     TARGET fdb_test_tools_dump_toc
+    CONDITION HAVE_GRIB
     TYPE SCRIPT
     COMMAND ${test_name}.sh
     ENVIRONMENT "${test_environment}")
