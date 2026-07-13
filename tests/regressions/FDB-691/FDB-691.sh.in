@@ -62,7 +62,7 @@ $fdbdumpindex "$dbdir"/*.index > index_presetup.txt
 # fdb-dump-toc always dumps records in "simple" mode, which does not include
 # an index's axes/fields -- the YYYYMM canonical value only shows up in the
 # per-index dump from fdb-dump-index (axis values and BTree fingerprints).
-grep -q "202006" index_presetup.txt
+grep -qw "202006" index_presetup.txt
 
 ### 2. Simulate the FDB-691 misconfiguration: flip the PERSISTED
 ###    PER-DATABASE schema copy (not the top-level ./schema) to the old,
@@ -125,7 +125,7 @@ cmp out_july.grib minimal_july.grib
 $fdbdumptoc "$dbdir/toc" > toc_after.txt
 $fdbdumpindex "$dbdir"/*.index > index_after.txt
 
-grep -q "202006" index_after.txt
-grep -q "202007" index_after.txt
+grep -qw "202006" index_after.txt
+grep -qw "202007" index_after.txt
 
 diff <(grep '^TOC_INIT' toc_presetup.txt) <(grep '^TOC_INIT' toc_after.txt)
