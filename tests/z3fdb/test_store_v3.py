@@ -18,6 +18,8 @@ from z3fdb import (
     ExtractorType,
 )
 
+pytestmark = pytest.mark.offline
+
 
 def test_zarr_use_spec_v2(read_only_fdb_setup) -> None:
     assert zarr.config.get("default_zarr_format") == 3

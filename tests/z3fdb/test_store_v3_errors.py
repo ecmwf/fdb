@@ -12,6 +12,8 @@ from z3fdb import (
 
 logging.basicConfig(level=logging.DEBUG)
 
+pytestmark = pytest.mark.offline
+
 
 def test_additional_comma_end_of_request(
     read_only_fdb_pattern_setup,

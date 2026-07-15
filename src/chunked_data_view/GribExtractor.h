@@ -17,6 +17,7 @@
 #include "chunked_data_view/ViewPart.h"
 
 #include <cstddef>
+#include <limits>
 #include <memory>
 #include <vector>
 
@@ -30,6 +31,9 @@ class GribExtractor final : public Extractor {
 public:
 
     explicit GribExtractor(const std::shared_ptr<FdbInterface> fdb);
+
+    /// Sets the fill value written in place of bitmap-masked (missing) grid points.
+    void setFillValue(float v) override { fillValue_ = v; }
 
     /// Retrieves one representative field to determine countValues and bytesPerValue.
     DataLayout layout(const metkit::mars::MarsRequest& mars_request) const override;
@@ -55,6 +59,7 @@ private:  // types
 private:  // members
 
     std::shared_ptr<FdbInterface> fdb_;
+    float fillValue_ = std::numeric_limits<float>::infinity();
 
 private:  // methods
 

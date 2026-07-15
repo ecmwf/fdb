@@ -13,6 +13,8 @@ from z3fdb import (
 
 logging.basicConfig(level=logging.DEBUG)
 
+pytestmark = pytest.mark.offline
+
 
 def test_access_pattern(read_only_fdb_pattern_setup) -> None:
     builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)

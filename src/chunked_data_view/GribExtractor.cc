@@ -21,6 +21,7 @@
 #include "eckit/message/Reader.h"
 #include "fdb5/database/Key.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <memory>
 #include <ostream>
@@ -104,6 +105,10 @@ size_t GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iter
                 throw eckit::Exception(ss.str());
             }
             msg.getFloatArray("values", copyInto, ctx.layout.countValues);
+            if (msg.getLong("bitmapPresent") != 0) {
+                const auto gribMissing = static_cast<float>(msg.getDouble("missingValue"));
+                std::replace(copyInto, copyInto + ctx.layout.countValues, gribMissing, fillValue_);
+            }
             messagesWritten++;
         }
     }

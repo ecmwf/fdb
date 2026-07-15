@@ -81,6 +81,8 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
     std::vector<size_t> part_offsets = {0};
 
     for (auto& [req, defs, ext] : parts_) {
+        ext->setFillValue(fillValue_);
+
         auto request = fdb5::FDBToolRequest::requestsFromString(req).at(0).request();
 
         try {

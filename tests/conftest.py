@@ -20,6 +20,11 @@ from numpy import repeat
 from pyfdb import FDB
 
 
+def pytest_configure(config):
+    config.addinivalue_line("markers", "offline: tests that run without network access using synthetic local FDB data")
+    config.addinivalue_line("markers", "online: tests that require network access to ECMWF open data")
+
+
 def create_fdb(root: pathlib.Path, schema_src: pathlib.Path) -> pathlib.Path:
     """Create a new FDB under 'root' using the provided schema.
 
@@ -82,6 +87,16 @@ def populate_fdb(config: pathlib.Path, messages: list[pathlib.Path]):
         assert message.is_file()
         fdb.archive(message.read_bytes())
     fdb.flush()
+
+
+@pytest.fixture(scope="function")
+def empty_fdb(data_path, function_tmp) -> pathlib.Path:
+    """Provide an empty, writable FDB backed by the standard test schema.
+
+    Returns the path to the ``fdb_config.yaml`` for the newly created database.
+    The database directory is isolated per test function and torn down automatically.
+    """
+    return create_fdb(function_tmp, data_path / "schema")
 
 
 @pytest.fixture(scope="session")

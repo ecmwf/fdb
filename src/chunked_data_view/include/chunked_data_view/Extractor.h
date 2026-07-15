@@ -31,6 +31,10 @@ public:
     /// All fields in a part are expected to share the same layout; this method establishes it.
     virtual DataLayout layout(const metkit::mars::MarsRequest& req) const = 0;
 
+    /// Sets the fill value used to replace GRIB bitmap missing-value sentinels.
+    /// Default no-op; override in concrete extractors that read real field data.
+    virtual void setFillValue(float) {}
+
     /// Copies the field values that fall inside @p intersectionBoundingBox into the output buffer.
     ///
     /// Both bounding boxes are expressed in the global ChunkedDataView index space.
