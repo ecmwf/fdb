@@ -6,6 +6,7 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
+import pytest
 import numpy as np
 import zarr
 
@@ -15,6 +16,8 @@ from z3fdb import (
     ExtractorType,
     SimpleStoreBuilder,
 )
+
+pytestmark = pytest.mark.offline
 
 # Both requests span the full pattern-fixture domain:
 #   dates      = [20200101, 20200102, 20200103]  (3 values, 0-based index d)

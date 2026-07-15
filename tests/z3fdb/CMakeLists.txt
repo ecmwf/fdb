@@ -36,3 +36,20 @@ set(test_files
 foreach(test_file ${test_files})
   add_py_test(${test_file})
 endforeach()
+
+# Online tests: require network access to ECMWF open data.
+# Run with: ctest -L z3fdb_online
+get_filename_component(online_stem test_store_v3_online.py NAME_WLE)
+add_test(
+    NAME pychunked_data_view_${online_stem}
+    COMMAND ${Python_EXECUTABLE}
+        -m pytest
+        --basetemp ${CMAKE_CURRENT_BINARY_DIR}/pytest-tmp
+        -vv -s ${CMAKE_CURRENT_SOURCE_DIR}/test_store_v3_online.py
+)
+set_tests_properties(pychunked_data_view_${online_stem}
+    PROPERTIES
+    RESOURCE_LOCK pytest
+    ENVIRONMENT "${_env}"
+    LABELS "z3fdb;z3fdb_online"
+)

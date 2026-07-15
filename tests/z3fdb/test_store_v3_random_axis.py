@@ -1,5 +1,6 @@
 import logging
 
+import pytest
 import zarr
 
 from z3fdb import (
@@ -10,6 +11,8 @@ from z3fdb import (
 )
 
 logging.basicConfig(level=logging.DEBUG)
+
+pytestmark = pytest.mark.offline
 
 
 def test_random_axis_retrieval(read_only_fdb_pattern_setup) -> None:

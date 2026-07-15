@@ -1,3 +1,4 @@
+import pytest
 import zarr
 import numpy as np
 
@@ -7,6 +8,8 @@ from z3fdb import (
     ExtractorType,
     SimpleStoreBuilder,
 )
+
+pytestmark = pytest.mark.offline
 
 
 def test_axis_check_merge(read_only_fdb_setup_for_sfc_pl_example) -> None:
