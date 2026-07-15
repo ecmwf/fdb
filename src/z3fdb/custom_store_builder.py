@@ -27,9 +27,9 @@ class VArray:
 
 @dataclass
 class VGroup:
-    parents: list[VGroup] | None
+    parents: list["VGroup"] | None
     name: str
-    children: list[VGroup | VArray]
+    children: list["VGroup | VArray"]
 
     @staticmethod
     def _join_path(group):
@@ -179,9 +179,10 @@ class CustomStoreBuilder:
 
         def _to_fdb_node(node: VGroup | VArray) -> FdbZarrGroup | FdbZarrArray:
             if isinstance(node, VArray):
+                view = node.builder.build()
                 return FdbZarrArray(
                     name=node.name,
-                    datasource=FdbSource(node.builder.build()),
+                    datasource=FdbSource(view, dim_names=node.builder.dim_names()),
                 )
             children = [_to_fdb_node(c) for c in node.children]
             return FdbZarrGroup(name=node.name, children=children)

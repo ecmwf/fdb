@@ -72,18 +72,35 @@ class AxisDefinition:
         else:
             raise InternalError()
 
-    def __init__(self, keys: list[str], chunking: Chunking | Chunking.IndividualChunk):
+    def __init__(
+        self,
+        keys: list[str],
+        chunking: Chunking | Chunking.IndividualChunk,
+        dim_name: str | None = None,
+    ):
         """Defines which axis from a MARS Request form an axis in the Zarr array.
 
         Also defines if the data is to be chunked.
 
         Args:
-            keys(list of str): mars keys that for this axis.
-            chunking ( Chunking): Define how this axis shall be chunked
+            keys(list of str): mars keys that form this axis.
+            chunking (Chunking): Define how this axis shall be chunked.
+            dim_name (str | None): Optional dimension name for xarray compatibility.
+                If not provided, the name is auto-derived as the keys joined by "_"
+                (e.g. ``["date", "time"]`` → ``"date_time"``).
         """
         self._obj = pdv.AxisDefinition(
             keys=keys, chunking=self._translate_chunking(chunking)
         )
+        self._dim_name: str = dim_name if dim_name is not None else "_".join(keys)
+
+    @property
+    def dim_name(self) -> str:
+        return self._dim_name
+
+    @dim_name.setter
+    def dim_name(self, name: str) -> None:
+        self._dim_name = name
 
     @property
     def keys(self) -> list[str]:
@@ -143,6 +160,7 @@ class ExtractorType(enum.Enum):
 class ChunkedDataViewBuilder:
     def __init__(self, fdb_config_file: pathlib.Path | None):
         self._obj = pdv.ChunkedDataViewBuilder(fdb_config_file)
+        self._parts_axes: list[list[AxisDefinition]] = []
 
     def add_part(
         self,
@@ -155,12 +173,26 @@ class ChunkedDataViewBuilder:
             [ax._obj for ax in axes],
             extractor_type.value,
         )
+        self._parts_axes.append(list(axes))
 
     def extend_on_axis(self, axis: int):
         self._obj.extend_on_axis(axis)
 
     def fill_value(self, value: float):
         self._obj.fill_value(value)
+
+    def dim_names(self) -> list[str | None]:
+        """Return dimension names for all zarr axes, derived from the first added part.
+
+        The last entry is always ``None`` to represent the implicit field-values
+        dimension (spatial data points within each GRIB field).
+
+        Returns:
+            list[str | None]: One entry per zarr dimension; final entry is ``None``.
+        """
+        if not self._parts_axes:
+            return []
+        return [ax.dim_name for ax in self._parts_axes[0]] + [None]
 
     def build(self):
         try:

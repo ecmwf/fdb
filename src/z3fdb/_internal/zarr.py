@@ -144,8 +144,10 @@ class FdbSource:
     def __init__(
         self,
         chunked_data_view: ChunkedDataView,
+        dim_names: list[str | None] | None = None,
     ) -> None:
         self._chunked_data_view = chunked_data_view
+        self._dim_names = dim_names
 
         self._shape = self._chunked_data_view.shape()
         self._chunks = self._chunked_data_view.chunkShape()
@@ -190,7 +192,20 @@ class FdbZarrArray:
     def __init__(self, *, name: str = "", datasource: FdbSource):
         self._name = name
         self._datasource = datasource
-        self._metadata = self._datasource.create_dot_zarr_json()
+        self._metadata = self._create_dot_zarr_json()
+
+    def _create_dot_zarr_json(self) -> CpuBuffer:
+        return to_cpu_buffer(
+            asdict(
+                DotZarrArrayJson(
+                    shape=self._datasource._shape,
+                    chunk_grid=ChunkGridMetadata(chunks=self._datasource._chunks),
+                    data_type="float32",
+                    fill_value=self._datasource._fill_value,
+                    dimension_names=self._datasource._dim_names,
+                )
+            )
+        )
 
     def __getitem__(self, key: tuple[str, ...]) -> Buffer | None:
         if key[0] == "zarr.json":
@@ -427,5 +442,24 @@ class FdbZarrStore(store.Store):
     def list_prefix(self, prefix: str) -> AsyncIterator[str]:
         return self._child.list_prefix(prefix)
 
-    def list_dir(self, prefix: str) -> AsyncIterator[str]:
-        return self._build_paths(self._child, parent_path=prefix)
+    def _find_node(self, prefix: str) -> "FdbZarrGroup | FdbZarrArray | None":
+        """Navigate to the zarr node at prefix path, or None if not found."""
+        if not prefix:
+            return self._child
+        parts = [p for p in prefix.strip("/").split("/") if p]
+        node = self._child
+        for part in parts:
+            if isinstance(node, FdbZarrGroup):
+                if part not in node._children:
+                    return None
+                node = node._children[part]
+            else:
+                return None
+        return node
+
+    async def list_dir(self, prefix: str) -> AsyncIterator[str]:
+        """Yield the immediate zarr member names (groups/arrays) under prefix."""
+        node = self._find_node(prefix)
+        if isinstance(node, FdbZarrGroup):
+            for name in node._children:
+                yield name
