@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+
+set -eux
+
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdbread="$<TARGET_FILE:fdb-read>"
+gribset="$<TARGET_FILE:grib_set>"
+fdbdumptoc="$<TARGET_FILE:fdb-dump-toc>"
+fdbdumpindex="$<TARGET_FILE:fdb-dump-index>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+### cleanup and prepare test
+###
+### This test builds its own database at run time
+### with the tools from the current build, then edits its persisted
+### per-database schema copy directly to simulate the 'date: Month'
+### misconfiguration that FDB-691 is about.
+
+rm -rf ${bindir}/root
+mkdir -p ${bindir}/root
+
+for f in config.yaml schema minimal.grib mars_request_wamo.req
+do
+    cp $srcdir/$f $bindir
+done
+
+# Make config.yaml refer to the copies in bindir explicitly, rather than
+# relying on relative paths resolved against the current working directory.
+sed -i.bak "s|\./schema|${bindir}/schema|;s|\./root|${bindir}/root|" ${bindir}/config.yaml
+rm -f ${bindir}/config.yaml.bak
+
+# The top-level schema (referenced by config.yaml) is only consulted once,
+# to seed a brand-new database's persisted per-database schema copy. Fix it
+# up-front so the database set up below is created exactly as a
+# correctly-configured FDB would create it.
+sed -i.bak 's/date: Month/date: YearMonth/' "$bindir/schema"
+rm -f "$bindir/schema.bak"
+
+cd $bindir
+
+export FDB5_CONFIG_FILE=$bindir/config.yaml
+
+dbdir="$bindir/root/ea:0001:wamo:g"
+
+### 1. Set up the database: archive one field (date=20200601) while the
+###    schema correctly says date:YearMonth. TocHandler::writeInitRecord
+###    seeds this new database's persisted schema copy, dbdir/schema, from
+###    the (already-fixed) top-level schema above.
+
+$fdbwrite minimal.grib
+
+$fdbdumptoc "$dbdir/toc" > toc_presetup.txt
+$fdbdumpindex "$dbdir"/*.index > index_presetup.txt
+
+# fdb-dump-toc always dumps records in "simple" mode, which does not include
+# an index's axes/fields -- the YYYYMM canonical value only shows up in the
+# per-index dump from fdb-dump-index (axis values and BTree fingerprints).
+grep -qw "202006" index_presetup.txt
+
+### 2. Simulate the FDB-691 misconfiguration: flip the PERSISTED
+###    PER-DATABASE schema copy (not the top-level ./schema) to the old,
+###    buggy 'date: Month' type. TocCatalogue::loadSchema always reads this
+###    per-database copy on every open, never the top-level file (that copy
+###    is only used once, to seed a brand-new database) -- so this is the
+###    edit that actually changes how further writes to this database are
+###    validated, exactly as in the real incident.
+
+sed -i.bak 's/date: YearMonth/date: Month/' "$dbdir/schema"
+rm -f "$dbdir/schema.bak"
+
+### 3. Archive a NEW field (July 2020, a month not yet in the database) and
+###    confirm the formerly-experienced error reproduces: TypeMonth's alias
+###    ("month") replaces the canonical key name, so 'date' no longer
+###    survives key validation.
+
+$gribset -s date=20200701 minimal.grib minimal_july.grib
+
+set +e
+$fdbwrite minimal_july.grib > write1.log 2>&1
+rc=$?
+set -e
+
+cat write1.log
+
+if [ $rc -eq 0 ]; then
+    echo "FDB-691: expected fdb-write to FAIL while the persisted schema said date:Month, but it succeeded" >&2
+    exit 1
+fi
+
+grep -q "Keywords not used: {date}" write1.log
+
+### 4. Fix the persisted schema copy back to date:YearMonth, and confirm
+###    archiving the same new field now succeeds.
+
+sed -i.bak 's/date: Month/date: YearMonth/' "$dbdir/schema"
+rm -f "$dbdir/schema.bak"
+
+$fdbwrite minimal_july.grib
+
+### 5. Both the original field and the newly-archived one are retrievable.
+
+$fdbread --raw mars_request_wamo.req out_legacy.grib
+cmp out_legacy.grib minimal.grib
+
+sed 's/date=20200601/date=20200701/' mars_request_wamo.req > mars_request_wamo_july.req
+
+$fdbread --raw mars_request_wamo_july.req out_july.grib
+cmp out_july.grib minimal_july.grib
+
+### 6. Confirm the schema round-trip (YearMonth -> Month -> YearMonth) did
+###    not strand or corrupt the toc/index structure already on disk: dump
+###    the database again, now that it holds both fields, and compare its
+###    TOC_INIT record against the pre-setup dump above (unaffected by the
+###    round-trip -- only new TOC_INDEX/TOC_CLEAR records were appended for
+###    the July field), and confirm the YYYYMM canonical form is present for
+###    both fields.
+
+$fdbdumptoc "$dbdir/toc" > toc_after.txt
+$fdbdumpindex "$dbdir"/*.index > index_after.txt
+
+grep -qw "202006" index_after.txt
+grep -qw "202007" index_after.txt
+
+diff <(grep '^TOC_INIT' toc_presetup.txt) <(grep '^TOC_INIT' toc_after.txt)
