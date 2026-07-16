@@ -362,7 +362,7 @@ public:
     TestFixture& operator=(const TestFixture&) = delete;
     TestFixture& operator=(TestFixture&&) = delete;
 
-    ~TestFixture() noexcept = default;
+    ~TestFixture() = default;
 
     const eckit::PathName& root() const { return root_; }
 
