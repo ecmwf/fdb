@@ -22,6 +22,7 @@
 #include "fdb5/database/Inspector.h"
 #include "fdb5/database/Reindexer.h"
 
+#include <memory>
 #include <mutex>
 
 
