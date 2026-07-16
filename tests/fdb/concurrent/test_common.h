@@ -228,7 +228,7 @@ inline void archive_all(int count) {
     fdb5::FDB fdb;
     for (int worker = 0; worker < count; ++worker) {
         for (int seq = 0; seq < k_seq_per_worker; ++seq) {
-            const auto key  = make_key(worker, seq);
+            const auto key = make_key(worker, seq);
             const auto data = make_data(worker, seq);
             fdb.archive(key, static_cast<const void*>(data.data()), data.size());
         }
@@ -255,7 +255,7 @@ inline void archive_all(int count) {
 inline int worker_archive(int worker_id, int /*count*/) {
     fdb5::FDB fdb;
     for (int seq = 0; seq < k_seq_per_worker; ++seq) {
-        const auto key  = make_key(worker_id, seq);
+        const auto key = make_key(worker_id, seq);
         const auto data = make_data(worker_id, seq);
         fdb.archive(key, static_cast<const void*>(data.data()), data.size());
     }
@@ -306,7 +306,7 @@ inline int worker_axes(int /*worker_id*/, int count) {
 /// Archive the single shared contention field and flush (all workers write the same key/data).
 inline int worker_contend(int /*worker_id*/, int /*count*/) {
     fdb5::FDB fdb;
-    const auto key  = contend_key();
+    const auto key = contend_key();
     const auto data = contend_data();
     fdb.archive(key, static_cast<const void*>(data.data()), data.size());
     fdb.flush();
@@ -317,10 +317,10 @@ inline int worker_contend(int /*worker_id*/, int /*count*/) {
 
 /// Dispatch a freshly exec-ed child process to the requested worker function.
 inline int child_worker_main(int argc, char** argv) {
-    const auto args     = parse_worker_args(argc, argv);
+    const auto args = parse_worker_args(argc, argv);
     const int worker_id = std::stoi(get_worker_arg(args, "worker-id"));
-    const auto func     = get_worker_arg(args, "fn");
-    const int count     = env_int("TEST_FDB_WORKER_COUNT", process_count());
+    const auto func = get_worker_arg(args, "fn");
+    const int count = env_int("TEST_FDB_WORKER_COUNT", process_count());
 
     if (func == "archive") {
         return worker_archive(worker_id, count);
@@ -357,10 +357,10 @@ public:
         config_{"FDB5_CONFIG", make_config_yaml(root_.asString())},
         workers_{"TEST_FDB_WORKER_COUNT", std::to_string(count)} {}
 
-    TestFixture(const TestFixture&)            = delete;
-    TestFixture(TestFixture&&)                 = delete;
+    TestFixture(const TestFixture&) = delete;
+    TestFixture(TestFixture&&) = delete;
     TestFixture& operator=(const TestFixture&) = delete;
-    TestFixture& operator=(TestFixture&&)      = delete;
+    TestFixture& operator=(TestFixture&&) = delete;
 
     ~TestFixture() noexcept = default;
 

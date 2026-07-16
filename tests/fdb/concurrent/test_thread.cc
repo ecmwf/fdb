@@ -96,7 +96,7 @@ CASE("Multi-thread: archive (shared FDB)") {
     fdb5::FDB shared;
     expect_workers_ok(run_threads(count, [&shared](int id) {
         for (int seq = 0; seq < k_seq_per_worker; ++seq) {
-            const auto key  = make_key(id, seq);
+            const auto key = make_key(id, seq);
             const auto data = make_data(id, seq);
             shared.archive(key, static_cast<const void*>(data.data()), data.size());
         }
