@@ -19,12 +19,6 @@
 #ifndef fdb5_api_FDB_H
 #define fdb5_api_FDB_H
 
-#include <iosfwd>
-#include <memory>
-#include <string>
-
-#include "eckit/distributed/Transport.h"
-
 #include "fdb5/api/FDBStats.h"
 #include "fdb5/api/helpers/AxesIterator.h"
 #include "fdb5/api/helpers/Callback.h"
@@ -37,6 +31,13 @@
 #include "fdb5/api/helpers/StatusIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
+
+#include "eckit/distributed/Transport.h"  // why?
+
+#include <iosfwd>
+#include <memory>
+#include <mutex>
+#include <string>
 
 namespace eckit {
 namespace message {
@@ -78,8 +79,8 @@ public:  // methods
     FDB(const FDB&) = delete;
     FDB& operator=(const FDB&) = delete;
 
-    FDB(FDB&&);
-    FDB& operator=(FDB&&);
+    FDB(FDB&&) noexcept;
+    FDB& operator=(FDB&&) noexcept;
 
     // -------------- Primary API functions ----------------------------------------------------------------------------
 
@@ -300,6 +301,8 @@ private:  // members
     /// @brief The FDBBase instance is held in a shared_ptr so that it can be kept alive by any Iterator instances
     /// (e.g. list, inspect) created by this FDB object.
     std::shared_ptr<FDBBase> internal_;
+
+    mutable std::mutex mutex_;
 
     bool dirty_;
     bool reportStats_;
