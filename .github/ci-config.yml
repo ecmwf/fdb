@@ -2,7 +2,7 @@ dependencies: |
   ecmwf/ecbuild
   MathisRosenhauer/libaec@refs/tags/v1.1.3
   ecmwf/eccodes
-  ecmwf/eckit
+  ecmwf/eckit@feature/ECKIT-687-pooledfile-thread-safe
   ecmwf/metkit
 dependency_branch: develop
 cmake_options: -DENABLE_DUMMY_DAOS=ON
