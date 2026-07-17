@@ -96,6 +96,48 @@ is typically retrieved as a slice:
 it validates your MARS request and pre-fetches layout metadata but does not
 retrieve field values.
 
+Missing Data and Fill Values
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some GRIB fields use a **bitmap** to mark individual grid points as missing
+(for example, a sea-surface temperature field where land points have no value).
+Z3FDB replaces those bitmap-masked points with a configurable fill value before
+returning data to you.
+
+By default the fill value is **NaN**, which means missing points are immediately
+detectable with :func:`numpy.isnan`:
+
+.. code-block:: python
+
+   import numpy as np
+
+   field = data[0, 2, :]
+   missing = np.isnan(field)
+
+To use a different sentinel — for example ``-999.0`` — call
+:meth:`~z3fdb.SimpleStoreBuilder.fill_value` on the builder before calling
+``build()``:
+
+.. code-block:: python
+
+   builder = SimpleStoreBuilder()
+   builder.add_part(...)
+   builder.fill_value(-999.0)   # replaces missing points with -999.0
+   store = builder.build()
+
+.. warning::
+
+   If the fill value you choose can also appear as a legitimate field value,
+   there is no way to distinguish actual data from fill-value positions after
+   retrieval. NaN is the default precisely because it cannot occur as a real
+   float32 computation result, making it unambiguous. Only change the fill value
+   if you are certain it cannot collide with your data.
+
+.. note::
+
+   The fill value is written into the Zarr array metadata as well, so
+   Zarr-aware tools and libraries see the same sentinel when they open the store.
+
 Merging Keywords into One Dimension
 ------------------------------------
 
