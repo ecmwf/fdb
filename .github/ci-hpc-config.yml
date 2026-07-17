@@ -4,7 +4,7 @@ build:
   dependencies:
     - ecmwf/ecbuild@develop
     - ecmwf/eccodes@develop
-    - ecmwf/eckit@feature/ECKIT-687-pooledfile-thread-safe
+    - ecmwf/eckit@develop
     - ecmwf/metkit@develop
   cmake_options:
     - -DENABLE_LUSTRE=OFF
