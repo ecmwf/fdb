@@ -38,6 +38,8 @@ namespace fdb::test::concurrent {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+constexpr int k_flushers = 2;  // number of concurrent flusher threads
+
 using ThreadWorker = std::function<int(size_t)>;
 
 namespace {
@@ -208,8 +210,8 @@ CASE("Multi-thread: concurrent archive + flush (shared FDB)") {
     std::atomic<bool> stop{false};
     std::atomic<bool> flush_ok{true};
     std::vector<std::thread> flushers;
-    flushers.reserve(2);
-    for (int f = 0; f < 2; ++f) {
+    flushers.reserve(k_flushers);
+    for (int f = 0; f < k_flushers; ++f) {
         flushers.emplace_back([&shared, &stop, &flush_ok]() {
             while (!stop.load(std::memory_order_relaxed)) {
                 try {
