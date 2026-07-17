@@ -30,17 +30,22 @@ pytestmark = pytest.mark.offline
 #   sfc_value(d, t, p)    = d*12 + t*3 + p
 #   pl_value(d, t, p, l)  = 36 + d*36 + t*9 + p*3 + l
 
-SFC_REQUEST = (
-    "type=an,class=ea,domain=g,expver=0001,stream=oper,"
-    "date=2020-01-01/2020-01-02/2020-01-03,levtype=sfc,step=0,"
-    "param=165/166/167,time=0/600/1200/1800"
-)
+SFC_REQUEST = {
+    "type": "an", "class": "ea", "domain": "g", "expver": "0001", "stream": "oper",
+    "date": ["2020-01-01", "2020-01-02", "2020-01-03"],
+    "levtype": "sfc", "step": 0,
+    "param": [165, 166, 167],
+    "time": [0, 600, 1200, 1800],
+}
 
-PL_REQUEST = (
-    "type=an,class=ea,domain=g,expver=0001,stream=oper,"
-    "date=2020-01-01/2020-01-02/2020-01-03,levtype=pl,step=0,"
-    "param=131/132/133,levelist=50/100/150,time=0/600/1200/1800"
-)
+PL_REQUEST = {
+    "type": "an", "class": "ea", "domain": "g", "expver": "0001", "stream": "oper",
+    "date": ["2020-01-01", "2020-01-02", "2020-01-03"],
+    "levtype": "pl", "step": 0,
+    "param": [131, 132, 133],
+    "levelist": [50, 100, 150],
+    "time": [0, 600, 1200, 1800],
+}
 
 
 def test_individual_chunking_combined_datetime_axis(

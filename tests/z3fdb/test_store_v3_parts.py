@@ -19,16 +19,12 @@ def test_axis_check_merge(read_only_fdb_setup_for_sfc_pl_example) -> None:
     """
     builder = SimpleStoreBuilder(read_only_fdb_setup_for_sfc_pl_example)
     builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "date=2020-01-01/2020-01-02,"
-        "levtype=sfc,"
-        "step=0,"
-        "param=165/166,"
-        "time=0/to/21/by/3",
+        {
+            "type": "an", "class": "ea", "domain": "g", "expver": "0001",
+            "stream": "oper", "date": ["2020-01-01", "2020-01-02"],
+            "levtype": "sfc", "step": 0, "param": [165, 166],
+            "time": "0/to/21/by/3",
+        },
         [
             AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
@@ -36,17 +32,12 @@ def test_axis_check_merge(read_only_fdb_setup_for_sfc_pl_example) -> None:
         ExtractorType.GRIB,
     )
     builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "date=2020-01-01/2020-01-02,"
-        "levtype=pl,"
-        "step=0,"
-        "param=131/132,"
-        "levelist=50/100,"
-        "time=0/to/21/by/3",
+        {
+            "type": "an", "class": "ea", "domain": "g", "expver": "0001",
+            "stream": "oper", "date": ["2020-01-01", "2020-01-02"],
+            "levtype": "pl", "step": 0, "param": [131, 132],
+            "levelist": [50, 100], "time": "0/to/21/by/3",
+        },
         [
             AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
             AxisDefinition(["param", "levelist"], Chunking.SINGLE_VALUE),
@@ -71,16 +62,12 @@ def test_axis_check_merge(read_only_fdb_setup_for_sfc_pl_example) -> None:
 def test_axis_check_merge_no_chunking(read_only_fdb_setup_for_sfc_pl_example) -> None:
     builder = SimpleStoreBuilder(read_only_fdb_setup_for_sfc_pl_example)
     builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "date=2020-01-01/2020-01-02,"
-        "levtype=sfc,"
-        "step=0,"
-        "param=165/166,"
-        "time=0/to/21/by/3",
+        {
+            "type": "an", "class": "ea", "domain": "g", "expver": "0001",
+            "stream": "oper", "date": ["2020-01-01", "2020-01-02"],
+            "levtype": "sfc", "step": 0, "param": [165, 166],
+            "time": "0/to/21/by/3",
+        },
         [
             AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
             AxisDefinition(["param"], Chunking.NONE),
@@ -88,17 +75,12 @@ def test_axis_check_merge_no_chunking(read_only_fdb_setup_for_sfc_pl_example) ->
         ExtractorType.GRIB,
     )
     builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "date=2020-01-01/2020-01-02,"
-        "levtype=pl,"
-        "step=0,"
-        "param=131/132,"
-        "levelist=50/100,"
-        "time=0/to/21/by/3",
+        {
+            "type": "an", "class": "ea", "domain": "g", "expver": "0001",
+            "stream": "oper", "date": ["2020-01-01", "2020-01-02"],
+            "levtype": "pl", "step": 0, "param": [131, 132],
+            "levelist": [50, 100], "time": "0/to/21/by/3",
+        },
         [
             AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
             AxisDefinition(["param", "levelist"], Chunking.NONE),
@@ -120,32 +102,19 @@ def test_axis_check_merge_no_chunking(read_only_fdb_setup_for_sfc_pl_example) ->
     assert np.all(data[0, 5] == 34)  # date=20200101 time=0, v (pl 132) level=100
 
 
-SFC_REQUEST = (
-    "type=an,"
-    "class=ea,"
-    "domain=g,"
-    "expver=0001,"
-    "stream=oper,"
-    "date=2020-01-01/2020-01-02,"
-    "levtype=sfc,"
-    "step=0,"
-    "param=165/166,"
-    "time=0/to/21/by/3"
-)
+SFC_REQUEST = {
+    "type": "an", "class": "ea", "domain": "g", "expver": "0001",
+    "stream": "oper", "date": ["2020-01-01", "2020-01-02"],
+    "levtype": "sfc", "step": 0, "param": [165, 166],
+    "time": "0/to/21/by/3",
+}
 
-PL_REQUEST = (
-    "type=an,"
-    "class=ea,"
-    "domain=g,"
-    "expver=0001,"
-    "stream=oper,"
-    "date=2020-01-01/2020-01-02,"
-    "levtype=pl,"
-    "step=0,"
-    "param=131/132,"
-    "levelist=50/100,"
-    "time=0/to/21/by/3"
-)
+PL_REQUEST = {
+    "type": "an", "class": "ea", "domain": "g", "expver": "0001",
+    "stream": "oper", "date": ["2020-01-01", "2020-01-02"],
+    "levtype": "pl", "step": 0, "param": [131, 132],
+    "levelist": [50, 100], "time": "0/to/21/by/3",
+}
 
 
 def test_extend_on_axis_0(read_only_fdb_setup_for_sfc_pl_example) -> None:

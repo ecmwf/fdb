@@ -27,10 +27,13 @@ explained immediately after the code block.
    builder = SimpleStoreBuilder()
 
    builder.add_part(
-       "class=od,domain=g,expver=0001,stream=oper,type=fc,"
-       "date=2020-01-01/2020-01-02,"   # 2 dates
-       "time=0000/0600/1200/1800,"     # 4 times
-       "levtype=sfc,step=0,param=167",
+       {
+           "class": "od", "domain": "g", "expver": "0001", "stream": "oper",
+           "type": "fc",
+           "date": ["2020-01-01", "2020-01-02"],   # 2 dates
+           "time": ["0000", "0600", "1200", "1800"],  # 4 times
+           "levtype": "sfc", "step": 0, "param": 167,
+       },
        [
            AxisDefinition(["date"], Chunking.SINGLE_VALUE),  # → Dim 0, size 2
            AxisDefinition(["time"], Chunking.SINGLE_VALUE),  # → Dim 1, size 4
@@ -147,7 +150,11 @@ Pass both keys to one :class:`~pychunked_data_view.AxisDefinition`:
 .. code-block:: python
 
    builder.add_part(
-       "class=od,...,date=2020-01-01/2020-01-02,time=0000/0600/1200/1800,...",
+       {
+           "class": "od", ...,
+           "date": ["2020-01-01", "2020-01-02"],
+           "time": ["0000", "0600", "1200", "1800"], ...,
+       },
        [
            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),  # → Dim 0, size 8
        ],
@@ -188,11 +195,14 @@ dimension grows across the two ``parts``.
 
    # Part 1 — surface parameters (levtype=sfc): 2 params
    builder.add_part(
-       "class=ea,domain=g,expver=0001,stream=oper,type=an,step=0,"
-       "date=2020-01-01/2020-01-02,"
-       "time=0000/0600/1200/1800,"
-       "levtype=sfc,"
-       "param=165/166",               # 2 surface params
+       {
+           "class": "ea", "domain": "g", "expver": "0001", "stream": "oper",
+           "type": "an", "step": 0,
+           "date": ["2020-01-01", "2020-01-02"],
+           "time": ["0000", "0600", "1200", "1800"],
+           "levtype": "sfc",
+           "param": [165, 166],               # 2 surface params
+       },
        [
            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),  # Dim 0 — 8 entries
            AxisDefinition(["param"],        Chunking.SINGLE_VALUE),  # Dim 1 — 2 entries
@@ -202,12 +212,15 @@ dimension grows across the two ``parts``.
 
    # Part 2 — pressure-level parameters (levtype=pl): 2 params × 3 levels = 6 entries
    builder.add_part(
-       "class=ea,domain=g,expver=0001,stream=oper,type=an,step=0,"
-       "date=2020-01-01/2020-01-02,"
-       "time=0000/0600/1200/1800,"
-       "levtype=pl,"
-       "param=131/132,"               # 2 pressure-level params
-       "levelist=500/850/1000",        # 3 levels
+       {
+           "class": "ea", "domain": "g", "expver": "0001", "stream": "oper",
+           "type": "an", "step": 0,
+           "date": ["2020-01-01", "2020-01-02"],
+           "time": ["0000", "0600", "1200", "1800"],
+           "levtype": "pl",
+           "param": [131, 132],               # 2 pressure-level params
+           "levelist": [500, 850, 1000],       # 3 levels
+       },
        [
            AxisDefinition(["date", "time"],       Chunking.SINGLE_VALUE),  # Dim 0 — must match Part 1
            AxisDefinition(["param", "levelist"],  Chunking.SINGLE_VALUE),  # Dim 1 — 6 entries

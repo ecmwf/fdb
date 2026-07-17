@@ -6,15 +6,35 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 import enum
 import pathlib
+from typing import TypeAlias
 
 import chunked_data_view_bindings.chunked_data_view_bindings as pdv
 
 from pychunked_data_view.exceptions import MarsRequestFormattingError, InternalError
 
+# Init the bindings (eckit initialization)
 pdv.init_bindings()
+
+
+MarsSelection: TypeAlias = Mapping[
+    str, str | int | float | Collection[str | int | float]
+]
+
+
+# Mapping functionality for MarsSelection
+def _mars_selection_to_string(request: MarsSelection) -> str:
+    parts = []
+    for key, value in request.items():
+        if isinstance(value, (str, int, float)):
+            joined = str(value)
+        else:
+            joined = "/".join(str(v) for v in value)
+        parts.append(f"{key}={joined}")
+    return ",".join(parts)
 
 
 class Chunking(enum.Enum):
@@ -126,12 +146,14 @@ class ChunkedDataViewBuilder:
 
     def add_part(
         self,
-        mars_request_key_values: str,
+        mars_request: MarsSelection,
         axes: list[AxisDefinition],
         extractor_type: ExtractorType,
     ):
         self._obj.add_part(
-            mars_request_key_values, [ax._obj for ax in axes], extractor_type.value
+            _mars_selection_to_string(mars_request),
+            [ax._obj for ax in axes],
+            extractor_type.value,
         )
 
     def extend_on_axis(self, axis: int):
