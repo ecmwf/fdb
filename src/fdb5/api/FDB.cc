@@ -84,7 +84,10 @@ FDB::~FDB() {
 }
 
 FDB::FDB(FDB&& rhs) noexcept :
-    internal_(std::move(rhs.internal_)), dirty_(rhs.dirty_), reportStats_(rhs.reportStats_), stats_(rhs.stats_) {
+    internal_(std::move(rhs.internal_)),
+    dirty_(rhs.dirty_),
+    reportStats_(rhs.reportStats_),
+    stats_(std::move(rhs.stats_)) {
     /// @note don't transfer mutex_. Clear the moved-from's dirty flag.
     rhs.dirty_ = false;
 }
@@ -94,7 +97,7 @@ FDB& FDB::operator=(FDB&& rhs) noexcept {
         internal_ = std::move(rhs.internal_);
         dirty_ = rhs.dirty_;
         reportStats_ = rhs.reportStats_;
-        stats_ = rhs.stats_;
+        stats_ = std::move(rhs.stats_);
         rhs.dirty_ = false;
     }
     return *this;
