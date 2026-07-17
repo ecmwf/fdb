@@ -25,8 +25,11 @@
 
 #include "eckit/testing/Test.h"
 
+#include <atomic>
 #include <cstddef>
+#include <exception>
 #include <functional>
+#include <iostream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -186,6 +189,80 @@ CASE("Multi-thread: archive contention (same key)") {
     EXPECT_EQUAL(list_count(fdb, request, fdb5::ListMode::Full), static_cast<size_t>(count));
     // retrieve the single field and verify the bytes
     EXPECT(retrieve_equals(fdb, contend_key(), contend_data()));
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+CASE("Multi-thread: concurrent archive + flush (shared FDB)") {
+    const int count = thread_count();
+
+    TestFixture fixture(count);
+
+    fdb5::FDB shared;
+
+    // archiver threads
+    std::vector<int> results(static_cast<size_t>(count), -1);
+    std::vector<std::thread> archivers;
+    archivers.reserve(static_cast<size_t>(count));
+    for (int id = 0; id < count; ++id) {
+        archivers.emplace_back([id, &shared, &results]() {
+            int result = 0;
+            try {
+                for (int seq = 0; seq < k_seq_per_worker; ++seq) {
+                    const auto key = make_key(id, seq);
+                    const auto data = make_data(id, seq);
+                    shared.archive(key, static_cast<const void*>(data.data()), data.size());
+                }
+            }
+            catch (const std::exception& e) {
+                std::cerr << "[thread] archive failed: " << e.what() << '\n';
+                result = 1;
+            }
+            results[static_cast<size_t>(id)] = result;
+        });
+    }
+
+    // Flusher threads
+    std::atomic<bool> stop{false};
+    std::atomic<bool> flush_ok{true};
+    std::vector<std::thread> flushers;
+    flushers.reserve(2);
+    for (int f = 0; f < 2; ++f) {
+        flushers.emplace_back([&shared, &stop, &flush_ok]() {
+            while (!stop.load(std::memory_order_relaxed)) {
+                try {
+                    shared.flush();
+                }
+                catch (const std::exception& e) {
+                    std::cerr << "[thread] flush failed: " << e.what() << '\n';
+                    flush_ok.store(false, std::memory_order_relaxed);
+                    return;
+                }
+                std::this_thread::yield();
+            }
+        });
+    }
+
+    for (auto& thread : archivers) {
+        thread.join();
+    }
+    stop.store(true, std::memory_order_relaxed);
+    for (auto& thread : flushers) {
+        thread.join();
+    }
+
+    shared.flush();
+
+    expect_workers_ok(results);
+    EXPECT(flush_ok.load(std::memory_order_relaxed));
+
+    fdb5::FDB fdb;
+    EXPECT(list_steps(fdb) == expected_steps(count));
+    for (int worker = 0; worker < count; ++worker) {
+        for (int seq = 0; seq < k_seq_per_worker; ++seq) {
+            EXPECT(retrieve_equals(fdb, make_key(worker, seq), make_data(worker, seq)));
+        }
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
