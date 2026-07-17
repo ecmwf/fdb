@@ -16,8 +16,7 @@
 /// @author Simon Smart
 /// @date   Mar 2018
 
-#ifndef fdb5_api_FDB_H
-#define fdb5_api_FDB_H
+#pragma once
 
 #include "fdb5/api/FDBStats.h"
 #include "fdb5/api/helpers/AxesIterator.h"
@@ -31,8 +30,6 @@
 #include "fdb5/api/helpers/StatusIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
-
-#include "eckit/distributed/Transport.h"  // why?
 
 #include <iosfwd>
 #include <memory>
@@ -313,5 +310,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif  // fdb5_api_FDB_H
