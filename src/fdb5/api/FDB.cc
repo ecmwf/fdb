@@ -83,12 +83,13 @@ FDB::~FDB() {
     }
 }
 
+/// @note Moves are not thread-safe with respect to concurrent use of the source
 FDB::FDB(FDB&& rhs) noexcept :
     internal_(std::move(rhs.internal_)),
     dirty_(rhs.dirty_),
     reportStats_(rhs.reportStats_),
     stats_(std::move(rhs.stats_)) {
-    /// @note don't transfer mutex_. Clear the moved-from's dirty flag.
+    // clear the dirty flag so its destructor does not flush its now null internal_
     rhs.dirty_ = false;
 }
 
