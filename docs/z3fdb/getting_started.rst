@@ -10,7 +10,7 @@ Prerequisites
 
 * Z3FDB installed — see :ref:`Z3FDB_Introduction` for build instructions.
 * An FDB instance containing GRIB data accessible from your environment.
-* ``zarr`` installed (``pip install zarr``).
+* ``zarr`` installed..
 
 Your First Store
 ----------------
@@ -28,11 +28,16 @@ explained immediately after the code block.
 
    builder.add_part(
        {
-           "class": "od", "domain": "g", "expver": "0001", "stream": "oper",
+           "class": "od",
+           "domain": "g",
+           "expver": "0001",
+           "stream": "oper",
            "type": "fc",
            "date": ["2020-01-01", "2020-01-02"],   # 2 dates
            "time": ["0000", "0600", "1200", "1800"],  # 4 times
-           "levtype": "sfc", "step": 0, "param": 167,
+           "levtype": "sfc",
+           "step": 0,
+           "param": 167,
        },
        [
            AxisDefinition(["date"], Chunking.SINGLE_VALUE),  # → Dim 0, size 2
@@ -72,7 +77,7 @@ After ``build()``, ``data`` is a 3-dimensional array:
 
 .. code-block:: text
 
-   data.shape  →  (2, 4, N)
+   data.shape  ->  (2, 4, N)
 
    Dim 0 — date:        2 entries  (2020-01-01, 2020-01-02)
    Dim 1 — time:        4 entries  (0000, 0600, 1200, 1800)
@@ -151,12 +156,14 @@ Pass both keys to one :class:`~pychunked_data_view.AxisDefinition`:
 
    builder.add_part(
        {
-           "class": "od", ...,
+           "class": "od", 
+           ...,
            "date": ["2020-01-01", "2020-01-02"],
-           "time": ["0000", "0600", "1200", "1800"], ...,
+           "time": ["0000", "0600", "1200", "1800"], 
+           ...,
        },
        [
-           AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),  # → Dim 0, size 8
+           AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),  # -> Dim 0, size 8
        ],
        ExtractorType.GRIB,
    )
@@ -196,8 +203,12 @@ dimension grows across the two ``parts``.
    # Part 1 — surface parameters (levtype=sfc): 2 params
    builder.add_part(
        {
-           "class": "ea", "domain": "g", "expver": "0001", "stream": "oper",
-           "type": "an", "step": 0,
+           "class": "ea",
+           "domain": "g",
+           "expver": "0001",
+           "stream": "oper",
+           "type": "an",
+           "step": 0,
            "date": ["2020-01-01", "2020-01-02"],
            "time": ["0000", "0600", "1200", "1800"],
            "levtype": "sfc",
@@ -213,8 +224,12 @@ dimension grows across the two ``parts``.
    # Part 2 — pressure-level parameters (levtype=pl): 2 params × 3 levels = 6 entries
    builder.add_part(
        {
-           "class": "ea", "domain": "g", "expver": "0001", "stream": "oper",
-           "type": "an", "step": 0,
+           "class": "ea",
+           "domain": "g",
+           "expver": "0001",
+           "stream": "oper",
+           "type": "an",
+           "step": 0,
            "date": ["2020-01-01", "2020-01-02"],
            "time": ["0000", "0600", "1200", "1800"],
            "levtype": "pl",

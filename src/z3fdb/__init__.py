@@ -37,9 +37,15 @@ other. The remaining axis have to have the same cardinality.
 
    builder.add_part(
        {
-           "type": "an", "class": "ea", "domain": "g", "expver": "0001",
-           "stream": "oper", "date": ["2020-01-01", "2020-01-02"],
-           "levtype": "sfc", "step": 0, "param": [165, 166],
+           "type": "an",
+           "class": "ea",
+           "domain": "g",
+           "expver": "0001",
+           "stream": "oper",
+           "date": ["2020-01-01", "2020-01-02"],
+           "levtype": "sfc",
+           "step": 0,
+           "param": [165, 166],
            "time": "0/to/21/by/3",
        },
        [
@@ -50,10 +56,17 @@ other. The remaining axis have to have the same cardinality.
    )
    builder.add_part(
        {
-           "type": "an", "class": "ea", "domain": "g", "expver": "0001",
-           "stream": "oper", "date": ["2020-01-01", "2020-01-02"],
-           "levtype": "pl", "step": 0, "param": [131, 132],
-           "levelist": [50, 100], "time": "0/to/21/by/3",
+           "type": "an",
+           "class": "ea",
+           "domain": "g",
+           "expver": "0001",
+           "stream": "oper",
+           "date": ["2020-01-01", "2020-01-02"],
+           "levtype": "pl",
+           "step": 0,
+           "param": [131, 132],
+           "levelist": [50, 100],
+           "time": "0/to/21/by/3",
        },
        [
            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),

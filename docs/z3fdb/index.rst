@@ -1,8 +1,7 @@
 .. _Z3FDB_Introduction:
 
-########################
 Z3FDB
-########################
+=====
 
 :Version: |version|
 
@@ -17,8 +16,10 @@ Z3FDB
    technical_insights
    api
 
+
+
 Introduction
-############
+------------
 
 Z3FDB enables FDB to function as a `Zarr <https://zarr.dev>`_ store without
 copying your GRIB data. You describe which data you want through MARS requests,
@@ -34,7 +35,7 @@ data is decoded to float32 in memory.
    accessed through Z3FDB.
 
 When to use Z3FDB
-#################
+-----------------
 
 Z3FDB is a good fit when a 2–5× slowdown compared to on-disk Zarr is
 acceptable. That trade-off makes sense in two situations:
@@ -50,7 +51,7 @@ acceptable. That trade-off makes sense in two situations:
    and Zarr. Z3FDB gives you Zarr-compatible access with zero extra storage.
 
 Installation
-############
+------------
 
 Z3FDB requires ``libfdb5`` to be present at runtime.
 
@@ -75,14 +76,9 @@ To verify the installation, run the test suite:
    pytest <FDB_SRC_FOLDER>/tests/z3fdb
 
 Next steps
-##########
+----------
 
-New to Z3FDB? Start with the step-by-step tutorial:
-
-.. toctree::
-   :maxdepth: 1
-
-   getting_started
+New to Z3FDB? Start with the step-by-step tutorial: :doc:`getting_started`.
 
 For a full reference on how MARS keywords map to Zarr dimensions, chunking
 strategies, fill values, and multi-part views, see :doc:`dimension_mapping`.
