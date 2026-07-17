@@ -64,7 +64,27 @@ may also be set to help find libuuid library.
 
 #]=======================================================================]
 
-find_path(LIB_UUID_INCLUDE_DIR uuid.h
+set(_libuuid_extra_hints)
+if(APPLE)
+  find_program(_libuuid_brew_executable brew)
+  if(_libuuid_brew_executable)
+    execute_process(
+      COMMAND ${_libuuid_brew_executable} --prefix util-linux
+      OUTPUT_VARIABLE _libuuid_util_linux_prefix
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      ERROR_QUIET)
+    if(_libuuid_util_linux_prefix)
+      list(APPEND _libuuid_extra_hints "${_libuuid_util_linux_prefix}")
+    endif()
+  endif()
+  list(APPEND _libuuid_extra_hints
+    /opt/homebrew/opt/util-linux
+    /usr/local/opt/util-linux)
+  set(_libuuid_saved_find_framework "${CMAKE_FIND_FRAMEWORK}")
+  set(CMAKE_FIND_FRAMEWORK NEVER)
+endif()
+
+find_path(LIB_UUID_INCLUDE_DIR uuid/uuid.h
     HINTS
         ${LIB_UUID_ROOT}
         ${LIB_UUID_DIR}
@@ -72,7 +92,8 @@ find_path(LIB_UUID_INCLUDE_DIR uuid.h
         ENV LIB_UUID_ROOT
         ENV LIB_UUID_DIR
         ENV LIB_UUID_PATH
-    PATH_SUFFIXES uuid
+        ${_libuuid_extra_hints}
+    PATH_SUFFIXES include
 )
 
 find_library(LIB_UUID_LIBRARY
@@ -84,8 +105,14 @@ find_library(LIB_UUID_LIBRARY
         ENV LIB_UUID_ROOT
         ENV LIB_UUID_DIR
         ENV LIB_UUID_PATH
+        ${_libuuid_extra_hints}
     PATH_SUFFIXES lib lib64
 )
+
+if(APPLE)
+  set(CMAKE_FIND_FRAMEWORK "${_libuuid_saved_find_framework}")
+  unset(_libuuid_saved_find_framework)
+endif()
 
 include(FindPackageHandleStandardArgs)
 
