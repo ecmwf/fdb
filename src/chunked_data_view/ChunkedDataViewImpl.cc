@@ -70,6 +70,13 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::sh
     const auto& first_part = std::get<0>(parts_[0]);
     chunkedDataViewShape_ = first_part.extension();
 
+    if (extensionAxisIndex_ >= first_part.extension().size()) {
+        std::ostringstream ss;
+        ss << "ChunkedDataViewImpl: Extension axis is not referring to a valid axis index. Possible axis are: 0-";
+        ss << first_part.extension().size() - 1 << ". Your selection is: " << extensionAxisIndex << std::endl;
+        throw eckit::UserError(ss.str());
+    }
+
     {
         size_t extensionOnExtensionAxis = 0;
 
@@ -89,13 +96,6 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::sh
     }
     // Add the implicit dimension
     chunkedDataViewShape_.push_back(first_part.layout().countValues);
-
-    if (extensionAxisIndex_ >= first_part.extension().size()) {  // The implicit dimension must be subtracted
-        std::ostringstream ss;
-        ss << "ChunkedDataViewImpl: Extension axis is not referring to a valid axis index. Possible axis are: 0-";
-        ss << first_part.extension().size() - 1 << ". Your selection is: " << extensionAxisIndex << std::endl;
-        throw eckit::UserError(ss.str());
-    }
 
     if (!checkForEqualChunking(parts_)) {
         throw eckit::UserError("ChunkedDataViewImpl::constructor: view parts need to have same chunking extensions.");
