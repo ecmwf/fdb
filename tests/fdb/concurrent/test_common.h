@@ -75,11 +75,11 @@ inline int env_int(const char* name, int fallback) {
 }
 
 inline int process_count() {
-    return env_int("TEST_FDB_PROCESS_COUNT", 4);
+    return env_int("TEST_FDB_PROCESS_COUNT", 8);
 }
 
 inline int thread_count() {
-    return env_int("TEST_FDB_THREAD_COUNT", 4);
+    return env_int("TEST_FDB_THREAD_COUNT", 8);
 }
 
 /// Absolute path to the test schema (configured by CMake under $FDB_HOME/etc/fdb/schema).
