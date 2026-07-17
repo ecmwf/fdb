@@ -34,6 +34,7 @@
 #include "eckit/testing/ProcessFork.h"
 #include "eckit/testing/Test.h"
 
+#include <algorithm>
 #include <array>
 #include <cstdlib>
 #include <iostream>
@@ -75,11 +76,11 @@ inline int env_int(const char* name, int fallback) {
 }
 
 inline int process_count() {
-    return env_int("TEST_FDB_PROCESS_COUNT", 8);
+    return std::max(1, env_int("TEST_FDB_PROCESS_COUNT", 8));
 }
 
 inline int thread_count() {
-    return env_int("TEST_FDB_THREAD_COUNT", 8);
+    return std::max(1, env_int("TEST_FDB_THREAD_COUNT", 8));
 }
 
 /// Absolute path to the test schema (configured by CMake under $FDB_HOME/etc/fdb/schema).
