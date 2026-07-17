@@ -267,7 +267,7 @@ not expose this setting):
    from pychunked_data_view import ChunkedDataViewBuilder, AxisDefinition, Chunking, ExtractorType
 
    builder = ChunkedDataViewBuilder(fdb_config_file=None)
-   builder.add_part("...", [...], ExtractorType.GRIB)
+   builder.add_part({...}, [...], ExtractorType.GRIB)
    builder.fill_value(float("nan"))   # use NaN instead of inf
    view = builder.build()
    print(view.fillValue())  # float('nan')
@@ -291,7 +291,7 @@ the same number of values across ``parts``.
    # Dimension N is the number of values in the grid
    # Resulting shape of this part is [D, P1, N]
    builder.add_part(
-       "levtype=sfc,param=165/166,...",
+       {"levtype": "sfc", "param": [165, 166], ...},
        [
            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
            AxisDefinition(["param"], Chunking.SINGLE_VALUE),
@@ -305,7 +305,7 @@ the same number of values across ``parts``.
    # Dimension N is the number of values in the grid
    # Resulting shape of this part is [D, P2, N]
    builder.add_part(
-       "levtype=pl,param=131/132,levelist=50/100,...",
+       {"levtype": "pl", "param": [131, 132], "levelist": [50, 100], ...},
        [
            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
            AxisDefinition(["param", "levelist"], Chunking.SINGLE_VALUE),

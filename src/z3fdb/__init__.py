@@ -36,16 +36,12 @@ other. The remaining axis have to have the same cardinality.
 .. code-block:: python
 
    builder.add_part(
-       "type=an,"
-       "class=ea,"
-       "domain=g,"
-       "expver=0001,"
-       "stream=oper,"
-       "date=2020-01-01/2020-01-02,"
-       "levtype=sfc,"
-       "step=0,"
-       "param=165/166,"
-       "time=0/to/21/by/3",
+       {
+           "type": "an", "class": "ea", "domain": "g", "expver": "0001",
+           "stream": "oper", "date": ["2020-01-01", "2020-01-02"],
+           "levtype": "sfc", "step": 0, "param": [165, 166],
+           "time": "0/to/21/by/3",
+       },
        [
            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
            AxisDefinition(["param"], Chunking.SINGLE_VALUE)
@@ -53,17 +49,12 @@ other. The remaining axis have to have the same cardinality.
        ExtractorType.GRIB,
    )
    builder.add_part(
-       "type=an,"
-       "class=ea,"
-       "domain=g,"
-       "expver=0001,"
-       "stream=oper,"
-       "date=2020-01-01/2020-01-02,"
-       "levtype=pl,"
-       "step=0,"
-       "param=131/132,"
-       "levelist=50/100,"
-       "time=0/to/21/by/3",
+       {
+           "type": "an", "class": "ea", "domain": "g", "expver": "0001",
+           "stream": "oper", "date": ["2020-01-01", "2020-01-02"],
+           "levtype": "pl", "step": 0, "param": [131, 132],
+           "levelist": [50, 100], "time": "0/to/21/by/3",
+       },
        [
            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
            AxisDefinition(["param", "levelist"], Chunking.SINGLE_VALUE)
@@ -91,6 +82,7 @@ from pychunked_data_view.chunked_data_view import (
     AxisDefinition,
     Chunking,
     ExtractorType,
+    MarsSelection,
 )
 from z3fdb.simple_store_builder import (
     SimpleStoreBuilder,
@@ -102,6 +94,7 @@ __all__ = [
     "AxisDefinition",
     "Chunking",
     "ExtractorType",
+    "MarsSelection",
     "SimpleStoreBuilder",
     "Z3fdbError",
 ]

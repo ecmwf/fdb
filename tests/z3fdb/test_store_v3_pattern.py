@@ -15,20 +15,17 @@ logging.basicConfig(level=logging.DEBUG)
 
 pytestmark = pytest.mark.offline
 
+PATTERN_REQUEST = {
+    "type": "an", "class": "ea", "domain": "g", "expver": "0001", "stream": "oper",
+    "date": "2020-01-01/to/2020-01-03", "levtype": "sfc", "step": 0,
+    "param": [165, 166, 167], "time": "0/to/21/by/6",
+}
+
 
 def test_access_pattern(read_only_fdb_pattern_setup) -> None:
     builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
     builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "date=2020-01-01/to/2020-01-03,"
-        "levtype=sfc,"
-        "step=0,"
-        "param=165/166/167,"
-        "time=0/to/21/by/6",
+        PATTERN_REQUEST,
         [
             AxisDefinition(["date"], Chunking.SINGLE_VALUE),
             AxisDefinition(["time"], Chunking.SINGLE_VALUE),
@@ -70,16 +67,7 @@ def test_access_pattern_shuffled_chunked(
 
     builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
     builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "date=2020-01-01/to/2020-01-03,"
-        "levtype=sfc,"
-        "step=0,"
-        "param=165/166/167,"
-        "time=0/to/21/by/6",
+        PATTERN_REQUEST,
         axis_permutation,
         ExtractorType.GRIB,
     )
@@ -146,16 +134,7 @@ def test_access_pattern_shuffled_partially_chunked(
 
     builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
     builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "date=2020-01-01/to/2020-01-03,"
-        "levtype=sfc,"
-        "step=0,"
-        "param=165/166/167,"
-        "time=0/to/21/by/6",
+        PATTERN_REQUEST,
         axis_permutation,
         ExtractorType.GRIB,
     )
@@ -201,16 +180,7 @@ def test_access_pattern_shuffled_partially_chunked(
 def test_access_pattern_non_chunked(read_only_fdb_pattern_setup) -> None:
     builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
     builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "date=2020-01-01/to/2020-01-03,"
-        "levtype=sfc,"
-        "step=0,"
-        "param=165/166/167,"
-        "time=0/to/21/by/6",
+        PATTERN_REQUEST,
         [
             AxisDefinition(["date"], Chunking.NONE),
             AxisDefinition(["time"], Chunking.NONE),
@@ -234,16 +204,7 @@ def test_access_pattern_non_chunked(read_only_fdb_pattern_setup) -> None:
 def test_access_pattern_non_chunked_mixed(read_only_fdb_pattern_setup) -> None:
     builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
     builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "date=2020-01-01/to/2020-01-03,"
-        "levtype=sfc,"
-        "step=0,"
-        "param=165/166/167,"
-        "time=0/to/21/by/6",
+        PATTERN_REQUEST,
         [
             AxisDefinition(["time"], Chunking.NONE),
             AxisDefinition(["date"], Chunking.NONE),
@@ -267,16 +228,7 @@ def test_access_pattern_non_chunked_mixed(read_only_fdb_pattern_setup) -> None:
 def test_access_pattern_merged_axis_non_chunked(read_only_fdb_pattern_setup) -> None:
     builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
     builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "date=2020-01-01/to/2020-01-03,"
-        "levtype=sfc,"
-        "step=0,"
-        "param=165/166/167,"
-        "time=0/to/21/by/6",
+        PATTERN_REQUEST,
         [
             AxisDefinition(["date", "time"], Chunking.NONE),
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
@@ -302,16 +254,7 @@ def test_access_pattern_merged_axis_non_chunked_switched_date_time(
 ) -> None:
     builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
     builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "date=2020-01-01/to/2020-01-03,"
-        "levtype=sfc,"
-        "step=0,"
-        "param=165/166/167,"
-        "time=0/to/21/by/6",
+        PATTERN_REQUEST,
         [
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
             AxisDefinition(["time", "date"], Chunking.NONE),

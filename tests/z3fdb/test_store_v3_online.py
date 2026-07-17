@@ -32,9 +32,6 @@ from pychunked_data_view import (
 )
 from pyfdb import FDB
 from z3fdb import SimpleStoreBuilder
-from z3fdb import AxisDefinition as Z3AxisDefinition
-from z3fdb import Chunking as Z3Chunking
-from z3fdb import ExtractorType as Z3ExtractorType
 
 pytestmark = pytest.mark.online
 
@@ -108,8 +105,18 @@ def test_bitmap_missing_points_become_fill_value(fdb_with_swh_bitmap):
 
     builder = ChunkedDataViewBuilder(config_path)
     builder.add_part(
-        "class=od,expver=0001,stream=wave,domain=g,type=fc,levtype=sfc,"
-        f"date={date:%Y%m%d},time=0000,step=0,param=140229",
+        {
+            "class": "od",
+            "expver": "0001",
+            "stream": "wave",
+            "domain": "g",
+            "type": "fc",
+            "levtype": "sfc",
+            "date": date.strftime("%Y%m%d"),
+            "time": "0000",
+            "step": 0,
+            "param": 140229,
+        },
         [AxisDefinition(["step"], Chunking.SINGLE_VALUE)],
         ExtractorType.GRIB,
     )
@@ -129,10 +136,20 @@ def test_fill_value_propagated_to_zarr_metadata(fdb_with_swh_bitmap):
 
     builder = SimpleStoreBuilder(config_path)
     builder.add_part(
-        "class=od,expver=0001,stream=wave,domain=g,type=fc,levtype=sfc,"
-        f"date={date:%Y%m%d},time=0000,step=0,param=140229",
-        [Z3AxisDefinition(["step"], Z3Chunking.SINGLE_VALUE)],
-        Z3ExtractorType.GRIB,
+        {
+            "class": "od",
+            "expver": "0001",
+            "stream": "wave",
+            "domain": "g",
+            "type": "fc",
+            "levtype": "sfc",
+            "date": date.strftime("%Y%m%d"),
+            "time": "0000",
+            "step": 0,
+            "param": 140229,
+        },
+        [AxisDefinition(["step"], Chunking.SINGLE_VALUE)],
+        ExtractorType.GRIB,
     )
     builder.fill_value(-20.0)
     store = builder.build()
@@ -147,8 +164,18 @@ def test_default_fill_value_replaces_bitmap_sentinel(fdb_with_swh_bitmap):
 
     builder = ChunkedDataViewBuilder(config_path)
     builder.add_part(
-        "class=od,expver=0001,stream=wave,domain=g,type=fc,levtype=sfc,"
-        f"date={date:%Y%m%d},time=0000,step=0,param=140229",
+        {
+            "class": "od",
+            "expver": "0001",
+            "stream": "wave",
+            "domain": "g",
+            "type": "fc",
+            "levtype": "sfc",
+            "date": date.strftime("%Y%m%d"),
+            "time": "0000",
+            "step": 0,
+            "param": 140229,
+        },
         [AxisDefinition(["step"], Chunking.SINGLE_VALUE)],
         ExtractorType.GRIB,
     )
