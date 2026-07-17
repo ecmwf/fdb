@@ -20,7 +20,7 @@ function(add_py_test test)
         PROPERTIES
         RESOURCE_LOCK pytest
         ENVIRONMENT "${_env}"
-        LABELS z3fdb
+        LABELS "z3fdb;z3fdb_offline"
     )
 endfunction()
 
@@ -46,6 +46,15 @@ add_test(
         -m pytest
         --basetemp ${CMAKE_CURRENT_BINARY_DIR}/pytest-tmp
         -vv -s ${CMAKE_CURRENT_SOURCE_DIR}/test_store_v3_online.py
+)
+set(_env
+    "PYTHONPATH=${CMAKE_BINARY_DIR}/z3fdb-python-package-staging:${CMAKE_BINARY_DIR}/pyfdb-python-package-staging:${PYTHONPATH}"
+    #prevent findlibs in pyfdb to pickup any globally installed fdb
+    "FDB5_DIR=${CMAKE_BINARY_DIR}"
+    #prevent findlibs in eccodes-python to pickup any globally installed eccodes
+    "FINDLIBS_DISABLE_PACKAGE=yes"
+    "ECCODES_DIR=$<TARGET_FILE_DIR:eccodes>/.."
+    "ECCODES_PYTHON_USE_FINDLIBS=1"
 )
 set_tests_properties(pychunked_data_view_${online_stem}
     PROPERTIES
