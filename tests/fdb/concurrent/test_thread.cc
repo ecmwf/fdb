@@ -39,6 +39,7 @@ namespace fdb::test::concurrent {
 //----------------------------------------------------------------------------------------------------------------------
 
 constexpr int k_flushers = 2;  // number of concurrent flusher threads
+constexpr int k_max_archive = 1000;
 
 using ThreadWorker = std::function<int(size_t)>;
 
@@ -206,6 +207,9 @@ CASE("Multi-thread: concurrent archive + flush (shared FDB)") {
 
     fdb5::FDB shared;
 
+    std::atomic<size_t> flush_count{0};
+    shared.registerFlushCallback([&flush_count]() { flush_count.fetch_add(1, std::memory_order_relaxed); });
+
     // Flusher threads
     std::atomic<bool> stop{false};
     std::atomic<bool> flush_ok{true};
@@ -227,12 +231,19 @@ CASE("Multi-thread: concurrent archive + flush (shared FDB)") {
         });
     }
 
-    // Archivers
-    const auto results = run_threads(count, [&shared](auto id) {
-        for (int seq = 0; seq < k_seq_per_worker; ++seq) {
-            const auto key = make_key(id, seq);
-            const auto data = make_data(id, seq);
-            shared.archive(key, static_cast<const void*>(data.data()), data.size());
+    // Archivers: each keeps re-archiving its own (disjoint) slice until at least one real flush has
+    // interleaved (bounded, so a broken flush fails the EXPECT below rather than spinning forever).
+    // Re-archiving the same keys just masks the previous versions, so the final result is unchanged.
+    const auto results = run_threads(count, [&shared, &flush_count](auto wid) {
+        for (int round = 0; round < k_max_archive; ++round) {
+            for (int seq = 0; seq < k_seq_per_worker; ++seq) {
+                const auto key = make_key(wid, seq);
+                const auto data = make_data(wid, seq);
+                shared.archive(key, static_cast<const void*>(data.data()), data.size());
+            }
+            if (flush_count.load(std::memory_order_relaxed) > 0) {
+                break;
+            }
         }
         return 0;
     });
@@ -246,6 +257,8 @@ CASE("Multi-thread: concurrent archive + flush (shared FDB)") {
 
     expect_workers_ok(results);
     EXPECT(flush_ok.load(std::memory_order_relaxed));
+    // check interleaved flushes
+    EXPECT(flush_count.load(std::memory_order_relaxed) > 0);
 
     fdb5::FDB fdb;
     EXPECT(list_steps(fdb) == expected_steps(count));
