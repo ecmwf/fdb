@@ -56,8 +56,8 @@ using eckit::testing::parse_worker_args;
 // worker owns a disjoint slice of the key space so the expected result set is fully deterministic:
 // the base key is fixed and every worker varies the "step" it archives via make_step(worker, seq).
 
-/// Number of fields each worker archives into its own (disjoint) slice.
-constexpr int k_seq_per_worker = 3;
+/// Number of fields each worker archives
+constexpr int k_seq_per_worker = 7;
 
 /// Stride separating the step ranges owned by consecutive workers.
 constexpr int k_worker_step_stride = 100;
@@ -298,7 +298,7 @@ inline int worker_list(size_t worker_id) {
 }
 
 /// Compute axes over the whole (pre-archived) database and verify the full step set is visible.
-inline int worker_axes(int count) {
+inline int worker_axes(size_t count) {
     fdb5::FDB fdb;
     WORKER_CHECK(axes_steps(fdb) == expected_steps(count));
     return 0;

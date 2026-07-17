@@ -105,7 +105,7 @@ CASE("Multi-thread: archive (shared FDB)") {
 
     // All threads archive into a single shared FDB
     fdb5::FDB shared;
-    expect_workers_ok(run_threads(count, [&shared](int id) {
+    expect_workers_ok(run_threads(count, [&shared](auto id) {
         for (int seq = 0; seq < k_seq_per_worker; ++seq) {
             const auto key = make_key(id, seq);
             const auto data = make_data(id, seq);
@@ -226,7 +226,7 @@ CASE("Multi-thread: concurrent archive + flush (shared FDB)") {
     }
 
     // Archivers
-    const auto results = run_threads(count, [&shared](int id) {
+    const auto results = run_threads(count, [&shared](auto id) {
         for (int seq = 0; seq < k_seq_per_worker; ++seq) {
             const auto key = make_key(id, seq);
             const auto data = make_data(id, seq);
@@ -266,7 +266,7 @@ CASE("Multi-thread: concurrent reads (shared FDB)") {
 
     constexpr int k_rounds = 4;
 
-    expect_workers_ok(run_threads(count, [&shared](int id) {
+    expect_workers_ok(run_threads(count, [&shared](auto id) {
         for (int round = 0; round < k_rounds; ++round) {
             for (int seq = 0; seq < k_seq_per_worker; ++seq) {
                 const auto key = make_key(id, seq);
@@ -280,8 +280,7 @@ CASE("Multi-thread: concurrent reads (shared FDB)") {
                 // RootManager::fileSpaces() -> Config::getSubConfigurations() copies eckit::Value /
                 // LocalConfiguration objects sharing a non-atomically reference-counted eckit::Counted.
                 // if (list_count(shared, key.request("list"), fdb5::ListMode::Deduplicate) != 1) {
-                //     result = 1;
-                //     break;
+                //     return 1;
                 // }
             }
         }
