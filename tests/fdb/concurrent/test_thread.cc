@@ -38,7 +38,7 @@ namespace fdb::test::concurrent {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-using ThreadWorker = std::function<int(int)>;
+using ThreadWorker = std::function<int(size_t)>;
 
 namespace {
 
@@ -47,12 +47,20 @@ namespace {
 /// all assertions run on the main thread after join().
 
 /// Run @p worker on @p count threads, returning each thread's result (0 = success).
-std::vector<int> run_threads(int count, const ThreadWorker& worker) {
-    std::vector<int> results(static_cast<size_t>(count), -1);
+std::vector<int> run_threads(const size_t count, const ThreadWorker& worker) {
+    std::vector<int> results(count, -1);
     std::vector<std::thread> threads;
-    threads.reserve(static_cast<size_t>(count));
-    for (int id = 0; id < count; ++id) {
-        threads.emplace_back([id, &results, &worker]() { results[static_cast<size_t>(id)] = worker(id); });
+    threads.reserve(count);
+    for (size_t id = 0; id < count; ++id) {
+        threads.emplace_back([id, &results, &worker]() {
+            try {
+                results[id] = worker(id);
+            }
+            catch (const std::exception& error) {
+                std::cerr << "[thread " << id << "] " << error.what() << '\n';
+                results[id] = 1;
+            }
+        });
     }
     for (auto& thread : threads) {
         thread.join();
@@ -62,7 +70,7 @@ std::vector<int> run_threads(int count, const ThreadWorker& worker) {
 
 /// Assert (on the main thread) that every worker thread succeeded.
 void expect_workers_ok(const std::vector<int>& results) {
-    for (int result : results) {
+    for (auto result : results) {
         EXPECT(result == 0);
     }
 }
@@ -72,12 +80,12 @@ void expect_workers_ok(const std::vector<int>& results) {
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("Multi-thread: archive (one FDB per thread)") {
-    const int count = thread_count();
+    const auto count = thread_count();
 
     TestFixture fixture(count);
 
     // Each thread owns its FDB and flushes only its own disjoint slice.
-    expect_workers_ok(run_threads(count, [count](int id) { return worker_archive(id, count); }));
+    expect_workers_ok(run_threads(count, [count](auto wid) { return worker_archive(wid, count); }));
 
     fdb5::FDB fdb;
     EXPECT(list_steps(fdb) == expected_steps(count));
@@ -91,7 +99,7 @@ CASE("Multi-thread: archive (one FDB per thread)") {
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("Multi-thread: archive (shared FDB)") {
-    const int count = thread_count();
+    const auto count = thread_count();
 
     TestFixture fixture(count);
 
@@ -121,35 +129,35 @@ CASE("Multi-thread: archive (shared FDB)") {
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("Multi-thread: retrieve") {
-    const int count = thread_count();
+    const auto count = thread_count();
 
     TestFixture fixture(count);
     archive_all(count);
 
     // Each thread retrieves its own slice through its own FDB and verifies the bytes.
-    expect_workers_ok(run_threads(count, [count](int id) { return worker_retrieve(id, count); }));
+    expect_workers_ok(run_threads(count, [count](auto wid) { return worker_retrieve(wid, count); }));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("Multi-thread: inspect") {
-    const int count = thread_count();
+    const auto count = thread_count();
 
     TestFixture fixture(count);
     archive_all(count);
 
-    expect_workers_ok(run_threads(count, [count](int id) { return worker_inspect(id, count); }));
+    expect_workers_ok(run_threads(count, [count](auto wid) { return worker_inspect(wid, count); }));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("Multi-thread: list") {
-    const int count = thread_count();
+    const auto count = thread_count();
 
     TestFixture fixture(count);
     archive_all(count);
 
-    expect_workers_ok(run_threads(count, [count](int id) { return worker_list(id, count); }));
+    expect_workers_ok(run_threads(count, [count](auto wid) { return worker_list(wid, count); }));
 
     fdb5::FDB fdb;
     EXPECT(list_steps(fdb) == expected_steps(count));
@@ -158,13 +166,13 @@ CASE("Multi-thread: list") {
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("Multi-thread: axes") {
-    const int count = thread_count();
+    const auto count = thread_count();
 
     TestFixture fixture(count);
     archive_all(count);
 
     // Every thread computes axes over the whole database and verifies the full step set.
-    expect_workers_ok(run_threads(count, [count](int id) { return worker_axes(id, count); }));
+    expect_workers_ok(run_threads(count, [count](auto wid) { return worker_axes(wid, count); }));
 
     fdb5::FDB fdb;
     EXPECT(axes_steps(fdb) == expected_steps(count));
@@ -173,12 +181,12 @@ CASE("Multi-thread: axes") {
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("Multi-thread: archive contention (same key)") {
-    const int count = thread_count();
+    const auto count = thread_count();
 
     TestFixture fixture(count);
 
     // Every thread archives the identical field through its own FDB and flushes.
-    expect_workers_ok(run_threads(count, [count](int id) { return worker_contend(id, count); }));
+    expect_workers_ok(run_threads(count, [count](auto wid) { return worker_contend(wid, count); }));
 
     fdb5::FDB fdb;
     const auto request = contend_key().request();
@@ -194,33 +202,11 @@ CASE("Multi-thread: archive contention (same key)") {
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("Multi-thread: concurrent archive + flush (shared FDB)") {
-    const int count = thread_count();
+    const auto count = thread_count();
 
     TestFixture fixture(count);
 
     fdb5::FDB shared;
-
-    // archiver threads
-    std::vector<int> results(static_cast<size_t>(count), -1);
-    std::vector<std::thread> archivers;
-    archivers.reserve(static_cast<size_t>(count));
-    for (int id = 0; id < count; ++id) {
-        archivers.emplace_back([id, &shared, &results]() {
-            int result = 0;
-            try {
-                for (int seq = 0; seq < k_seq_per_worker; ++seq) {
-                    const auto key = make_key(id, seq);
-                    const auto data = make_data(id, seq);
-                    shared.archive(key, static_cast<const void*>(data.data()), data.size());
-                }
-            }
-            catch (const std::exception& e) {
-                std::cerr << "[thread] archive failed: " << e.what() << '\n';
-                result = 1;
-            }
-            results[static_cast<size_t>(id)] = result;
-        });
-    }
 
     // Flusher threads
     std::atomic<bool> stop{false};
@@ -233,8 +219,8 @@ CASE("Multi-thread: concurrent archive + flush (shared FDB)") {
                 try {
                     shared.flush();
                 }
-                catch (const std::exception& e) {
-                    std::cerr << "[thread] flush failed: " << e.what() << '\n';
+                catch (const std::exception& error) {
+                    std::cerr << "[thread] flush failed: " << error.what() << '\n';
                     flush_ok.store(false, std::memory_order_relaxed);
                     return;
                 }
@@ -243,9 +229,16 @@ CASE("Multi-thread: concurrent archive + flush (shared FDB)") {
         });
     }
 
-    for (auto& thread : archivers) {
-        thread.join();
-    }
+    // Archivers
+    const auto results = run_threads(count, [&shared](int id) {
+        for (int seq = 0; seq < k_seq_per_worker; ++seq) {
+            const auto key = make_key(id, seq);
+            const auto data = make_data(id, seq);
+            shared.archive(key, static_cast<const void*>(data.data()), data.size());
+        }
+        return 0;
+    });
+
     stop.store(true, std::memory_order_relaxed);
     for (auto& thread : flushers) {
         thread.join();
@@ -268,7 +261,7 @@ CASE("Multi-thread: concurrent archive + flush (shared FDB)") {
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("Multi-thread: concurrent reads (shared FDB)") {
-    const int count = thread_count();
+    const auto count = thread_count();
 
     TestFixture fixture(count);
     archive_all(count);
@@ -277,47 +270,27 @@ CASE("Multi-thread: concurrent reads (shared FDB)") {
 
     constexpr int k_rounds = 4;
 
-    std::vector<int> results(static_cast<size_t>(count), -1);
-    std::vector<std::thread> readers;
-    readers.reserve(static_cast<size_t>(count));
-    for (int id = 0; id < count; ++id) {
-        readers.emplace_back([id, &shared, &results]() {
-            int result = 0;
-            try {
-                for (int round = 0; round < k_rounds && result == 0; ++round) {
-                    for (int seq = 0; seq < k_seq_per_worker; ++seq) {
-                        const auto key = make_key(id, seq);
-                        if (!retrieve_equals(shared, key, make_data(id, seq))) {
-                            result = 1;
-                            break;
-                        }
-                        if (inspect_count(shared, key.request("retrieve")) != 1) {
-                            result = 1;
-                            break;
-                        }
-                        // NOTE: Concurrent list on a shared FDB is not safe until following is addressed:
-                        // RootManager::fileSpaces() -> Config::getSubConfigurations(), which copies eckit::Value /
-                        // LocalConfiguration objects sharing a non-atomically reference-counted eckit::Counted
-                        // if (list_count(shared, key.request("list"), fdb5::ListMode::Deduplicate) != 1) {
-                        //     result = 1;
-                        //     break;
-                        // }
-                    }
+    expect_workers_ok(run_threads(count, [&shared](int id) {
+        for (int round = 0; round < k_rounds; ++round) {
+            for (int seq = 0; seq < k_seq_per_worker; ++seq) {
+                const auto key = make_key(id, seq);
+                if (!retrieve_equals(shared, key, make_data(id, seq))) {
+                    return 1;
                 }
+                if (inspect_count(shared, key.request("retrieve")) != 1) {
+                    return 1;
+                }
+                // NOTE: Concurrent list on a shared FDB is not safe until the following is addressed:
+                // RootManager::fileSpaces() -> Config::getSubConfigurations() copies eckit::Value /
+                // LocalConfiguration objects sharing a non-atomically reference-counted eckit::Counted.
+                // if (list_count(shared, key.request("list"), fdb5::ListMode::Deduplicate) != 1) {
+                //     result = 1;
+                //     break;
+                // }
             }
-            catch (const std::exception& e) {
-                std::cerr << "[thread] read failed: " << e.what() << '\n';
-                result = 1;
-            }
-            results[static_cast<size_t>(id)] = result;
-        });
-    }
-
-    for (auto& thread : readers) {
-        thread.join();
-    }
-
-    expect_workers_ok(results);
+        }
+        return 0;
+    }));
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -111,27 +111,27 @@ inline fdb5::Key make_base_key() {
 }
 
 /// Deterministic, worker-unique step value.
-inline std::string make_step(int worker_id, int seq) {
+inline std::string make_step(size_t worker_id, size_t seq) {
     return std::to_string((worker_id * k_worker_step_stride) + seq);
 }
 
 /// Fully specified datum key for a single field owned by @p worker_id.
-inline fdb5::Key make_key(int worker_id, int seq) {
+inline fdb5::Key make_key(size_t worker_id, size_t seq) {
     auto key = make_base_key();
     key.set("step", make_step(worker_id, seq));
     return key;
 }
 
 /// Payload for a single field, encoding its owning worker/seq so retrieves can be verified exactly.
-inline std::string make_data(int worker_id, int seq) {
+inline std::string make_data(size_t worker_id, size_t seq) {
     return "worker=" + std::to_string(worker_id) + ";seq=" + std::to_string(seq);
 }
 
 /// The full set of steps expected once every worker has archived its slice.
-inline std::set<std::string> expected_steps(int count) {
+inline std::set<std::string> expected_steps(size_t count) {
     std::set<std::string> steps;
-    for (int worker = 0; worker < count; ++worker) {
-        for (int seq = 0; seq < k_seq_per_worker; ++seq) {
+    for (size_t worker = 0; worker < count; ++worker) {
+        for (size_t seq = 0; seq < k_seq_per_worker; ++seq) {
             steps.insert(make_step(worker, seq));
         }
     }
@@ -253,7 +253,7 @@ inline void archive_all(int count) {
     } while (0)
 
 /// Archive this worker's disjoint slice, flush, then self-verify by reading it back.
-inline int worker_archive(int worker_id, int /*count*/) {
+inline int worker_archive(size_t worker_id, int /*count*/) {
     fdb5::FDB fdb;
     for (int seq = 0; seq < k_seq_per_worker; ++seq) {
         const auto key = make_key(worker_id, seq);
@@ -269,7 +269,7 @@ inline int worker_archive(int worker_id, int /*count*/) {
 }
 
 /// Retrieve this worker's slice from the pre-archived dataset and verify the bytes.
-inline int worker_retrieve(int worker_id, int /*count*/) {
+inline int worker_retrieve(size_t worker_id, int /*count*/) {
     fdb5::FDB fdb;
     for (int seq = 0; seq < k_seq_per_worker; ++seq) {
         WORKER_CHECK(retrieve_equals(fdb, make_key(worker_id, seq), make_data(worker_id, seq)));
@@ -278,7 +278,7 @@ inline int worker_retrieve(int worker_id, int /*count*/) {
 }
 
 /// Inspect each field of this worker's slice; each fully specified request must match exactly one.
-inline int worker_inspect(int worker_id, int /*count*/) {
+inline int worker_inspect(size_t worker_id, int /*count*/) {
     fdb5::FDB fdb;
     for (int seq = 0; seq < k_seq_per_worker; ++seq) {
         const auto key = make_key(worker_id, seq);
@@ -288,7 +288,7 @@ inline int worker_inspect(int worker_id, int /*count*/) {
 }
 
 /// List each field of this worker's slice; each fully specified request must match exactly one.
-inline int worker_list(int worker_id, int /*count*/) {
+inline int worker_list(size_t worker_id, int /*count*/) {
     fdb5::FDB fdb;
     for (int seq = 0; seq < k_seq_per_worker; ++seq) {
         const auto key = make_key(worker_id, seq);
@@ -319,7 +319,7 @@ inline int worker_contend(int /*worker_id*/, int /*count*/) {
 /// Dispatch a freshly exec-ed child process to the requested worker function.
 inline int child_worker_main(int argc, char** argv) {
     const auto args = parse_worker_args(argc, argv);
-    const int worker_id = std::stoi(get_worker_arg(args, "worker-id"));
+    const size_t worker_id = std::stoi(get_worker_arg(args, "worker-id"));
     const auto func = get_worker_arg(args, "fn");
     const int count = env_int("TEST_FDB_WORKER_COUNT", process_count());
 
