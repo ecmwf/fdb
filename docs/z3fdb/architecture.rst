@@ -1,6 +1,5 @@
-***********************
 Architecture and Design
-***********************
+=======================
 
 Z3FDB is built as a thin Python layer on top of a C++ core. The stack has
 five layers, grouped into two categories: pure-Python code you can read and
@@ -25,7 +24,7 @@ that handles performance-critical work (shown in red/blue).
      style e fill:#ccf
 
 Layer descriptions
-==================
+------------------
 
 **z3fdb** (pure Python)
    The user-facing API. :class:`~z3fdb.SimpleStoreBuilder` collects MARS

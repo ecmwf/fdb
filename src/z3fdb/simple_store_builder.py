@@ -51,10 +51,14 @@ class SimpleStoreBuilder:
                 For example::
 
                     {
-                        "type": "an", "class": "ea", "domain": "g",
-                        "expver": "0001", "stream": "oper",
+                        "type": "an",
+                        "class": "ea",
+                        "domain": "g",
+                        "expver": "0001",
+                        "stream": "oper",
                         "date": "2020-01-01/to/2020-01-04",
-                        "levtype": "sfc", "step": 0,
+                        "levtype": "sfc",
+                        "step": 0,
                         "param": [167, 131, 132],
                         "time": "0/to/21/by/3",
                     }

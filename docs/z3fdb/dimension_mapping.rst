@@ -256,7 +256,7 @@ Fill Value
 
 When a chunk is accessed and some of its fields are absent from FDB,
 the missing slots are filled with a sentinel value. The default is
-positive infinity (``float('inf')``).
+``float('nan')``.
 
 To override it, use :class:`~pychunked_data_view.ChunkedDataViewBuilder`
 directly (the high-level :class:`~z3fdb.SimpleStoreBuilder` wrapper does
@@ -268,9 +268,9 @@ not expose this setting):
 
    builder = ChunkedDataViewBuilder(fdb_config_file=None)
    builder.add_part({...}, [...], ExtractorType.GRIB)
-   builder.fill_value(float("nan"))   # use NaN instead of inf
+   builder.fill_value(-999.0)   # use -999.0 instead of NaN
    view = builder.build()
-   print(view.fillValue())  # float('nan')
+   print(view.fillValue())  # -999.0
 
 Combining Multiple MARS Requests
 ---------------------------------
@@ -291,7 +291,11 @@ the same number of values across ``parts``.
    # Dimension N is the number of values in the grid
    # Resulting shape of this part is [D, P1, N]
    builder.add_part(
-       {"levtype": "sfc", "param": [165, 166], ...},
+       {
+           "levtype": "sfc",
+           "param": [165, 166],
+           ...
+       },
        [
            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
            AxisDefinition(["param"], Chunking.SINGLE_VALUE),
@@ -305,7 +309,12 @@ the same number of values across ``parts``.
    # Dimension N is the number of values in the grid
    # Resulting shape of this part is [D, P2, N]
    builder.add_part(
-       {"levtype": "pl", "param": [131, 132], "levelist": [50, 100], ...},
+       {
+           "levtype": "pl",
+           "param": [131, 132],
+           "levelist": [50, 100],
+           ...
+       },
        [
            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
            AxisDefinition(["param", "levelist"], Chunking.SINGLE_VALUE),
