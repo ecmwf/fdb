@@ -85,7 +85,7 @@ CASE("Multi-thread: archive (one FDB per thread)") {
     TestFixture fixture(count);
 
     // Each thread owns its FDB and flushes only its own disjoint slice.
-    expect_workers_ok(run_threads(count, [count](auto wid) { return worker_archive(wid, count); }));
+    expect_workers_ok(run_threads(count, [](auto wid) { return worker_archive(wid); }));
 
     fdb5::FDB fdb;
     EXPECT(list_steps(fdb) == expected_steps(count));
@@ -114,7 +114,6 @@ CASE("Multi-thread: archive (shared FDB)") {
         return 0;
     }));
 
-    // A single flush persists every thread's work.
     shared.flush();
 
     fdb5::FDB fdb;
@@ -134,8 +133,7 @@ CASE("Multi-thread: retrieve") {
     TestFixture fixture(count);
     archive_all(count);
 
-    // Each thread retrieves its own slice through its own FDB and verifies the bytes.
-    expect_workers_ok(run_threads(count, [count](auto wid) { return worker_retrieve(wid, count); }));
+    expect_workers_ok(run_threads(count, [](auto wid) { return worker_retrieve(wid); }));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -146,7 +144,7 @@ CASE("Multi-thread: inspect") {
     TestFixture fixture(count);
     archive_all(count);
 
-    expect_workers_ok(run_threads(count, [count](auto wid) { return worker_inspect(wid, count); }));
+    expect_workers_ok(run_threads(count, [](auto wid) { return worker_inspect(wid); }));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -157,7 +155,7 @@ CASE("Multi-thread: list") {
     TestFixture fixture(count);
     archive_all(count);
 
-    expect_workers_ok(run_threads(count, [count](auto wid) { return worker_list(wid, count); }));
+    expect_workers_ok(run_threads(count, [](auto wid) { return worker_list(wid); }));
 
     fdb5::FDB fdb;
     EXPECT(list_steps(fdb) == expected_steps(count));
@@ -171,8 +169,7 @@ CASE("Multi-thread: axes") {
     TestFixture fixture(count);
     archive_all(count);
 
-    // Every thread computes axes over the whole database and verifies the full step set.
-    expect_workers_ok(run_threads(count, [count](auto wid) { return worker_axes(wid, count); }));
+    expect_workers_ok(run_threads(count, [count](auto) { return worker_axes(count); }));
 
     fdb5::FDB fdb;
     EXPECT(axes_steps(fdb) == expected_steps(count));
@@ -185,8 +182,7 @@ CASE("Multi-thread: archive contention (same key)") {
 
     TestFixture fixture(count);
 
-    // Every thread archives the identical field through its own FDB and flushes.
-    expect_workers_ok(run_threads(count, [count](auto wid) { return worker_contend(wid, count); }));
+    expect_workers_ok(run_threads(count, [](auto) { return worker_contend(); }));
 
     fdb5::FDB fdb;
     const auto request = contend_key().request();

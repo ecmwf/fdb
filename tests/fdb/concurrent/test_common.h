@@ -253,7 +253,7 @@ inline void archive_all(int count) {
     } while (0)
 
 /// Archive this worker's disjoint slice, flush, then self-verify by reading it back.
-inline int worker_archive(size_t worker_id, int /*count*/) {
+inline int worker_archive(size_t worker_id) {
     fdb5::FDB fdb;
     for (int seq = 0; seq < k_seq_per_worker; ++seq) {
         const auto key = make_key(worker_id, seq);
@@ -269,7 +269,7 @@ inline int worker_archive(size_t worker_id, int /*count*/) {
 }
 
 /// Retrieve this worker's slice from the pre-archived dataset and verify the bytes.
-inline int worker_retrieve(size_t worker_id, int /*count*/) {
+inline int worker_retrieve(size_t worker_id) {
     fdb5::FDB fdb;
     for (int seq = 0; seq < k_seq_per_worker; ++seq) {
         WORKER_CHECK(retrieve_equals(fdb, make_key(worker_id, seq), make_data(worker_id, seq)));
@@ -278,7 +278,7 @@ inline int worker_retrieve(size_t worker_id, int /*count*/) {
 }
 
 /// Inspect each field of this worker's slice; each fully specified request must match exactly one.
-inline int worker_inspect(size_t worker_id, int /*count*/) {
+inline int worker_inspect(size_t worker_id) {
     fdb5::FDB fdb;
     for (int seq = 0; seq < k_seq_per_worker; ++seq) {
         const auto key = make_key(worker_id, seq);
@@ -288,7 +288,7 @@ inline int worker_inspect(size_t worker_id, int /*count*/) {
 }
 
 /// List each field of this worker's slice; each fully specified request must match exactly one.
-inline int worker_list(size_t worker_id, int /*count*/) {
+inline int worker_list(size_t worker_id) {
     fdb5::FDB fdb;
     for (int seq = 0; seq < k_seq_per_worker; ++seq) {
         const auto key = make_key(worker_id, seq);
@@ -298,14 +298,14 @@ inline int worker_list(size_t worker_id, int /*count*/) {
 }
 
 /// Compute axes over the whole (pre-archived) database and verify the full step set is visible.
-inline int worker_axes(int /*worker_id*/, int count) {
+inline int worker_axes(int count) {
     fdb5::FDB fdb;
     WORKER_CHECK(axes_steps(fdb) == expected_steps(count));
     return 0;
 }
 
 /// Archive the single shared contention field and flush (all workers write the same key/data).
-inline int worker_contend(int /*worker_id*/, int /*count*/) {
+inline int worker_contend() {
     fdb5::FDB fdb;
     const auto key = contend_key();
     const auto data = contend_data();
@@ -316,30 +316,29 @@ inline int worker_contend(int /*worker_id*/, int /*count*/) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// Dispatch a freshly exec-ed child process to the requested worker function.
 inline int child_worker_main(int argc, char** argv) {
     const auto args = parse_worker_args(argc, argv);
-    const size_t worker_id = std::stoi(get_worker_arg(args, "worker-id"));
+    const auto worker_id = std::stoul(get_worker_arg(args, "worker-id"));
     const auto func = get_worker_arg(args, "fn");
     const int count = env_int("TEST_FDB_WORKER_COUNT", process_count());
 
     if (func == "archive") {
-        return worker_archive(worker_id, count);
+        return worker_archive(worker_id);
     }
     if (func == "retrieve") {
-        return worker_retrieve(worker_id, count);
+        return worker_retrieve(worker_id);
     }
     if (func == "inspect") {
-        return worker_inspect(worker_id, count);
+        return worker_inspect(worker_id);
     }
     if (func == "list") {
-        return worker_list(worker_id, count);
+        return worker_list(worker_id);
     }
     if (func == "axes") {
-        return worker_axes(worker_id, count);
+        return worker_axes(count);
     }
     if (func == "contend") {
-        return worker_contend(worker_id, count);
+        return worker_contend();
     }
 
     std::cerr << "[worker] unknown fn: '" << func << "'" << '\n';
