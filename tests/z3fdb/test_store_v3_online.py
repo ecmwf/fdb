@@ -142,7 +142,7 @@ def test_fill_value_propagated_to_zarr_metadata(fdb_with_swh_bitmap):
 
 
 def test_default_fill_value_replaces_bitmap_sentinel(fdb_with_swh_bitmap):
-    """Without an explicit fill_value call, the default (infinity) replaces the eccodes sentinel."""
+    """Without an explicit fill_value call, the default (NaN) replaces the eccodes sentinel."""
     config_path, expected, missing, date = fdb_with_swh_bitmap
 
     builder = ChunkedDataViewBuilder(config_path)
@@ -155,5 +155,5 @@ def test_default_fill_value_replaces_bitmap_sentinel(fdb_with_swh_bitmap):
     view = builder.build()
 
     values = view.at((0, 0))
-    assert np.all(np.isinf(values[missing])), "missing points should be +inf by default"
+    assert np.all(np.isnan(values[missing])), "missing points should be NaN by default"
     np.testing.assert_array_equal(values[~missing], expected[~missing])

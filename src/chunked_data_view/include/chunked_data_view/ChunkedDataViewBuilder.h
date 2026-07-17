@@ -63,7 +63,7 @@ public:
     ChunkedDataViewBuilder& extendOnAxis(size_t index);
 
     /// Sets the fill value written to array positions not covered by any part.
-    /// Defaults to positive infinity.
+    /// Defaults to NaN.
     ChunkedDataViewBuilder& fillValue(float fillValue);
 
     /// Validates all parts, checks axis compatibility, and returns the assembled view.
@@ -78,7 +78,7 @@ private:
     std::optional<std::filesystem::path> configPath_{};
     std::vector<std::tuple<std::string, std::vector<AxisDefinition>, std::shared_ptr<Extractor>>> parts_{};
     std::optional<size_t> extensionAxisIndex_ = std::nullopt;
-    float fillValue_ = std::numeric_limits<float>::infinity();
+    float fillValue_ = std::numeric_limits<float>::quiet_NaN();
 
     bool doPartsAlign(const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& viewParts);
 };

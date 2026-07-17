@@ -59,7 +59,7 @@ private:  // types
 private:  // members
 
     std::shared_ptr<FdbInterface> fdb_;
-    float fillValue_ = std::numeric_limits<float>::infinity();
+    float fillValue_ = std::numeric_limits<float>::quiet_NaN();
 
 private:  // methods
 
