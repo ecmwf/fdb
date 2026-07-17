@@ -267,6 +267,61 @@ CASE("Multi-thread: concurrent archive + flush (shared FDB)") {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+CASE("Multi-thread: concurrent reads (shared FDB)") {
+    const int count = thread_count();
+
+    TestFixture fixture(count);
+    archive_all(count);
+
+    fdb5::FDB shared;
+
+    constexpr int k_rounds = 4;
+
+    std::vector<int> results(static_cast<size_t>(count), -1);
+    std::vector<std::thread> readers;
+    readers.reserve(static_cast<size_t>(count));
+    for (int id = 0; id < count; ++id) {
+        readers.emplace_back([id, &shared, &results]() {
+            int result = 0;
+            try {
+                for (int round = 0; round < k_rounds && result == 0; ++round) {
+                    for (int seq = 0; seq < k_seq_per_worker; ++seq) {
+                        const auto key = make_key(id, seq);
+                        if (!retrieve_equals(shared, key, make_data(id, seq))) {
+                            result = 1;
+                            break;
+                        }
+                        if (inspect_count(shared, key.request("retrieve")) != 1) {
+                            result = 1;
+                            break;
+                        }
+                        // NOTE: Concurrent list on a shared FDB is not safe until following is addressed:
+                        // RootManager::fileSpaces() -> Config::getSubConfigurations(), which copies eckit::Value /
+                        // LocalConfiguration objects sharing a non-atomically reference-counted eckit::Counted
+                        // if (list_count(shared, key.request("list"), fdb5::ListMode::Deduplicate) != 1) {
+                        //     result = 1;
+                        //     break;
+                        // }
+                    }
+                }
+            }
+            catch (const std::exception& e) {
+                std::cerr << "[thread] read failed: " << e.what() << '\n';
+                result = 1;
+            }
+            results[static_cast<size_t>(id)] = result;
+        });
+    }
+
+    for (auto& thread : readers) {
+        thread.join();
+    }
+
+    expect_workers_ok(results);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
 }  // namespace fdb::test::concurrent
 
 int main(int argc, char** argv) {
