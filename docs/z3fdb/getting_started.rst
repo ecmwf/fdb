@@ -177,7 +177,7 @@ Combining Surface and Pressure-Level Data
 When your analysis spans both surface and pressure-level parameters you need two
 MARS requests (the ``levtype`` keyword changes between them). Z3FDB lets you
 merge them into a single array by calling ``add_part`` twice and declaring which
-dimension grows across the two parts.
+dimension grows across the two ``parts``.
 
 .. code-block:: python
 
@@ -237,7 +237,7 @@ param dimension (2 sfc + 6 pl).
 .. seealso::
 
    :doc:`dimension_mapping` for a full reference on axis mapping, all chunking
-   strategies, fill values, and the complete multi-part data model.
+   strategies, fill values, and the complete ``multi-part`` data model.
 
 Common Pitfalls
 ---------------

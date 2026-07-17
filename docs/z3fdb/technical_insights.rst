@@ -13,25 +13,25 @@ performance, debugging unexpected results, or contributing to the library.
 Part, Intersection, and Buffer Layout
 --------------------------------------
 
-When a chunk is accessed the library executes these steps for every Part:
+When a chunk is accessed the library executes these steps for every ``Part``:
 
 1. **Intersection** — compute the overlap of the chunk bounding box and
-   the Part bounding box. Parts with no overlap are skipped.
+   the ``Part`` bounding box. ``Parts`` with no overlap are skipped.
 2. **FDB retrieve** — send a sub-request to FDB for exactly the fields
    inside the intersection.
 3. **Buffer fill** — decode each returned field (GRIB → float32) and
    write it at its correct position in the flat chunk buffer
    (row-major / C order).
 
-The examples below use the two-part view introduced in
-:doc:`dimension_mapping`: Part A (sfc, 2 params, axis1=[0,1]) and Part B
+The examples below use the ``two-part`` view introduced in
+:doc:`dimension_mapping`: ``Part`` A (sfc, 2 params, axis1=[0,1]) and ``Part`` B
 (pl, 4 params, axis1=[2,5]) with 4 date×time values on axis 0.
 
 ``NONE`` chunking — whole-view example
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 With ``NONE`` on all axes there is one chunk covering the entire array.
-Both parts are queried and each populates a disjoint region of the buffer.
+Both ``parts`` are queried and each populates a disjoint region of the buffer.
 
 .. code-block:: text
 
@@ -74,7 +74,7 @@ Both parts are queried and each populates a disjoint region of the buffer.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 With ``SINGLE_VALUE`` every chunk holds exactly one field. Chunk ``(1,2)``
-covers one cell that falls inside Part B.
+covers one cell that falls inside ``Part`` B.
 
 .. code-block:: text
 
@@ -119,9 +119,9 @@ For every field returned by FDB, the buffer slot along each axis ``i`` is:
 
 Where:
 
-* **axis.index(key)** — zero-based position of the key within the Part's
+* **axis.index(key)** — zero-based position of the key within the ``Part``'s
   local axis (0 to ``axisSize − 1``).
-* **partAxisOffset[i]** — start of the intersection within the Part's local
+* **partAxisOffset[i]** — start of the intersection within the ``Part``'s local
   axis: ``intersection.lower[i] − partBoundingBox.lower[i]``.
 * **bufferOffset[i]** — start of the intersection within the chunk buffer:
   ``intersection.lower[i] − chunkBoundingBox.lower[i]``.

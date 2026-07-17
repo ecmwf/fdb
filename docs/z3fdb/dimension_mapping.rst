@@ -125,7 +125,7 @@ The array **shape** is::
     (axis0_size, axis1_size, …, axisN-1_size, num_values)
 
 All axis indices are zero-based. Axis sizes are determined by the total
-number of distinct values held across all parts (see
+number of distinct values held across all ``parts`` (see
 `Combining Multiple MARS Requests`_ below).
 
 Chunking
@@ -278,8 +278,8 @@ Combining Multiple MARS Requests
 Call :meth:`~z3fdb.SimpleStoreBuilder.add_part` multiple times to
 combine data from different MARS requests into a single Zarr array.
 Use :meth:`~z3fdb.SimpleStoreBuilder.extend_on_axis` to specify which
-dimension grows when parts are joined. All other dimensions must have
-the same number of values across parts.
+dimension grows when ``parts`` are joined. All other dimensions must have
+the same number of values across ``parts``.
 
 .. code-block:: python
 
@@ -319,12 +319,12 @@ the same number of values across parts.
    store = builder.build()
 
 The datetime dimension (index 0) must have the same values in both
-parts. The param dimension (index 1) grows: 2 surface parameters +
+``parts``. The param dimension (index 1) grows: 2 surface parameters +
 4 pressure-level combinations (2 params × 2 levels) = 6 entries total.
 
-Each Part occupies a rectangular sub-region of the global index space
+Each ``part`` occupies a rectangular sub-region of the global index space
 described by a closed bounding box — one ``[lower_i, upper_i]`` interval
-per axis (both bounds **inclusive**). Parts tile the extension axis
+per axis (both bounds **inclusive**). ``Parts`` tile the extension axis
 without overlap; their bounding boxes are identical on every other axis.
 
 .. code-block:: text
