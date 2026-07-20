@@ -66,10 +66,10 @@ may also be set to help find libuuid library.
 
 set(_libuuid_extra_hints)
 if(APPLE)
-  find_program(BREW_EXECUTABLE brew)
-  if(BREW_EXECUTABLE)
+  find_program(_libuuid_brew_executable brew)
+  if(_libuuid_brew_executable)
     execute_process(
-      COMMAND ${BREW_EXECUTABLE} --prefix util-linux
+      COMMAND ${_libuuid_brew_executable} --prefix util-linux
       OUTPUT_VARIABLE _libuuid_util_linux_prefix
       OUTPUT_STRIP_TRAILING_WHITESPACE
       ERROR_QUIET)
