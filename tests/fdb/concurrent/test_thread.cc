@@ -294,9 +294,9 @@ CASE("Multi-thread: concurrent reads (shared FDB)") {
                 // NOTE: Concurrent list on a shared FDB is not safe until the following is addressed:
                 // RootManager::fileSpaces() -> Config::getSubConfigurations() copies eckit::Value /
                 // LocalConfiguration objects sharing a non-atomically reference-counted eckit::Counted.
-                // if (list_count(shared, key.request("list"), fdb5::ListMode::Deduplicate) != 1) {
-                //     return 1;
-                // }
+                if (list_count(shared, key.request("list"), fdb5::ListMode::Deduplicate) != 1) {
+                    return 1;
+                }
             }
         }
         return 0;
