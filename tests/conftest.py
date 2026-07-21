@@ -276,7 +276,7 @@ def read_only_fdb_setup(data_path, function_tmp, build_grib_messages) -> pathlib
         ],
     )
     fdb_config_str = yaml.dump(fdb_config)
-    fdb_config_path = function_tmp / "fdb_config.yaml"
+    fdb_config_path = function_tmp / "fdb_config_basic.yaml"
     fdb_config_path.write_text(fdb_config_str)
     fdb = FDB(fdb_config_str)
     fdb.archive(build_grib_messages.read_bytes())
@@ -315,7 +315,7 @@ def read_only_fdb_pattern_setup(
         ],
     )
     fdb_config_str = yaml.dump(fdb_config)
-    fdb_config_path = session_tmp / "fdb_config.yaml"
+    fdb_config_path = session_tmp / "fdb_config_pattern.yaml"
     fdb_config_path.write_text(fdb_config_str)
     fdb = FDB(fdb_config_str)
     fdb.archive(build_pattern_grib_messages.read_bytes())

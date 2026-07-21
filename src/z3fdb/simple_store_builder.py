@@ -97,8 +97,9 @@ class SimpleStoreBuilder:
             Z3fdbError if store cannot be created.
 
         """
+        view = self._builder.build()
         return FdbZarrStore(
             FdbZarrArray(
-                datasource=FdbSource(self._builder.build()),
+                datasource=FdbSource(view, dim_names=self._builder.dim_names()),
             )
         )
