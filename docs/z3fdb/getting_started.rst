@@ -10,7 +10,7 @@ Prerequisites
 
 * Z3FDB installed — see :ref:`Z3FDB_Introduction` for build instructions.
 * An FDB instance containing GRIB data accessible from your environment.
-* ``zarr`` installed..
+* ``zarr`` installed.
 
 Your First Store
 ----------------

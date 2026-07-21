@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <iterator>
 #include <set>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -75,7 +76,7 @@ bool BoundingBox::contains(const BoundingBox& other) const {
 }
 
 BoundingBox BoundingBox::subtract(const std::vector<size_t>& subtrahend) const {
-    assert(subtrahend.size() == lower_.size());
+    ASSERT(subtrahend.size() == lower_.size());
 
     std::vector<size_t> newLower;
     std::vector<size_t> newUpper;

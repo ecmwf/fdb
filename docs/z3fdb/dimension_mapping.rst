@@ -258,9 +258,8 @@ When a chunk is accessed and some of its fields are absent from FDB,
 the missing slots are filled with a sentinel value. The default is
 ``float('nan')``.
 
-To override it, use :class:`~pychunked_data_view.ChunkedDataViewBuilder`
-directly (the high-level :class:`~z3fdb.SimpleStoreBuilder` wrapper does
-not expose this setting):
+ To override it, call :meth:`~z3fdb.SimpleStoreBuilder.fill_value` (or use
+ :class:`~pychunked_data_view.ChunkedDataViewBuilder` directly):
 
 .. code-block:: python
 

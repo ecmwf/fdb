@@ -21,8 +21,13 @@ from pyfdb import FDB
 
 
 def pytest_configure(config):
-    config.addinivalue_line("markers", "offline: tests that run without network access using synthetic local FDB data")
-    config.addinivalue_line("markers", "online: tests that require network access to ECMWF open data")
+    config.addinivalue_line(
+        "markers",
+        "offline: tests that run without network access using synthetic local FDB data",
+    )
+    config.addinivalue_line(
+        "markers", "online: tests that require network access to ECMWF open data"
+    )
 
 
 def create_fdb(root: pathlib.Path, schema_src: pathlib.Path) -> pathlib.Path:
@@ -243,9 +248,7 @@ def read_only_fdb_setup_for_sfc_pl_example(
 
 
 @pytest.fixture(scope="function", autouse=False)
-def read_only_fdb_setup(
-    data_path, function_tmp, session_tmp, build_grib_messages
-) -> pathlib.Path:
+def read_only_fdb_setup(data_path, function_tmp, build_grib_messages) -> pathlib.Path:
     """
     Creates a FDB setup in this tests temp directory.
     Test FDB currently reads all grib files in `tests/data`
@@ -254,7 +257,7 @@ def read_only_fdb_setup(
     """
     schema_path_src = data_path / "schema"
     assert schema_path_src.is_file()
-    schema_path = session_tmp / "schema"
+    schema_path = function_tmp / "schema"
     shutil.copy(schema_path_src, schema_path)
 
     db_store_path = function_tmp / "db_store"
@@ -273,7 +276,7 @@ def read_only_fdb_setup(
         ],
     )
     fdb_config_str = yaml.dump(fdb_config)
-    fdb_config_path = session_tmp / "fdb_config.yaml"
+    fdb_config_path = function_tmp / "fdb_config.yaml"
     fdb_config_path.write_text(fdb_config_str)
     fdb = FDB(fdb_config_str)
     fdb.archive(build_grib_messages.read_bytes())

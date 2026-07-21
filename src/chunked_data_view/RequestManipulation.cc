@@ -13,13 +13,14 @@
 
 #include "chunked_data_view/exception/BoundingBoxException.h"
 #include "chunked_data_view/exception/RequestManipulationException.h"
-#include "chunked_data_view/mapping/AxisMapper.h"
 #include "chunked_data_view/mapping/IndexMapper.h"
 #include "eckit/exception/Exceptions.h"
 #include "metkit/mars/MarsRequest.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <sstream>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 

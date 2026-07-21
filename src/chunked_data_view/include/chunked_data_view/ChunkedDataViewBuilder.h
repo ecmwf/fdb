@@ -15,6 +15,7 @@
 
 #include <cstddef>
 #include <filesystem>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
