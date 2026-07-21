@@ -20,7 +20,6 @@
 
 #pragma once
 
-#include <thread>
 #include <unordered_map>
 
 #include "fdb5/api/LocalFDB.h"
@@ -32,7 +31,6 @@ using remote::Client;
 using remote::Message;
 
 //----------------------------------------------------------------------------------------------------------------------
-class Archiver;
 
 class RemoteFDB : public LocalFDB, public Client {
 
