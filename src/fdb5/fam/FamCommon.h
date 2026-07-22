@@ -43,13 +43,13 @@ struct FamCommon {
 
     static constexpr auto type = eckit::fam::scheme;
 
-    static constexpr const char* db_keyword = "__fdb__";
+    static constexpr const char* db_keyword = "_fdb_";
 
-    static constexpr const char* schema_keyword = "__schema__";
+    static constexpr const char* schema_keyword = "_schema_";
 
-    static constexpr const char* registry_keyword = "__fdb-reg__";
+    static constexpr const char* registry_keyword = "_fdb-reg_";
 
-    static constexpr const char* axes_keyword = "__axes__";
+    static constexpr const char* axes_keyword = "_axes_";
 
     static constexpr const char* catalogue_prefix = "c";
 
