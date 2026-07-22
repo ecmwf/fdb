@@ -19,14 +19,25 @@
 
 #pragma once
 
-#include <map>
-#include <optional>
-
+#include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
+#include "fdb5/database/DbStats.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/fam/FamCatalogue.h"
 
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+
+#include <cstddef>
+#include <iosfwd>
+#include <map>
+#include <optional>
+#include <string>
+
 namespace fdb5 {
+
+class Key;
+class Field;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -35,8 +46,8 @@ class FamCatalogueReader : public FamCatalogue, public CatalogueReader {
 
 public:  // methods
 
-    FamCatalogueReader(const Key& key, const fdb5::Config& config);
-    FamCatalogueReader(const eckit::URI& uri, const fdb5::Config& config);
+    FamCatalogueReader(const Key& key, const Config& config);
+    FamCatalogueReader(const eckit::URI& uri, const Config& config);
 
     DbStats stats() const override { NOTIMP; }
 

@@ -16,7 +16,20 @@
 #include "fdb5/fam/FamCatalogueReader.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Index.h"
+#include "fdb5/fam/FamCatalogue.h"
+#include "fdb5/fam/FamCommon.h"
 #include "fdb5/fam/FamIndex.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/log/Log.h"
+
+#include <optional>
+#include <ostream>
+#include <string>
 
 namespace fdb5 {
 
@@ -52,10 +65,12 @@ bool FamCatalogueReader::selectIndex(const Key& key) {
 
     // Check the index map exists: the table object must be present in the region.
     if (!tableObject(index_name).exists()) {
+        deselectIndex();
         return false;
     }
 
-    indexes_[key] = Index(new FamIndex(key, root_, index_name, true));
+    const auto& region_name = root();
+    indexes_[key] = Index(new FamIndex(key, region_name, index_name, true));
     current_ = indexes_[key];
     return true;
 }
@@ -74,7 +89,7 @@ bool FamCatalogueReader::open() {
 }
 
 void FamCatalogueReader::dumpSchema(std::ostream& stream) const {
-    auto& cat = catalogue();
+    const auto& cat = catalogue();
     auto iter = cat.find(schema_keyword);
     if (iter == cat.end()) {
         throw eckit::BadValue("FamCatalogueReader: schema not found in catalogue at: " + uri().asString());
@@ -84,9 +99,6 @@ void FamCatalogueReader::dumpSchema(std::ostream& stream) const {
 }
 
 std::optional<Axis> FamCatalogueReader::computeAxis(const std::string& keyword) const {
-    // only the currently selected index is consulted
-    // The Catalogue framework calls invalidateAxis() on selection changes, and
-    // CatalogueReader::axis() caches the result per keyword.
     if (current_.null()) {
         return std::nullopt;
     }
