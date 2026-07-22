@@ -15,18 +15,43 @@
 
 #include "fdb5/fam/FamCatalogue.h"
 
-#include <climits>
-#include <cstddef>
-#include <sstream>
+#include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/api/helpers/MoveIterator.h"
+#include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Index.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/database/MoveVisitor.h"
+#include "fdb5/database/PurgeVisitor.h"
+#include "fdb5/database/StatsReportVisitor.h"
+#include "fdb5/database/Store.h"
+#include "fdb5/database/WipeState.h"
+#include "fdb5/fam/FamCommon.h"
+#include "fdb5/fam/FamIndex.h"
+#include "fdb5/rules/Rule.h"
+#include "fdb5/rules/Schema.h"
 
+#include "metkit/mars/MarsRequest.h"
+
+#include "eckit/config/Configuration.h"
+#include "eckit/container/Queue.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/io/Offset.h"
 #include "eckit/io/fam/FamMap.h"
 #include "eckit/io/fam/FamPath.h"
+#include "eckit/log/Log.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/MD5.h"
 
-#include "fdb5/LibFdb5.h"
-#include "fdb5/database/WipeState.h"
-#include "fdb5/fam/FamIndex.h"
+#include <climits>
+#include <cstddef>
+#include <ostream>
+#include <set>
+#include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace fdb5 {
 
@@ -59,15 +84,18 @@ std::string stripSuffix(const std::string& name, const std::string& suffix) {
     return name;
 }
 
+bool hasPrefix(const std::string& name, const std::string& prefix) {
+    return name.size() >= prefix.size() && name.compare(0, prefix.size(), prefix) == 0;
+}
+
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FamCatalogue::FamCatalogue(const Key& key, const fdb5::Config& config) :
+FamCatalogue::FamCatalogue(const Key& key, const Config& config) :
     CatalogueImpl(key, {}, config), FamCommon(key, config), name_{catalogueName(key)} {}
 
-FamCatalogue::FamCatalogue(const eckit::URI& uri, const ControlIdentifiers& control_identifiers,
-                           const fdb5::Config& config) :
+FamCatalogue::FamCatalogue(const eckit::URI& uri, const ControlIdentifiers& control_identifiers, const Config& config) :
     CatalogueImpl({}, control_identifiers, config), FamCommon(uri, config) {
 
     // Strip table_suffix to recover the logical catalogue name
@@ -152,15 +180,14 @@ std::vector<Index> FamCatalogue::indexes(bool /*sorted*/) const {
 
     for (const auto& [k, v] : catalogue()) {
         const auto key_name = k.asString();
-        // Only process entries registered by FamCatalogueWriter::selectIndex(), which
-        // stores them under the "i:" prefix.  All other map entries (e.g. "__fdb__")
-        // are administrative and must be skipped.
-        if (key_name.size() < 2 || key_name[0] != 'i' || key_name[1] != ':') {
+        // skip other map entries (administrative sentinels like "__fdb__", or masked "m:" records)
+        if (!hasPrefix(key_name, FamCommon::index_entry_prefix)) {
             continue;
         }
         // Decode the stored index Key (with keyword names).
+        const auto& region_name = root();
         const auto key = decodeKey(v);
-        result.emplace_back(new FamIndex(key, root_, indexName(key), true));
+        result.emplace_back(new FamIndex(key, region_name, indexName(key), true));
     }
 
     return result;
@@ -195,12 +222,41 @@ MoveVisitor* FamCatalogue::moveVisitor(const Store& store, const metkit::mars::M
 void FamCatalogue::maskIndexEntries(const std::set<Index>& indexes) const {
     auto& cat = catalogue();
     for (const auto& index : indexes) {
-        const auto entry_key = std::string("i:") + toString(index.key());
-        cat.erase(entry_key);
+        const auto key_str = toString(index.key());
+        // Record the index as masked (logically deleted) so that allMasked() can still
+        // enumerate its data for cleanup, then remove it from the live index set.
+        cat.insertOrAssign(mask_entry_prefix + key_str, encodeKey(index.key()));
+        cat.erase(index_entry_prefix + key_str);
     }
 }
 void FamCatalogue::allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
-                             std::set<eckit::URI>& data) const {}
+                             std::set<eckit::URI>& data) const {
+    if (!exists()) {
+        return;
+    }
+    for (const auto& [k, v] : catalogue()) {
+        const auto key_name = k.asString();
+        if (!hasPrefix(key_name, FamCommon::mask_entry_prefix)) {
+            continue;
+        }
+        try {
+            const auto& region_name = root();
+            const auto key = decodeKey(v);
+            const Index index(new FamIndex(key, region_name, indexName(key), true));
+            // Masked index metadata: the FamMap table object that backs the index.
+            metadata.emplace(index.location().uri(), eckit::Offset(0));
+            // All data field URIs referenced by the masked index.
+            for (const auto& uri : index.dataURIs()) {
+                data.insert(uri);
+            }
+        }
+        catch (const eckit::Exception& e) {
+            // A stale masked record whose objects are already gone is benign here.
+            LOG_DEBUG_LIB(LibFdb5) << "FamCatalogue::allMasked: skipping masked entry '" << key_name
+                                   << "': " << e.what() << '\n';
+        }
+    }
+}
 void FamCatalogue::control(const ControlAction& /*action*/, const ControlIdentifiers& /*identifiers*/) const {}
 bool FamCatalogue::markIndexForWipe(const Index& index, bool include, CatalogueWipeState& wipe_state) const {
     const eckit::URI location_uri = index.location().uri();
@@ -222,6 +278,22 @@ bool FamCatalogue::markIndexForWipe(const Index& index, bool include, CatalogueW
 }
 
 void FamCatalogue::finaliseWipeState(CatalogueWipeState& wipe_state) const {
+    // Include masked (logically deleted) indexes and their data in the wipe, mirroring
+    // TocCatalogue::addMaskedPaths, so masked fields are not leaked. Masked entries are
+    // always removed regardless of the partial/full distinction.
+    std::set<std::pair<eckit::URI, eckit::Offset>> masked_metadata;
+    std::set<eckit::URI> masked_data;
+    allMasked(masked_metadata, masked_data);
+
+    for (const auto& [muri, moffset] : masked_metadata) {
+        if (uriBelongs(muri)) {
+            wipe_state.markForDeletion(WipeElementType::CATALOGUE_INDEX, {muri});
+        }
+    }
+    for (const auto& duri : masked_data) {
+        wipe_state.includeData(duri);
+    }
+
     // Mark the catalogue-level FAM map table as to be deleted (full wipe) or safe (partial).
     // A "full wipe" is indicated by an empty safeURIs set — i.e. everything matched.
     const eckit::URI cat_uri = uri();
@@ -239,7 +311,7 @@ bool FamCatalogue::doWipeUnknowns(const std::set<eckit::URI>& unknown_uris) cons
             continue;
         }
         try {
-            root_.object(eckit::FamPath(uri).objectName()).lookup().deallocate();
+            root().object(eckit::FamPath(uri).objectName()).lookup().deallocate();
         }
         catch (const eckit::NotFound& e) {
             LOG_DEBUG_LIB(LibFdb5) << "FamCatalogue::doWipeUnknowns: object already absent: " << e.what() << '\n';
@@ -260,7 +332,7 @@ bool FamCatalogue::doWipeURIs(const CatalogueWipeState& wipe_state) const {
             // Best-effort removal: treat NotFound as benign.
             try {
                 const auto obj_name = eckit::FamPath(uri).objectName();
-                root_.object(obj_name).lookup().deallocate();
+                root().object(obj_name).lookup().deallocate();
 
                 // A FamMap also creates companion objects (.c count, .l lock);
                 // attempt to clean those up if the URI was a table (.t) object.
@@ -268,7 +340,7 @@ bool FamCatalogue::doWipeURIs(const CatalogueWipeState& wipe_state) const {
                     const auto base = obj_name.substr(0, obj_name.size() - 2);
                     for (const char* suffix : {Map::count_suffix, Map::lock_suffix}) {
                         try {
-                            root_.object(base + suffix).lookup().deallocate();
+                            root().object(base + suffix).lookup().deallocate();
                         }
                         catch (const eckit::NotFound& e) {
                             LOG_DEBUG_LIB(LibFdb5)
@@ -285,6 +357,26 @@ bool FamCatalogue::doWipeURIs(const CatalogueWipeState& wipe_state) const {
 
     if (wipe_all) {
         cleanupEmptyDatabase_ = true;
+    }
+    else {
+        // Partial wipe: drop masked ("m:") records whose backing index objects are now gone,
+        // so stale entries are not re-processed on a subsequent wipe. The catalogue map still
+        // exists (it was marked safe); on a full wipe the whole map is removed instead.
+        auto& cat = catalogue();
+        std::vector<std::string> stale;
+        for (const auto& [k, v] : cat) {
+            const auto key_name = k.asString();
+            if (!hasPrefix(key_name, FamCommon::mask_entry_prefix)) {
+                continue;
+            }
+            const auto key = decodeKey(v);
+            if (!tableObject(indexName(key)).exists()) {
+                stale.push_back(key_name);
+            }
+        }
+        for (const auto& key_name : stale) {
+            cat.erase(key_name);
+        }
     }
 
     return true;
@@ -310,10 +402,11 @@ void FamCatalogue::doWipeEmptyDatabase() const {
 bool FamCatalogue::doUnsafeFullWipe() const {
     // Delete the catalogue map and all index maps by clearing their FAM objects.
     try {
-        // Clear all index maps first.
+        // Clear all live ("i:") and masked ("m:") index maps first.
         for (const auto& [k, v] : catalogue()) {
             const auto key_name = k.asString();
-            if (key_name.size() < 2 || key_name[0] != 'i' || key_name[1] != ':') {
+            if (!hasPrefix(key_name, FamCommon::index_entry_prefix) &&
+                !hasPrefix(key_name, FamCommon::mask_entry_prefix)) {
                 continue;
             }
             const auto key = decodeKey(v);

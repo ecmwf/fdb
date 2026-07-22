@@ -19,20 +19,42 @@
 
 #pragma once
 
-#include <optional>
-#include <string>
-#include <vector>
-
+#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/fam/FamCommon.h"
 #include "fdb5/rules/Schema.h"
 
+#include "eckit/config/Configuration.h"
+#include "eckit/container/Queue.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/Offset.h"
+
+#include <iosfwd>
+#include <mutex>
+#include <optional>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
+
 namespace fdb5 {
+
+class Key;
+class Field;
+class ControlIdentifiers;
+class Config;
+class Rule;
+class RuleDatabase;
+class StatsReportVisitor;
+class PurgeVisitor;
+class MoveVisitor;
+class Store;
+class Index;
+
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// Base class for the FAM-backed FDB catalogue.
-///
 /// Inherits CatalogueImpl (generic FDB catalogue machinery) and FamCommon (FAM
 /// connectivity and naming helpers). Concrete write and read operations are
 /// provided by FamCatalogueWriter and FamCatalogueReader respectively.
@@ -47,9 +69,9 @@ public:  // static methods
 
 public:  // methods
 
-    FamCatalogue(const Key& key, const fdb5::Config& config);
+    FamCatalogue(const Key& key, const Config& config);
 
-    FamCatalogue(const eckit::URI& uri, const ControlIdentifiers& control_identifiers, const fdb5::Config& config);
+    FamCatalogue(const eckit::URI& uri, const ControlIdentifiers& control_identifiers, const Config& config);
 
     eckit::URI uri() const override;
 
@@ -101,11 +123,8 @@ protected:  // methods
     const std::string& name() const { return name_; }
 
     /// Return the cached catalogue.
-    /// FamMap construction costs 3 FAM RPCs (table + count + lock objects).
     Map& catalogue() const {
-        if (!catalogue_) {
-            catalogue_.emplace(name_, getRegion());
-        }
+        std::call_once(catOnce_, [this] { catalogue_.emplace(name_, getRegion()); });
         return *catalogue_;
     }
 
@@ -119,6 +138,7 @@ private:  // members
 
     const RuleDatabase* rule_{nullptr};
 
+    mutable std::once_flag catOnce_;
     mutable std::optional<Map> catalogue_;
 
     mutable bool cleanupEmptyDatabase_{false};
