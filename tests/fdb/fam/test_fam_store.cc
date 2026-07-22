@@ -19,20 +19,6 @@
 
 #include "test_fam_common.h"
 
-#include <cstring>
-#include <ctime>
-#include <memory>
-#include <set>
-#include <sstream>
-#include <string>
-#include <utility>
-
-#include "eckit/config/YAMLConfiguration.h"
-#include "eckit/io/DataHandle.h"
-#include "eckit/io/Length.h"
-#include "eckit/io/fam/FamRegionName.h"
-#include "eckit/testing/Test.h"
-
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/Key.h"
@@ -41,6 +27,20 @@
 #include "fdb5/fam/FamFieldLocation.h"
 #include "fdb5/fam/FamStore.h"
 #include "fdb5/rules/Schema.h"
+
+#include "eckit/config/YAMLConfiguration.h"
+#include "eckit/io/DataHandle.h"
+#include "eckit/io/Length.h"
+#include "eckit/io/fam/FamRegionName.h"
+#include "eckit/testing/Test.h"
+
+#include <cstring>
+#include <ctime>
+#include <memory>
+#include <set>
+#include <sstream>
+#include <string>
+#include <utility>
 
 namespace fdb::test {
 
@@ -568,6 +568,45 @@ CASE("FamStore: finaliseWipeState throws on non-belonging URI") {
     fdb5::StoreWipeState wipeState(fam_store.uri());
     wipeState.includeData(eckit::URI("fam://other:1234/foreign_region/obj"));
     EXPECT_THROWS_AS(fam_store.finaliseWipeState(wipeState, true, false), eckit::SeriousBug);
+}
+
+CASE("FamStore: makeObject yields unique names via shared atomic counter") {
+
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
+        .create(test_region_size, test_region_perm, true);
+
+    const fam::FamSetup setup(fam::test_schema, test_config);
+    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
+
+    const auto key = fdb5::Key({{"fam1a", "v1a"},
+                                {"fam1b", "v1b"},
+                                {"fam1c", "v1c"},
+                                {"fam2a", "v2a"},
+                                {"fam2b", "v2b"},
+                                {"fam2c", "v2c"},
+                                {"fam3a", "v3a"},
+                                {"fam3b", "v3b"},
+                                {"fam3c", "v3c"}});
+
+    std::set<std::string> uris;
+
+    // Archiving the SAME key repeatedly from one instance must produce distinct objects
+    {
+        fdb5::FamStore store(key, config);
+        for (int i = 0; i < 5; ++i) {
+            EXPECT(uris.insert(store.makeObject(key).uri().asRawString()).second);
+        }
+    }
+
+    // A second store instance must CONTINUE
+    {
+        fdb5::FamStore store(key, config);
+        for (int i = 0; i < 5; ++i) {
+            EXPECT(uris.insert(store.makeObject(key).uri().asRawString()).second);
+        }
+    }
+
+    EXPECT_EQUAL(uris.size(), 10U);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
