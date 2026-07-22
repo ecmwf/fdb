@@ -79,12 +79,12 @@ CASE("FamEngine: canHandle and visitableLocations") {
     EXPECT_EQUAL(locations[0].scheme(), std::string("fam"));
 }
 
-CASE("FamEngine: NOTIMP methods and name") {
+CASE("FamEngine: name, dbType, and NOTIMP location") {
 
     auto& engine = fdb5::Engine::backend("fam");
     EXPECT_EQUAL(engine.name(), std::string("fam"));
+    EXPECT_EQUAL(engine.dbType(), std::string("fam"));
     EXPECT_THROWS(engine.location(fdb5::Key(), fdb5::Config()));
-    EXPECT_THROWS(engine.dbType());
 }
 
 CASE("FamEngine: visitableLocations with MarsRequest") {
