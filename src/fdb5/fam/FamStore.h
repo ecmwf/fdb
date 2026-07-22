@@ -19,22 +19,25 @@
 
 #pragma once
 
-#include <atomic>
-#include <cstddef>
-#include <memory>
-#include <ostream>
-#include <set>
-#include <string>
-#include <vector>
-
-#include "eckit/filesystem/URI.h"
-#include "eckit/io/Length.h"
-#include "eckit/io/fam/FamObjectName.h"
-
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/fam/FamCommon.h"
+
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/Length.h"
+#include "eckit/io/fam/FamObject.h"
+#include "eckit/io/fam/FamObjectName.h"
+
+#include <atomic>
+#include <cstddef>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <ostream>
+#include <set>
+#include <string>
+#include <vector>
 
 namespace fdb5 {
 
@@ -66,7 +69,7 @@ public:  // methods
 
     std::string type() const override { return FamCommon::type; }
 
-    static eckit::URI uri(const eckit::URI& dataURI);
+    static eckit::URI uri(const eckit::URI& data_uri);
 
     eckit::URI uri() const override;
 
@@ -78,7 +81,7 @@ public:  // methods
 
     std::set<eckit::URI> asCollocatedDataURIs(const std::set<eckit::URI>& uris) const override;
 
-    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI& uri, bool onlyExisting) const override;
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI& uri, bool only_existing) const override;
 
     bool open() override { return true; }
 
@@ -88,11 +91,11 @@ public:  // methods
 
     void checkUID() const override {}
 
-    void finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override;
+    void finaliseWipeState(StoreWipeState& store_state, bool doit, bool unsafe_wipe_all) override;
 
-    bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const override;
+    bool doWipeUnknowns(const std::set<eckit::URI>& unknown_ur_is) const override;
 
-    bool doWipeURIs(const StoreWipeState& wipeState) const override;
+    bool doWipeURIs(const StoreWipeState& wipe_state) const override;
 
     void doWipeEmptyDatabase() const override;
 
@@ -108,13 +111,23 @@ protected:  // methods
 
     std::unique_ptr<const FieldLocation> archive(const Key& key, const void* data, eckit::Length length) override;
 
-    void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
+    void remove(const eckit::URI& uri, std::ostream& log_always, std::ostream& log_verbose, bool doit) const override;
 
     void print(std::ostream& out) const override;
 
+private:  // methods
+
+    /// atomic counter used to make object names globally unique
+    eckit::FamObject& counter() const;
+
 private:  // members
 
+    static constexpr const char* counter_name = "_seq_";
+
     mutable Stats stats_;
+
+    mutable std::once_flag seqOnce_;
+    mutable std::optional<eckit::FamObject> sequence_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

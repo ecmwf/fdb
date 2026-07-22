@@ -15,22 +15,6 @@
 
 #include "fdb5/fam/FamStore.h"
 
-#include <cstddef>
-#include <memory>
-#include <ostream>
-#include <set>
-#include <string>
-#include <vector>
-
-#include "eckit/exception/Exceptions.h"
-#include "eckit/filesystem/URI.h"
-#include "eckit/io/DataHandle.h"
-#include "eckit/io/Length.h"
-#include "eckit/io/fam/FamObject.h"
-#include "eckit/io/fam/FamObjectName.h"
-#include "eckit/io/fam/FamPath.h"
-#include "eckit/log/Log.h"
-
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
@@ -39,6 +23,27 @@
 #include "fdb5/database/WipeState.h"
 #include "fdb5/fam/FamCommon.h"
 #include "fdb5/fam/FamFieldLocation.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/DataHandle.h"
+#include "eckit/io/Length.h"
+#include "eckit/io/fam/FamObject.h"
+#include "eckit/io/fam/FamObjectName.h"
+#include "eckit/io/fam/FamPath.h"
+#include "eckit/log/CodeLocation.h"
+#include "eckit/log/Log.h"
+
+#include <atomic>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <mutex>
+#include <ostream>
+#include <set>
+#include <sstream>
+#include <string>
+#include <vector>
 
 namespace fdb5 {
 
@@ -54,9 +59,9 @@ FamStore::~FamStore() = default;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::URI FamStore::uri(const eckit::URI& dataURI) {
-    ASSERT(dataURI.scheme() == FamCommon::type);
-    return eckit::FamObjectName(dataURI).uri();
+eckit::URI FamStore::uri(const eckit::URI& data_uri) {
+    ASSERT(data_uri.scheme() == FamCommon::type);
+    return eckit::FamObjectName(data_uri).uri();
 }
 
 eckit::URI FamStore::uri() const {
@@ -105,10 +110,17 @@ std::vector<eckit::URI> FamStore::getAuxiliaryURIs(const eckit::URI& uri, bool /
     return {};
 }
 
+eckit::FamObject& FamStore::counter() const {
+    std::call_once(seqOnce_, [this] { sequence_.emplace(getRegion().ensureObject(sizeof(uint64_t), counter_name)); });
+    return *sequence_;
+}
+
 eckit::FamObjectName FamStore::makeObject(const Key& key) const {
+    // concurrent-safe id
+    const auto id = counter().fetchAdd<uint64_t>(0, 1);
+
     // withUUID() derives a deterministic UUID from the full path (region + object name)
-    // and replaces the object name with it, so the human-readable stem is not persisted.
-    const auto object_name = toString(key) + "-data" + std::to_string(stats_.archived.load());
+    const auto object_name = toString(key) + "-data" + std::to_string(id);
     return root_.object(object_name).withUUID();
 }
 
@@ -137,15 +149,13 @@ std::unique_ptr<const FieldLocation> FamStore::archive(const Key& key, const voi
     return std::make_unique<FamFieldLocation>(object.uri(), 0, length, fdb5::Key());
 }
 
-void FamStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const {
+void FamStore::remove(const eckit::URI& uri, std::ostream& log_always, std::ostream& log_verbose, bool doit) const {
     ASSERT(root_.uriBelongs(uri));
 
-    logVerbose << "remove: ";
-    logAlways << uri << '\n';
+    log_verbose << "remove: ";
+    log_always << uri << '\n';
 
     if (doit) {
-        // Use a single fam_lookup + deallocate rather than exists() + lookup() (two
-        // identical RPCs).  Treat NotFound as a benign "already gone" condition.
         try {
             root_.object(eckit::FamPath(uri).objectName()).lookup().deallocate();
         }
@@ -155,20 +165,20 @@ void FamStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostre
     }
 }
 
-void FamStore::finaliseWipeState(StoreWipeState& storeState, bool /*doit*/, bool /*unsafeWipeAll*/) {
+void FamStore::finaliseWipeState(StoreWipeState& store_state, bool /*doit*/, bool /*unsafe_wipe_all*/) {
 
-    const std::set<eckit::URI>& dataURIs = storeState.includedDataURIs();
+    const std::set<eckit::URI>& data_ur_is = store_state.includedDataURIs();
 
-    if (dataURIs.empty()) {
+    if (data_ur_is.empty()) {
         return;
     }
 
     if (!root_.exists()) {
-        storeState.markAllMissing();
+        store_state.markAllMissing();
         return;
     }
 
-    for (const auto& uri : dataURIs) {
+    for (const auto& uri : data_ur_is) {
         if (!uriBelongs(uri)) {
             std::stringstream msg;
             msg << "FamStore::finaliseWipeState: index to be deleted has pointers to fields that don't belong to the "
@@ -180,13 +190,13 @@ void FamStore::finaliseWipeState(StoreWipeState& storeState, bool /*doit*/, bool
         }
 
         if (!uriExists(uri)) {
-            storeState.markAsMissing(uri);
+            store_state.markAsMissing(uri);
         }
     }
 }
 
-bool FamStore::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
-    for (const auto& uri : unknownURIs) {
+bool FamStore::doWipeUnknowns(const std::set<eckit::URI>& unknown_ur_is) const {
+    for (const auto& uri : unknown_ur_is) {
         if (!uriBelongs(uri)) {
             continue;
         }
@@ -197,11 +207,11 @@ bool FamStore::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
     return true;
 }
 
-bool FamStore::doWipeURIs(const StoreWipeState& wipeState) const {
-    for (const auto& uri : wipeState.dataAuxiliaryURIs()) {
+bool FamStore::doWipeURIs(const StoreWipeState& wipe_state) const {
+    for (const auto& uri : wipe_state.dataAuxiliaryURIs()) {
         remove(uri, eckit::Log::info(), eckit::Log::info(), true);
     }
-    for (const auto& uri : wipeState.includedDataURIs()) {
+    for (const auto& uri : wipe_state.includedDataURIs()) {
         remove(uri, eckit::Log::info(), eckit::Log::info(), true);
     }
     // TODO: when all URIs are consumed and the DB is empty, destroy the FAM region
