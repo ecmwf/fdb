@@ -15,6 +15,7 @@
 
 #include <cstdint>
 
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/filesystem/URI.h"
 
 #include "fdb5/api/helpers/APIIterator.h"
@@ -49,12 +50,15 @@ enum class ControlIdentifier : uint16_t {
     Retrieve = 1 << 1,
     Archive = 1 << 2,
     Wipe = 1 << 3,
-    UniqueRoot = 1 << 4
+    UniqueRoot = 1 << 4,
+    UnsafeWipeAll = 1 << 5
 };
 
+std::ostream& operator<<(std::ostream& s, const ControlIdentifier& m);
+
 static const std::initializer_list<ControlIdentifier> ControlIdentifierList{
-    ControlIdentifier::List, ControlIdentifier::Retrieve, ControlIdentifier::Archive, ControlIdentifier::Wipe,
-    ControlIdentifier::UniqueRoot};
+    ControlIdentifier::List, ControlIdentifier::Retrieve,   ControlIdentifier::Archive,
+    ControlIdentifier::Wipe, ControlIdentifier::UniqueRoot, ControlIdentifier::UnsafeWipeAll};
 //----------------------------------------------------------------------------------------------------------------------
 
 // An iterator to facilitate working with the ControlIdentifiers structure
@@ -95,6 +99,8 @@ public:
     ControlIdentifiers();
     ControlIdentifiers(const ControlIdentifier& val);
     ControlIdentifiers(eckit::Stream& s);
+
+    static ControlIdentifiers parse(const eckit::LocalConfiguration& config, bool unsafeWipeAllDefault = true);
 
     ControlIdentifiers& operator|=(const ControlIdentifier& val);
     ControlIdentifiers operator|(const ControlIdentifier& val);
