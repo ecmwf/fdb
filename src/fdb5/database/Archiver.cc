@@ -11,11 +11,6 @@
 
 #include "fdb5/database/Archiver.h"
 
-#include <ctime>
-#include <mutex>
-
-#include "eckit/config/Resource.h"
-
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/Callback.h"
 #include "fdb5/database/ArchiveVisitor.h"
@@ -23,6 +18,11 @@
 #include "fdb5/database/Store.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/rules/Schema.h"
+
+#include "eckit/config/Resource.h"
+
+#include <ctime>
+#include <mutex>
 
 namespace fdb5 {
 
@@ -36,6 +36,8 @@ Archiver::~Archiver() {
 }
 
 void Archiver::archive(const Key& key, const void* data, size_t len) {
+    // Take the lock as visitor takes a reference to prev_ during construction
+    std::lock_guard lock(flushMutex_);
     auto visitor = ArchiveVisitor::create(*this, key, data, len, callback_);
     archive(key, *visitor);
 }
