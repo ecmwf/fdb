@@ -13,17 +13,18 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_Inspector_H
-#define fdb5_Inspector_H
+#pragma once
 
-#include <cstdlib>
-#include <iosfwd>
-#include <vector>
+#include "fdb5/api/helpers/ListElement.h"
+#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/config/Config.h"
 
 #include "eckit/container/CacheLRU.h"
 
-#include "fdb5/api/helpers/ListIterator.h"
-#include "fdb5/config/Config.h"
+#include <cstdlib>
+#include <iosfwd>
+#include <mutex>
+#include <vector>
 
 namespace eckit {
 class DataHandle;
@@ -93,6 +94,8 @@ private:  // methods
 
 private:  // data
 
+    mutable std::mutex mutex_;
+
     mutable eckit::CacheLRU<Key, CatalogueReader*> databases_;
 
     Config dbConfig_;
@@ -101,5 +104,3 @@ private:  // data
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif
