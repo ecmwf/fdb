@@ -26,6 +26,7 @@
 #include "eckit/io/fam/FamTypes.h"
 #include "eckit/serialisation/MemoryStream.h"
 
+#include <cstddef>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -61,6 +62,8 @@ struct FamCommon {
 
     /// Suffix appended to every FAM map table name.
     static constexpr const char* table_suffix = Map::table_suffix;
+
+    static constexpr std::size_t encode_buffer_hint = 4096;
 
     static std::string toString(const Key& key);
 

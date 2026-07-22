@@ -44,7 +44,6 @@
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/MD5.h"
 
-#include <climits>
 #include <cstddef>
 #include <ostream>
 #include <set>

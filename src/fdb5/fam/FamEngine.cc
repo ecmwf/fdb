@@ -15,8 +15,6 @@
 
 #include "fdb5/fam/FamEngine.h"
 
-#include <climits>
-
 #include "eckit/io/fam/FamRegionName.h"
 #include "eckit/log/Log.h"
 #include "eckit/serialisation/MemoryStream.h"

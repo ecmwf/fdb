@@ -34,7 +34,6 @@
 #include "eckit/serialisation/Reanimator.h"
 #include "eckit/serialisation/Stream.h"
 
-#include <climits>
 #include <cstddef>
 #include <ctime>
 #include <memory>
@@ -65,7 +64,7 @@ eckit::Buffer serialize(size_t initial_capacity, T&& writer) {
 
 /// Encode a field entry in wire format: [timestamp] [FieldLocation] [Key].
 eckit::Buffer encodeIndex(const Field& field, const Key& key) {
-    return serialize(static_cast<size_t>(PATH_MAX), [&](eckit::HandleStream& stream) {
+    return serialize(FamCommon::encode_buffer_hint, [&](eckit::HandleStream& stream) {
         stream << field.timestamp();
         stream << field.location();
         stream << key;
@@ -261,7 +260,7 @@ void FamIndex::flush() {
         merged.merge(axes_);
         merged.sort();
 
-        auto payload = serialize(static_cast<size_t>(PATH_MAX), [&merged](eckit::HandleStream& stream) {
+        auto payload = serialize(FamCommon::encode_buffer_hint, [&merged](eckit::HandleStream& stream) {
             merged.encode(stream, IndexAxis::currentVersion());
         });
         data_.insertOrAssign(axes_key, payload);

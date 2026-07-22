@@ -28,7 +28,6 @@
 #include "eckit/serialisation/MemoryStream.h"
 
 #include <algorithm>
-#include <climits>
 #include <cstddef>
 #include <mutex>
 #include <string>
@@ -45,7 +44,7 @@ std::string FamCommon::toString(const Key& key) {
 }
 
 std::string FamCommon::encodeKey(const Key& key) {
-    eckit::MemoryHandle h{static_cast<size_t>(PATH_MAX)};
+    eckit::MemoryHandle h{encode_buffer_hint};
     eckit::HandleStream hs{h};
     h.openForWrite(0);
     {
