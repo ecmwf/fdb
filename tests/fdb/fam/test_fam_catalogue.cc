@@ -24,6 +24,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <utility>
 
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/io/Length.h"
@@ -484,6 +485,74 @@ CASE("FamCatalogue: maskIndexEntries removes index from catalogue") {
     EXPECT(reader.open());
     fdb5::Catalogue& reader_cat = reader;
     EXPECT(reader_cat.indexes().empty());
+}
+
+CASE("FamCatalogue: allMasked reports masked index metadata and data") {
+
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
+        .create(test_region_size, test_region_perm, true);
+
+    const fam::FamSetup setup(fam::test_schema, test_config);
+    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
+
+    const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
+    const auto idx_key =
+        fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}, {"fam2a", "d"}, {"fam2b", "e"}, {"fam2c", "f"}};
+
+    const char* data = "allmasked-test-data";
+    const auto data_length = std::char_traits<char>::length(data);
+    const auto datum_key = fdb5::Key({{"fam1a", "a"},
+                                      {"fam1b", "b"},
+                                      {"fam1c", "c"},
+                                      {"fam2a", "d"},
+                                      {"fam2b", "e"},
+                                      {"fam2c", "f"},
+                                      {"fam3a", "g"},
+                                      {"fam3b", "h"},
+                                      {"fam3c", "i"}});
+
+    fdb5::FamStore fam_store(db_key, config);
+    fdb5::Store& store = fam_store;
+    auto loc = store.archive(datum_key, data, eckit::Length(data_length));
+    const eckit::URI data_uri = loc->uri();
+
+    fdb5::FamCatalogueWriter writer(db_key, config);
+    fdb5::CatalogueWriter& writer_iface = writer;
+    writer_iface.archive(idx_key, datum_key, loc->make_shared());
+    writer_iface.flush(1);
+
+    fdb5::Catalogue& cat = writer;
+
+    // Capture the live index metadata URI before masking.
+    auto live = cat.indexes();
+    EXPECT_EQUAL(live.size(), 1U);
+    const eckit::URI index_uri = live.front().location().uri();
+
+    // Before masking, allMasked reports nothing.
+    {
+        std::set<std::pair<eckit::URI, eckit::Offset>> metadata;
+        std::set<eckit::URI> masked_data;
+        cat.allMasked(metadata, masked_data);
+        EXPECT(metadata.empty());
+        EXPECT(masked_data.empty());
+    }
+
+    // Mask the index, then allMasked must report its metadata + data so a wipe can reclaim them.
+    std::set<fdb5::Index> to_mask(live.begin(), live.end());
+    cat.maskIndexEntries(to_mask);
+
+    {
+        std::set<std::pair<eckit::URI, eckit::Offset>> metadata;
+        std::set<eckit::URI> masked_data;
+        cat.allMasked(metadata, masked_data);
+
+        EXPECT_EQUAL(metadata.size(), 1U);
+        EXPECT_EQUAL(metadata.begin()->first, index_uri);
+        EXPECT(masked_data.find(data_uri) != masked_data.end());
+    }
+
+    // The masked index is no longer a live index.
+    EXPECT(cat.indexes().empty());
 }
 
 CASE("FamCatalogue: end-to-end wipe removes catalogue and data") {
