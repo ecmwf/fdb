@@ -13,10 +13,9 @@
  * (Grant agreement: 101092984) horizon-opencube.eu
  */
 
-#include <cstdint>
-#include <cstdlib>
-#include <ostream>
-#include <string>
+#include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/tools/FDBTool.h"
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/fam/FamPath.h"
@@ -28,9 +27,10 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 
-#include "fdb5/LibFdb5.h"
-#include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/tools/FDBTool.h"
+#include <cstdint>
+#include <cstdlib>
+#include <ostream>
+#include <string>
 
 namespace fdb5 ::tools {
 
@@ -94,7 +94,7 @@ void FDBFam::init(const eckit::option::CmdArgs& args) {
     LOG_DEBUG_LIB(LibFdb5) << "FDBFam::init" << std::endl;
 
     if (args.count() != 1) {
-        eckit::Log::info() << "!!! missing arguement [path] (see usage below) !!!\n";
+        eckit::Log::info() << "!!! missing argument [path] (see usage below) !!!\n";
         usage(args.tool());
         exit(1);
     }
@@ -157,6 +157,11 @@ void FDBFam::execute(const eckit::option::CmdArgs& args) {
                 eckit::Log::info() << "Failed to create: " << regionName << std::endl;
             }
         }
+    }
+    else {
+        // A path that carries an object name is not (yet) supported: fail loudly rather than
+        // silently succeeding, which would mislead scripts relying on the exit status.
+        throw eckit::BadValue("fdb-fam only supports region paths (no object name): " + path_.asString(), Here());
     }
 }
 
