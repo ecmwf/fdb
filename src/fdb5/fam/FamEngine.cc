@@ -15,14 +15,21 @@
 
 #include "fdb5/fam/FamEngine.h"
 
-#include "eckit/io/fam/FamRegionName.h"
-#include "eckit/log/Log.h"
-#include "eckit/serialisation/MemoryStream.h"
-
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Engine.h"
 #include "fdb5/fam/FamCatalogue.h"
 #include "fdb5/fam/FamCommon.h"
+
+#include "metkit/mars/MarsRequest.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/io/fam/FamRegionName.h"
+#include "eckit/log/Log.h"
+#include "eckit/serialisation/MemoryStream.h"
+
+#include <ostream>
+#include <string>
+#include <vector>
 
 namespace fdb5 {
 
@@ -153,10 +160,10 @@ eckit::URI FamEngine::location(const Key& /*key*/, const Config& /*config*/) con
     NOTIMP;
 }
 std::string FamEngine::dbType() const {
-    NOTIMP;
+    return FamCommon::type;
 }
 void FamEngine::print(std::ostream& out) const {
-    out << "FamEngine[]";
+    out << "FamEngine[name=" << name() << ",type=" << dbType() << "]";
 }
 
 //----------------------------------------------------------------------------------------------------------------------

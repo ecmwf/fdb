@@ -19,9 +19,15 @@
 
 #pragma once
 
+#include "fdb5/database/Engine.h"
+
+#include "metkit/mars/MarsRequest.h"
+
 #include "eckit/filesystem/URI.h"
 
-#include "fdb5/database/Engine.h"
+#include <iosfwd>
+#include <string>
+#include <vector>
 
 namespace fdb5 {
 
@@ -51,7 +57,7 @@ protected:  // methods
     bool canHandle(const eckit::URI& uri, const Config& config) const override;
 
     std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const override;
-    std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq,
+    std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& request,
                                                const Config& config) const override;
 
     void print(std::ostream& out) const override;
