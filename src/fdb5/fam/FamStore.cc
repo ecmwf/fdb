@@ -118,10 +118,9 @@ eckit::FamObject& FamStore::counter() const {
 eckit::FamObjectName FamStore::makeObject(const Key& key) const {
     // concurrent-safe id
     const auto id = counter().fetchAdd<uint64_t>(0, 1);
-
-    // withUUID() derives a deterministic UUID from the full path (region + object name)
+    // derive a deterministic UUID from the full path (region + object name)
     const auto object_name = toString(key) + "-data" + std::to_string(id);
-    return root_.object(object_name).withUUID();
+    return root().object(object_name).withUUID();
 }
 
 eckit::DataHandle* FamStore::retrieve(Field& field) const {
@@ -150,14 +149,14 @@ std::unique_ptr<const FieldLocation> FamStore::archive(const Key& key, const voi
 }
 
 void FamStore::remove(const eckit::URI& uri, std::ostream& log_always, std::ostream& log_verbose, bool doit) const {
-    ASSERT(root_.uriBelongs(uri));
+    ASSERT(root().uriBelongs(uri));
 
     log_verbose << "remove: ";
     log_always << uri << '\n';
 
     if (doit) {
         try {
-            root_.object(eckit::FamPath(uri).objectName()).lookup().deallocate();
+            root().object(eckit::FamPath(uri).objectName()).lookup().deallocate();
         }
         catch (const eckit::NotFound&) {
             LOG_DEBUG_LIB(LibFdb5) << "FamStore::remove: object already absent: " << uri << '\n';
@@ -173,7 +172,7 @@ void FamStore::finaliseWipeState(StoreWipeState& store_state, bool /*doit*/, boo
         return;
     }
 
-    if (!root_.exists()) {
+    if (!root().exists()) {
         store_state.markAllMissing();
         return;
     }
@@ -222,12 +221,12 @@ bool FamStore::doWipeURIs(const StoreWipeState& wipe_state) const {
 void FamStore::doWipeEmptyDatabase() const {
     // TODO: destroy the root FAM region once it is confirmed that each DB has its own
     // dedicated region. If multiple DBs share a single region (as may happen with some
-    // FAM configurations), calling root_.lookup().destroy() would silently delete
+    // FAM configurations), calling root().lookup().destroy() would silently delete
     // neighbour data. Implement only after the region-per-DB layout is enforced.
 }
 
 void FamStore::print(std::ostream& out) const {
-    out << "FamStore[root=" << root_ << ']';
+    out << "FamStore[root=" << root() << ']';
 }
 
 //----------------------------------------------------------------------------------------------------------------------
