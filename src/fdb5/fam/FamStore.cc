@@ -111,8 +111,8 @@ std::vector<eckit::URI> FamStore::getAuxiliaryURIs(const eckit::URI& uri, bool /
 }
 
 eckit::FamObject& FamStore::counter() const {
-    std::call_once(seqOnce_, [this] { sequence_.emplace(getRegion().ensureObject(sizeof(uint64_t), counter_name)); });
-    return *sequence_;
+    std::call_once(countOnce_, [this] { counter_.emplace(getRegion().ensureObject(sizeof(uint64_t), counter_name)); });
+    return *counter_;
 }
 
 eckit::FamObjectName FamStore::makeObject(const Key& key) const {

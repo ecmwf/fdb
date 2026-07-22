@@ -126,8 +126,8 @@ private:  // members
 
     mutable Stats stats_;
 
-    mutable std::once_flag seqOnce_;
-    mutable std::optional<eckit::FamObject> sequence_;
+    mutable std::once_flag countOnce_;
+    mutable std::optional<eckit::FamObject> counter_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
