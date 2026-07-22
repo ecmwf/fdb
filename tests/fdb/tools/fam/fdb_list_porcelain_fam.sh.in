@@ -34,6 +34,7 @@ export FDB_HOME=@PROJECT_BINARY_DIR@
 
 # Validate required commands
 command_exists grib_set
+command_exists grib_ls
 command_exists fdb-fam
 command_exists fdb-write
 command_exists fdb-list

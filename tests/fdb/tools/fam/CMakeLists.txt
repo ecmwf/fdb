@@ -1,5 +1,5 @@
 if( eckit_HAVE_OPENFAM_MOCK )
-    list( APPEND _fam_environment
+    list( APPEND _fam_environment ${_test_environment}
         "ECKIT_FAM_MOCK_SHM_SIZE=67108864"
     )
 elseif( eckit_HAVE_OPENFAM )
