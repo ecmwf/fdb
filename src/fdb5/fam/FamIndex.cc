@@ -15,21 +15,34 @@
 
 #include "fdb5/fam/FamIndex.h"
 
-#include <climits>
-#include <mutex>
-#include <utility>
-
-#include "eckit/io/MemoryHandle.h"
-#include "eckit/log/Log.h"
-#include "eckit/serialisation/HandleStream.h"
-#include "eckit/serialisation/MemoryStream.h"
-#include "eckit/serialisation/Reanimator.h"
-
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/Index.h"
+#include "fdb5/database/IndexAxis.h"
+#include "fdb5/database/IndexStats.h"
 #include "fdb5/fam/FamCommon.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/io/DataHandle.h"
+#include "eckit/io/MemoryHandle.h"
+#include "eckit/io/fam/FamRegionName.h"
+#include "eckit/log/Log.h"
+#include "eckit/serialisation/HandleStream.h"
+#include "eckit/serialisation/MemoryStream.h"
+#include "eckit/serialisation/Reanimator.h"
+#include "eckit/serialisation/Stream.h"
+
+#include <climits>
+#include <cstddef>
+#include <ctime>
+#include <memory>
+#include <mutex>
+#include <ostream>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace fdb5 {
 
@@ -39,7 +52,7 @@ namespace {
 // Helpers
 
 template <typename T>
-eckit::Buffer serialize(std::size_t initial_capacity, T&& writer) {
+eckit::Buffer serialize(size_t initial_capacity, T&& writer) {
     eckit::MemoryHandle handle{initial_capacity};
     eckit::HandleStream stream{handle};
     handle.openForWrite(0);
@@ -47,12 +60,12 @@ eckit::Buffer serialize(std::size_t initial_capacity, T&& writer) {
         eckit::AutoClose closer(handle);
         std::forward<T>(writer)(stream);
     }
-    return {handle.data(), static_cast<std::size_t>(stream.bytesWritten())};
+    return {handle.data(), static_cast<size_t>(stream.bytesWritten())};
 }
 
 /// Encode a field entry in wire format: [timestamp] [FieldLocation] [Key].
 eckit::Buffer encodeIndex(const Field& field, const Key& key) {
-    return serialize(static_cast<std::size_t>(PATH_MAX), [&](eckit::HandleStream& stream) {
+    return serialize(static_cast<size_t>(PATH_MAX), [&](eckit::HandleStream& stream) {
         stream << field.timestamp();
         stream << field.location();
         stream << key;
@@ -248,7 +261,7 @@ void FamIndex::flush() {
         merged.merge(axes_);
         merged.sort();
 
-        auto payload = serialize(static_cast<std::size_t>(PATH_MAX), [&merged](eckit::HandleStream& stream) {
+        auto payload = serialize(static_cast<size_t>(PATH_MAX), [&merged](eckit::HandleStream& stream) {
             merged.encode(stream, IndexAxis::currentVersion());
         });
         data_.insertOrAssign(axes_key, payload);

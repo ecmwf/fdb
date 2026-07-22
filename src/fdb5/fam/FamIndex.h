@@ -19,18 +19,25 @@
 
 #pragma once
 
+#include "fdb5/database/Index.h"
+#include "fdb5/database/IndexStats.h"
+#include "fdb5/fam/FamIndexLocation.h"
+
 #include "eckit/io/fam/FamMap.h"
 #include "eckit/io/fam/FamRegionName.h"
 
-#include "fdb5/database/Index.h"
-#include "fdb5/fam/FamIndexLocation.h"
+#include <iosfwd>
+#include <string>
+#include <vector>
 
 namespace fdb5 {
 
+class Key;
+class Field;
+class EntryVisitor;
+
 //----------------------------------------------------------------------------------------------------------------------
 
-/// FAM-backed index using FamMap<FamMapEntry<128>>.
-///
 /// Each entry in the data map is keyed by the datum key values string and stores
 /// the serialised timestamp + FieldLocation + Key (with keyword names).
 /// This allows both fast point lookups and full iteration for list/wipe operations.
