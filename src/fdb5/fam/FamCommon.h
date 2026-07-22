@@ -19,15 +19,16 @@
 
 #pragma once
 
-#include <mutex>
-#include <optional>
-#include <string>
-
 #include "eckit/io/fam/FamMap.h"
 #include "eckit/io/fam/FamObjectName.h"
 #include "eckit/io/fam/FamRegion.h"
 #include "eckit/io/fam/FamRegionName.h"
+#include "eckit/io/fam/FamTypes.h"
 #include "eckit/serialisation/MemoryStream.h"
+
+#include <mutex>
+#include <optional>
+#include <string>
 
 namespace fdb5 {
 
@@ -53,6 +54,10 @@ struct FamCommon {
     static constexpr const char* catalogue_prefix = "c";
 
     static constexpr const char* index_prefix = "i";
+
+    static constexpr const char* index_entry_prefix = "i:";
+
+    static constexpr const char* mask_entry_prefix = "m:";
 
     /// Suffix appended to every FAM map table name.
     static constexpr const char* table_suffix = Map::table_suffix;
@@ -98,13 +103,23 @@ struct FamCommon {
     /// @note Throws if the region does not exist
     const eckit::FamRegion& getRegion() const;
 
-    eckit::FamRegionName root_;
 
-private:
+private:  // methods
 
     explicit FamCommon(const Config& config);
 
-    mutable std::once_flag region_once_;
+protected:  // methods
+
+    eckit::FamRegionName& root() { return root_; }
+
+    const eckit::FamRegionName& root() const { return root_; }
+
+
+private:  // members
+
+    eckit::FamRegionName root_;
+
+    mutable std::once_flag regionOnce_;
     mutable std::optional<eckit::FamRegion> region_;
 };
 

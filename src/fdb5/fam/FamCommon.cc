@@ -15,20 +15,24 @@
 
 #include "fdb5/fam/FamCommon.h"
 
-#include <algorithm>
-#include <climits>
-#include <string>
-#include <utility>
+#include "fdb5/config/Config.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/fam/FamEngine.h"
 
 #include "eckit/filesystem/URI.h"
+#include "eckit/io/DataHandle.h"
 #include "eckit/io/MemoryHandle.h"
+#include "eckit/io/fam/FamObjectName.h"
 #include "eckit/io/fam/FamRegionName.h"
 #include "eckit/serialisation/HandleStream.h"
 #include "eckit/serialisation/MemoryStream.h"
 
-#include "fdb5/config/Config.h"
-#include "fdb5/database/Key.h"
-#include "fdb5/fam/FamEngine.h"
+#include <algorithm>
+#include <climits>
+#include <cstddef>
+#include <mutex>
+#include <string>
+#include <utility>
 
 namespace fdb5 {
 
@@ -86,7 +90,7 @@ eckit::FamObjectName FamCommon::tableObject(const std::string& name) const {
 }
 
 const eckit::FamRegion& FamCommon::getRegion() const {
-    std::call_once(region_once_, [this] { region_.emplace(root_.lookup()); });
+    std::call_once(regionOnce_, [this] { region_.emplace(root_.lookup()); });
     return *region_;
 }
 
