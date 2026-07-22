@@ -19,13 +19,26 @@
 
 #pragma once
 
-#include <map>
-
+#include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/fam/FamCatalogue.h"
 
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/Length.h"
+#include "eckit/io/Offset.h"
+
+#include <cstddef>
+#include <iosfwd>
+#include <map>
+#include <memory>
+#include <set>
+#include <string>
+
 namespace fdb5 {
+
+class Key;
+class FieldLocation;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -40,6 +53,12 @@ public:  // methods
 
     FamCatalogueWriter(const Key& key, const fdb5::Config& config);
     FamCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config);
+
+    // rules
+    FamCatalogueWriter(const FamCatalogueWriter&) = delete;
+    FamCatalogueWriter& operator=(const FamCatalogueWriter&) = delete;
+    FamCatalogueWriter(FamCatalogueWriter&&) = delete;
+    FamCatalogueWriter& operator=(FamCatalogueWriter&&) = delete;
 
     ~FamCatalogueWriter() override;
 

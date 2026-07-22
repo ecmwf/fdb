@@ -15,13 +15,32 @@
 
 #include "fdb5/fam/FamCatalogueWriter.h"
 
-#include <fstream>
-#include <sstream>
-
-#include "eckit/io/fam/FamMap.h"
-
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Field.h"
+#include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/Index.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/fam/FamCatalogue.h"
+#include "fdb5/fam/FamCommon.h"
 #include "fdb5/fam/FamIndex.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/Length.h"
+#include "eckit/io/Offset.h"
+#include "eckit/io/fam/FamMap.h"
+#include "eckit/log/Log.h"
+
+#include <cstddef>
+#include <fstream>
+#include <memory>
+#include <ostream>
+#include <set>
+#include <sstream>
+#include <string>
+#include <utility>
 
 namespace fdb5 {
 
@@ -67,7 +86,7 @@ void FamCatalogueWriter::dumpSchema(std::ostream& stream) const {
     ss << file.rdbuf();
     const std::string schema = ss.str();
     // persist the schema in the FAM catalogue
-    cat.insert(schema_keyword, schema);
+    cat.insertOrAssign(schema_keyword, schema);
     stream << schema;
 }
 
@@ -75,11 +94,11 @@ void FamCatalogueWriter::dumpSchema(std::ostream& stream) const {
 void FamCatalogueWriter::initCatalogue() {
     const auto key = encodeKey(dbKey_);
 
-    // Register this DB in the global FDB registry
-    Map(registry_keyword, getRegion()).insert(toString(dbKey_), key);
+    // Register this DB in the global FDB registry (idempotent under concurrent writers)
+    Map(registry_keyword, getRegion()).insertOrAssign(toString(dbKey_), key);
 
     // Create / open the per-DB catalogue map and store the DB key.
-    catalogue().insert(db_keyword, key);
+    catalogue().insertOrAssign(db_keyword, key);
 
     loadSchema();
 }
@@ -119,14 +138,14 @@ bool FamCatalogueWriter::selectIndex(const Key& key) {
         return true;
     }
     // Create or open the FamIndex for this key.
-    current_ = Index(new FamIndex(key, root_, indexName(key), false));
+    const auto& region_name = root();
+    current_ = Index(new FamIndex(key, region_name, indexName(key), false));
     current_.open();
     // cache it for future selectIndex calls
     indexes_[key] = current_;
 
-    // Register this index in the catalogue FamMap.  The "i:" prefix distinguishes
-    // index entries from administrative sentinel keys (e.g. "__fdb__").
-    catalogue().insert("i:" + toString(key), encodeKey(key));
+    // Register this index in the catalogue FamMap
+    catalogue().insertOrAssign(index_entry_prefix + toString(key), encodeKey(key));
 
     return true;
 }
@@ -153,16 +172,13 @@ const Index& FamCatalogueWriter::currentIndex() {
 
 void FamCatalogueWriter::archive(const Key& idx_key, const Key& datum_key,
                                  std::shared_ptr<const FieldLocation> field_location) {
-
     selectIndex(idx_key);
-
     Field field(std::move(field_location), current_.timestamp());
     current_.put(datum_key, field);
 }
 
 void FamCatalogueWriter::flush(size_t /*archivedFields*/) {
     LOG_DEBUG_LIB(LibFdb5) << "FamCatalogueWriter::flush" << std::endl;
-    // Delegate axis sorting to FamIndex::flush(), keeping the writer free of casts.
     for (auto& [key, idx] : indexes_) {
         idx.flush();
     }
