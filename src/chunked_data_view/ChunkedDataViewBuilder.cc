@@ -49,6 +49,33 @@ ChunkedDataViewBuilder& ChunkedDataViewBuilder::fillMissingValue(float fillValue
     return *this;
 }
 
+bool ChunkedDataViewBuilder::chunkingConsistencyCheck(
+    const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& viewParts) {
+
+    if (viewParts.size() <= 1) {
+        return true;
+    }
+
+    const auto& refChunks = viewParts[0].first.chunks();
+    const size_t numAxes = refChunks.size();
+
+    for (size_t axisIdx = 0; axisIdx < numAxes; ++axisIdx) {
+        // WholeAxisChunking axes are extensible: their single chunk grows when parts are
+        // stitched together, so differing extents per part are expected and correct.
+        if (refChunks[axisIdx].isExtensible()) {
+            continue;
+        }
+
+        const size_t refExtent = refChunks[axisIdx].representativeExtent();
+        for (size_t partIdx = 1; partIdx < viewParts.size(); ++partIdx) {
+            if (viewParts[partIdx].first.chunks()[axisIdx].representativeExtent() != refExtent) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 bool ChunkedDataViewBuilder::doPartsAlign(
     const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& viewParts) {
     const ViewPart& first = std::get<0>(viewParts[0]);
@@ -109,6 +136,13 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
 
     if (!doPartsAlign(viewParts)) {
         throw eckit::UserError("Shape of all parts must be identical except for the extension axis index.");
+    }
+
+    if (!chunkingConsistencyCheck(viewParts)) {
+        throw eckit::UserError(
+            "ChunkedDataViewBuilder::build: All parts must use the same chunk size on each axis. "
+            "For FixedSizeChunking axes the chunk size must match across parts so that part "
+            "boundaries coincide with Zarr chunk boundaries.");
     }
 
     return std::make_unique<ChunkedDataViewImpl>(viewParts, fillValue_, extensionAxisIndex_.value_or(0));

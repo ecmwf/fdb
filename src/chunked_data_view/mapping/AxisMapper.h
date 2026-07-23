@@ -31,9 +31,15 @@ public:
     static std::vector<std::pair<Axis, AxisChunks>> mapRequestToAxis(
         const metkit::mars::MarsRequest& mars_request, const std::vector<AxisDefinition>& axis_definition);
 
-    /// Returns true if @p wishedChunkSize is a valid chunk size for @p axis: it must equal
-    /// the product of value counts of one or more trailing (fastest-varying) parameters, or
-    /// evenly divide the fastest-varying parameter's value count.
+    /// Returns true if @p wishedChunkSize is a valid chunk size for @p axis.
+    ///
+    /// C is valid iff C = trailingProduct(k) × d, where trailingProduct(k) is the product
+    /// of the cardinalities of the k fastest-varying parameters, and d divides the
+    /// cardinality of the (k+1)-th parameter from the fastest end.
+    ///
+    /// This guarantees every chunk covers all values of the inner (faster) keys in full
+    /// and sub-divides exactly one outer key evenly — no chunk may straddle a boundary
+    /// between values of an inner key.
     static bool chunkSizeCheck(const Axis& axis, const size_t wishedChunkSize);
 
     /// Creates the AxisChunks object for @p axis given the requested chunking strategy.

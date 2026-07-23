@@ -88,5 +88,14 @@ private:
     float fillValue_ = std::numeric_limits<float>::quiet_NaN();
 
     bool doPartsAlign(const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& viewParts);
+
+    /// Returns true if all parts use the same chunk size on every non-extensible axis.
+    ///
+    /// For FixedSizeChunking axes the chunk size must be identical across all parts so
+    /// that part boundaries coincide with Zarr chunk boundaries.  WholeAxisChunking axes
+    /// (extensible=true) grow when parts are stitched together and are therefore exempt
+    /// from this check.  SingleValueChunking always produces chunk size 1 and is trivially
+    /// consistent.
+    static bool chunkingConsistencyCheck(const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& viewParts);
 };
 }  // namespace chunked_data_view

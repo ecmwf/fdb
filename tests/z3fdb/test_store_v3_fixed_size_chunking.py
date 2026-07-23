@@ -31,33 +31,43 @@ pytestmark = pytest.mark.offline
 #   pl_value(d, t, p, l)  = 36 + d*36 + t*9 + p*3 + l
 
 SFC_REQUEST = {
-    "type": "an", "class": "ea", "domain": "g", "expver": "0001", "stream": "oper",
+    "type": "an",
+    "class": "ea",
+    "domain": "g",
+    "expver": "0001",
+    "stream": "oper",
     "date": ["2020-01-01", "2020-01-02", "2020-01-03"],
-    "levtype": "sfc", "step": 0,
+    "levtype": "sfc",
+    "step": 0,
     "param": [165, 166, 167],
     "time": [0, 600, 1200, 1800],
 }
 
 PL_REQUEST = {
-    "type": "an", "class": "ea", "domain": "g", "expver": "0001", "stream": "oper",
+    "type": "an",
+    "class": "ea",
+    "domain": "g",
+    "expver": "0001",
+    "stream": "oper",
     "date": ["2020-01-01", "2020-01-02", "2020-01-03"],
-    "levtype": "pl", "step": 0,
+    "levtype": "pl",
+    "step": 0,
     "param": [131, 132, 133],
     "levelist": [50, 100, 150],
     "time": [0, 600, 1200, 1800],
 }
 
 
-def test_individual_chunking_combined_datetime_axis(
+def test_fixed_size_chunking_combined_datetime_axis(
     read_only_fdb_pattern_setup,
 ) -> None:
-    """Two-part view (SFC + PL) with IndividualChunk on both axes; the extension
+    """Two-part view (SFC + PL) with FixedSizeChunk on both axes; the extension
     axis definitions differ in key-dimensionality between parts.
 
-    Both parts share a 2-key combined axis 0 (["date","time"], IC{4}):
+    Both parts share a 2-key combined axis 0 (["date","time"], FSC{4}):
       12 values, 3 chunks of 4.
 
-    Axis 1 is the extension axis with IC{3} in both parts but different
+    Axis 1 is the extension axis with FSC{3} in both parts but different
     key-dimensionality:
       Part 1 (SFC): ["param"]            -- 1-key axis, 3 values, 1 chunk of 3
       Part 2 (PL):  ["param","levelist"] -- 2-key combined axis, 9 values, 3 chunks of 3
@@ -65,7 +75,7 @@ def test_individual_chunking_combined_datetime_axis(
     After extend_on_axis(1): axis-1 = 3+9 = 12 values, 4 chunks of 3.
 
     Array layout:
-      Axis 0: combined date+time (12 values, IC{4}, chunk size 4)
+      Axis 0: combined date+time (12 values, FSC{4}, chunk size 4)
               index = date_idx * 4 + time_idx
       Axis 1: SFC param (indices 0-2) / PL param+levelist (indices 3-11)
               PL index = 3 + param_idx * 3 + level_idx  (param outer, levelist inner)
@@ -97,7 +107,7 @@ def test_individual_chunking_combined_datetime_axis(
 
     # Shape: combined date*time = 12; SFC param (3) + PL param*levelist (9) = 12
     assert data.shape[:2] == (12, 12)
-    # Chunk shape: IC{4} on combined datetime axis (12/4=3 chunks); IC{3} on param axis
+    # Chunk shape: FSC{4} on combined datetime axis (12/4=3 chunks); FSC{3} on param axis
     assert data.chunks[:2] == (4, 3)
 
     # SFC spot checks -- sfc_value(d, t, p) = d*12 + t*3 + p
@@ -123,7 +133,7 @@ def test_individual_chunking_combined_datetime_axis(
     # Last PL: combined idx 11=(d=2,t=3=1800), PL idx 8=(p=133,l=150)
     # pl_value(2, 3, 2, 2) = 36 + 72 + 27 + 6 + 2 = 143
     assert np.all(data[11, 11] == 143)  # (20200103, 1800), param=133, levelist=150
-    # IC{4} axis-0 chunk boundary: last entry in chunk 0 (combined idx 3 = d=0,t=3=1800)
+    # FSC{4} axis-0 chunk boundary: last entry in chunk 0 (combined idx 3 = d=0,t=3=1800)
     # sfc_value(0, 3, 0) = 0 + 9 + 0 = 9
     assert np.all(data[3, 0] == 9)  # (20200101, 1800), param=165
     # SFC/PL axis-1 boundary: first PL entry at max combined index
@@ -131,16 +141,16 @@ def test_individual_chunking_combined_datetime_axis(
     assert np.all(data[11, 3] == 135)  # (20200103, 1800), param=131, levelist=50
 
 
-def test_individual_chunking_separate_time_axis(
+def test_fixed_size_chunking_separate_time_axis(
     read_only_fdb_pattern_setup,
 ) -> None:
-    """Two-part view (SFC + PL) with IndividualChunk on the time axis and the
+    """Two-part view (SFC + PL) with FixedSizeChunk on the time axis and the
     extension axis; the extension axis definitions differ in key-dimensionality.
 
     Both parts share axis-0 (["date"], SINGLE_VALUE) and axis-1
-    (["time"], IC{2}), giving 2 chunks of 2 on the time dimension.
+    (["time"], FSC{2}), giving 2 chunks of 2 on the time dimension.
 
-    Axis 2 is the extension axis with IC{3} in both parts but different
+    Axis 2 is the extension axis with FSC{3} in both parts but different
     key-dimensionality:
       Part 1 (SFC): ["param"]            -- 1-key axis, 3 values, 1 chunk of 3
       Part 2 (PL):  ["param","levelist"] -- 2-key combined axis, 9 values, 3 chunks of 3
@@ -149,7 +159,7 @@ def test_individual_chunking_separate_time_axis(
 
     Array layout:
       Axis 0: date (3 values, SINGLE_VALUE, chunk size 1)
-      Axis 1: time (4 values, IC{2}, chunk size 2)
+      Axis 1: time (4 values, FSC{2}, chunk size 2)
       Axis 2: SFC param (indices 0-2) / PL param+levelist (indices 3-11)
               PL index = 3 + param_idx * 3 + level_idx  (param outer, levelist inner)
       Axis 3: implicit field values (N grid points)
@@ -182,7 +192,7 @@ def test_individual_chunking_separate_time_axis(
 
     # Shape: date=3, time=4; SFC param (3) + PL param*levelist (9) = 12
     assert data.shape[:3] == (3, 4, 12)
-    # Chunk shape: SINGLE_VALUE (1) on date; IC{2} on time; IC{3} on param axis
+    # Chunk shape: SINGLE_VALUE (1) on date; FSC{2} on time; FSC{3} on param axis
     assert data.chunks[:3] == (1, 2, 3)
 
     # SFC spot checks -- sfc_value(d, t, p) = d*12 + t*3 + p
@@ -220,7 +230,7 @@ def test_individual_chunking_separate_time_axis(
     assert np.all(
         data[2, 3, 11] == 143
     )  # date=20200103, time=1800, param=133, levelist=150
-    # IC{2} time chunk boundary: last time entry (idx 3=1800) on SFC side
+    # FSC{2} time chunk boundary: last time entry (idx 3=1800) on SFC side
     # sfc_value(0, 3, 0) = 0 + 9 + 0 = 9
     assert np.all(data[0, 3, 0] == 9)  # date=20200101, time=1800, param=165
     # SFC/PL axis-2 boundary: first PL entry at max date+time
@@ -230,7 +240,7 @@ def test_individual_chunking_separate_time_axis(
     )  # date=20200103, time=1800, param=131, levelist=50
 
 
-def test_individual_chunking_reordered_axes(
+def test_fixed_size_chunking_reordered_axes(
     read_only_fdb_pattern_setup,
 ) -> None:
     """Two-part view (SFC + PL) where the axis order in the view definition is
@@ -240,7 +250,7 @@ def test_individual_chunking_reordered_axes(
     but the AxisDefinition list places them in a different order: param (axis 0,
     extension), time (axis 1), date (axis 2).
 
-    The extension axis (axis 0) has IC{3} in both parts but different
+    The extension axis (axis 0) has FSC{3} in both parts but different
     key-dimensionality:
       Part 1 (SFC): ["param"]            -- 1-key axis, 3 values, 1 chunk of 3
       Part 2 (PL):  ["param","levelist"] -- 2-key combined axis, 9 values, 3 chunks of 3
@@ -250,7 +260,7 @@ def test_individual_chunking_reordered_axes(
     Array layout:
       Axis 0: SFC param (indices 0-2) / PL param+levelist (indices 3-11)
               PL index = 3 + param_idx * 3 + level_idx  (param outer, levelist inner)
-      Axis 1: time (4 values, IC{2}, chunk size 2)
+      Axis 1: time (4 values, FSC{2}, chunk size 2)
       Axis 2: date (3 values, SINGLE_VALUE, chunk size 1)
       Axis 3: implicit field values (N grid points)
     """
@@ -282,7 +292,7 @@ def test_individual_chunking_reordered_axes(
 
     # Shape: SFC param (3) + PL param*levelist (9) = 12; time=4; date=3
     assert data.shape[:3] == (12, 4, 3)
-    # Chunk shape: IC{3} on param axis; IC{2} on time; SINGLE_VALUE (1) on date
+    # Chunk shape: FSC{3} on param axis; FSC{2} on time; SINGLE_VALUE (1) on date
     assert data.chunks[:3] == (3, 2, 1)
 
     # SFC spot checks -- sfc_value(d, t, p) = d*12 + t*3 + p
@@ -321,7 +331,7 @@ def test_individual_chunking_reordered_axes(
     assert np.all(
         data[11, 3, 2] == 143
     )  # param=133, levelist=150, time=1800, date=20200103
-    # IC{2} time chunk boundary: last time entry (idx 3=1800)
+    # FSC{2} time chunk boundary: last time entry (idx 3=1800)
     # sfc_value(0, 3, 0) = 0 + 9 + 0 = 9
     assert np.all(data[0, 3, 0] == 9)  # param=165, time=1800, date=20200101
     # SFC/PL axis-0 boundary: first PL entry at max time+date
@@ -329,3 +339,173 @@ def test_individual_chunking_reordered_axes(
     assert np.all(
         data[3, 3, 2] == 135
     )  # param=131, levelist=50, time=1800, date=20200103
+
+
+# Valid FixedSizeChunk sizes for the mixed-levtype single-axis test.
+#
+# A chunk size C is valid when C = trailingProduct x d, where trailingProduct is the
+# product of cardinalities of the k fastest-varying keys and d divides the (k+1)-th key's
+# cardinality.  Every chunk must cover the inner (faster) keys in full.
+#
+# Part 1 - PL:  date(1) x time(4) x param(3) x level(3), axis ["date","time","param","levelist"]
+#   k=0 trailing=1,  split at level(3):  d | 3  -> C in {1, 3}
+#   k=1 trailing=3,  split at param(3):  d | 3  -> C in {3, 9}
+#   k=2 trailing=9,  split at time(4):   d | 4  -> C in {9, 18, 36}
+#   k=3 trailing=36, split at date(1):   d | 1  -> C in {36}
+#   -> valid: {1, 3, 9, 18, 36}
+#
+# Part 2 - SFC: date(2) x time(3) x param(3), axis ["date","time","param"]
+#   k=0 trailing=1, split at param(3):  d | 3  -> C in {1, 3}
+#   k=1 trailing=3, split at time(3):   d | 3  -> C in {3, 9}
+#   k=2 trailing=9, split at date(2):   d | 2  -> C in {9, 18}
+#   -> valid: {1, 3, 9, 18}
+#
+# Cross-part intersection (chunkingConsistencyCheck requirement): {1, 3, 9, 18}
+_FOUR_KEY_VALID_CHUNK_SIZES = [1, 3, 9, 18]
+
+
+@pytest.mark.parametrize("chunk_size", _FOUR_KEY_VALID_CHUNK_SIZES)
+def test_fixed_size_chunking_four_key_single_axis(
+    read_only_fdb_pattern_setup, chunk_size: int
+) -> None:
+    """Mixed-levtype view: Part 1 is PL (four-key axis), Part 2 is SFC (three-key axis).
+
+      Part 1 (PL):  date=[2020-01-01],                             1 x 4 x 3 x 3 = 36 values
+                    axis ["date", "time", "param", "levelist"]
+      Part 2 (SFC): date=[2020-01-01, 2020-01-02], time=[0,600,1200], 2 x 3 x 3 = 18 values
+                    axis ["date", "time", "param"]
+
+    After extend_on_axis(0): combined axis = 36 + 18 = 54 values.
+
+    Valid chunk sizes (see _FOUR_KEY_VALID_CHUNK_SIZES above) are the cross-part
+    intersection of chunk sizes accepted by AxisMapper::chunkSizeCheck for each part.
+
+    Field-value formulas (from conftest.py, all indices 0-based):
+      pl_value(d, t, p, l) = 36 + d*36 + t*9 + p*3 + l
+      sfc_value(d, t, p)   = d*12 + t*3 + p
+
+    Axis index formulas:
+      Part 1 (i in [0, 36)):  i = t*9 + p*3 + l         -> data[i] = 36 + i
+      Part 2 (i in [36, 54)): i = 36 + d*9 + t*3 + p    -> data[i] = d*12 + t*3 + p
+        (date stride in index is 9 = 3 times x 3 params;
+         fixture value uses stride 12 = 4 times x 3 params)
+    """
+    NUM_TIMES = 4  # PL Part 1
+    NUM_PARAMS = 3
+    NUM_LEVELS = 3  # PL only
+
+    PART1_SIZE = 1 * NUM_TIMES * NUM_PARAMS * NUM_LEVELS  # = 36
+    PART2_SIZE = 2 * 3 * NUM_PARAMS  # date(2)*time(3)*param(3) = 18
+
+    assert PART1_SIZE % chunk_size == 0
+    assert PART2_SIZE % chunk_size == 0
+
+    COMMON = {
+        "type": "an",
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "step": 0,
+    }
+
+    builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
+    builder.add_part(
+        {
+            **COMMON,
+            "levtype": "pl",
+            "date": ["2020-01-01"],
+            "time": [0, 600, 1200, 1800],
+            "param": [131, 132, 133],
+            "levelist": [50, 100, 150],
+        },
+        [
+            AxisDefinition(
+                ["date", "time", "param", "levelist"],
+                Chunking.FixedSizeChunk(chunkShape=chunk_size),
+            )
+        ],
+        ExtractorType.GRIB,
+    )
+    builder.add_part(
+        {
+            **COMMON,
+            "levtype": "sfc",
+            "date": ["2020-01-01", "2020-01-02"],
+            "time": [0, 600, 1200],
+            "param": [165, 166, 167],
+        },
+        [
+            AxisDefinition(
+                ["date", "time", "param"],
+                Chunking.FixedSizeChunk(chunkShape=chunk_size),
+            )
+        ],
+        ExtractorType.GRIB,
+    )
+    builder.extend_on_axis(0)
+    store = builder.build()
+
+    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+
+    assert data.shape[0] == PART1_SIZE + PART2_SIZE  # = 54
+    assert data.chunks[0] == chunk_size
+
+    # Part 1 (i in [0, 36)): i = t*9 + p*3 + l, data[i] = pl_value(0,t,p,l) = 36 + i
+    assert np.all(data[0] == 36)  # t=0,    p=131, l=50  -> pl_value(0,0,0,0) = 36
+    assert np.all(data[1] == 37)  # t=0,    p=131, l=100
+    assert np.all(data[3] == 39)  # t=0,    p=132, l=50
+    assert np.all(data[9] == 45)  # t=600,  p=131, l=50  -> pl_value(0,1,0,0) = 45
+    assert np.all(data[35] == 71)  # t=1800, p=133, l=150 -> pl_value(0,3,2,2) = 71
+
+    # Part 1 -> Part 2 boundary at index 36 (chunk-aligned: PART1_SIZE % chunk_size == 0)
+    assert PART1_SIZE % chunk_size == 0
+    # Part 2 (i in [36, 54)): i = 36 + d*9 + t*3 + p, data[i] = sfc_value(d,t,p) = d*12 + t*3 + p
+    assert np.all(data[36] == 0)   # d=0, t=0,    p=165 -> sfc_value(0,0,0) = 0
+    assert np.all(data[37] == 1)   # d=0, t=0,    p=166
+    assert np.all(data[44] == 8)   # d=0, t=1200, p=167 -> sfc_value(0,2,2) = 8
+    assert np.all(data[45] == 12)  # d=1, t=0,    p=165 -> sfc_value(1,0,0) = 12
+    assert np.all(data[53] == 20)  # d=1, t=1200, p=167 -> sfc_value(1,2,2) = 20
+
+
+# Chunk sizes that violate the trailing-product rule for the four-key PL axis.
+# The axis ["date","time","param","levelist"] with cardinalities [1,4,3,3]
+# has valid sizes {1, 3, 9, 18, 36}.  Every other positive value must be rejected.
+_FOUR_KEY_INVALID_CHUNK_SIZES = [2, 4, 5, 6, 7, 8, 10, 12]
+
+
+@pytest.mark.parametrize("invalid_chunk_size", _FOUR_KEY_INVALID_CHUNK_SIZES)
+def test_fixed_size_chunking_rejects_invalid_chunk_size(
+    read_only_fdb_pattern_setup, invalid_chunk_size: int
+) -> None:
+    """build() raises when the chunk size violates the key-hierarchy alignment rule.
+
+    Uses the PL axis ["date","time","param","levelist"] with cardinalities [1,4,3,3].
+    AxisMapper::chunkSizeCheck returns false for any size not in {1, 3, 9, 18, 36},
+    mapAxisToChunks raises AxisMapperException, and ChunkedDataViewBuilder::build()
+    re-raises it as a RuntimeError whose message contains "AxisMapper::mapAxisToChunks".
+    """
+    COMMON = {
+        "type": "an", "class": "ea", "domain": "g", "expver": "0001",
+        "stream": "oper", "step": 0,
+    }
+    builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
+    builder.add_part(
+        {
+            **COMMON,
+            "levtype": "pl",
+            "date": ["2020-01-01"],
+            "time": [0, 600, 1200, 1800],
+            "param": [131, 132, 133],
+            "levelist": [50, 100, 150],
+        },
+        [
+            AxisDefinition(
+                ["date", "time", "param", "levelist"],
+                Chunking.FixedSizeChunk(chunkShape=invalid_chunk_size),
+            )
+        ],
+        ExtractorType.GRIB,
+    )
+    with pytest.raises(RuntimeError, match="AxisMapper::mapAxisToChunks"):
+        builder.build()

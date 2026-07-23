@@ -1,3 +1,4 @@
+#include <numeric>
 #include <set>
 #include <sstream>
 
@@ -51,26 +52,24 @@ bool AxisMapper::chunkSizeCheck(const Axis& axis, const size_t wishedChunkSize) 
         throw eckit::UserError("AxisMapper:chunkSizeCheck: Chunk size needs to be positive.");
     }
 
-    const auto parameter_amount = axis.parameters().size();
-
-    size_t prod = 1;
-
-    for (std::size_t i = parameter_amount; i-- > 0;) {
-        if (wishedChunkSize == prod) {
-            return true;
+    // C is valid iff C = trailingProduct × d, where:
+    //   trailingProduct = product of cardinalities of the k fastest-varying parameters, and
+    //   d divides the cardinality of the (k+1)-th parameter from the fastest end.
+    // This guarantees every chunk covers all values of the faster-varying keys in full and
+    // evenly sub-divides one slower key — no partial inner-key groups are allowed.
+    const auto& params = axis.parameters();
+    const size_t n = params.size();
+    size_t trailingProduct = 1;
+    for (size_t k = 0; k < n; ++k) {
+        const size_t card = params[n - 1 - k].values().size();
+        if (wishedChunkSize % trailingProduct == 0) {
+            const size_t d = wishedChunkSize / trailingProduct;
+            if (card % d == 0) {
+                return true;
+            }
         }
-        prod *= axis.parameters()[i].values().size();
+        trailingProduct *= card;
     }
-
-    if (wishedChunkSize == prod) {
-        return true;
-    }
-
-    // If the wished chunk size is a divisor of the fasted varying dimensions, this is also okay
-    if (axis.parameters()[axis.parameters().size() - 1].values().size() % wishedChunkSize == 0) {
-        return true;
-    }
-
     return false;
 }
 
@@ -86,27 +85,16 @@ AxisChunks AxisMapper::mapAxisToChunks(const Axis& axis,
     else if (std::holds_alternative<AxisDefinition::FixedSizeChunking>(chunking_type)) {
         auto chunks_mars_axis_extension = std::get<AxisDefinition::FixedSizeChunking>(chunking_type).chunkSize;
 
-        size_t prod = 1;
-        std::vector<size_t> potentialChunkSizes = {1};
-
-        // Use post-decrement idiom: i starts at parameter_amount, decrements before use,
-        // and exits cleanly when i reaches 0 (avoids size_t underflow wrap-around).
-        for (std::size_t i = axis.parameters().size(); i-- > 0;) {
-            prod *= axis.parameters()[i].values().size();
-            potentialChunkSizes.push_back(prod);
-        }
-
         if (!AxisMapper::chunkSizeCheck(axis, chunks_mars_axis_extension)) {
             std::stringstream buf;
-            buf << "Axis::contructor: Chunking needs to be a divider of the product of the axis sizes, starting from "
-                   "the most varying one. The suggested chunk size was: "
-                << chunks_mars_axis_extension << ". Potential chunk sizes are: " << potentialChunkSizes;
+            buf << "AxisMapper::mapAxisToChunks: The chunk size must equal "
+                   "(trailing product of k fastest-varying key cardinalities) × d, "
+                   "where d divides the (k+1)-th key's cardinality. "
+                   "The requested chunk size was: "
+                << chunks_mars_axis_extension << ". The total axis size is: " << axis.size();
             throw chunked_data_view::AxisMapperException(buf.str());
         };
 
-        // The minimal chunking has to be the multiplicative of all chunk sizes, as the axis is a mapping of the
-        // individual axis in MARS world, e.g. date [4] chunk_extension (2), time [3] chunk_extension (2) -> date_time
-        // [12]
         const size_t chunk_extensions_single_axis = chunks_mars_axis_extension;
 
         // Integer ceil
