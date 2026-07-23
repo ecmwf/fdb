@@ -30,8 +30,8 @@ public:
              const std::vector<AxisDefinition>& axes);
     ~ViewPart();
 
-    ViewPart(ViewPart&& other) noexcept;
-    ViewPart& operator=(ViewPart&& other) noexcept;
+    ViewPart(ViewPart&&) noexcept;
+    ViewPart& operator=(ViewPart&&) noexcept;
     ViewPart(const ViewPart&) = delete;
     ViewPart& operator=(const ViewPart&) = delete;
 
