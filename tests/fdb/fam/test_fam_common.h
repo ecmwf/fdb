@@ -19,6 +19,20 @@
 
 #pragma once
 
+#include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/ListElement.h"
+#include "fdb5/api/helpers/ListIterator.h"
+
+#include "eckit/config/YAMLConfiguration.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/LocalPathName.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/TmpDir.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/DataHandle.h"
+#include "eckit/log/Log.h"
+#include "eckit/testing/ProcessFork.h"
+
 #include <sys/mman.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -32,20 +46,6 @@
 #include <ostream>
 #include <regex>
 #include <string>
-
-#include "eckit/config/YAMLConfiguration.h"
-#include "eckit/exception/Exceptions.h"
-#include "eckit/filesystem/LocalPathName.h"
-#include "eckit/filesystem/PathName.h"
-#include "eckit/filesystem/TmpDir.h"
-#include "eckit/filesystem/URI.h"
-#include "eckit/io/DataHandle.h"
-#include "eckit/log/Log.h"
-#include "eckit/testing/ProcessFork.h"
-
-#include "fdb5/LibFdb5.h"
-#include "fdb5/api/helpers/ListElement.h"
-#include "fdb5/api/helpers/ListIterator.h"
 
 using namespace std::string_literals;
 
@@ -97,9 +97,6 @@ inline const std::string test_fdb_fam_endpoint = []() -> std::string {
     ::setenv("ECKIT_FAM_TEST_ENDPOINT", endpoint.c_str(), 1);
     return endpoint;
 }();
-
-// const auto test_fdb_fam_region = eckit::FamPath("test_region_fdb");
-// const auto test_fdb_fam_uri = "fam://" + test_fdb_fam_endpoint + "/" + test_fdb_fam_region.asString();
 
 inline void read_and_validate(eckit::DataHandle* dh, const char* data, const long length) {
     TEST_LOG_INFO("READ");
@@ -179,7 +176,6 @@ inline std::string make_test_config(const std::string& fam_uri, const std::strin
 
 struct FamSetup {
     FamSetup(const std::string& schema, std::string config) {
-        // cwd_.mkdir();
         eckit::LocalPathName root_dir(cwd_ + "/" + "root");
         root_dir.mkdir();
         write(schema, schemaPath);
@@ -188,7 +184,6 @@ struct FamSetup {
         write(config, configPath.asString());
     }
 
-    // const eckit::LocalPathName cwd_{eckit::LocalPathName::cwd() + "/" + "fam_test_dir"};
     eckit::TmpDir cwd_{eckit::LocalPathName::cwd().c_str()};
 
     eckit::PathName schemaPath{cwd_ + "/" + "schema"};
