@@ -51,3 +51,21 @@ foreach( _test ${fdb_tools_fam_tests} )
         COMMAND fdb_${_test}_fam.sh
         ENVIRONMENT "${_fam_environment}" )
 endforeach()
+
+list( APPEND fdb_tools_fam_maintenance_tests
+    stats
+    purge
+)
+
+foreach( _test ${fdb_tools_fam_maintenance_tests} )
+    configure_file( fdb_${_test}_fam.sh.in fdb_${_test}_fam.sh @ONLY )
+
+    ecbuild_add_test(
+        TARGET fdb_test_tools_${_test}_fam
+        TYPE SCRIPT
+        LABELS fam tools
+        CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB
+        TEST_DEPENDS fdb_test_tools_fam fdb_test_get_data
+        COMMAND fdb_${_test}_fam.sh
+        ENVIRONMENT "${_fam_environment}" )
+endforeach()
