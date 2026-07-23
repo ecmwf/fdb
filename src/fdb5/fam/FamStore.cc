@@ -116,9 +116,8 @@ eckit::FamObject& FamStore::counter() const {
 }
 
 eckit::FamObjectName FamStore::makeObject(const Key& key) const {
-    // concurrent-safe id
+    // concurrent-safe id generation for unique object names.
     const auto id = counter().fetchAdd<uint64_t>(0, 1);
-    // derive a deterministic UUID from the full path (region + object name)
     const auto object_name = toString(key) + "-data" + std::to_string(id);
     return root().object(object_name).withUUID();
 }
