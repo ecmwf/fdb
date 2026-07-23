@@ -157,14 +157,6 @@ bool FamCatalogue::uriBelongs(const eckit::URI& uri) const {
     return FamCommon::uriBelongs(uri);
 }
 
-bool FamCatalogue::selectIndex(const Key& key) {
-    if (currentIndexKey_ != key) {
-        currentIndexKey_ = key;
-        return false;
-    }
-    return true;
-}
-
 void FamCatalogue::deselectIndex() {
     currentIndexKey_ = {};
 }

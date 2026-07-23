@@ -52,27 +52,27 @@ FamCatalogueReader::FamCatalogueReader(const eckit::URI& uri, const fdb5::Config
 
 bool FamCatalogueReader::selectIndex(const Key& key) {
     // Fast path: same key already selected and its index object is cached.
-    if (FamCatalogue::selectIndex(key) && !current_.null()) {
+    if (currentIndexKey_ == key && !current_.null()) {
         return true;
     }
 
-    auto iter = indexes_.find(key);
-    if (iter != indexes_.end()) {
+    currentIndexKey_ = key;
+
+    // Cached from an earlier selection.
+    if (auto iter = indexes_.find(key); iter != indexes_.end()) {
         current_ = iter->second;
         return true;
     }
 
+    // The index map must exist in the region: its table object must be present.
     const auto index_name = indexName(key);
-
-    // Check the index map exists: the table object must be present in the region.
     if (!tableObject(index_name).exists()) {
-        deselectIndex();
+        current_ = Index();
         return false;
     }
 
-    const auto& region_name = root();
-    indexes_[key] = Index(new FamIndex(key, region_name, index_name, true));
-    current_ = indexes_[key];
+    current_ = Index(new FamIndex(key, root(), index_name, true));
+    indexes_[key] = current_;
     return true;
 }
 

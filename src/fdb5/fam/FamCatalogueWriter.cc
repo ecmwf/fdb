@@ -129,22 +129,24 @@ bool FamCatalogueWriter::createIndex(const Key& /*idx_key*/, size_t /*datum_key_
 
 bool FamCatalogueWriter::selectIndex(const Key& key) {
     // Fast path: same key already selected and its index object is cached.
-    if (FamCatalogue::selectIndex(key) && !current_.null()) {
+    if (currentIndexKey_ == key && !current_.null()) {
         return true;
     }
-    // found in the cache
+
+    currentIndexKey_ = key;
+
+    // Cached from an earlier selection.
     if (auto iter = indexes_.find(key); iter != indexes_.end()) {
         current_ = iter->second;
         return true;
     }
-    // Create or open the FamIndex for this key.
-    const auto& region_name = root();
-    current_ = Index(new FamIndex(key, region_name, indexName(key), false));
+
+    // Create or open the FamIndex for this key (creation is lazy, like DaosCatalogueWriter).
+    current_ = Index(new FamIndex(key, root(), indexName(key), false));
     current_.open();
-    // cache it for future selectIndex calls
     indexes_[key] = current_;
 
-    // Register this index in the catalogue FamMap
+    // Register this index in the catalogue FamMap.
     catalogue().insertOrAssign(index_entry_prefix + toString(key), encodeKey(key));
 
     return true;

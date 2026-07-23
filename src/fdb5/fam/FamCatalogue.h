@@ -81,8 +81,6 @@ protected:  // methods
 
     std::string indexName(const Key& key) const;
 
-    bool selectIndex(const Key& key) override;
-
     void deselectIndex() override;
 
     std::string type() const override;
@@ -128,11 +126,15 @@ protected:  // methods
         return *catalogue_;
     }
 
+protected:  // members
+
+    /// Currently selected index key (mirrors the TocCatalogue/DaosCatalogue idiom; the
+    /// concrete Reader/Writer overrides of selectIndex read and update it directly).
+    Key currentIndexKey_;
+
 private:  // members
 
     std::string name_;
-
-    Key currentIndexKey_;
 
     Schema schema_;
 
