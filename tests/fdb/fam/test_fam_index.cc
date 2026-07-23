@@ -19,11 +19,17 @@
 
 #include "test_fam_common.h"
 
-#include <cstdlib>
-#include <memory>
-#include <set>
-#include <sstream>
-#include <string>
+#include "fdb5/config/Config.h"
+#include "fdb5/database/Field.h"
+#include "fdb5/database/IndexLocation.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/fam/FamCatalogue.h"
+#include "fdb5/fam/FamCatalogueWriter.h"
+#include "fdb5/fam/FamCommon.h"
+#include "fdb5/fam/FamFieldLocation.h"
+#include "fdb5/fam/FamIndex.h"
+#include "fdb5/fam/FamIndexLocation.h"
+#include "fdb5/fam/FamStore.h"
 
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/io/Length.h"
@@ -33,15 +39,12 @@
 #include "eckit/serialisation/HandleStream.h"
 #include "eckit/testing/Test.h"
 
-#include "fdb5/config/Config.h"
-#include "fdb5/database/IndexLocation.h"
-#include "fdb5/database/Key.h"
-#include "fdb5/fam/FamCatalogue.h"
-#include "fdb5/fam/FamCatalogueWriter.h"
-#include "fdb5/fam/FamFieldLocation.h"
-#include "fdb5/fam/FamIndex.h"
-#include "fdb5/fam/FamIndexLocation.h"
-#include "fdb5/fam/FamStore.h"
+#include <cstdlib>
+#include <ctime>
+#include <memory>
+#include <set>
+#include <sstream>
+#include <string>
 
 using namespace eckit::testing;
 
@@ -215,6 +218,120 @@ CASE("FamIndex: dataURIs returns field locations after archive") {
         EXPECT(fam_store.uriBelongs(uri));
         EXPECT(fam_store.uriExists(uri));
     }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// FamIndex: long datum keys (FamMap128 FixedString<128> key budget)
+//----------------------------------------------------------------------------------------------------------------------
+
+CASE("FamIndex: archive and retrieve with a long datum key near the 128-byte map-key limit") {
+
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
+        .create(test_region_size, test_region_perm, true);
+
+    const fam::FamSetup setup(fam::test_schema, test_config);
+    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
+
+    const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
+    const auto idx_key =
+        fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}, {"fam2a", "d"}, {"fam2b", "e"}, {"fam2c", "f"}};
+
+    // A datum key whose values-string is long but stays within the FixedString<128> map-key budget.
+    const std::string long_value(90, 'x');
+    const auto datum_key = fdb5::Key({{"fam1a", "a"},
+                                      {"fam1b", "b"},
+                                      {"fam1c", "c"},
+                                      {"fam2a", "d"},
+                                      {"fam2b", "e"},
+                                      {"fam2c", "f"},
+                                      {"fam3a", "g"},
+                                      {"fam3b", "h"},
+                                      {"fam3c", long_value}});
+
+    // Sanity: the derived FamMap key must fit in FamMap128 (<= 128 bytes) to round-trip.
+    const auto map_key = fdb5::FamCommon::toString(datum_key);
+    EXPECT(map_key.size() > 100);   // genuinely long
+    EXPECT(map_key.size() <= 128);  // within budget
+
+    const char* data = "long-key-data";
+    const auto data_length = std::char_traits<char>::length(data);
+
+    fdb5::FamStore fam_store(db_key, config);
+    fdb5::Store& store = fam_store;
+    auto loc = store.archive(datum_key, data, eckit::Length(data_length));
+
+    fdb5::FamCatalogueWriter writer(db_key, config);
+    fdb5::CatalogueWriter& writer_iface = writer;
+    writer_iface.archive(idx_key, datum_key, loc->make_shared());
+    writer_iface.flush(1);
+
+    // Reopen the index and verify the long-keyed field round-trips.
+    eckit::FamRegionName root_name(fam::test_fdb_fam_endpoint, test_fdb_fam_region);
+    const auto cat_name = fdb5::FamCatalogue::catalogueName(db_key);
+    const auto index_name = fdb5::FamCatalogue::indexName(cat_name, idx_key);
+
+    fdb5::Index idx(new fdb5::FamIndex(idx_key, root_name, index_name, false));
+
+    fdb5::Field field;
+    EXPECT(idx.get(datum_key, fdb5::Key(), field));
+    EXPECT_EQUAL(field.location().length(), eckit::Length(data_length));
+    EXPECT(fam_store.uriBelongs(field.location().uri()));
+
+    // A different long key that shares the same 90-char suffix must not collide.
+    const auto other_datum_key = fdb5::Key({{"fam1a", "a"},
+                                            {"fam1b", "b"},
+                                            {"fam1c", "c"},
+                                            {"fam2a", "d"},
+                                            {"fam2b", "e"},
+                                            {"fam2c", "f"},
+                                            {"fam3a", "g"},
+                                            {"fam3b", "H"},  // differs here
+                                            {"fam3c", long_value}});
+    fdb5::Field missing;
+    EXPECT(!idx.get(other_datum_key, fdb5::Key(), missing));
+}
+
+CASE("FamIndex: datum key exceeding the 128-byte map-key limit is rejected, not silently truncated") {
+
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
+        .create(test_region_size, test_region_perm, true);
+
+    const fam::FamSetup setup(fam::test_schema, test_config);
+    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
+
+    const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
+    const auto idx_key =
+        fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}, {"fam2a", "d"}, {"fam2b", "e"}, {"fam2c", "f"}};
+
+    // A datum key whose values-string overflows the FixedString<128> budget.
+    const std::string huge_value(200, 'z');
+    const auto huge_datum_key = fdb5::Key({{"fam1a", "a"},
+                                           {"fam1b", "b"},
+                                           {"fam1c", "c"},
+                                           {"fam2a", "d"},
+                                           {"fam2b", "e"},
+                                           {"fam2c", "f"},
+                                           {"fam3a", "g"},
+                                           {"fam3b", "h"},
+                                           {"fam3c", huge_value}});
+
+    EXPECT(fdb5::FamCommon::toString(huge_datum_key).size() > 128);
+
+    eckit::FamRegionName root_name(fam::test_fdb_fam_endpoint, test_fdb_fam_region);
+    const auto cat_name = fdb5::FamCatalogue::catalogueName(db_key);
+    const auto index_name = fdb5::FamCatalogue::indexName(cat_name, idx_key);
+
+    fdb5::Index idx(new fdb5::FamIndex(idx_key, root_name, index_name, false));
+
+    // A dummy field to insert; the FieldLocation contents are irrelevant to the key-length check.
+    fdb5::FamStore fam_store(db_key, config);
+    fdb5::Store& store = fam_store;
+    const char* data = "irrelevant";
+    auto loc = store.archive(idx_key, data, eckit::Length(std::char_traits<char>::length(data)));
+    fdb5::Field field(loc->make_shared(), std::time(nullptr));
+
+    // The overflow must be reported (FixedString assertion), not silently truncated into a collision.
+    EXPECT_THROWS(idx.put(huge_datum_key, field));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
