@@ -71,8 +71,8 @@ bool FamEngine::canHandle(const eckit::URI& uri, const Config& config) const {
         const eckit::FamRegionName root{uri};
         return root.exists();
     }
-    catch (...) {
-        LOG_DEBUG_LIB(LibFdb5) << "FamEngine::canHandle: exception checking URI: " << uri << '\n';
+    catch (const eckit::Exception& e) {
+        LOG_DEBUG_LIB(LibFdb5) << "FamEngine::canHandle: exception checking URI: " << uri << ": " << e.what() << '\n';
         return false;
     }
 }
@@ -97,9 +97,9 @@ std::vector<eckit::URI> FamEngine::visitableLocations(const Key& key, const Conf
             return result;
         }
 
-        for (const auto& reg : reg_map) {
+        for (const auto& [reg_key, reg_value] : reg_map) {
             try {
-                if (const auto db_key = FamCommon::decodeKey(reg.value); db_key.match(key)) {
+                if (const auto db_key = FamCommon::decodeKey(reg_value); db_key.match(key)) {
                     const auto name = FamCatalogue::catalogueName(db_key);
                     result.push_back(root.object(name + FamCommon::table_suffix).uri());
                 }
@@ -135,10 +135,10 @@ std::vector<eckit::URI> FamEngine::visitableLocations(const metkit::mars::MarsRe
             return result;
         }
 
-        for (const auto& [k, v] : reg_map) {
+        for (const auto& [reg_key, reg_value] : reg_map) {
             try {
-                if (const auto key = FamCatalogue::decodeKey(v); key.partialMatch(request)) {
-                    const std::string name = FamCatalogue::catalogueName(key);
+                if (const auto db_key = FamCommon::decodeKey(reg_value); db_key.partialMatch(request)) {
+                    const auto name = FamCatalogue::catalogueName(db_key);
                     result.push_back(root.object(name + FamCommon::table_suffix).uri());
                 }
             }
