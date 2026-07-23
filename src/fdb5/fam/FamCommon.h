@@ -65,6 +65,7 @@ struct FamCommon {
 
     static constexpr std::size_t encode_buffer_hint = 4096;
 
+    /// Render a Key's values as a string for use as a FamMap key (':' replaced by '-').
     static std::string toString(const Key& key);
 
     /// Serialise a Key to a binary string (inverse of decodeKey).
