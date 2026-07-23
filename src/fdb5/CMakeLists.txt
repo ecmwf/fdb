@@ -455,6 +455,7 @@ if(HAVE_FDB_BUILD_TOOLS)
 endif()
 
 list( APPEND fdb5_tools
+    fdb-adopt
     fdb-axes
     fdb-write
     fdb-copy
