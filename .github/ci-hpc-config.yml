@@ -4,11 +4,12 @@ build:
   dependencies:
     - ecmwf/ecbuild@develop
     - ecmwf/eccodes@develop
-    - ecmwf/eckit@feature/ECKIT-635_fam-backend-map
+    - ecmwf/eckit@develop
     - ecmwf/metkit@develop
   cmake_options:
     - -DENABLE_LUSTRE=OFF
     - -DENABLE_DUMMY_DAOS=ON
+    - -DENABLE_FAMFDB=ON
   parallel: 64
   env:
     - ECCODES_SAMPLES_PATH=$ECCODES_DIR/share/eccodes/samples
