@@ -72,11 +72,13 @@ expect_match "size=4096" \
     fdb-fam --endpoint="$fam_endpoint" --lookup "/$test_region"
 
 ########################################################################################################################
-# 3. Create same region again — expect graceful failure (not crash)
+# 3. Create same region again — expect failure exit code (not crash)
 ########################################################################################################################
 
 echo "--- TEST: create duplicate region (graceful failure) ---"
-out=$(fdb-fam --endpoint="$fam_endpoint" --create --size=4096 --perm=0640 "/$test_region" 2>/dev/null)
+if out=$(fdb-fam --endpoint="$fam_endpoint" --create --size=4096 --perm=0640 "/$test_region" 2>/dev/null); then
+    die "Expected non-zero exit for duplicate region create, got success: $out"
+fi
 echo "$out" | grep -qF "Failed to create" || die "Expected 'Failed to create' for duplicate region, got: $out"
 
 ########################################################################################################################
@@ -88,19 +90,23 @@ expect_output "Deleted" \
     fdb-fam --endpoint="$fam_endpoint" --delete "/$test_region"
 
 ########################################################################################################################
-# 5. Lookup deleted region — expect graceful failure
+# 5. Lookup deleted region — expect failure exit code
 ########################################################################################################################
 
 echo "--- TEST: lookup deleted region (graceful failure) ---"
-out=$(fdb-fam --endpoint="$fam_endpoint" --lookup "/$test_region" 2>/dev/null)
+if out=$(fdb-fam --endpoint="$fam_endpoint" --lookup "/$test_region" 2>/dev/null); then
+    die "Expected non-zero exit for lookup of deleted region, got success: $out"
+fi
 echo "$out" | grep -qF "Failed to lookup" || die "Expected 'Failed to lookup' for deleted region, got: $out"
 
 ########################################################################################################################
-# 6. Delete non-existent region — expect graceful failure
+# 6. Delete non-existent region — expect failure exit code
 ########################################################################################################################
 
 echo "--- TEST: delete non-existent region (graceful failure) ---"
-out=$(fdb-fam --endpoint="$fam_endpoint" --delete "/$test_region" 2>/dev/null)
+if out=$(fdb-fam --endpoint="$fam_endpoint" --delete "/$test_region" 2>/dev/null); then
+    die "Expected non-zero exit for delete of non-existent region, got success: $out"
+fi
 echo "$out" | grep -qF "Failed to delete" || die "Expected 'Failed to delete' for non-existent region, got: $out"
 
 ########################################################################################################################

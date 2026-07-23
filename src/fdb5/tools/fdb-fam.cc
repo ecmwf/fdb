@@ -134,8 +134,9 @@ void FDBFam::execute(const eckit::option::CmdArgs& args) {
                 auto region = regionName.lookup();
                 eckit::Log::info() << region << std::endl;
             }
-            catch (const eckit::Exception& e) {
+            catch (const eckit::Exception&) {
                 eckit::Log::info() << "Failed to lookup: " << regionName << std::endl;
+                exit(EXIT_FAILURE);
             }
         }
         else if (delete_) {
@@ -144,8 +145,9 @@ void FDBFam::execute(const eckit::option::CmdArgs& args) {
                 region.destroy();
                 eckit::Log::info() << "Deleted " << region << std::endl;
             }
-            catch (const eckit::Exception& e) {
+            catch (const eckit::Exception&) {
                 eckit::Log::info() << "Failed to delete: " << regionName << std::endl;
+                exit(EXIT_FAILURE);
             }
         }
         else if (create_) {
@@ -153,8 +155,9 @@ void FDBFam::execute(const eckit::option::CmdArgs& args) {
                 const auto region = regionName.create(item_.size, item_.perm);
                 eckit::Log::info() << "Created " << region << std::endl;
             }
-            catch (const eckit::Exception& e) {
+            catch (const eckit::Exception&) {
                 eckit::Log::info() << "Failed to create: " << regionName << std::endl;
+                exit(EXIT_FAILURE);
             }
         }
     }
