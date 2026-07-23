@@ -21,6 +21,10 @@ if( HAVE_FAMFDB )
         fam/FamCatalogueReader.h
         fam/FamCatalogueWriter.cc
         fam/FamCatalogueWriter.h
+        fam/FamStats.cc
+        fam/FamStats.h
+        fam/FamPurgeVisitor.cc
+        fam/FamPurgeVisitor.h
         fam/FamEngine.cc
         fam/FamEngine.h
     )
