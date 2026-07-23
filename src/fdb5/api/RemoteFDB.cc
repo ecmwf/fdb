@@ -11,8 +11,6 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/RemoteFDB.h"
 #include "fdb5/api/helpers/ListElement.h"
-#include "fdb5/database/Archiver.h"
-#include "fdb5/database/Inspector.h"
 #include "fdb5/database/WipeState.h"
 
 #include "fdb5/remote/RemoteFieldLocation.h"
