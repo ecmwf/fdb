@@ -51,7 +51,8 @@ FamCatalogueReader::FamCatalogueReader(const eckit::URI& uri, const fdb5::Config
 //----------------------------------------------------------------------------------------------------------------------
 
 bool FamCatalogueReader::selectIndex(const Key& key) {
-    if (FamCatalogue::selectIndex(key)) {
+    // Fast path: same key already selected and its index object is cached.
+    if (FamCatalogue::selectIndex(key) && !current_.null()) {
         return true;
     }
 

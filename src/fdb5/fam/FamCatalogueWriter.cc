@@ -128,8 +128,8 @@ bool FamCatalogueWriter::createIndex(const Key& /*idx_key*/, size_t /*datum_key_
 }
 
 bool FamCatalogueWriter::selectIndex(const Key& key) {
-    // Fast path: already selected.
-    if (FamCatalogue::selectIndex(key)) {
+    // Fast path: same key already selected and its index object is cached.
+    if (FamCatalogue::selectIndex(key) && !current_.null()) {
         return true;
     }
     // found in the cache
