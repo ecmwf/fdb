@@ -55,8 +55,8 @@ mkdir -p "$test_name/localroot" || die "Failed to create test directory: $test_n
 
 cd "$test_name" || die "Failed to change to test directory: $test_name"
 
-# Repack source data to a tiny grid to reduce FAM memory footprint (76 MB → ~3 KB)
-grib_set -s packingType=grid_simple,gridType=regular_ll,Ni=10,Nj=10,iDirectionIncrementInDegrees=36,jDirectionIncrementInDegrees=18,bitsPerValue=8 "$src_data" od.oper.small.grib
+# Repack source data to a tiny grid to shrink the FAM memory footprint.
+grib_set -d1 -s packingType=grid_simple,gridType=regular_ll,Ni=10,Nj=10,iDirectionIncrementInDegrees=36,jDirectionIncrementInDegrees=18,bitsPerValue=8 "$src_data" od.oper.small.grib
 src_data="od.oper.small.grib"
 
 # Create the FAM region (4 MB — repacked data is ~3 KB, 1 write)

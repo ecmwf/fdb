@@ -34,6 +34,7 @@ export FDB_HOME=@PROJECT_BINARY_DIR@
 
 # Validate required commands
 command_exists grib_set
+command_exists grib_copy
 command_exists fdb-fam
 command_exists fdb-write
 command_exists fdb-list
@@ -60,9 +61,16 @@ mkdir -p "$test_name/localroot" || die "Failed to create test directory: $test_n
 
 cd "$test_name" || die "Failed to change to test directory: $test_name"
 
-# Repack source data to a tiny grid to reduce FAM memory footprint (76 MB → ~3 KB)
-grib_set -s packingType=grid_simple,gridType=regular_ll,Ni=10,Nj=10,iDirectionIncrementInDegrees=36,jDirectionIncrementInDegrees=18,bitsPerValue=8 "$src_data" od.oper.small.grib
+# Repack source data to a tiny grid to shrink the FAM memory footprint.
+grib_set -d1 -s packingType=grid_simple,gridType=regular_ll,Ni=10,Nj=10,iDirectionIncrementInDegrees=36,jDirectionIncrementInDegrees=18,bitsPerValue=8 "$src_data" od.oper.small.grib
 src_data="od.oper.small.grib"
+
+# Subset to a few fields per file so this write-heavy loop stays within the 64 MB OpenFAM
+# mock data area (the mock uses a bump allocator without hole reclamation). Real OpenFAM and
+# a larger /dev/shm are unaffected. Keep nfld in sync with the count filter below.
+nfld=6
+grib_copy -w count=1/2/3/4/5/6 od.oper.small.grib od.oper.tiny.grib
+src_data="od.oper.tiny.grib"
 
 # Create the FAM region (32 MB — repacked data is ~3 KB per file, 4 files × 2 loops)
 fdb-fam --endpoint="$fam_endpoint" --create --size=33554432 --perm=0640 "/$test_region"
@@ -133,34 +141,34 @@ for i in 0 1; do
 
 fdb-write data.xxxx.0.grib
 fdb-list --all --minimum-keys="" --porcelain --full | tee out
-  line_count $((24+(i*96)))
-  grep_count "$regex_x0" $((24+(24*i)))
-  grep_count "$regex_x1" $((0+(24*i)))
-  grep_count "$regex_y0" $((0+(24*i)))
-  grep_count "$regex_y1" $((0+(24*i)))
+  line_count $((nfld+(i*nfld*4)))
+  grep_count "$regex_x0" $((nfld+(nfld*i)))
+  grep_count "$regex_x1" $((0+(nfld*i)))
+  grep_count "$regex_y0" $((0+(nfld*i)))
+  grep_count "$regex_y1" $((0+(nfld*i)))
 
 fdb-write data.xxxy.0.grib
 fdb-list --all --minimum-keys="" --porcelain --full | tee out
-  line_count $((48+(i*96)))
-  grep_count "$regex_x0" $((24+(24*i)))
-  grep_count "$regex_x1" $((0+(24*i)))
-  grep_count "$regex_y0" $((24+(24*i)))
-  grep_count "$regex_y1" $((0+(24*i)))
+  line_count $((nfld*2+(i*nfld*4)))
+  grep_count "$regex_x0" $((nfld+(nfld*i)))
+  grep_count "$regex_x1" $((0+(nfld*i)))
+  grep_count "$regex_y0" $((nfld+(nfld*i)))
+  grep_count "$regex_y1" $((0+(nfld*i)))
 
 fdb-write data.xxxx.1.grib
 fdb-list --all --minimum-keys="" --porcelain --full | tee out
-  line_count $((72+(i*96)))
-  grep_count "$regex_x0" $((24+(24*i)))
-  grep_count "$regex_x1" $((24+(24*i)))
-  grep_count "$regex_y0" $((24+(24*i)))
-  grep_count "$regex_y1" $((0+(24*i)))
+  line_count $((nfld*3+(i*nfld*4)))
+  grep_count "$regex_x0" $((nfld+(nfld*i)))
+  grep_count "$regex_x1" $((nfld+(nfld*i)))
+  grep_count "$regex_y0" $((nfld+(nfld*i)))
+  grep_count "$regex_y1" $((0+(nfld*i)))
 
 fdb-write data.xxxy.1.grib
 fdb-list --all --minimum-keys="" --porcelain --full | tee out
-  line_count $((96+(i*96)))
-  grep_count "$regex_x0" $((24+(24*i)))
-  grep_count "$regex_x1" $((24+(24*i)))
-  grep_count "$regex_y0" $((24+(24*i)))
-  grep_count "$regex_y1" $((24+(24*i)))
+  line_count $((nfld*4+(i*nfld*4)))
+  grep_count "$regex_x0" $((nfld+(nfld*i)))
+  grep_count "$regex_x1" $((nfld+(nfld*i)))
+  grep_count "$regex_y0" $((nfld+(nfld*i)))
+  grep_count "$regex_y1" $((nfld+(nfld*i)))
 
 done
