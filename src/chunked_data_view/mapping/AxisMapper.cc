@@ -77,14 +77,14 @@ bool AxisMapper::chunkSizeCheck(const Axis& axis, const size_t wishedChunkSize) 
 AxisChunks AxisMapper::mapAxisToChunks(const Axis& axis,
                                        chunked_data_view::AxisDefinition::ChunkingType chunking_type) {
 
-    if (std::holds_alternative<AxisDefinition::NoChunking>(chunking_type)) {
+    if (std::holds_alternative<AxisDefinition::WholeAxisChunking>(chunking_type)) {
         return chunked_data_view::AxisChunks(axis.size(), 1, true);
     }
     else if (std::holds_alternative<AxisDefinition::SingleValueChunking>(chunking_type)) {
         return chunked_data_view::AxisChunks(1, axis.size(), false);
     }
-    else if (std::holds_alternative<AxisDefinition::IndividualChunking>(chunking_type)) {
-        auto chunks_mars_axis_extension = std::get<AxisDefinition::IndividualChunking>(chunking_type).chunkSize;
+    else if (std::holds_alternative<AxisDefinition::FixedSizeChunking>(chunking_type)) {
+        auto chunks_mars_axis_extension = std::get<AxisDefinition::FixedSizeChunking>(chunking_type).chunkSize;
 
         size_t prod = 1;
         std::vector<size_t> potentialChunkSizes = {1};

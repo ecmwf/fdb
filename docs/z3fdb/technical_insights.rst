@@ -27,10 +27,10 @@ The examples below use the ``two-part`` view introduced in
 :doc:`dimension_mapping`: ``Part`` A (sfc, 2 params, axis1=[0,1]) and ``Part`` B
 (pl, 4 params, axis1=[2,5]) with 4 date×time values on axis 0.
 
-``NONE`` chunking — whole-view example
+``WHOLE_AXIS`` chunking — whole-view example
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-With ``NONE`` on all axes there is one chunk covering the entire array.
+With ``WHOLE_AXIS`` on all axes there is one chunk covering the entire array.
 Both ``parts`` are queried and each populates a disjoint region of the buffer.
 
 .. code-block:: text
@@ -106,6 +106,16 @@ covers one cell that falls inside ``Part`` B.
        axis 0:  local = 1 − 1 = 0,   bufPos = 0 + 0 = 0
        axis 1:  local = 0 − 0 = 0,   bufPos = 0 + 0 = 0
        -> written to buffer slot (0, 0)
+
+Extractor Ownership and Lifetime
+---------------------------------
+
+Each ``ViewPart`` holds its ``Extractor`` via ``std::shared_ptr``. This allows
+multiple parts to share one extractor instance (e.g. two parts reading from the
+same FDB store) without copying it. Concrete extractors are stateful and
+non-copyable — an FDB-backed extractor owns an open handle that must not be
+duplicated. Shared ownership also ties each extractor's lifetime to the view:
+as long as the ``ChunkedDataViewImpl`` is alive, all its extractors remain alive.
 
 Buffer Position Formula
 ~~~~~~~~~~~~~~~~~~~~~~~

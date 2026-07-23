@@ -112,7 +112,7 @@ def test_access_pattern_shuffled_chunked(
 
 test_data = product(
     permutations([0, 1, 2]),
-    product([Chunking.SINGLE_VALUE, Chunking.NONE], repeat=3),
+    product([Chunking.SINGLE_VALUE, Chunking.WHOLE_AXIS], repeat=3),
 )
 
 
@@ -182,8 +182,8 @@ def test_access_pattern_non_chunked(read_only_fdb_pattern_setup) -> None:
     builder.add_part(
         PATTERN_REQUEST,
         [
-            AxisDefinition(["date"], Chunking.NONE),
-            AxisDefinition(["time"], Chunking.NONE),
+            AxisDefinition(["date"], Chunking.WHOLE_AXIS),
+            AxisDefinition(["time"], Chunking.WHOLE_AXIS),
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
             AxisDefinition(["step"], Chunking.SINGLE_VALUE),
         ],
@@ -206,8 +206,8 @@ def test_access_pattern_non_chunked_mixed(read_only_fdb_pattern_setup) -> None:
     builder.add_part(
         PATTERN_REQUEST,
         [
-            AxisDefinition(["time"], Chunking.NONE),
-            AxisDefinition(["date"], Chunking.NONE),
+            AxisDefinition(["time"], Chunking.WHOLE_AXIS),
+            AxisDefinition(["date"], Chunking.WHOLE_AXIS),
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
             AxisDefinition(["step"], Chunking.SINGLE_VALUE),
         ],
@@ -230,7 +230,7 @@ def test_access_pattern_merged_axis_non_chunked(read_only_fdb_pattern_setup) -> 
     builder.add_part(
         PATTERN_REQUEST,
         [
-            AxisDefinition(["date", "time"], Chunking.NONE),
+            AxisDefinition(["date", "time"], Chunking.WHOLE_AXIS),
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
             AxisDefinition(["step"], Chunking.SINGLE_VALUE),
         ],
@@ -257,7 +257,7 @@ def test_access_pattern_merged_axis_non_chunked_switched_date_time(
         PATTERN_REQUEST,
         [
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
-            AxisDefinition(["time", "date"], Chunking.NONE),
+            AxisDefinition(["time", "date"], Chunking.WHOLE_AXIS),
             AxisDefinition(["step"], Chunking.SINGLE_VALUE),
         ],
         ExtractorType.GRIB,

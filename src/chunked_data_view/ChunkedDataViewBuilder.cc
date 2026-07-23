@@ -44,7 +44,7 @@ ChunkedDataViewBuilder& ChunkedDataViewBuilder::extendOnAxis(size_t index) {
     return *this;
 }
 
-ChunkedDataViewBuilder& ChunkedDataViewBuilder::fillValue(float fillValue) {
+ChunkedDataViewBuilder& ChunkedDataViewBuilder::fillMissingValue(float fillValue) {
     fillValue_ = fillValue;
     return *this;
 }

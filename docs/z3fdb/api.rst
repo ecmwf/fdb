@@ -76,7 +76,7 @@ z3fdb.Chunking
 .. autoapiclass:: pychunked_data_view.Chunking
    :members:
 
-.. py:class:: pychunked_data_view.Chunking.IndividualChunk(chunkShape)
+.. py:class:: pychunked_data_view.Chunking.FixedSizeChunk(chunkShape)
 
    Specifies a custom chunk size along a single axis. This is a frozen
    dataclass nested inside :class:`~pychunked_data_view.Chunking`.
@@ -94,7 +94,7 @@ z3fdb.Chunking
    .. code-block:: python
 
       # Chunk a 12-date axis into groups of 3 (gives 4 chunks)
-      AxisDefinition(["date"], Chunking.IndividualChunk(chunkShape=3))
+      AxisDefinition(["date"], Chunking.FixedSizeChunk(chunkShape=3))
 
    See :ref:`dimension_mapping:Chunking` for a full comparison of
    chunking modes and guidance on when to use each one.

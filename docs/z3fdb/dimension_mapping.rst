@@ -143,10 +143,10 @@ a dimension are grouped into a single Zarr chunk:
    * - :attr:`~pychunked_data_view.Chunking.SINGLE_VALUE`
      - Each value along the axis is its own chunk
      - 1
-   * - :attr:`~pychunked_data_view.Chunking.NONE`
+   * - :attr:`~pychunked_data_view.Chunking.WHOLE_AXIS`
      - The entire axis is stored in a single chunk
      - Full axis length
-   * - :class:`~pychunked_data_view.Chunking.IndividualChunk` ``(chunkShape=k)``
+   * - :class:`~pychunked_data_view.Chunking.FixedSizeChunk` ``(chunkShape=k)``
      - Groups every ``k`` consecutive values along the axis into one chunk.
        ``k`` must divide the axis length evenly.
      - ``k`` (user-specified)
@@ -157,20 +157,20 @@ values:
 .. code-block:: python
 
    [
-       AxisDefinition(["date"], Chunking.NONE),                         # chunk size = 4
+       AxisDefinition(["date"], Chunking.WHOLE_AXIS),                         # chunk size = 4
        AxisDefinition(["param"], Chunking.SINGLE_VALUE),                # chunk size = 1
    ]
    # Array shape:  (4, 3, N)
    # Chunk shape:  (4, 1, N)
 
    [
-       AxisDefinition(["date"], Chunking.IndividualChunk(chunkShape=2)),  # chunk size = 2
+       AxisDefinition(["date"], Chunking.FixedSizeChunk(chunkShape=2)),  # chunk size = 2
        AxisDefinition(["param"], Chunking.SINGLE_VALUE),                  # chunk size = 1
    ]
    # Array shape:  (4, 3, N)
    # Chunk shape:  (2, 1, N)   ← two dates per chunk, four chunks total
 
-:class:`~pychunked_data_view.Chunking.IndividualChunk` is useful when
+:class:`~pychunked_data_view.Chunking.FixedSizeChunk` is useful when
 neither extreme fits — for instance, when you want to batch a temporal
 axis into multi-day windows for efficient I/O while still keeping chunks
 small enough to fit in memory.
@@ -186,9 +186,9 @@ chunked. Each chunk index ``ci`` maps to an axis range:
      - Axis range covered by chunk index ``ci``
    * - ``SINGLE_VALUE``
      - ``[ci, ci]`` — exactly one slot
-   * - ``NONE``
+   * - ``WHOLE_AXIS``
      - ``[0, size_i − 1]`` — the full axis (``ci`` is always 0)
-   * - ``IndividualChunk(chunkShape=k)``
+   * - ``FixedSizeChunk(chunkShape=k)``
      - ``[ci × k, (ci + 1) × k − 1]`` — a window of ``k`` consecutive values
 
 The chunk's **bounding box** is the Cartesian product of these per-axis
@@ -202,18 +202,18 @@ Memory Considerations
 Each chunk access loads the **entire chunk** into memory. With
 :attr:`~pychunked_data_view.Chunking.SINGLE_VALUE` each chunk contains
 one set of grid-point values, keeping memory usage small.
-With :attr:`~pychunked_data_view.Chunking.NONE` the chunk spans the
-full axis, and when multiple axes use ``NONE`` the chunk sizes compound.
+With :attr:`~pychunked_data_view.Chunking.WHOLE_AXIS` the chunk spans the
+full axis, and when multiple axes use ``WHOLE_AXIS`` the chunk sizes compound.
 
 For example, consider a grid with 1 million points (``N = 1_000_000``)
-and three axes all set to ``NONE``:
+and three axes all set to ``WHOLE_AXIS``:
 
 .. code-block:: python
 
    [
-       AxisDefinition(["date"], Chunking.NONE),   # 30 values
-       AxisDefinition(["time"], Chunking.NONE),   # 4 values
-       AxisDefinition(["param"], Chunking.NONE),   # 10 values
+       AxisDefinition(["date"], Chunking.WHOLE_AXIS),   # 30 values
+       AxisDefinition(["time"], Chunking.WHOLE_AXIS),   # 4 values
+       AxisDefinition(["param"], Chunking.WHOLE_AXIS),   # 10 values
    ]
    # Chunk shape: (30, 4, 10, 1_000_000)
    # Chunk size:  30 × 4 × 10 × 1_000_000 × 4 bytes = ~4.5 GB
@@ -225,10 +225,10 @@ three axes reduces each chunk to a single field
 
 .. warning::
 
-   Using :attr:`~pychunked_data_view.Chunking.NONE` on multiple axes
+   Using :attr:`~pychunked_data_view.Chunking.WHOLE_AXIS` on multiple axes
    can cause unexpectedly large memory allocations. Start with
    :attr:`~pychunked_data_view.Chunking.SINGLE_VALUE` on all axes and
-   only switch individual axes to ``NONE`` when you know you always
+   only switch individual axes to ``WHOLE_AXIS`` when you know you always
    consume them in full.
 
 .. rubric:: Choosing a chunking strategy
@@ -242,11 +242,11 @@ three axes reduces each chunk to a single field
    * - ``SINGLE_VALUE``
      - Default choice. Minimises memory per access; ideal when you read
        individual time steps or parameters one at a time.
-   * - ``NONE``
+   * - ``WHOLE_AXIS``
      - Use when you always read the full axis in one go and want to
        reduce the number of FDB round-trips (e.g. a small ``step`` axis
        you always load entirely).
-   * - ``IndividualChunk(chunkShape=k)``
+   * - ``FixedSizeChunk(chunkShape=k)``
      - Use when you need a middle ground — for example, batching a
        365-day date axis into weekly (``k=7``) or monthly (``k=30``)
        windows. ``k`` must divide the axis length exactly.
@@ -258,7 +258,7 @@ When a chunk is accessed and some of its fields are absent from FDB,
 the missing slots are filled with a sentinel value. The default is
 ``float('nan')``.
 
- To override it, call :meth:`~z3fdb.SimpleStoreBuilder.fill_value` (or use
+ To override it, call :meth:`~z3fdb.SimpleStoreBuilder.fill_missing_value` (or use
  :class:`~pychunked_data_view.ChunkedDataViewBuilder` directly):
 
 .. code-block:: python
@@ -267,9 +267,9 @@ the missing slots are filled with a sentinel value. The default is
 
    builder = ChunkedDataViewBuilder(fdb_config_file=None)
    builder.add_part({...}, [...], ExtractorType.GRIB)
-   builder.fill_value(-999.0)   # use -999.0 instead of NaN
+   builder.fill_missing_value(-999.0)   # use -999.0 instead of NaN
    view = builder.build()
-   print(view.fillValue())  # -999.0
+   print(view.fill_missing_value())  # -999.0
 
 Combining Multiple MARS Requests
 ---------------------------------

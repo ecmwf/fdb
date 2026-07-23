@@ -37,7 +37,7 @@ public:
     const std::vector<size_t>& chunkShape() const override { return chunkShape_; }
     const std::vector<size_t>& chunks() const override { return chunks_; }
     const std::vector<size_t>& shape() const override { return chunkedDataViewShape_; }
-    const float& fillValue() const override { return fillValue_; }
+    float fillMissingValue() const override { return fillValue_; }
 
     /// Product of all entries in chunkShape_ (field slots × values per field).
     size_t countChunkValues() const override {

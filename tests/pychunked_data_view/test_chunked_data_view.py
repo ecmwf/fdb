@@ -34,13 +34,13 @@ def test_axis_definition_can_assign():
 
 
 def test_axis_definition_individual_chunk():
-    obj = AxisDefinition(["key1", "key0"], Chunking.IndividualChunk(2))
+    obj = AxisDefinition(["key1", "key0"], Chunking.FixedSizeChunk(2))
     assert obj.keys == ["key1", "key0"]
-    assert obj.chunking == Chunking.IndividualChunk(2)
+    assert obj.chunking == Chunking.FixedSizeChunk(2)
     obj.keys = []
     assert obj.keys == []
-    obj.chunking = Chunking.IndividualChunk(2)
-    assert obj.chunking == Chunking.IndividualChunk(2)
+    obj.chunking = Chunking.FixedSizeChunk(2)
+    assert obj.chunking == Chunking.FixedSizeChunk(2)
 
 
 def test_builder(read_only_fdb_setup):
@@ -58,7 +58,7 @@ def test_builder(read_only_fdb_setup):
         ],
         ExtractorType.GRIB,
     )
-    builder.fill_value(-20.0)
+    builder.fill_missing_value(-20.0)
     view = builder.build()
 
     expected = list(range(0, 5248))
@@ -66,4 +66,4 @@ def test_builder(read_only_fdb_setup):
     for a, b in itertools.product(range(0, 32), range(0, 3)):
         np.testing.assert_array_almost_equal_nulp(view.at((a, b, 0)), expected)
 
-    assert view.fillValue() == -20.0
+    assert view.fill_missing_value() == -20.0

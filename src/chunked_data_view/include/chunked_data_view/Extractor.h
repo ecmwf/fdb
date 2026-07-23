@@ -22,6 +22,13 @@ class DataHandle;
 
 namespace chunked_data_view {
 
+/// Abstract interface for retrieving field data into a Zarr chunk buffer.
+///
+/// Concrete implementations are typically stateful (e.g. they hold an open FDB handle or
+/// an HTTP client) and non-copyable by design. For this reason the builder and the assembled
+/// ChunkedDataViewImpl always hold extractors via std::shared_ptr: shared ownership lets
+/// multiple ViewParts reference the same backing store without copying, and it guarantees
+/// the extractor's lifetime is tied to the view rather than to any single part.
 class Extractor {
 public:
 

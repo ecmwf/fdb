@@ -120,13 +120,13 @@ def test_bitmap_missing_points_become_fill_value(fdb_with_swh_bitmap):
         [AxisDefinition(["step"], Chunking.SINGLE_VALUE)],
         ExtractorType.GRIB,
     )
-    builder.fill_value(-20.0)
+    builder.fill_missing_value(-20.0)
     view = builder.build()
 
-    assert view.fillValue() == -20.0
+    assert view.fill_missing_value() == -20.0
 
     values = view.at((0, 0))
-    np.testing.assert_array_equal(values[missing], view.fillValue())
+    np.testing.assert_array_equal(values[missing], view.fill_missing_value())
     np.testing.assert_array_equal(values[~missing], expected[~missing])
 
 
@@ -151,7 +151,7 @@ def test_fill_value_propagated_to_zarr_metadata(fdb_with_swh_bitmap):
         [AxisDefinition(["step"], Chunking.SINGLE_VALUE)],
         ExtractorType.GRIB,
     )
-    builder.fill_value(-20.0)
+    builder.fill_missing_value(-20.0)
     store = builder.build()
 
     arr = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)

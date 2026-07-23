@@ -123,14 +123,14 @@ detectable with :func:`numpy.isnan`:
    missing = np.isnan(field)
 
 To use a different sentinel — for example ``-999.0`` — call
-:meth:`~z3fdb.SimpleStoreBuilder.fill_value` on the builder before calling
+:meth:`~z3fdb.SimpleStoreBuilder.fill_missing_value` on the builder before calling
 ``build()``:
 
 .. code-block:: python
 
    builder = SimpleStoreBuilder()
    builder.add_part(...)
-   builder.fill_value(-999.0)   # replaces missing points with -999.0
+   builder.fill_missing_value(-999.0)   # replaces missing points with -999.0
    store = builder.build()
 
 .. warning::
@@ -283,7 +283,7 @@ Common Pitfalls
    ``AxisDefinition`` list — position in the list is the dimension index.
 
 **Large chunk memory use**
-   ``Chunking.NONE`` on several axes can produce chunks of many gigabytes.
-   Start with ``Chunking.SINGLE_VALUE`` on every axis and switch to ``NONE``
+   ``Chunking.WHOLE_AXIS`` on several axes can produce chunks of many gigabytes.
+   Start with ``Chunking.SINGLE_VALUE`` on every axis and switch to ``WHOLE_AXIS``
    only when you know you always read that axis in full.
    See :doc:`dimension_mapping` for details.

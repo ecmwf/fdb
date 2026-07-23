@@ -46,7 +46,7 @@ private:
 /// Describes how one axis is divided into Zarr chunks.
 ///
 /// Stores one extent entry per chunk; for uniform chunking all entries are equal.
-/// The extensible flag marks axes using NoChunking: their single chunk grows when
+/// The extensible flag marks axes using WholeAxisChunking: their single chunk grows when
 /// additional parts are stitched onto the view along this axis.
 class AxisChunks {
 
@@ -76,11 +76,11 @@ public:
     /// Number of chunks along this axis.
     size_t size() const { return extensions_.size(); }
 
-    /// True for NoChunking axes, whose combined extent is the sum of all parts' extents.
+    /// True for WholeAxisChunking axes, whose combined extent is the sum of all parts' extents.
     bool isExtensible() const { return extensible_; }
 
     /// Per-chunk extents; each entry is the number of axis elements in that chunk.
-    std::vector<size_t> extensions() const { return extensions_; }
+    const std::vector<size_t>& extensions() const { return extensions_; }
 
     /// Extent of the first chunk; representative for all chunks when chunking is uniform.
     size_t representativeExtent() const { return extensions_[0]; }

@@ -14,7 +14,6 @@ add_library(chunked_data_view STATIC
     ChunkedDataViewBuilder.cc
     ChunkedDataViewImpl.cc
     ChunkedDataViewImpl.h
-    Extractor.cc
     Fdb.cc
     GribExtractor.cc
     GribExtractor.h

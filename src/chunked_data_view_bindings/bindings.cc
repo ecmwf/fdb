@@ -39,20 +39,20 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
                      return cdv::AxisDefinition{std::move(keys), chunking};
                  }),
                  py::kw_only(), py::arg("keys"), py::arg("chunking"))
-            .def(py::init([](std::vector<std::string> keys, cdv::AxisDefinition::IndividualChunking chunking) {
+            .def(py::init([](std::vector<std::string> keys, cdv::AxisDefinition::FixedSizeChunking chunking) {
                      return cdv::AxisDefinition{std::move(keys), chunking};
                  }),
                  py::kw_only(), py::arg("keys"), py::arg("chunking"))
-            .def(py::init([](std::vector<std::string> keys, cdv::AxisDefinition::NoChunking chunking) {
+            .def(py::init([](std::vector<std::string> keys, cdv::AxisDefinition::WholeAxisChunking chunking) {
                      return cdv::AxisDefinition{std::move(keys), chunking};
                  }),
                  py::kw_only(), py::arg("keys"), py::arg("chunking"))
             .def_readwrite("keys", &cdv::AxisDefinition::keys)
             .def_readwrite("chunking", &cdv::AxisDefinition::chunking);
 
-    // Wrapping AxisDefinition::NoChunking as nested class of Axisdefinition
-    py::class_<cdv::AxisDefinition::NoChunking>(axis_definition, "NoChunking").def(py::init<>([]() {
-        return cdv::AxisDefinition::NoChunking{};
+    // Wrapping AxisDefinition::WholeAxisChunking as nested class of AxisDefinition
+    py::class_<cdv::AxisDefinition::WholeAxisChunking>(axis_definition, "WholeAxisChunking").def(py::init<>([]() {
+        return cdv::AxisDefinition::WholeAxisChunking{};
     }));
 
     // Wrapping AxisDefinition::SingleValueChunking as nested class of Axisdefinition
@@ -60,13 +60,12 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
         return cdv::AxisDefinition::SingleValueChunking{};
     }));
 
-    // Wrapping AxisDefinition::IndividualChunking as nested class of Axisdefinition
-    py::class_<cdv::AxisDefinition::IndividualChunking>(axis_definition, "IndividualChunking")
-        .def(py::init<>([](size_t& chunkExtension) {
-            return cdv::AxisDefinition::IndividualChunking{.chunkSize = chunkExtension};
-        }))
-        .def("chunk_shape", [](const cdv::AxisDefinition::IndividualChunking* individualChunking) {
-            return individualChunking->chunkSize;
+    // Wrapping AxisDefinition::FixedSizeChunking as nested class of AxisDefinition
+    py::class_<cdv::AxisDefinition::FixedSizeChunking>(axis_definition, "FixedSizeChunking")
+        .def(py::init<>(
+            [](size_t& chunkExtension) { return cdv::AxisDefinition::FixedSizeChunking{.chunkSize = chunkExtension}; }))
+        .def("chunk_shape", [](const cdv::AxisDefinition::FixedSizeChunking* fixedSizeChunking) {
+            return fixedSizeChunking->chunkSize;
         });
 
     // Wrapping interface ChunkedDataView
@@ -83,7 +82,7 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
         .def("chunk_shape", [](const cdv::ChunkedDataView* view) { return view->chunkShape(); })
         .def("chunks", [](const cdv::ChunkedDataView* view) { return view->chunks(); })
         .def("shape", [](const cdv::ChunkedDataView* view) { return view->shape(); })
-        .def("fillValue", [](const cdv::ChunkedDataView* view) { return view->fillValue(); });
+        .def("fill_missing_value", [](const cdv::ChunkedDataView* view) { return view->fillMissingValue(); });
 
     py::enum_<cdv::ExtractorType>(m, "ExtractorType").value("GRIB", cdv::ExtractorType::GRIB);
 
@@ -110,6 +109,6 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
                  }
              })
         .def("extend_on_axis", &cdv::ChunkedDataViewBuilder::extendOnAxis)
-        .def("fill_value", &cdv::ChunkedDataViewBuilder::fillValue)
+        .def("fill_missing_value", &cdv::ChunkedDataViewBuilder::fillMissingValue)
         .def("build", &cdv::ChunkedDataViewBuilder::build);
 }

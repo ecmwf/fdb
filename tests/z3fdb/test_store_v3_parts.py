@@ -70,7 +70,7 @@ def test_axis_check_merge_no_chunking(read_only_fdb_setup_for_sfc_pl_example) ->
         },
         [
             AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
-            AxisDefinition(["param"], Chunking.NONE),
+            AxisDefinition(["param"], Chunking.WHOLE_AXIS),
         ],
         ExtractorType.GRIB,
     )
@@ -83,7 +83,7 @@ def test_axis_check_merge_no_chunking(read_only_fdb_setup_for_sfc_pl_example) ->
         },
         [
             AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
-            AxisDefinition(["param", "levelist"], Chunking.NONE),
+            AxisDefinition(["param", "levelist"], Chunking.WHOLE_AXIS),
         ],
         ExtractorType.GRIB,
     )
@@ -158,7 +158,7 @@ def test_extend_on_axis_0_no_chunking(read_only_fdb_setup_for_sfc_pl_example) ->
     builder.add_part(
         SFC_REQUEST,
         [
-            AxisDefinition(["param"], Chunking.NONE),
+            AxisDefinition(["param"], Chunking.WHOLE_AXIS),
             AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
         ],
         ExtractorType.GRIB,
@@ -166,7 +166,7 @@ def test_extend_on_axis_0_no_chunking(read_only_fdb_setup_for_sfc_pl_example) ->
     builder.add_part(
         PL_REQUEST,
         [
-            AxisDefinition(["param", "levelist"], Chunking.NONE),
+            AxisDefinition(["param", "levelist"], Chunking.WHOLE_AXIS),
             AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
         ],
         ExtractorType.GRIB,
@@ -193,7 +193,7 @@ def test_non_extension_axis_no_chunking(read_only_fdb_setup_for_sfc_pl_example) 
     builder.add_part(
         SFC_REQUEST,
         [
-            AxisDefinition(["date", "time"], Chunking.NONE),
+            AxisDefinition(["date", "time"], Chunking.WHOLE_AXIS),
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
         ],
         ExtractorType.GRIB,
@@ -201,7 +201,7 @@ def test_non_extension_axis_no_chunking(read_only_fdb_setup_for_sfc_pl_example) 
     builder.add_part(
         PL_REQUEST,
         [
-            AxisDefinition(["date", "time"], Chunking.NONE),
+            AxisDefinition(["date", "time"], Chunking.WHOLE_AXIS),
             AxisDefinition(["param", "levelist"], Chunking.SINGLE_VALUE),
         ],
         ExtractorType.GRIB,
@@ -268,16 +268,16 @@ def test_all_no_chunking(read_only_fdb_setup_for_sfc_pl_example) -> None:
     builder.add_part(
         SFC_REQUEST,
         [
-            AxisDefinition(["date", "time"], Chunking.NONE),
-            AxisDefinition(["param"], Chunking.NONE),
+            AxisDefinition(["date", "time"], Chunking.WHOLE_AXIS),
+            AxisDefinition(["param"], Chunking.WHOLE_AXIS),
         ],
         ExtractorType.GRIB,
     )
     builder.add_part(
         PL_REQUEST,
         [
-            AxisDefinition(["date", "time"], Chunking.NONE),
-            AxisDefinition(["param", "levelist"], Chunking.NONE),
+            AxisDefinition(["date", "time"], Chunking.WHOLE_AXIS),
+            AxisDefinition(["param", "levelist"], Chunking.WHOLE_AXIS),
         ],
         ExtractorType.GRIB,
     )

@@ -75,17 +75,17 @@ def test_individual_chunking_combined_datetime_axis(
     builder.add_part(
         SFC_REQUEST,
         [
-            AxisDefinition(["date", "time"], Chunking.IndividualChunk(chunkShape=4)),
-            AxisDefinition(["param"], Chunking.IndividualChunk(chunkShape=3)),
+            AxisDefinition(["date", "time"], Chunking.FixedSizeChunk(chunkShape=4)),
+            AxisDefinition(["param"], Chunking.FixedSizeChunk(chunkShape=3)),
         ],
         ExtractorType.GRIB,
     )
     builder.add_part(
         PL_REQUEST,
         [
-            AxisDefinition(["date", "time"], Chunking.IndividualChunk(chunkShape=4)),
+            AxisDefinition(["date", "time"], Chunking.FixedSizeChunk(chunkShape=4)),
             AxisDefinition(
-                ["param", "levelist"], Chunking.IndividualChunk(chunkShape=3)
+                ["param", "levelist"], Chunking.FixedSizeChunk(chunkShape=3)
             ),
         ],
         ExtractorType.GRIB,
@@ -159,8 +159,8 @@ def test_individual_chunking_separate_time_axis(
         SFC_REQUEST,
         [
             AxisDefinition(["date"], Chunking.SINGLE_VALUE),
-            AxisDefinition(["time"], Chunking.IndividualChunk(chunkShape=2)),
-            AxisDefinition(["param"], Chunking.IndividualChunk(chunkShape=3)),
+            AxisDefinition(["time"], Chunking.FixedSizeChunk(chunkShape=2)),
+            AxisDefinition(["param"], Chunking.FixedSizeChunk(chunkShape=3)),
         ],
         ExtractorType.GRIB,
     )
@@ -168,9 +168,9 @@ def test_individual_chunking_separate_time_axis(
         PL_REQUEST,
         [
             AxisDefinition(["date"], Chunking.SINGLE_VALUE),
-            AxisDefinition(["time"], Chunking.IndividualChunk(chunkShape=2)),
+            AxisDefinition(["time"], Chunking.FixedSizeChunk(chunkShape=2)),
             AxisDefinition(
-                ["param", "levelist"], Chunking.IndividualChunk(chunkShape=3)
+                ["param", "levelist"], Chunking.FixedSizeChunk(chunkShape=3)
             ),
         ],
         ExtractorType.GRIB,
@@ -258,8 +258,8 @@ def test_individual_chunking_reordered_axes(
     builder.add_part(
         SFC_REQUEST,
         [
-            AxisDefinition(["param"], Chunking.IndividualChunk(chunkShape=3)),
-            AxisDefinition(["time"], Chunking.IndividualChunk(chunkShape=2)),
+            AxisDefinition(["param"], Chunking.FixedSizeChunk(chunkShape=3)),
+            AxisDefinition(["time"], Chunking.FixedSizeChunk(chunkShape=2)),
             AxisDefinition(["date"], Chunking.SINGLE_VALUE),
         ],
         ExtractorType.GRIB,
@@ -268,9 +268,9 @@ def test_individual_chunking_reordered_axes(
         PL_REQUEST,
         [
             AxisDefinition(
-                ["param", "levelist"], Chunking.IndividualChunk(chunkShape=3)
+                ["param", "levelist"], Chunking.FixedSizeChunk(chunkShape=3)
             ),
-            AxisDefinition(["time"], Chunking.IndividualChunk(chunkShape=2)),
+            AxisDefinition(["time"], Chunking.FixedSizeChunk(chunkShape=2)),
             AxisDefinition(["date"], Chunking.SINGLE_VALUE),
         ],
         ExtractorType.GRIB,

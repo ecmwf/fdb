@@ -160,7 +160,7 @@ def test_random_axis_retrieval_swapped_axis_and_request_combined_axis(
             "levtype": "sfc", "step": 0, "param": [167, 165, 166],
         },
         [
-            AxisDefinition(["time", "step", "param", "date"], Chunking.NONE),
+            AxisDefinition(["time", "step", "param", "date"], Chunking.WHOLE_AXIS),
         ],
         ExtractorType.GRIB,
     )

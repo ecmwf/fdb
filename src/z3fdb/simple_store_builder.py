@@ -71,14 +71,14 @@ class SimpleStoreBuilder:
         """
         self._builder.add_part(mars_request, axes, extractor_type)
 
-    def fill_value(self, value: float) -> None:
+    def fill_missing_value(self, value: float) -> None:
         """Set the fill value used for missing / bitmap-masked grid points.
 
         Args:
             value(float): Fill value written into array positions that carry a
                 GRIB bitmap missing flag. Also used as the zarr array fill_value.
         """
-        self._builder.fill_value(value)
+        self._builder.fill_missing_value(value)
 
     def extend_on_axis(self, axis: int) -> None:
         """Defines the extension axis when multiple parts are added.

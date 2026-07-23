@@ -10,7 +10,7 @@
 #include "test_mock_helpers.h"
 
 
-CASE("ChunkedDataView | IndividualChunking | Can compute shape") {
+CASE("ChunkedDataView | FixedSizeChunking | Can compute shape") {
     // 4 dates chunked in pairs, 4 single-value times, 2 params whole-axis
     const std::string keys{
         "type=an,domain=g,expver=0001,stream=oper,"
@@ -21,9 +21,9 @@ CASE("ChunkedDataView | IndividualChunking | Can compute shape") {
 
     const auto view = cdv::ChunkedDataViewBuilder()
                           .addPart(keys,
-                                   {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{2}},
+                                   {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::FixedSizeChunking{2}},
                                     cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
-                                    cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
+                                    cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::WholeAxisChunking{}}},
                                    mock_extractor)
                           .build();
 
@@ -33,7 +33,7 @@ CASE("ChunkedDataView | IndividualChunking | Can compute shape") {
     EXPECT_EQUAL(view->chunks(), (std::vector<size_t>{2, 4, 1, 1}));
 }
 
-CASE("ChunkedDataView | IndividualChunking | Invalid chunk size throws") {
+CASE("ChunkedDataView | FixedSizeChunking | Invalid chunk size throws") {
     const std::string keys{
         "type=an,domain=g,expver=0001,stream=oper,"
         "date=2020-01-01/to/2020-01-04,levtype=sfc,"
@@ -44,32 +44,32 @@ CASE("ChunkedDataView | IndividualChunking | Invalid chunk size throws") {
     // chunkSize=0 -- explicitly forbidden
     EXPECT_THROWS(cdv::ChunkedDataViewBuilder()
                       .addPart(keys,
-                               {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{0}},
+                               {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::FixedSizeChunking{0}},
                                 cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
-                                cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
+                                cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::WholeAxisChunking{}}},
                                mock_extractor)
                       .build());
 
     // chunkSize=1 -- same as SingleValueChunking, redundant, but ok
     EXPECT_NO_THROW(cdv::ChunkedDataViewBuilder()
                         .addPart(keys,
-                                 {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{1}},
+                                 {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::FixedSizeChunking{1}},
                                   cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
-                                  cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
+                                  cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::WholeAxisChunking{}}},
                                  mock_extractor)
                         .build());
 
-    // chunkSize==axis size (4) -- same as NoChunking, redundant, but ok
+    // chunkSize==axis size (4) -- same as WholeAxisChunking, redundant, but ok
     EXPECT_NO_THROW(cdv::ChunkedDataViewBuilder()
                         .addPart(keys,
-                                 {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{4}},
+                                 {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::FixedSizeChunking{4}},
                                   cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
-                                  cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
+                                  cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::WholeAxisChunking{}}},
                                  mock_extractor)
                         .build());
 }
 
-CASE("ChunkedDataView | IndividualChunking | at() accesses each chunk") {
+CASE("ChunkedDataView | FixedSizeChunking | at() accesses each chunk") {
     // Same view as the shape test: 4 dates (chunkSize=2), 4 times, 2 params whole-axis
     const std::string keys{
         "type=an,domain=g,expver=0001,stream=oper,"
@@ -80,9 +80,9 @@ CASE("ChunkedDataView | IndividualChunking | at() accesses each chunk") {
 
     const auto view = cdv::ChunkedDataViewBuilder()
                           .addPart(keys,
-                                   {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::IndividualChunking{2}},
+                                   {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::FixedSizeChunking{2}},
                                     cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
-                                    cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::NoChunking{}}},
+                                    cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::WholeAxisChunking{}}},
                                    mock_extractor)
                           .build();
 
@@ -99,12 +99,12 @@ CASE("ChunkedDataView | IndividualChunking | at() accesses each chunk") {
 }
 
 
-CASE("ChunkedDataView | IndividualChunking | Combined axis with differently-sized chunk dimensions") {
-    // Combined {"date","time"} axis: 4 dates x 4 times = 16 values, IndividualChunking{4} -> 4 chunks of 4.
+CASE("ChunkedDataView | FixedSizeChunking | Combined axis with differently-sized chunk dimensions") {
+    // Combined {"date","time"} axis: 4 dates x 4 times = 16 values, FixedSizeChunking{4} -> 4 chunks of 4.
     // Each chunk covers exactly one "time sweep" (1 date x all 4 times) in MARS coordinates.
-    // Separate {"param"} axis: 4 params, IndividualChunking{2} -> 2 chunks of 2.
+    // Separate {"param"} axis: 4 params, FixedSizeChunking{2} -> 2 chunks of 2.
     // This gives chunkShape = {4, 2, 10}: the two chunked dims have *different* extents (4 vs 2),
-    // demonstrating that IndividualChunking on a combined axis is independent of the other axes.
+    // demonstrating that FixedSizeChunking on a combined axis is independent of the other axes.
     const std::string keys{
         "type=an,domain=g,expver=0001,stream=oper,"
         "date=2020-01-01/to/2020-01-04,levtype=sfc,"
@@ -114,8 +114,8 @@ CASE("ChunkedDataView | IndividualChunking | Combined axis with differently-size
 
     const auto view = cdv::ChunkedDataViewBuilder()
                           .addPart(keys,
-                                   {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::IndividualChunking{4}},
-                                    cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{2}}},
+                                   {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::FixedSizeChunking{4}},
+                                    cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::FixedSizeChunking{2}}},
                                    mock_extractor)
                           .build();
 
@@ -141,10 +141,10 @@ CASE("ChunkedDataView | IndividualChunking | Combined axis with differently-size
     EXPECT_THROWS(view->at({0, 2, 0}, buf.data(), buf.size()));
 }
 
-CASE("ChunkedDataView | IndividualChunking | Combined axis with differently-sized chunk dimensions 2") {
-    // Combined {"date","time"} axis: 4x3=12 values, IndividualChunking{3} -> 4 chunks of 3.
-    // {"levelist"} axis: 10 values, IndividualChunking{5} -> 2 chunks of 5.
-    // {"param"} axis: 6 values, IndividualChunking{3} -> 2 chunks of 3.
+CASE("ChunkedDataView | FixedSizeChunking | Combined axis with differently-sized chunk dimensions 2") {
+    // Combined {"date","time"} axis: 4x3=12 values, FixedSizeChunking{3} -> 4 chunks of 3.
+    // {"levelist"} axis: 10 values, FixedSizeChunking{5} -> 2 chunks of 5.
+    // {"param"} axis: 6 values, FixedSizeChunking{3} -> 2 chunks of 3.
     // All three chunked dims have different extents (3, 5, 3), exercising the general case.
     const std::string keys{
         "type=an,domain=g,expver=0001,stream=oper,"
@@ -155,9 +155,9 @@ CASE("ChunkedDataView | IndividualChunking | Combined axis with differently-size
 
     const auto view = cdv::ChunkedDataViewBuilder()
                           .addPart(keys,
-                                   {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::IndividualChunking{3}},
-                                    cdv::AxisDefinition{{"levelist"}, cdv::AxisDefinition::IndividualChunking{5}},
-                                    cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{3}}},
+                                   {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::FixedSizeChunking{3}},
+                                    cdv::AxisDefinition{{"levelist"}, cdv::AxisDefinition::FixedSizeChunking{5}},
+                                    cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::FixedSizeChunking{3}}},
                                    mock_extractor)
                           .build();
 
@@ -188,32 +188,32 @@ CASE("ChunkedDataView | IndividualChunking | Combined axis with differently-size
     EXPECT_THROWS(view->at({0, 0, 0, 1}, buf.data(), buf.size()));
 
     // Invalid chunk sizes: non-divisors of the axis extent must throw at build time
-    // levelist has 10 values -> IndividualChunking{3} does not divide evenly
+    // levelist has 10 values -> FixedSizeChunking{3} does not divide evenly
     EXPECT_THROWS(cdv::ChunkedDataViewBuilder()
                       .addPart(keys,
-                               {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::IndividualChunking{3}},
-                                cdv::AxisDefinition{{"levelist"}, cdv::AxisDefinition::IndividualChunking{3}},
-                                cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{3}}},
+                               {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::FixedSizeChunking{3}},
+                                cdv::AxisDefinition{{"levelist"}, cdv::AxisDefinition::FixedSizeChunking{3}},
+                                cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::FixedSizeChunking{3}}},
                                mock_extractor)
                       .build());
 
-    // param has 6 values -> IndividualChunking{4} does not divide evenly
+    // param has 6 values -> FixedSizeChunking{4} does not divide evenly
     EXPECT_THROWS(cdv::ChunkedDataViewBuilder()
                       .addPart(keys,
-                               {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::IndividualChunking{3}},
-                                cdv::AxisDefinition{{"levelist"}, cdv::AxisDefinition::IndividualChunking{5}},
-                                cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{4}}},
+                               {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::FixedSizeChunking{3}},
+                                cdv::AxisDefinition{{"levelist"}, cdv::AxisDefinition::FixedSizeChunking{5}},
+                                cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::FixedSizeChunking{4}}},
                                mock_extractor)
                       .build());
 }
 
-CASE("ChunkedDataView | IndividualChunking | Multi part with combined axis with differently-sized chunk dimensions 2") {
+CASE("ChunkedDataView | FixedSizeChunking | Multi part with combined axis with differently-sized chunk dimensions 2") {
     // Part 1 (sfc, param=110/120/130):
-    //   {"date","time"} combined: 12 values, IndividualChunking{3} -> 4 chunks of 3.
-    //   {"param"}: 3 values, IndividualChunking{3} -> 1 chunk of 3.
+    //   {"date","time"} combined: 12 values, FixedSizeChunking{3} -> 4 chunks of 3.
+    //   {"param"}: 3 values, FixedSizeChunking{3} -> 1 chunk of 3.
     // Part 2 (ml, levelistxparam=10x6=60):
-    //   {"date","time"} combined: 12 values, IndividualChunking{3} -> 4 chunks of 3.
-    //   {"levelist","param"} combined: 60 values, IndividualChunking{3} -> 20 chunks of 3.
+    //   {"date","time"} combined: 12 values, FixedSizeChunking{3} -> 4 chunks of 3.
+    //   {"levelist","param"} combined: 60 values, FixedSizeChunking{3} -> 20 chunks of 3.
     // Extended on axis 1: 3 (sfc param) + 60 (ml levelistxparam) = 63, 1+20=21 chunks.
     const std::string keys_sfc{
         "type=an,domain=g,expver=0001,stream=oper,"
@@ -229,12 +229,12 @@ CASE("ChunkedDataView | IndividualChunking | Multi part with combined axis with 
     const auto view =
         cdv::ChunkedDataViewBuilder()
             .addPart(keys_sfc,
-                     {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::IndividualChunking{3}},
-                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::IndividualChunking{3}}},
+                     {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::FixedSizeChunking{3}},
+                      cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::FixedSizeChunking{3}}},
                      mock_extractor)
             .addPart(keys_ml,
-                     {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::IndividualChunking{3}},
-                      {cdv::AxisDefinition{{"levelist", "param"}, cdv::AxisDefinition::IndividualChunking{3}}}},
+                     {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::FixedSizeChunking{3}},
+                      {cdv::AxisDefinition{{"levelist", "param"}, cdv::AxisDefinition::FixedSizeChunking{3}}}},
                      mock_extractor)
             .extendOnAxis(1)
             .build();

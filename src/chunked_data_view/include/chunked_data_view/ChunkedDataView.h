@@ -44,7 +44,7 @@ public:
     virtual const std::vector<size_t>& shape() const = 0;
 
     /// Value written for array positions that are not covered by any ViewPart.
-    virtual const float& fillValue() const = 0;
+    virtual float fillMissingValue() const = 0;
 
     /// Total number of float values stored in one chunk (product of chunkShape()).
     virtual size_t countChunkValues() const = 0;

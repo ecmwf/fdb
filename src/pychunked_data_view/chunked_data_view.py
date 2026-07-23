@@ -38,41 +38,42 @@ def _mars_selection_to_string(request: MarsSelection) -> str:
 
 
 class Chunking(enum.Enum):
-    """Defines how a axis will be chunked
+    """Defines how an axis will be chunked.
 
     Attributes:
-        NONE: Axis will not be chunked, accessing any value from this axis will load all values.
-        SINGLE_VALUE: Axis will be chunked. One chunk per value.
+        WHOLE_AXIS: The entire axis is a single chunk; accessing any value loads all values on that axis.
+        SINGLE_VALUE: Each value along the axis is its own chunk.
+        FixedSizeChunk: Groups every ``chunkShape`` consecutive values into one chunk.
     """
 
-    NONE = enum.auto()
+    WHOLE_AXIS = enum.auto()
     SINGLE_VALUE = enum.auto()
 
     @enum.nonmember
     @dataclass(frozen=True)
-    class IndividualChunk:
+    class FixedSizeChunk:
         chunkShape: int
 
 
 class AxisDefinition:
     @staticmethod
     def _translate_chunking(
-        chunking: Chunking | Chunking.IndividualChunk,
+        chunking: Chunking | Chunking.FixedSizeChunk,
     ) -> (
-        pdv.AxisDefinition.NoChunking
+        pdv.AxisDefinition.WholeAxisChunking
         | pdv.AxisDefinition.SingleValueChunking
-        | pdv.AxisDefinition.IndividualChunking
+        | pdv.AxisDefinition.FixedSizeChunking
     ):
-        if isinstance(chunking, Chunking.IndividualChunk):
-            return pdv.AxisDefinition.IndividualChunking(chunking.chunkShape)
-        elif chunking is Chunking.NONE:
-            return pdv.AxisDefinition.NoChunking()
+        if isinstance(chunking, Chunking.FixedSizeChunk):
+            return pdv.AxisDefinition.FixedSizeChunking(chunking.chunkShape)
+        elif chunking is Chunking.WHOLE_AXIS:
+            return pdv.AxisDefinition.WholeAxisChunking()
         elif chunking is Chunking.SINGLE_VALUE:
             return pdv.AxisDefinition.SingleValueChunking()
         else:
             raise InternalError()
 
-    def __init__(self, keys: list[str], chunking: Chunking | Chunking.IndividualChunk):
+    def __init__(self, keys: list[str], chunking: Chunking | Chunking.FixedSizeChunk):
         """Defines which axis from a MARS Request form an axis in the Zarr array.
 
         Also defines if the data is to be chunked.
@@ -96,17 +97,17 @@ class AxisDefinition:
     @property
     def chunking(self):
         chunking = self._obj.chunking
-        if isinstance(chunking, pdv.AxisDefinition.NoChunking):
-            return Chunking.NONE
+        if isinstance(chunking, pdv.AxisDefinition.WholeAxisChunking):
+            return Chunking.WHOLE_AXIS
         elif isinstance(chunking, pdv.AxisDefinition.SingleValueChunking):
             return Chunking.SINGLE_VALUE
-        elif isinstance(chunking, pdv.AxisDefinition.IndividualChunking):
-            return Chunking.IndividualChunk(chunking.chunk_shape())
+        elif isinstance(chunking, pdv.AxisDefinition.FixedSizeChunking):
+            return Chunking.FixedSizeChunk(chunking.chunk_shape())
         else:
             raise InternalError()
 
     @chunking.setter
-    def chunking(self, chunking: Chunking | Chunking.IndividualChunk) -> None:
+    def chunking(self, chunking: Chunking | Chunking.FixedSizeChunk) -> None:
         self._obj.chunking = self._translate_chunking(chunking)
 
 
@@ -126,8 +127,8 @@ class ChunkedDataView:
     def shape(self):
         return self._obj.shape()
 
-    def fillValue(self):
-        return self._obj.fillValue()
+    def fill_missing_value(self):
+        return self._obj.fill_missing_value()
 
 
 class ExtractorType(enum.Enum):
@@ -159,8 +160,8 @@ class ChunkedDataViewBuilder:
     def extend_on_axis(self, axis: int):
         self._obj.extend_on_axis(axis)
 
-    def fill_value(self, value: float):
-        self._obj.fill_value(value)
+    def fill_missing_value(self, value: float):
+        self._obj.fill_missing_value(value)
 
     def build(self):
         try:

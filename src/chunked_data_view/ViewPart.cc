@@ -12,8 +12,6 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <iterator>
-#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -117,9 +115,6 @@ std::optional<BoundingBox> BoundingBox::intersect(const BoundingBox& other) cons
         const auto l2 = other.lower_[i];
         const auto u2 = other.upper_[i];
 
-        eckit::Log::debug() << "Axis: " << i << " | [l1, u1], [l2, u2]:  [" << l1 << ", " << u1 << "], [" << l2 << ", "
-                            << u2 << "]" << std::endl;
-
         if ((u1 < l2) || (l1 > u2)) {
             eckit::Log::debug() << "Returning empty bounding box" << std::endl;
             return std::nullopt;  // empty (separating axis theorem)
@@ -139,15 +134,15 @@ ViewPart::ViewPart(const metkit::mars::MarsRequest& request, const DataLayout& d
                    const std::vector<std::pair<Axis, AxisChunks>>& axes, const std::vector<size_t>& offset) :
     request_(request), layout_(data_layout), offset_(offset) {
 
-    std::transform(axes.begin(), axes.end(), std::back_inserter(axes_),
-                   [](const auto& pair) { return std::get<0>(pair); });
-    std::transform(axes.begin(), axes.end(), std::back_inserter(chunks_),
-                   [](const auto& pair) { return std::get<1>(pair); });
-
-
     extension_.reserve(axes_.size());
-    std::transform(std::begin(axes_), std::end(axes_), std::back_inserter(extension_),
-                   [](const auto& axis) { return axis.size(); });
+    chunks_.reserve(axes_.size());
+    axes_.reserve(axes_.size());
+
+    for (const auto& [axis, axis_chunks] : axes) {
+        axes_.push_back(axis);
+        chunks_.push_back(axis_chunks);
+        extension_.push_back(axis.size());
+    }
 
     const auto lower = offset_;
     auto upper = offset_;

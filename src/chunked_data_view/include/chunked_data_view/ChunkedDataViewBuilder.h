@@ -35,7 +35,7 @@ class ViewPart;
 ///      pressure-level fields).
 ///   3. If more than one part is added, call extendOnAxis() to specify which axis stitches the
 ///      parts together.
-///   4. Optionally call fillValue() to set the sentinel for grid positions with no data.
+///   4. Optionally call fillMissingValue() to set the sentinel for grid positions with no data.
 ///   5. Call build() to validate and assemble the ChunkedDataView.
 class ChunkedDataViewBuilder {
 public:
@@ -52,6 +52,12 @@ public:
     ///
     /// Multiple parts can cover different variable types (e.g. surface and pressure-level
     /// fields) and are stitched together along the extension axis specified by extendOnAxis().
+    ///
+    /// @p extractor is taken as a shared_ptr because the assembled ChunkedDataViewImpl pairs
+    /// each ViewPart with its Extractor and multiple ViewParts may legally share one Extractor
+    /// instance (e.g. when two parts draw from the same FDB store). Shared ownership avoids
+    /// copying the (potentially stateful, non-copyable) extractor while guaranteeing its
+    /// lifetime extends at least as long as the built ChunkedDataView.
     ChunkedDataViewBuilder& addPart(std::string marsRequestKeyValues, std::vector<AxisDefinition> axes,
                                     std::shared_ptr<Extractor> extractor);
 
@@ -65,7 +71,7 @@ public:
 
     /// Sets the fill value written to array positions not covered by any part.
     /// Defaults to NaN.
-    ChunkedDataViewBuilder& fillValue(float fillValue);
+    ChunkedDataViewBuilder& fillMissingValue(float fillValue);
 
     /// Validates all parts, checks axis compatibility, and returns the assembled view.
     /// @throws eckit::UserError on misconfiguration (missing parts, axis mismatch, etc.).
