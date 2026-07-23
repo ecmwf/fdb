@@ -81,6 +81,28 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
     shape_.push_back(layout_.countValues);
 }
 
+ViewPart::~ViewPart() = default;
+
+ViewPart::ViewPart(ViewPart&& other) noexcept :
+    request_(std::move(other.request_)),
+    axes_(std::move(other.axes_)),
+    extractor_(std::move(other.extractor_)),
+    fdb_(std::move(other.fdb_)),
+    layout_(std::move(other.layout_)),
+    shape_(std::move(other.shape_)) {}
+
+ViewPart& ViewPart::operator=(ViewPart&& other) noexcept {
+    if (this != &other) {
+        request_ = std::move(other.request_);
+        axes_ = std::move(other.axes_);
+        extractor_ = std::move(other.extractor_);
+        fdb_ = std::move(other.fdb_);
+        layout_ = std::move(other.layout_);
+        shape_ = std::move(other.shape_);
+    }
+    return *this;
+}
+
 
 void ViewPart::at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len, size_t expected_msg_count) const {
     ASSERT(chunkIndex.size() - 1 == axes_.size());

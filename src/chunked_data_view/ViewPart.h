@@ -28,6 +28,13 @@ public:
 
     ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor> extractor, std::shared_ptr<FdbInterface> fdb,
              const std::vector<AxisDefinition>& axes);
+    ~ViewPart();
+
+    ViewPart(ViewPart&& other) noexcept;
+    ViewPart& operator=(ViewPart&& other) noexcept;
+    ViewPart(const ViewPart&) = delete;
+    ViewPart& operator=(const ViewPart&) = delete;
+
     void at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len, size_t expected_msg_count) const;
     std::vector<size_t> shape() const { return shape_; }
     const DataLayout& layout() const { return layout_; }
