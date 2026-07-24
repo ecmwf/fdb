@@ -19,33 +19,40 @@
 
 #include "test_fam_common.h"
 
-#include <cstring>
-#include <memory>
-#include <set>
-#include <sstream>
-#include <string>
-#include <utility>
-
-#include "eckit/config/YAMLConfiguration.h"
-#include "eckit/io/Length.h"
-#include "eckit/io/MemoryHandle.h"
-#include "eckit/io/fam/FamRegionName.h"
-#include "eckit/testing/Test.h"
-
-#include "metkit/mars/MarsRequest.h"
-
 #include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
+#include "fdb5/database/DbStats.h"
 #include "fdb5/database/Engine.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/PurgeVisitor.h"
+#include "fdb5/database/StatsReportVisitor.h"
 #include "fdb5/database/WipeState.h"
 #include "fdb5/fam/FamCatalogue.h"
 #include "fdb5/fam/FamCatalogueReader.h"
 #include "fdb5/fam/FamCatalogueWriter.h"
 #include "fdb5/fam/FamCommon.h"
 #include "fdb5/fam/FamStore.h"
+
+#include "metkit/mars/MarsRequest.h"
+
+#include "eckit/config/YAMLConfiguration.h"
+#include "eckit/container/Queue.h"
+#include "eckit/io/Length.h"
+#include "eckit/io/MemoryHandle.h"
+#include "eckit/io/fam/FamPath.h"
+#include "eckit/io/fam/FamRegionName.h"
+#include "eckit/io/fam/FamTypes.h"
+#include "eckit/testing/Test.h"
+
+#include <cstring>
+#include <memory>
+#include <set>
+#include <sstream>
+#include <string>
+#include <utility>
 
 using namespace eckit::testing;
 
@@ -371,19 +378,9 @@ CASE("FamCatalogue: wipe methods work correctly") {
     fdb5::FamCatalogueWriter writer(db_key, config);
     fdb5::Catalogue& cat = writer;
 
-    // doUnsafeFullWipe clears catalogue + registry
-    EXPECT(cat.doUnsafeFullWipe());
-
-    // doWipeEmptyDatabase is a no-op when cleanupEmptyDatabase_ is false
-    EXPECT_NO_THROW(cat.doWipeEmptyDatabase());
-
     // doWipeUnknowns returns true (best-effort removal)
     std::set<eckit::URI> unknowns{eckit::URI("fam://host:1234/region/object")};
     EXPECT(cat.doWipeUnknowns(unknowns));
-
-    // doWipeURIs returns true
-    fdb5::CatalogueWipeState wipe_state(db_key);
-    EXPECT(cat.doWipeURIs(wipe_state));
 
     // markIndexForWipe returns true for index belonging to same region
     auto idx_key =
@@ -392,7 +389,18 @@ CASE("FamCatalogue: wipe methods work correctly") {
     writer_iface.createIndex(idx_key, 3);
     writer_iface.selectIndex(idx_key);
     auto index = writer_iface.currentIndex();
+    fdb5::CatalogueWipeState wipe_state(db_key);
     EXPECT(cat.markIndexForWipe(index, true, wipe_state));
+
+    // doWipeURIs returns true
+    EXPECT(cat.doWipeURIs(wipe_state));
+
+    // doUnsafeFullWipe (deallocates catalogue + index maps and deregisters) — run last as it
+    // reclaims the catalogue's FAM objects, after which the catalogue must not be reused.
+    EXPECT(cat.doUnsafeFullWipe());
+
+    // doWipeEmptyDatabase is a no-op when cleanupEmptyDatabase_ is false
+    EXPECT_NO_THROW(cat.doWipeEmptyDatabase());
 }
 
 CASE("FamCatalogue: wipeInit returns db key") {
@@ -612,10 +620,61 @@ CASE("FamCatalogue: end-to-end wipe removes catalogue and data") {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// FamCatalogue: NOTIMP methods and stubs
+
+CASE("FamCatalogue: doUnsafeFullWipe deallocates FAM map objects") {
+
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
+        .create(test_region_size, test_region_perm, true);
+
+    const fam::FamSetup setup(fam::test_schema, test_config);
+    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
+
+    const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
+    const auto idx_key =
+        fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}, {"fam2a", "d"}, {"fam2b", "e"}, {"fam2c", "f"}};
+    const auto datum_key = fdb5::Key({{"fam1a", "a"},
+                                      {"fam1b", "b"},
+                                      {"fam1c", "c"},
+                                      {"fam2a", "d"},
+                                      {"fam2b", "e"},
+                                      {"fam2c", "f"},
+                                      {"fam3a", "g"},
+                                      {"fam3b", "h"},
+                                      {"fam3c", "i"}});
+
+    const char* data = "wipe-dealloc-data";
+    const auto data_length = std::char_traits<char>::length(data);
+
+    fdb5::FamStore fam_store(db_key, config);
+    fdb5::Store& store = fam_store;
+    auto loc = store.archive(datum_key, data, eckit::Length(data_length));
+
+    fdb5::FamCatalogueWriter writer(db_key, config);
+    fdb5::CatalogueWriter& writer_iface = writer;
+    writer_iface.archive(idx_key, datum_key, loc->make_shared());
+    writer_iface.flush(1);
+
+    const auto root = eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region);
+    const auto cat_name = fdb5::FamCatalogue::catalogueName(db_key);
+    const auto cat_map_name = cat_name + fdb5::FamCommon::table_suffix;
+    const auto idx_map_name = fdb5::FamCatalogue::indexName(cat_name, idx_key) + fdb5::FamCommon::table_suffix;
+
+    EXPECT(root.object(cat_map_name).exists());
+    EXPECT(root.object(idx_map_name).exists());
+
+    fdb5::Catalogue& cat = writer;
+    EXPECT(cat.doUnsafeFullWipe());
+
+    // The FAM map objects are deallocated (reclaimed), not merely emptied.
+    EXPECT(!root.object(cat_map_name).exists());
+    EXPECT(!root.object(idx_map_name).exists());
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// FamCatalogue: stubs
 //----------------------------------------------------------------------------------------------------------------------
 
-CASE("FamCatalogue: NOTIMP methods, enabled, and control") {
+CASE("FamCatalogue: enabled, and control") {
 
     eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
         .create(test_region_size, test_region_perm, true);
@@ -629,10 +688,17 @@ CASE("FamCatalogue: NOTIMP methods, enabled, and control") {
     fdb5::FamStore fam_store(db_key, config);
     fdb5::Catalogue& cat = writer;
 
+    {
+        std::unique_ptr<fdb5::StatsReportVisitor> visitor(cat.statsReportVisitor());
+        EXPECT(visitor);
+    }
+    {
+        std::unique_ptr<fdb5::PurgeVisitor> visitor(cat.purgeVisitor(fam_store));
+        EXPECT(visitor);
+    }
+
     // NOTIMP methods
     EXPECT_THROWS(cat.checkUID());
-    EXPECT_THROWS(cat.statsReportVisitor());
-    EXPECT_THROWS(cat.purgeVisitor(fam_store));
 
     metkit::mars::MarsRequest request("retrieve");
     eckit::URI dest("fam://host:1234/dest");
@@ -705,7 +771,11 @@ CASE("FamCatalogueReader: NOTIMP, print, and inline methods") {
     fdb5::FamCatalogueReader reader(db_key, config);
     EXPECT(reader.open());
 
-    EXPECT_THROWS(reader.stats());
+    {
+        std::ostringstream stats_out;
+        reader.stats().report(stats_out);
+        EXPECT(stats_out.str().find("Databases") != std::string::npos);
+    }
 
     std::ostringstream out;
     out << reader;

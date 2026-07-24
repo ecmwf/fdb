@@ -1,7 +1,7 @@
 if( HAVE_FAMFDB )
 
     list( APPEND _fam_tests
-        store catalogue engine index pipeline
+        store catalogue engine index pipeline stats
     )
 
     if( eckit_HAVE_OPENFAM_MOCK )
