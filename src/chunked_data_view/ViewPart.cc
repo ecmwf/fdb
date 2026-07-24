@@ -81,9 +81,6 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
     shape_.push_back(layout_.countValues);
 }
 
-ViewPart::ViewPart(ViewPart&&) = default;
-ViewPart& ViewPart::operator=(ViewPart&&) = default;
-
 void ViewPart::at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len, size_t expected_msg_count,
                   size_t extensionAxisIdx, size_t combinedExtSize, size_t extensionOffset) const {
     ASSERT(chunkIndex.size() - 1 == axes_.size());

@@ -31,8 +31,8 @@ public:
 
     ~ViewPart() = default;
 
-    ViewPart(ViewPart&&);
-    ViewPart& operator=(ViewPart&&);
+    ViewPart(ViewPart&&) = default;
+    ViewPart& operator=(ViewPart&&) = default;
     ViewPart(const ViewPart&) = delete;
     ViewPart& operator=(const ViewPart&) = delete;
 
@@ -53,7 +53,7 @@ private:
     // Each keyword with cardinality greater than 1 needs to be covered by exactly one
     // axis definition
     metkit::mars::MarsRequest request_{};
-    std::vector<Axis> axes_{};
+    std::vector<Axis> axes_;
     std::unique_ptr<Extractor> extractor_{};
     std::shared_ptr<FdbInterface> fdb_{};
     DataLayout layout_{};
