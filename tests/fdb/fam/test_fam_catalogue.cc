@@ -744,8 +744,10 @@ CASE("FamCatalogueWriter: NOTIMP methods and print") {
     fdb5::CatalogueWriter& iface = writer;
 
     EXPECT_THROWS(iface.index(fdb5::Key(), eckit::URI(), eckit::Offset(0), eckit::Length(0)));
-    EXPECT_THROWS(iface.reconsolidate());
     EXPECT_THROWS(iface.overlayDB(writer, {}, false));
+
+    // reconsolidate is implemented: a no-op on a catalogue with no indexes.
+    EXPECT_NO_THROW(iface.reconsolidate());
 
     std::ostringstream out;
     out << writer;

@@ -24,6 +24,7 @@
 #include "fdb5/api/helpers/PurgeIterator.h"
 #include "fdb5/api/helpers/StatsIterator.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
@@ -31,14 +32,21 @@
 #include "fdb5/fam/FamStore.h"
 
 #include "eckit/config/YAMLConfiguration.h"
+#include "eckit/io/DataHandle.h"
 #include "eckit/io/Length.h"
+#include "eckit/io/MemoryHandle.h"
+#include "eckit/io/fam/FamPath.h"
 #include "eckit/io/fam/FamRegion.h"
 #include "eckit/io/fam/FamRegionName.h"
+#include "eckit/io/fam/FamTypes.h"
 #include "eckit/testing/Test.h"
 
 #include <cstring>
+#include <memory>
 #include <sstream>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace fdb::test {
 
@@ -189,6 +197,65 @@ CASE("FamPurge: removes superseded data objects and keeps live data") {
     }
     EXPECT(!fam_store.uriExists(uri1));
     EXPECT(fam_store.uriExists(uri2));
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+CASE("FamReconsolidate: compacts superseded index entries") {
+
+    eckit::FamRegionName(fam::test_fdb_fam_endpoint, test_fdb_fam_region)
+        .create(test_region_size, test_region_perm, true);
+
+    const fam::FamSetup setup(fam::test_schema, test_config);
+    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
+
+    const auto db_key = fdb5::Key{{"fam1a", "val1a"}, {"fam1b", "val1b"}, {"fam1c", "val1c"}};
+    const std::string data_a(16, 'a');
+    const std::string data_a2(16, 'A');
+    const std::string data_b(24, 'b');
+
+    fdb5::FDB fdb(config);
+    fdb.archive(makeDatumKey("val3ca"), data_a.data(), data_a.size());
+    fdb.archive(makeDatumKey("val3cb"), data_b.data(), data_b.size());
+    fdb.flush();
+    fdb.archive(makeDatumKey("val3ca"), data_a2.data(), data_a2.size());  // duplicate of A
+    fdb.flush();
+
+    const fdb5::FDBToolRequest request(db_key.request("retrieve"), false,
+                                       std::vector<std::string>{"fam1a", "fam1b", "fam1c"});
+
+    auto counts = [&] {
+        auto stats = fdb.stats(request);
+        fdb5::StatsElement elem;
+        std::pair<size_t, size_t> fields_dups{0, 0};
+        while (stats.next(elem)) {
+            fields_dups.first += elem.indexStatistics.fieldsCount();
+            fields_dups.second += elem.indexStatistics.duplicatesCount();
+        }
+        return fields_dups;
+    };
+
+    // Before: 3 fields, 1 duplicate.
+    EXPECT_EQUAL(counts().first, 3U);
+    EXPECT_EQUAL(counts().second, 1U);
+
+    // Reconsolidate: drop the superseded entry.
+    {
+        fdb5::FamCatalogueWriter writer(db_key, config);
+        writer.reconsolidate();
+    }
+
+    // After: 2 fields, 0 duplicates.
+    EXPECT_EQUAL(counts().first, 2U);
+    EXPECT_EQUAL(counts().second, 0U);
+
+    // The live version of A (A2) survived compaction.
+    auto retrieve_request = makeDatumKey("val3ca").request("retrieve");
+    std::unique_ptr<eckit::DataHandle> handle(fdb.retrieve(retrieve_request));
+    eckit::MemoryHandle retrieved;
+    handle->copyTo(retrieved);
+    EXPECT_EQUAL(retrieved.size(), eckit::Length(data_a2.size()));
+    EXPECT_EQUAL(::memcmp(retrieved.data(), data_a2.data(), data_a2.size()), 0);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
