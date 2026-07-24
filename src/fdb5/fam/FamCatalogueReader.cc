@@ -18,10 +18,12 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/database/Catalogue.h"
+#include "fdb5/database/DbStats.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/fam/FamCatalogue.h"
 #include "fdb5/fam/FamCommon.h"
 #include "fdb5/fam/FamIndex.h"
+#include "fdb5/fam/FamStats.h"
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
@@ -47,6 +49,14 @@ FamCatalogueReader::FamCatalogueReader(const Key& key, const fdb5::Config& confi
 
 FamCatalogueReader::FamCatalogueReader(const eckit::URI& uri, const fdb5::Config& config) :
     FamCatalogue(uri, ControlIdentifiers{}, config) {}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+DbStats FamCatalogueReader::stats() const {
+    auto* stats = new FamDbStats();
+    stats->dbCount_ = 1;
+    return {stats};
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

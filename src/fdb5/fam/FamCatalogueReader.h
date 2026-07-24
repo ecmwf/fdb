@@ -25,7 +25,6 @@
 #include "fdb5/database/Index.h"
 #include "fdb5/fam/FamCatalogue.h"
 
-#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 
 #include <cstddef>
@@ -49,7 +48,7 @@ public:  // methods
     FamCatalogueReader(const Key& key, const Config& config);
     FamCatalogueReader(const eckit::URI& uri, const Config& config);
 
-    DbStats stats() const override { NOTIMP; }
+    DbStats stats() const override;
 
     bool selectIndex(const Key& key) override;
     void deselectIndex() override;
