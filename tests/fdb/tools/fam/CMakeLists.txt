@@ -25,7 +25,7 @@ ecbuild_add_test(
     TARGET fdb_test_tools_fam
     TYPE SCRIPT
     LABELS fam tools
-    CONDITION HAVE_FDB_BUILD_TOOLS
+    CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_FAMFDB
     ENVIRONMENT "${_fam_environment}"
     COMMAND fdb_fam.sh
 )
@@ -46,7 +46,7 @@ foreach( _test ${fdb_tools_fam_tests} )
         TARGET fdb_test_tools_list_${_test}_fam
         TYPE SCRIPT
         LABELS fam tools
-        CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB
+        CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB AND HAVE_FAMFDB
         TEST_DEPENDS fdb_test_tools_fam fdb_test_get_data
         COMMAND fdb_${_test}_fam.sh
         ENVIRONMENT "${_fam_environment}" )
@@ -64,7 +64,7 @@ foreach( _test ${fdb_tools_fam_maintenance_tests} )
         TARGET fdb_test_tools_${_test}_fam
         TYPE SCRIPT
         LABELS fam tools
-        CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB
+        CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB AND HAVE_FAMFDB
         TEST_DEPENDS fdb_test_tools_fam fdb_test_get_data
         COMMAND fdb_${_test}_fam.sh
         ENVIRONMENT "${_fam_environment}" )
