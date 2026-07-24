@@ -20,6 +20,24 @@
 
 namespace chunked_data_view {
 
+namespace {
+
+size_t countFieldsForPart(const ViewPart& part, const std::vector<size_t>& chunkShape,
+                          const size_t extensionAxisIndex) {
+    size_t result = 1;
+    for (size_t i = 0; i < chunkShape.size() - 1; ++i) {
+        if (i == extensionAxisIndex) {
+            result *= part.shape()[i];
+        }
+        else {
+            result *= chunkShape[i];
+        }
+    }
+    return result;
+}
+
+}  // namespace
+
 ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<ViewPart> parts, size_t extensionAxisIndex) :
     parts_(std::move(parts)), extensionAxisIndex_(extensionAxisIndex) {
     shape_ = parts_[0].shape();
@@ -75,10 +93,28 @@ void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, 
         }
     }
 
+    if (!parts_[0].isAxisChunked(extensionAxisIndex_)) {
+        // NoChunking: single chunk spans all parts on the extension axis.
+        // Each part writes directly into the combined buffer. The extension axis
+        // parameters tell computeBufferIndex to use the combined size for strides
+        // and offset each part's indices on the extension axis.
+        size_t totalExtSize = shape_[extensionAxisIndex_];
+        size_t extOffset = 0;
+
+        for (const auto& part : parts_) {
+            size_t partFields = countFieldsForPart(part, chunkShape_, extensionAxisIndex_);
+
+            part.at(chunkIndex, ptr, len, partFields, extensionAxisIndex_, totalExtSize, extOffset);
+
+            extOffset += part.shape()[extensionAxisIndex_];
+        }
+        return;
+    }
+
+    // IndividualChunking: route to the single part that owns this chunk index
     auto idx(chunkIndex);
 
     for (const auto& part : parts_) {
-        // Skip parts which the index isn't part of
         if (idx[extensionAxisIndex_] >= part.shape()[extensionAxisIndex_]) {
             idx[extensionAxisIndex_] -= part.shape()[extensionAxisIndex_];
             continue;
@@ -86,6 +122,7 @@ void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, 
         part.at(idx, ptr, len, countFields());
         return;
     }
+    throw eckit::SeriousBug("ChunkedDataViewImpl::at - This code should never be reached.");
 }
 
 }  // namespace chunked_data_view

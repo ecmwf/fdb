@@ -1,4 +1,4 @@
-fdb-compare
+fdb compare
 ===========
 
 | Compares data of two different FDBs or different data version within one FDB.
@@ -11,12 +11,16 @@ Usage
 -----
 
 Compares two entire FDBs for MARS id equality:
+
 ::
+
     % fdb-compare --config1=<path/to/config1.yaml> --config2=<path/to/config2.yaml> [options...]
 
 
 Compare different data in the default (production) FDB:
+
 ::
+
     % fdb-compare --request1="..." --request2="..." [options...]
 
 
@@ -26,7 +30,7 @@ Options
 +----------------------------------------+-----------------------------------------------------------------------------------------+
 | ``--config1=string``                   | Path to a FDB config. If not passed, FDB5 specific                                      |
 |                                        | environment variables like FDB5_CONFIG_FILE will be evaluated. If ``--config1``         |
-|                                        | is not provided, ``--request1`` must be provided.i                                      |
+|                                        | is not provided, ``--request1`` must be provided.                                       |
 +----------------------------------------+-----------------------------------------------------------------------------------------+
 | ``--config2=string``                   | Optional: Path to a second different FDB config. Default: Same as ``--config1``         |
 |                                        | (if passed), otherwise FDB5 specific environment variables are evaluated.               |
@@ -38,18 +42,19 @@ Options
 +----------------------------------------+-----------------------------------------------------------------------------------------+
 | ``--request2=string``                  | Optional: Specialized mars keys to request different data from the second FDB,          |
 |                                        | e.g. ``--request2="class=od,expver=abcd".``                                             |
-|                                        | Allows comparing different MARS subtrees. Only valid if ``--request1` has ben specified.| 
+|                                        | Allows comparing different MARS subtrees.                                               |
+|                                        | Only valid if ``--request1`` has been specified.                                        |
 +----------------------------------------+-----------------------------------------------------------------------------------------+
-| ``--scope=string``                     | Optional - Values: ``[mars (default)|header-only|all]``                                 |
-|                                        | The FDBs can be compared in different scopes,                                           |
-|                                        |  1) ``[mars]`` Mars Metadata only (default),                                            |
-|                                        |  2) ``[header-only]`` includes Mars Key comparison                                      |
-|                                        |     and the comparison of the data headers (e.g. grib headers).                         |
-|                                        |     Note: with ``grib-comparison-type=bit-identical``, the full message is              |
-|                                        |     still compared byte-for-byte; ``header-only`` filtering only applies                |
-|                                        |     to ``grib-keys`` comparison.                                                        |
-|                                        |  3) ``[all]`` includes Mars key and data header comparison but also                     |
-|                                        |     the data sections up to a defined floating point tolerance.                         |
+| ``--scope=string``                     | Optional - Values: ``[mars (default) / header-only / all]``                             |
+|                                        | The FDBs can be compared in different scopes:                                           |
+|                                        | 1) ``mars`` Mars Metadata only (default),                                               |
+|                                        | 2) ``header-only`` includes Mars Key comparison and the comparison                      |
+|                                        | of the data headers (e.g. grib headers). Note: with                                     |
+|                                        | ``grib-comparison-type=bit-identical``, the full message is still                       |
+|                                        | compared byte-for-byte; ``header-only`` filtering only applies to                       |
+|                                        | ``grib-keys`` comparison.                                                               |
+|                                        | 3) ``all`` includes Mars key and data header comparison but also                        |
+|                                        | the data sections up to a defined floating point tolerance.                             |
 +----------------------------------------+-----------------------------------------------------------------------------------------+
 | ``--grib-comparison-type=string``      | Optional - Values: ``[hash-keys|grib-keys(default)|bit-identical]``                     |
 |                                        | Comparing two Grib messages can be done via either (``grib-comparison-type=hash-keys``) |
@@ -79,21 +84,29 @@ Options
 Examples
 --------
 
-Compares two entire FDBs for equality. Using the `--scope=all` options, not only the headers but also the data is compared:
+Compares two entire FDBs for equality. Using the ``--scope=all`` option, not only the headers but also the data is compared:
+
 ::
+
     % fdb-compare --config1=<path/to/config1.yaml> --config2=<path/to/config2.yaml> --scope=all
 
 Compares a specific part (class=rd,expver=1234) of two different FDBs for equality:
+
 ::
+
     % fdb-compare --config1=<path/to/config1.yaml> --config2=<path/to/config2.yaml> --request1="class=rd,expver=1234"
 
 
-Compares different data versions within one FDB using ``--request1`` and ``--request2``. In that case the only usable ``--grib-comparison-type`` is `grib-keys` (the default option):
+Compares different data versions within one FDB using ``--request1`` and ``--request2``. In that case the only usable ``--grib-comparison-type`` is ``grib-keys`` (the default option):
+
 ::
+
     % fdb-compare --config1=<path/to/config1.yaml> --request1="class=od,expver=abcd" --request2="class=rd,expver=1234"  --grib-comparison-type="grib-keys" | tee out
 
 Compares different data versions within the production FDB if executed on ATOS (the FDB5 config will be inferred from the environment):
+
 ::
+
     % fdb-compare --request1="class=od,expver=abcd" --request2="class=rd,expver=1234"  --grib-comparison-type="grib-keys" | tee out
 
 
@@ -107,7 +120,7 @@ The tool exits with code **0** on success (all compared entries match) and **non
 Notes
 -----
 
-When comparing within a single FDB (using ``--config1`` is enough).
-Minimum arguments are either ``--config1`` or ``--request1``. This is explicitly checked, 
+When comparing within a single FDB, using ``--config1`` is enough.
+Minimum arguments are either ``--config1`` or ``--request1``. This is explicitly checked,
 otherwise the default behaviour would result in a comparison of the default FDB (prodfdb on ATOS) with itself.
 

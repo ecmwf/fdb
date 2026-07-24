@@ -17,6 +17,7 @@ foreach( _test ${fdb_tools_list_tests} )
 
     ecbuild_add_test(
         TARGET fdb_test_tools_list_${_test}
+        CONDITION HAVE_GRIB
         TYPE SCRIPT
         LABELS list
         TEST_DEPENDS fdb_test_get_data

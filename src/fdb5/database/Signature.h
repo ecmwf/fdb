@@ -30,6 +30,19 @@ class Signature {
 
 public:
 
+    static uint64_t fnv1a(const std::string& text) {
+        uint64_t constexpr fnv_prime = 1099511628211ULL;
+        uint64_t constexpr fnv_offset_basis = 14695981039346656037ULL;
+
+        uint64_t hash = fnv_offset_basis;
+        for (auto c : text) {
+            hash ^= static_cast<unsigned char>(c);
+            hash *= fnv_prime;
+        }
+
+        return hash;
+    }
+
     static uint64_t hashURIs(const std::set<eckit::URI>& uris, const std::string& secret) {
         uint64_t h = 0;
         std::vector<std::string> sortedURIs;
@@ -39,9 +52,9 @@ public:
         std::sort(sortedURIs.begin(), sortedURIs.end());
 
         for (const auto& uri : sortedURIs) {
-            h ^= std::hash<std::string>{}(uri) + 0x9e3779b9 + (h << 6) + (h >> 2);
+            h ^= fnv1a(uri) + 0x9e3779b9 + (h << 6) + (h >> 2);
         }
-        h ^= std::hash<std::string>{}(secret) + 0x9e3779b9 + (h << 6) + (h >> 2);
+        h ^= fnv1a(secret) + 0x9e3779b9 + (h << 6) + (h >> 2);
         return h;
     }
 

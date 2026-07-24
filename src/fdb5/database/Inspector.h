@@ -13,17 +13,18 @@
 /// @author Tiago Quintino
 /// @date   Mar 2016
 
-#ifndef fdb5_Inspector_H
-#define fdb5_Inspector_H
+#pragma once
 
-#include <cstdlib>
-#include <iosfwd>
-#include <vector>
+#include "fdb5/api/helpers/ListElement.h"
+#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/config/Config.h"
 
 #include "eckit/container/CacheLRU.h"
 
-#include "fdb5/api/helpers/ListIterator.h"
-#include "fdb5/config/Config.h"
+#include <cstdlib>
+#include <iosfwd>
+#include <mutex>
+#include <vector>
 
 namespace eckit {
 class DataHandle;
@@ -40,7 +41,6 @@ class Key;
 class Op;
 class CatalogueReader;
 class Schema;
-class Notifier;
 class FDBToolRequest;
 class EntryVisitor;
 
@@ -79,12 +79,6 @@ public:  // methods
 
     ListIterator inspect(const metkit::mars::MarsRequest& request) const;
 
-    /// Retrieves the data selected by the MarsRequest to the provided DataHandle
-    /// @param notifyee is an object that handles notifications for the client, e.g. wind conversion
-    /// @returns  data handle to read from
-
-    ListIterator inspect(const metkit::mars::MarsRequest& request, const Notifier& notifyee) const;
-
     /// Give read access to a range of entries according to a request
 
     void visitEntries(const FDBToolRequest& request, EntryVisitor& visitor) const;
@@ -98,10 +92,9 @@ private:  // methods
 
     void print(std::ostream& out) const;
 
-    ListIterator inspect(const metkit::mars::MarsRequest& request, const Schema& schema,
-                         const Notifier& notifyee) const;
-
 private:  // data
+
+    mutable std::mutex mutex_;
 
     mutable eckit::CacheLRU<Key, CatalogueReader*> databases_;
 
@@ -111,5 +104,3 @@ private:  // data
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

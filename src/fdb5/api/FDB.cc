@@ -15,28 +15,24 @@
 
 #include "fdb5/api/FDB.h"
 
-#include <cstddef>
-#include <memory>
-#include <sstream>
-#include <string>
-#include <vector>
-
-#include "eckit/config/Resource.h"
-#include "eckit/exception/Exceptions.h"
-#include "eckit/io/DataHandle.h"
-#include "eckit/io/MemoryHandle.h"
-#include "eckit/log/Log.h"
-#include "eckit/log/Timer.h"
-#include "eckit/message/Message.h"
-#include "eckit/message/Reader.h"
-
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDBFactory.h"
+#include "fdb5/api/FDBStats.h"
+#include "fdb5/api/helpers/APIIterator.h"
+#include "fdb5/api/helpers/AxesIterator.h"
+#include "fdb5/api/helpers/Callback.h"
+#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/api/helpers/DumpIterator.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/MoveIterator.h"
+#include "fdb5/api/helpers/PurgeIterator.h"
+#include "fdb5/api/helpers/StatsIterator.h"
+#include "fdb5/api/helpers/StatusIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/WipeCoordinator.h"
 #include "fdb5/database/WipeState.h"
@@ -44,6 +40,31 @@
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/message/MessageDecoder.h"
 #include "fdb5/types/Type.h"
+
+#include "metkit/hypercube/HyperCube.h"
+#include "metkit/hypercube/HyperCubePayloaded.h"
+
+#include "eckit/config/Resource.h"
+#include "eckit/container/Queue.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/DataHandle.h"
+#include "eckit/io/MemoryHandle.h"
+#include "eckit/log/CodeLocation.h"
+#include "eckit/log/Log.h"
+#include "eckit/log/Timer.h"
+#include "eckit/message/Message.h"
+#include "eckit/message/Reader.h"
+
+#include <cctype>
+#include <cstddef>
+#include <memory>
+#include <mutex>
+#include <ostream>
+#include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace fdb5 {
 
@@ -62,9 +83,26 @@ FDB::~FDB() {
     }
 }
 
-FDB::FDB(FDB&&) = default;
+/// @note Moves are not thread-safe with respect to concurrent use of the source
+FDB::FDB(FDB&& rhs) noexcept :
+    internal_(std::move(rhs.internal_)),
+    dirty_(rhs.dirty_),
+    reportStats_(rhs.reportStats_),
+    stats_(std::move(rhs.stats_)) {
+    // clear the dirty flag so its destructor does not flush its now null internal_
+    rhs.dirty_ = false;
+}
 
-FDB& FDB::operator=(FDB&&) = default;
+FDB& FDB::operator=(FDB&& rhs) noexcept {
+    if (this != &rhs) {
+        internal_ = std::move(rhs.internal_);
+        dirty_ = rhs.dirty_;
+        reportStats_ = rhs.reportStats_;
+        stats_ = std::move(rhs.stats_);
+        rhs.dirty_ = false;
+    }
+    return *this;
+}
 
 void FDB::archive(eckit::message::Message msg) {
     fdb5::Key key = MessageDecoder::messageToKey(msg);
@@ -135,14 +173,17 @@ void FDB::archive(const Key& key, const void* data, size_t length) {
     }
 
     internal_->archive(keyInternal, data, length);
-    dirty_ = true;
 
     timer.stop();
+
+    std::lock_guard lock(mutex_);
+    dirty_ = true;
     stats_.addArchive(length, timer);
 }
 
 void FDB::reindex(const Key& key, const FieldLocation& location) {
     internal_->reindex(key, location);
+    std::lock_guard lock(mutex_);
     dirty_ = true;
 }
 
@@ -296,6 +337,7 @@ MoveIterator FDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
 }
 
 FDBStats FDB::stats() const {
+    std::lock_guard lock(mutex_);
     return stats_;
 }
 
@@ -312,6 +354,7 @@ void FDB::print(std::ostream& s) const {
 }
 
 void FDB::flush() {
+    std::lock_guard lock(mutex_);
     if (dirty_) {
         eckit::Timer timer;
         timer.start();
@@ -339,6 +382,7 @@ AxesIterator FDB::axesIterator(const FDBToolRequest& request, int level) {
 }
 
 bool FDB::dirty() const {
+    std::lock_guard lock(mutex_);
     return dirty_;
 }
 

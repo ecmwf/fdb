@@ -20,7 +20,6 @@
 
 #pragma once
 
-#include <thread>
 #include <unordered_map>
 
 #include "fdb5/api/LocalFDB.h"
@@ -28,10 +27,12 @@
 
 namespace fdb5 {
 
-//----------------------------------------------------------------------------------------------------------------------
-class Archiver;
+using remote::Client;
+using remote::Message;
 
-class RemoteFDB : public LocalFDB, public remote::Client {
+//----------------------------------------------------------------------------------------------------------------------
+
+class RemoteFDB : public LocalFDB, public Client {
 
 public:  // types
 
@@ -78,8 +79,8 @@ private:  // methods
 
     // Client
     const eckit::Configuration& clientConfig() const override;
-    bool handle(remote::Message message, uint32_t requestID) override;
-    bool handle(remote::Message message, uint32_t requestID, eckit::Buffer&& payload) override;
+    bool handle(Message message, uint32_t requestID) override;
+    bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
 
 private:  // members
 

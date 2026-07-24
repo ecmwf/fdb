@@ -20,7 +20,7 @@ Type::Type(const std::string& name, const std::string& type, const std::string& 
     name_(name), type_(type), alias_(alias) {}
 
 void Type::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword, eckit::StringList& values,
-                     const Notifier&, const CatalogueReader*) const {
+                     const CatalogueReader*) const {
     request.getValues(keyword, values, true);
 }
 

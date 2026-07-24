@@ -35,10 +35,11 @@ public:
     ViewPart(const ViewPart&) = delete;
     ViewPart& operator=(const ViewPart&) = delete;
 
-    void at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len, size_t expected_msg_count) const;
+    void at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len, size_t expected_msg_count,
+            size_t extensionAxisIdx = SIZE_MAX, size_t combinedExtSize = 0, size_t extensionOffset = 0) const;
     std::vector<size_t> shape() const { return shape_; }
     const DataLayout& layout() const { return layout_; }
-    bool isAxisChunked(size_t index) { return axes_.at(index).isChunked(); };
+    bool isAxisChunked(size_t index) const { return axes_.at(index).isChunked(); };
 
     bool extensibleWith(const ViewPart& other, size_t extension_axis) const;
 
