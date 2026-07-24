@@ -19,20 +19,20 @@
 
 #include "test_fam_common.h"
 
-#include <string>
+#include "fdb5/config/Config.h"
+#include "fdb5/database/Engine.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/fam/FamCatalogueWriter.h"
+#include "fdb5/fam/FamEngine.h"
+
+#include "metkit/mars/MarsRequest.h"
 
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/fam/FamRegionName.h"
 #include "eckit/testing/Test.h"
 
-#include "metkit/mars/MarsRequest.h"
-
-#include "fdb5/config/Config.h"
-#include "fdb5/database/Engine.h"
-#include "fdb5/database/Key.h"
-#include "fdb5/fam/FamCatalogueWriter.h"
-#include "fdb5/fam/FamEngine.h"
+#include <string>
 
 using namespace eckit::testing;
 
@@ -79,12 +79,22 @@ CASE("FamEngine: canHandle and visitableLocations") {
     EXPECT_EQUAL(locations[0].scheme(), std::string("fam"));
 }
 
-CASE("FamEngine: name, dbType, and NOTIMP location") {
+CASE("FamEngine: name, dbType, and location") {
 
     auto& engine = fdb5::Engine::backend("fam");
     EXPECT_EQUAL(engine.name(), std::string("fam"));
     EXPECT_EQUAL(engine.dbType(), std::string("fam"));
+
+    // location() requires fam_roots in the config
     EXPECT_THROWS(engine.location(fdb5::Key(), fdb5::Config()));
+
+    // With a valid config, location() returns the catalogue object URI for the key
+    const fam::FamSetup setup(fam::test_schema, test_config);
+    const auto config = fdb5::Config{eckit::YAMLConfiguration(setup.configPath)};
+    const auto db_key = fdb5::Key{{"fam1a", "a"}, {"fam1b", "b"}, {"fam1c", "c"}};
+    const auto uri = engine.location(db_key, config);
+    EXPECT_EQUAL(uri.scheme(), std::string("fam"));
+    EXPECT(uri.asRawString().find(fdb5::FamCatalogue::catalogueName(db_key)) != std::string::npos);
 }
 
 CASE("FamEngine: visitableLocations with MarsRequest") {
