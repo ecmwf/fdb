@@ -19,23 +19,26 @@
 
 #include "test_fam_common.h"
 
+#include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/config/Config.h"
+#include "fdb5/database/Key.h"
+
+#include "eckit/config/YAMLConfiguration.h"
+#include "eckit/io/Length.h"
+#include "eckit/io/MemoryHandle.h"
+#include "eckit/io/fam/FamPath.h"
+#include "eckit/io/fam/FamRegion.h"
+#include "eckit/io/fam/FamRegionName.h"
+#include "eckit/io/fam/FamTypes.h"
+#include "eckit/testing/Test.h"
+
 #include <cstring>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
-
-#include "eckit/config/YAMLConfiguration.h"
-#include "eckit/io/Length.h"
-#include "eckit/io/MemoryHandle.h"
-#include "eckit/io/fam/FamRegion.h"
-#include "eckit/io/fam/FamRegionName.h"
-#include "eckit/testing/Test.h"
-
-#include "fdb5/api/FDB.h"
-#include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/config/Config.h"
-#include "fdb5/database/Key.h"
 
 namespace fdb::test {
 
@@ -183,8 +186,50 @@ CASE("FamCatalogue: full FDB archive, list, retrieve pipeline") {
         EXPECT_EQUAL(::memcmp(retrieved.data(), data, data_length), 0);
     }
 
-    /// TODO(metin): Add a test case for retrieving with a partial key that matches multiple entries.
-    /// TODO(metin): Add REMOVE test cases.
+    //------------------------------------------------------------------------------------------------------------------
+
+    {
+        TEST_LOG_INFO("RETRIEVE with a partial key matching multiple fields");
+
+        // Same index, two datum values for fam3c: the request matches both archived fields.
+        auto key = fdb5::Key({{"fam1a", "val1a"},
+                              {"fam1b", "val1b"},
+                              {"fam1c", "val1c"},
+                              {"fam2a", "val2a"},
+                              {"fam2b", "val2b"},
+                              {"fam2c", "val2c"},
+                              {"fam3a", "val3a"},
+                              {"fam3b", "val3b"},
+                              {"fam3c", "val3c"}});
+
+        auto request = key.request("retrieve");
+        request.values("fam3c", std::vector<std::string>{"val3c", "val33c"});
+
+        std::unique_ptr<eckit::DataHandle> handle(fdb.retrieve(request));
+
+        eckit::MemoryHandle retrieved;
+        handle->copyTo(retrieved);
+        // Two fields match (fam3c in {val3c, val33c}), each of data_length bytes.
+        EXPECT_EQUAL(retrieved.size(), eckit::Length(2 * data_length));
+    }
+
+    //------------------------------------------------------------------------------------------------------------------
+
+    {
+        TEST_LOG_INFO("WIPE removes the database end-to-end");
+
+        auto key = fdb5::Key({{"fam1a", "val1a"}, {"fam1b", "val1b"}, {"fam1c", "val1c"}});
+        const fdb5::FDBToolRequest request(key.request("retrieve"), false,
+                                           std::vector<std::string>{"fam1a", "fam1b", "fam1c"});
+
+        auto wipe = fdb.wipe(request, /*doit=*/true, /*porcelain=*/false, /*unsafeWipeAll=*/true);
+        fdb5::WipeElement elem;
+        while (wipe.next(elem)) {}
+
+        // After a full wipe the database is gone: listing finds nothing.
+        auto list = fdb.list(request);
+        EXPECT_EQUAL(fam::count_list(list), 0);
+    }
 
     TEST_LOG_INFO("FINISHED!");
 }
