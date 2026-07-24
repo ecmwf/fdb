@@ -33,8 +33,6 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// FDB Engine implementation for the FAM backend.
-///
 /// The engine is a globally-registered singleton (via EngineBuilder).  It must
 /// not make any FAM connections in its constructor — configuration is read
 /// lazily the first time an operation requires it.

@@ -156,8 +156,9 @@ std::vector<eckit::URI> FamEngine::visitableLocations(const metkit::mars::MarsRe
 
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::URI FamEngine::location(const Key& /*key*/, const Config& /*config*/) const {
-    NOTIMP;
+eckit::URI FamEngine::location(const Key& key, const Config& config) const {
+    const eckit::FamRegionName root{rootURI(config)};
+    return root.object(FamCatalogue::catalogueName(key) + FamCommon::table_suffix).uri();
 }
 std::string FamEngine::dbType() const {
     return FamCommon::type;
