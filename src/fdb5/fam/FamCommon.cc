@@ -51,7 +51,7 @@ std::string FamCommon::encodeKey(const Key& key) {
         eckit::AutoClose c(h);
         hs << key;
     }
-    return {static_cast<const char*>(h.data()), static_cast<std::size_t>(hs.bytesWritten())};
+    return {static_cast<const char*>(h.data()), static_cast<size_t>(hs.bytesWritten())};
 }
 
 Key FamCommon::decodeKey(eckit::MemoryStream key) {
