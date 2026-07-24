@@ -23,6 +23,7 @@
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/IndexStats.h"
 #include "fdb5/fam/FamCommon.h"
+#include "fdb5/fam/FamStats.h"
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/DataHandle.h"
@@ -96,6 +97,10 @@ FamIndex::FamIndex(const Key& key, const eckit::FamRegionName& region_name, cons
 //----------------------------------------------------------------------------------------------------------------------
 
 void FamIndex::add(const Key& key, const Field& field) {
+    // forceInsert appends (newest-first): re-archiving a key retains the superseded entry rather
+    // than overwriting it. The stale entry is skipped by dedup on read (get/list/stats) and its
+    // data object is reclaimed by purge, but the index-map entry itself is only ever removed by a
+    // full reconsolidate() (NOTIMP), so entries can accumulate under heavy re-archiving.
     data_.forceInsert(FamCommon::toString(key), encodeIndex(field, key));
 }
 
@@ -121,34 +126,25 @@ bool FamIndex::get(const Key& key, const Key& /*remapKey*/, Field& field) const 
 }
 
 void FamIndex::entries(EntryVisitor& visitor) const {
-
     Index instant_index(const_cast<FamIndex*>(this));
-
     // Allow the visitor to decline visiting this index's entries.
     if (!visitor.visitIndex(instant_index)) {
         LOG_DEBUG_LIB(LibFdb5) << "FamIndex::entries visitor declined index=" << instant_index << std::endl;
         return;
     }
-
     for (const auto& [key, value] : data_) {
-
         // Skip the reserved axes metadata entry.
         if (key.asString() == FamCommon::axes_keyword) {
             continue;
         }
-
         eckit::MemoryStream stream{value};
         auto [timestamp, location] = decodePrefix(stream);
         auto datum = Key(stream).valuesToString();
-
-        // Use the public visitDatum(field, keyFingerprint) overload; it calls rule_->makeKey()
-        // to reconstruct the Key with keyword names before dispatching to the protected override.
         visitor.visitDatum(Field(std::move(location), timestamp), datum);
     }
 }
 
 void FamIndex::updateAxes() {
-
     // Fast path: read the persisted axes snapshot if available.
     const Map::key_type axes_key{FamCommon::axes_keyword};
     if (auto iter = data_.find(axes_key); iter != data_.end()) {
@@ -157,10 +153,8 @@ void FamIndex::updateAxes() {
         axes_.decode(stream, IndexAxis::currentVersion());
         return;
     }
-
-    // Slow path (legacy / first open): full-scan all data entries.
+    // Slow path: full-scan all data entries.
     LOG_DEBUG_LIB(LibFdb5) << "FamIndex::updateAxes: no persisted axes, falling back to full scan" << std::endl;
-
     for (const auto& [key, value] : data_) {
         // Skip the axes metadata entry
         if (key.asString() == FamCommon::axes_keyword) {
@@ -170,7 +164,6 @@ void FamIndex::updateAxes() {
         decodePrefix(stream);  // skip timestamp + FieldLocation
         axes_.insert(Key{stream});
     }
-
     axes_.sort();
 }
 
@@ -200,8 +193,8 @@ void FamIndex::dump(std::ostream& out, const char* indent, bool simple, bool dum
 void FamIndex::encode(eckit::Stream& /*s*/, const int /*version*/) const {
     NOTIMP;
 }
-void FamIndex::visit(IndexLocationVisitor& /*visitor*/) const {
-    NOTIMP;
+void FamIndex::visit(IndexLocationVisitor& visitor) const {
+    visitor(location_);
 }
 
 void FamIndex::print(std::ostream& out) const {
@@ -209,11 +202,11 @@ void FamIndex::print(std::ostream& out) const {
 }
 
 void FamIndex::flock() const {
-    NOTIMP;
+    data_.lock();
 }
 
 void FamIndex::funlock() const {
-    NOTIMP;
+    data_.unlock();
 }
 
 std::vector<eckit::URI> FamIndex::dataURIs() const {
@@ -270,7 +263,7 @@ void FamIndex::flush() {
 }
 
 IndexStats FamIndex::statistics() const {
-    NOTIMP;
+    return {new FamIndexStats()};
 }
 
 //----------------------------------------------------------------------------------------------------------------------

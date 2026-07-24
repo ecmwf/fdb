@@ -90,7 +90,7 @@ private:  // methods
 private:  // members
 
     FamIndexLocation location_;
-    Map data_;
+    mutable Map data_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
