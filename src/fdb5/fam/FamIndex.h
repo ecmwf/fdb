@@ -62,6 +62,11 @@ public:  // methods
     /// Scan all entries and populate in-memory IndexAxis.
     void updateAxes();
 
+    /// Remove duplicate entries, keeping only the newest per datum key.
+    /// Reclaims FamMap entries accumulated by repeated re-archiving.
+    /// intended as an offline maintenance operation.
+    void compact();
+
 private:  // methods
 
     const IndexLocation& location() const override { return location_; }

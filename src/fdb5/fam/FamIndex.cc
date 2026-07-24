@@ -41,6 +41,7 @@
 #include <mutex>
 #include <ostream>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -259,6 +260,34 @@ void FamIndex::flush() {
         data_.insertOrAssign(axes_key, payload);
 
         axes_.clean();
+    }
+}
+
+void FamIndex::compact() {
+    std::lock_guard guard(data_);  // exclude concurrent writers (map-wide lease lock)
+
+    // Count occurrences per datum key, newest-first.
+    std::unordered_map<std::string, size_t> counts;
+    for (const auto& entry : data_) {
+        const auto name = entry.key.asString();
+        if (name == FamCommon::axes_keyword) {
+            continue;  // preserve the persisted axes snapshot
+        }
+        ++counts[name];
+    }
+
+    for (const auto& [name, count] : counts) {
+        if (count <= 1) {
+            continue;
+        }
+        const Map::key_type map_key{name};
+        auto iter = data_.find(map_key);
+        if (iter == data_.end()) {
+            continue;  // defensive
+        }
+        const auto newest = *iter;                 // copy newest entry (FAM -> local)
+        data_.erase(map_key);                      // drop all entries for this key
+        data_.forceInsert(map_key, newest.value);  // re-insert only the newest
     }
 }
 
