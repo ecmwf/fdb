@@ -93,13 +93,10 @@ void FamCatalogueWriter::dumpSchema(std::ostream& stream) const {
 
 void FamCatalogueWriter::initCatalogue() {
     const auto key = encodeKey(dbKey_);
-
-    // Register this DB in the global FDB registry (idempotent under concurrent writers)
+    // Register this DB in the global FDB registry
     Map(registry_keyword, getRegion()).insertOrAssign(toString(dbKey_), key);
-
     // Create / open the per-DB catalogue map and store the DB key.
     catalogue().insertOrAssign(db_keyword, key);
-
     loadSchema();
 }
 
@@ -116,6 +113,7 @@ void FamCatalogueWriter::overlayDB(const Catalogue& /*other_catalogue*/, const s
 }
 
 void FamCatalogueWriter::reconsolidate() {
+    /// TODO: implement reconsolidate for FAM catalogue
     NOTIMP;
 }
 

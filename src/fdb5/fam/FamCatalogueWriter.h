@@ -42,8 +42,6 @@ class FieldLocation;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// Write access to a FAM-backed FDB catalogue.
-///
 /// On construction the writer ensures the catalogue FamMap exists in the root
 /// FAM region and registers the DB key in the global FDB registry map so that
 /// FamEngine::visitableLocations can discover the database later.
