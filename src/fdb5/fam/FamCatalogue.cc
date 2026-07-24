@@ -29,6 +29,8 @@
 #include "fdb5/database/WipeState.h"
 #include "fdb5/fam/FamCommon.h"
 #include "fdb5/fam/FamIndex.h"
+#include "fdb5/fam/FamPurgeVisitor.h"
+#include "fdb5/fam/FamStats.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/rules/Schema.h"
 
@@ -40,6 +42,7 @@
 #include "eckit/io/Offset.h"
 #include "eckit/io/fam/FamMap.h"
 #include "eckit/io/fam/FamPath.h"
+#include "eckit/io/fam/FamRegionName.h"
 #include "eckit/log/Log.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/MD5.h"
@@ -85,6 +88,18 @@ std::string stripSuffix(const std::string& name, const std::string& suffix) {
 
 bool hasPrefix(const std::string& name, const std::string& prefix) {
     return name.size() >= prefix.size() && name.compare(0, prefix.size(), prefix) == 0;
+}
+
+void deallocateMap(const eckit::FamRegionName& root, const std::string& name) {
+    using Map = FamCommon::Map;
+    for (const char* suffix : {Map::table_suffix, Map::count_suffix, Map::lock_suffix}) {
+        try {
+            root.object(name + suffix).lookup().deallocate();
+        }
+        catch (const eckit::NotFound& e) {
+            LOG_DEBUG_LIB(LibFdb5) << "object already absent: " << e.what() << '\n';
+        }
+    }
 }
 
 }  // namespace
@@ -193,23 +208,28 @@ CatalogueWipeState FamCatalogue::wipeInit() const {
 void FamCatalogue::checkUID() const {
     NOTIMP;
 }
+
 void FamCatalogue::dump(std::ostream& out, bool simple, const eckit::Configuration& /*conf*/) const {
     out << "FamCatalogue " << dbKey_ << ", uri=" << uri() << '\n';
-    for (const auto& index : indexes()) {
+    for (const auto& index : indexes(false)) {
         index.dump(out, "  ", simple, !simple);
         out << '\n';
     }
 }
+
 StatsReportVisitor* FamCatalogue::statsReportVisitor() const {
-    NOTIMP;
+    return new FamStatsReportVisitor(*this);
 }
+
 PurgeVisitor* FamCatalogue::purgeVisitor(const Store& store) const {
-    NOTIMP;
+    return new FamPurgeVisitor(*this, store);
 }
+
 MoveVisitor* FamCatalogue::moveVisitor(const Store& store, const metkit::mars::MarsRequest& request,
                                        const eckit::URI& dest, eckit::Queue<MoveElement>& queue) const {
     NOTIMP;
 }
+
 void FamCatalogue::maskIndexEntries(const std::set<Index>& indexes) const {
     auto& cat = catalogue();
     for (const auto& index : indexes) {
@@ -220,6 +240,7 @@ void FamCatalogue::maskIndexEntries(const std::set<Index>& indexes) const {
         cat.erase(index_entry_prefix + key_str);
     }
 }
+
 void FamCatalogue::allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
                              std::set<eckit::URI>& data) const {
     if (!exists()) {
@@ -248,7 +269,9 @@ void FamCatalogue::allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& met
         }
     }
 }
+
 void FamCatalogue::control(const ControlAction& /*action*/, const ControlIdentifiers& /*identifiers*/) const {}
+
 bool FamCatalogue::markIndexForWipe(const Index& index, bool include, CatalogueWipeState& wipe_state) const {
     const eckit::URI location_uri = index.location().uri();
 
@@ -350,9 +373,6 @@ bool FamCatalogue::doWipeURIs(const CatalogueWipeState& wipe_state) const {
         cleanupEmptyDatabase_ = true;
     }
     else {
-        // Partial wipe: drop masked ("m:") records whose backing index objects are now gone,
-        // so stale entries are not re-processed on a subsequent wipe. The catalogue map still
-        // exists (it was marked safe); on a full wipe the whole map is removed instead.
         auto& cat = catalogue();
         std::vector<std::string> stale;
         for (const auto& [k, v] : cat) {
@@ -377,7 +397,6 @@ void FamCatalogue::doWipeEmptyDatabase() const {
     if (!cleanupEmptyDatabase_) {
         return;
     }
-
     // Deregister this DB from the global FDB registry map.
     try {
         Map registry(registry_keyword, getRegion());
@@ -386,38 +405,31 @@ void FamCatalogue::doWipeEmptyDatabase() const {
     catch (const eckit::Exception& e) {
         LOG_DEBUG_LIB(LibFdb5) << "FamCatalogue::doWipeEmptyDatabase: registry cleanup failed: " << e.what() << '\n';
     }
-
     cleanupEmptyDatabase_ = false;
 }
 
 bool FamCatalogue::doUnsafeFullWipe() const {
-    // Delete the catalogue map and all index maps by clearing their FAM objects.
+    // Collect the index map names before the catalogue map is deallocated.
+    std::vector<std::string> index_names;
     try {
-        // Clear all live ("i:") and masked ("m:") index maps first.
         for (const auto& [k, v] : catalogue()) {
             const auto key_name = k.asString();
             if (!hasPrefix(key_name, FamCommon::index_entry_prefix) &&
                 !hasPrefix(key_name, FamCommon::mask_entry_prefix)) {
                 continue;
             }
-            const auto key = decodeKey(v);
-            const auto idx_name = indexName(key);
-            try {
-                Map idx_map(idx_name, getRegion());
-                idx_map.clear();
-            }
-            catch (const eckit::Exception& e) {
-                LOG_DEBUG_LIB(LibFdb5) << "FamCatalogue::doUnsafeFullWipe: failed to clear index map '" << idx_name
-                                       << "': " << e.what() << '\n';
-            }
+            index_names.push_back(indexName(decodeKey(v)));
         }
-
-        // Clear the catalogue map itself.
-        catalogue().clear();
     }
     catch (const eckit::Exception& e) {
-        LOG_DEBUG_LIB(LibFdb5) << "FamCatalogue::doUnsafeFullWipe: failed to clear catalogue: " << e.what() << '\n';
+        LOG_DEBUG_LIB(LibFdb5) << "FamCatalogue::doUnsafeFullWipe: failed to enumerate indexes: " << e.what() << '\n';
     }
+
+    // Deallocate index maps, then the catalogue map itself.
+    for (const auto& idx_name : index_names) {
+        deallocateMap(root(), idx_name);
+    }
+    deallocateMap(root(), name_);
 
     // Deregister from the global registry.
     try {

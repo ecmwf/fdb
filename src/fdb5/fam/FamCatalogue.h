@@ -103,7 +103,7 @@ protected:  // methods
 
     bool uriBelongs(const eckit::URI& uri) const override;
 
-    std::vector<Index> indexes(bool sorted = false) const override;
+    std::vector<Index> indexes(bool sorted) const override;
 
     bool enabled(const ControlIdentifier& /*control_identifier*/) const override { return true; }
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
@@ -128,8 +128,6 @@ protected:  // methods
 
 protected:  // members
 
-    /// Currently selected index key (mirrors the TocCatalogue/DaosCatalogue idiom; the
-    /// concrete Reader/Writer overrides of selectIndex read and update it directly).
     Key currentIndexKey_;
 
 private:  // members
