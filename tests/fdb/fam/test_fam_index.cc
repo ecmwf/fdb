@@ -20,7 +20,9 @@
 #include "test_fam_common.h"
 
 #include "fdb5/config/Config.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Field.h"
+#include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/IndexLocation.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/fam/FamCatalogue.h"
@@ -34,14 +36,20 @@
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/MemoryHandle.h"
+#include "eckit/io/fam/FamPath.h"
 #include "eckit/io/fam/FamRegionName.h"
+#include "eckit/io/fam/FamTypes.h"
+#include "eckit/log/Log.h"
 #include "eckit/runtime/Main.h"
 #include "eckit/serialisation/HandleStream.h"
+#include "eckit/testing/ProcessFork.h"
 #include "eckit/testing/Test.h"
 
 #include <cstdlib>
 #include <ctime>
+#include <exception>
 #include <memory>
+#include <ostream>
 #include <set>
 #include <sstream>
 #include <string>
@@ -85,9 +93,11 @@ CASE("FamIndex: NOTIMP and stub methods") {
     const auto cat_name = fdb5::FamCatalogue::catalogueName(db_key);
     fdb5::Index idx(new fdb5::FamIndex(idx_key, root_name, fdb5::FamCatalogue::indexName(cat_name, idx_key), false));
 
-    // NOTIMP methods (flock/funlock are public on IndexBase)
-    EXPECT_THROWS(idx.flock());
-    EXPECT_THROWS(idx.funlock());
+    // flock/funlock acquire/release the map-wide FAM lease lock (public on IndexBase)
+    EXPECT_NO_THROW(idx.flock());
+    EXPECT_NO_THROW(idx.funlock());
+
+    // NOTIMP methods
     EXPECT_THROWS(idx.reopen());
 
     // Stubs
@@ -146,15 +156,24 @@ CASE("FamIndex: dump, encode, visit, statistics") {
     EXPECT_THROWS(idx.encode(hs, 1));
     h.close();
 
-    // visit — requires an IndexLocationVisitor
+    // visit — dispatches the index location to an IndexLocationVisitor
     struct TestVisitor : fdb5::IndexLocationVisitor {
-        void operator()(const fdb5::IndexLocation&) override {}
+        void operator()(const fdb5::IndexLocation& loc) override {
+            called = true;
+            uri = loc.uri();
+        }
+        bool called = false;
+        eckit::URI uri;
     };
     TestVisitor visitor;
-    EXPECT_THROWS(idx.visit(visitor));
+    EXPECT_NO_THROW(idx.visit(visitor));
+    EXPECT(visitor.called);
+    EXPECT_EQUAL(visitor.uri.scheme(), std::string("fam"));
 
-    // statistics
-    EXPECT_THROWS(idx.statistics());
+    // statistics — returns empty per-index stats (populated by the stats visitor, not the index)
+    auto stats = idx.statistics();
+    EXPECT_EQUAL(stats.fieldsCount(), 0U);
+    EXPECT_EQUAL(stats.duplicatesCount(), 0U);
 }
 
 CASE("FamIndex: dataURIs returns field locations after archive") {
