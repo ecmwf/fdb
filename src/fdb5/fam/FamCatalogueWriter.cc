@@ -113,8 +113,14 @@ void FamCatalogueWriter::overlayDB(const Catalogue& /*other_catalogue*/, const s
 }
 
 void FamCatalogueWriter::reconsolidate() {
-    /// TODO: implement reconsolidate for FAM catalogue
-    NOTIMP;
+    for (const auto& entry : catalogue()) {
+        const auto name = entry.key.asString();
+        if (name.rfind(index_entry_prefix, 0) != 0) {  // live index entries only ("i:")
+            continue;
+        }
+        const auto key = decodeKey(entry.value);
+        FamIndex(key, root(), indexName(key), false).compact();
+    }
 }
 
 bool FamCatalogueWriter::open() {

@@ -62,6 +62,7 @@ public:  // methods
 
     void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) override;
 
+    /// @note run purge BEFORE reconsolidate so orphaned data is removed.
     void reconsolidate() override;
 
     void overlayDB(const Catalogue& other_catalogue, const std::set<std::string>& variable_keys, bool unmount) override;
