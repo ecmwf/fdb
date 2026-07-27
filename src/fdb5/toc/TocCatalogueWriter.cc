@@ -8,21 +8,40 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/fdb5_config.h"
-
-#include "eckit/config/Resource.h"
-#include "eckit/io/EmptyHandle.h"
-#include "eckit/log/Bytes.h"
-#include "eckit/log/Log.h"
+#include "fdb5/toc/TocCatalogueWriter.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/EntryVisitMechanism.h"
-#include "fdb5/io/FDBFileHandle.h"
+#include "fdb5/database/Field.h"
+#include "fdb5/database/FieldLocation.h"
 #include "fdb5/io/LustreSettings.h"
 #include "fdb5/toc/RootManager.h"
-#include "fdb5/toc/TocCatalogueWriter.h"
+#include "fdb5/toc/TocCatalogue.h"
 #include "fdb5/toc/TocFieldLocation.h"
+#include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
+#include "fdb5/toc/TocRecord.h"
+#include "fdb5/toc/TocSerialisationVersion.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/io/Buffer.h"
+#include "eckit/io/Length.h"
+#include "eckit/io/Offset.h"
+#include "eckit/log/CodeLocation.h"
+#include "eckit/log/Log.h"
+
+#include <cstddef>
+#include <memory>
+#include <mutex>
+#include <ostream>
+#include <set>
+#include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace eckit;
 
@@ -53,6 +72,8 @@ TocCatalogueWriter::~TocCatalogueWriter() {
 // selectIndex is called during schema traversal and in case of out-of-order fieldLocation archival
 bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
 
+    std::lock_guard lock(mutex_);
+
     currentIndexKey_ = idxKey;
 
     auto it = indexes_.find(idxKey);
@@ -80,6 +101,8 @@ bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
 }
 
 bool TocCatalogueWriter::createIndex(const Key& idxKey, size_t datumKeySize) {
+
+    std::lock_guard lock(mutex_);
 
     ASSERT(datumKeySize > 0);
     currentIndexKey_ = idxKey;
@@ -113,6 +136,7 @@ bool TocCatalogueWriter::createIndex(const Key& idxKey, size_t datumKeySize) {
 }
 
 void TocCatalogueWriter::deselectIndex() {
+    std::lock_guard lock(mutex_);
     current_ = Index();
     currentFull_ = Index();
     currentIndexKey_ = Key();
@@ -167,7 +191,6 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
     public:
 
         ConsolidateIndexVisitor(TocCatalogueWriter& writer) : writer_(writer) {}
-        ~ConsolidateIndexVisitor() override {}
 
     private:
 
@@ -239,6 +262,8 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
 
 const Index& TocCatalogueWriter::currentIndex() {
 
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
         selectIndex(currentIndexKey_);
@@ -248,6 +273,7 @@ const Index& TocCatalogueWriter::currentIndex() {
 }
 
 const Key TocCatalogueWriter::currentIndexKey() {
+    std::lock_guard lock(mutex_);
     currentIndex();
     return currentIndexKey_;
 }
@@ -324,6 +350,8 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
 void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
                                  std::shared_ptr<const FieldLocation> fieldLocation) {
 
+    std::lock_guard lock(mutex_);
+
     archivedLocations_++;
 
     if (current_.null()) {
@@ -352,6 +380,7 @@ void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
 }
 
 void TocCatalogueWriter::flush(size_t archivedFields) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     ASSERT(archivedFields == archivedLocations_);
 
     if (archivedLocations_ == 0) {
