@@ -9,8 +9,10 @@
  */
 
 #include <cstdlib>
+#include <fstream>
 #include <sstream>
 
+#include "eckit/filesystem/PathName.h"
 #include "eckit/testing/Test.h"
 
 #include "fdb5/config/Config.h"
@@ -360,12 +362,17 @@ CASE("YearMonth - string ctor - expansion") {
 
     fdb5::Config yearMonthConfig;
     {
-        std::istringstream schemaStream(
-            "[ class, expver, stream=wamo, domain\n"
-            "       [ type, levtype\n"
-            "               [ date: YearMonth, time, step?, param ]]\n"
-            "]\n");
-        yearMonthConfig.overrideSchema("test_toKey_YearMonth_schema", std::make_unique<fdb5::Schema>(schemaStream));
+        // Schema construction only reads from a file, so the schema is written out here
+        // rather than kept as an in-memory stream.
+        const eckit::PathName schemaPath = eckit::PathName::unique("test_toKey_YearMonth_schema");
+        std::ofstream schemaFile(schemaPath.asString());
+        schemaFile << "[ class, expver, stream=wamo, domain\n"
+                      "       [ type, levtype\n"
+                      "               [ date: YearMonth, time, step?, param ]]\n"
+                      "]\n";
+        schemaFile.close();
+
+        yearMonthConfig.overrideSchema(schemaPath, std::make_unique<fdb5::Schema>(schemaPath));
     }
 
 
