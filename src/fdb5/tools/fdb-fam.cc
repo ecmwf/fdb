@@ -104,6 +104,14 @@ void FDBFam::init(const eckit::option::CmdArgs& args) {
     create_ = args.getBool("create", create_);
     delete_ = args.getBool("delete", delete_);
 
+    const int action_count = static_cast<int>(lookup_) + static_cast<int>(create_) + static_cast<int>(delete_);
+    if (action_count != 1) {
+        eckit::Log::info() << "!!! exactly one of [--lookup], [--create], or [--delete] must be specified (see "
+                              "usage below) !!!\n";
+        usage(args.tool());
+        exit(1);
+    }
+
     if (create_) {
         try {
             item_ = eckit::FamProperty{args.getUnsigned("size"), args.getString("perm", "0640")};
