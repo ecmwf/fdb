@@ -43,7 +43,7 @@ bool checkForEqualChunking(const std::vector<std::pair<ViewPart, std::shared_ptr
 
 std::vector<size_t> ChunkedDataViewImpl::chunkShape(
     const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& parts) {
-    const auto reference_part = parts[0].first;
+    const ViewPart& reference_part = (parts[0].first);
 
     std::vector<size_t> reference_extensions;
 

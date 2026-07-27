@@ -154,11 +154,6 @@ ViewPart::ViewPart(const metkit::mars::MarsRequest& request, const DataLayout& d
     bb_ = BoundingBox(lower, upper);
 }
 
-metkit::mars::MarsRequest ViewPart::at(const std::vector<size_t>& chunkIndex) const {
-    ASSERT(chunkIndex.size() - 1 == axes_.size());
-    return RequestManipulation::selectRequest(request_, axes_, chunkIndex);
-}
-
 metkit::mars::MarsRequest ViewPart::at(const PartBoundingBox& boundingBox) const {
 
     const auto translatedBB = bb_.subtract(bb_.lower());
