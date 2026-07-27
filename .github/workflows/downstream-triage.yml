@@ -1,0 +1,94 @@
+name: downstream-triage
+
+on:
+  workflow_call:
+    inputs:
+      downstream_ci_result:
+        required: true
+        type: string
+      private_downstream_ci_result:
+        required: true
+        type: string
+      downstream_ci_hpc_result:
+        required: true
+        type: string
+      private_downstream_ci_hpc_result:
+        required: true
+        type: string
+      run_url:
+        required: true
+        type: string
+
+jobs:
+  downstream-triage:
+    name: downstream-triage
+    runs-on: ubuntu-latest
+    permissions:
+      checks: read
+      contents: read
+    steps:
+      - name: CI Triage
+        env:
+          DOWNSTREAM_CI_RESULT: ${{ inputs.downstream_ci_result }}
+          PRIVATE_DOWNSTREAM_CI_RESULT: ${{ inputs.private_downstream_ci_result }}
+          DOWNSTREAM_CI_HPC_RESULT: ${{ inputs.downstream_ci_hpc_result }}
+          PRIVATE_DOWNSTREAM_CI_HPC_RESULT: ${{ inputs.private_downstream_ci_hpc_result }}
+          RUN_URL: ${{ inputs.run_url }}
+        run: |
+          {
+            echo "## Downstream CI Triage"
+            echo
+            echo "- downstream-ci: ${DOWNSTREAM_CI_RESULT}"
+            echo "- private-downstream-ci: ${PRIVATE_DOWNSTREAM_CI_RESULT}"
+            echo "- downstream-ci-hpc: ${DOWNSTREAM_CI_HPC_RESULT}"
+            echo "- private-downstream-ci-hpc: ${PRIVATE_DOWNSTREAM_CI_HPC_RESULT}"
+            echo
+            echo "Workflow run: ${RUN_URL}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: List failed runs
+        if: ${{ inputs.downstream_ci_result == 'failure' || inputs.downstream_ci_hpc_result == 'failure' }}
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const ref = context.sha;
+
+            const checks = await github.paginate(github.rest.checks.listForRef, {
+              owner,
+              repo,
+              ref,
+              per_page: 100,
+            });
+
+            const failedConclusions = new Set(['failure', 'timed_out', 'cancelled', 'startup_failure']);
+            // exclude helper checks
+            const excludedNames = new Set(['downstream-triage', 'notify']);
+            const failed = checks.filter((c) => {
+              if (!failedConclusions.has(c.conclusion)) {
+                return false;
+              }
+              if (excludedNames.has(c.name)) {
+                return false;
+              }
+              return true;
+            });
+
+            const header = '### Failed Downstream Runs';
+            if (failed.length === 0) {
+              await core.summary
+                .addRaw(`${header}\n\nNo failed runs found.\n\n`)
+                .write();
+              return;
+            }
+
+            // write up to 30 failed runs to the summary
+            const lines = failed.slice(0, 30).map((c) => {
+              const url = c.html_url || `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+              return `- [${c.name}](${url}) (${c.conclusion})`;
+            });
+
+            await core.summary
+              .addRaw(`${header}\n\n${lines.join('\n')}\n\n`)
+              .write();
