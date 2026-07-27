@@ -13,8 +13,8 @@
 #include "chunked_data_view/AxisDefinition.h"
 #include "chunked_data_view/ChunkedDataView.h"
 #include "chunked_data_view/Extractor.h"
-#include "chunked_data_view/Fdb.h"
 #include "chunked_data_view/ViewPart.h"
+#include "chunked_data_view/mapping/AxisMapper.h"
 
 #include "eckit/exception/Exceptions.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -28,7 +28,8 @@
 
 namespace chunked_data_view {
 
-ChunkedDataViewBuilder::ChunkedDataViewBuilder(std::shared_ptr<FdbInterface> fdb) : fdb_(std::move(fdb)) {}
+ChunkedDataViewBuilder::ChunkedDataViewBuilder(const std::optional<std::filesystem::path>& fdbConfigPath) :
+    configPath_(fdbConfigPath) {}
 
 ChunkedDataViewBuilder& ChunkedDataViewBuilder::addPart(std::string marsRequestKeyValues,
                                                         std::vector<AxisDefinition> axes,
@@ -69,11 +70,23 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
     std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>> viewParts{};
     viewParts.reserve(parts_.size());
 
+    // Offset is one-dimensional along the extension axis
+    std::vector<size_t> part_offsets = {0};
+
     for (auto& [req, defs, ext] : parts_) {
         auto request = fdb5::FDBToolRequest::requestsFromString(req).at(0).request();
+
         try {
             const auto layout = ext->layout(request);
-            ViewPart vp(std::move(request), layout, defs);
+            const auto axes = AxisMapper::mapRequestToAxis(request, defs);
+
+            // Create offset vector
+            std::vector<size_t> offsetInChunkedDataView(axes.size(), 0);
+            offsetInChunkedDataView[extensionAxisIndex_.value_or(0)] = part_offsets[part_offsets.size() - 1];
+
+            ViewPart vp(std::move(request), layout, axes, offsetInChunkedDataView);
+            part_offsets.push_back(part_offsets.back() + vp.extension()[extensionAxisIndex_.value_or(0)]);
+
             viewParts.emplace_back(std::move(vp), std::move(ext));
         }
         catch (const std::exception& e) {
@@ -88,7 +101,7 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
         throw eckit::UserError("Shape of all parts must be identical except for the extension axis index.");
     }
 
-    return std::make_unique<ChunkedDataViewImpl>(std::move(viewParts), fillValue_, extensionAxisIndex_.value_or(0));
+    return std::make_unique<ChunkedDataViewImpl>(viewParts, fillValue_, extensionAxisIndex_.value_or(0));
 }
 
 };  // namespace chunked_data_view

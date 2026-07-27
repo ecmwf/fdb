@@ -22,6 +22,7 @@
 
 #include <string>
 #include <vector>
+#include "chunked_data_view/Fdb.h"
 #include "chunked_data_view/GribExtractor.h"
 
 namespace py = pybind11;
@@ -36,14 +37,27 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
                      return cdv::AxisDefinition{std::move(keys), chunking};
                  }),
                  py::kw_only(), py::arg("keys"), py::arg("chunking"))
+            .def(py::init([](std::vector<std::string> keys, cdv::AxisDefinition::IndividualChunking chunking) {
+                     return cdv::AxisDefinition{std::move(keys), chunking};
+                 }),
+                 py::kw_only(), py::arg("keys"), py::arg("chunking"))
             .def_readwrite("keys", &cdv::AxisDefinition::keys)
             .def_readwrite("chunking", &cdv::AxisDefinition::chunking);
 
     // Wrapping AxisDefinition::NoChunking as nested class of Axisdefinition
     py::class_<cdv::AxisDefinition::NoChunking>(axis_definition, "NoChunking").def(py::init<>());
 
+    // Wrapping AxisDefinition::SingleValueChunking as nested class of Axisdefinition
+    py::class_<cdv::AxisDefinition::SingleValueChunking>(axis_definition, "SingleValueChunking").def(py::init<>());
+
     // Wrapping AxisDefinition::IndividualChunking as nested class of Axisdefinition
-    py::class_<cdv::AxisDefinition::IndividualChunking>(axis_definition, "IndividualChunking").def(py::init<>());
+    py::class_<cdv::AxisDefinition::IndividualChunking>(axis_definition, "IndividualChunking")
+        .def(py::init<>([](size_t& chunkExtension) {
+            return cdv::AxisDefinition::IndividualChunking{.chunkSize = chunkExtension};
+        }))
+        .def("chunk_shape", [](const cdv::AxisDefinition::IndividualChunking* individualChunking) {
+            return individualChunking->chunkSize;
+        });
 
     // Wrapping interface ChunkedDataView
     py::class_<cdv::ChunkedDataView>(m, "ChunkedDataView")
@@ -66,21 +80,17 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
     // Wrapper class ChunkedDataViewBuilder
     py::class_<cdv::ChunkedDataViewBuilder>(m, "ChunkedDataViewBuilder")
         .def(py::init([](std::optional<std::filesystem::path> fdbConfigPath) {
-            if (fdbConfigPath) {
-                return cdv::ChunkedDataViewBuilder(cdv::makeFdb(*fdbConfigPath));
-            }
-            else {
-                return cdv::ChunkedDataViewBuilder(cdv::makeFdb());
-            }
+            return cdv::ChunkedDataViewBuilder(fdbConfigPath);
         }))
         .def("add_part",
              [](cdv::ChunkedDataViewBuilder& builder, std::string marsRequestKeyValues,
                 std::vector<cdv::AxisDefinition> axes, const cdv::ExtractorType extractorType) {
                  switch (extractorType) {
                      case chunked_data_view::ExtractorType::GRIB:
-                         builder.addPart(std::move(marsRequestKeyValues), std::move(axes),
-                                         std::make_unique<chunked_data_view::GribExtractor>(
-                                             chunked_data_view::GribExtractor(builder.getFdb())));
+                         builder.addPart(
+                             std::move(marsRequestKeyValues), std::move(axes),
+                             std::make_unique<chunked_data_view::GribExtractor>(
+                                 chunked_data_view::GribExtractor(cdv::makeFdb(builder.getFdbConfigPath()))));
                          break;
                      default:
                          std::stringstream buf;

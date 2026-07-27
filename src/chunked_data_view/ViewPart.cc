@@ -10,11 +10,14 @@
 #include "ViewPart.h"
 
 #include "RequestManipulation.h"
-#include "chunked_data_view/AxisDefinition.h"
 #include "chunked_data_view/DataLayout.h"
 
+#include "chunked_data_view/Axis.h"
+#include "chunked_data_view/Extractor.h"
+#include "chunked_data_view/exception/BoundingBoxException.h"
 #include "chunked_data_view/mapping/AxisMapper.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/log/Log.h"
 #include "metkit/mars/MarsRequest.h"
 
 #include <algorithm>
@@ -27,22 +30,144 @@
 
 namespace chunked_data_view {
 
-ViewPart::ViewPart(const metkit::mars::MarsRequest& request, const DataLayout& data_layout,
-                   const std::vector<AxisDefinition>& axes) :
-    request_(request), layout_(data_layout) {
-    axes_ = AxisMapper::mapRequestToAxis(request, axes);
+BoundingBox::BoundingBox() : lower_({}), upper_({}) {};
+BoundingBox::BoundingBox(const std::vector<size_t>& lower, const std::vector<size_t>& upper) {
+    if (lower.size() != upper.size()) {
+        std::stringstream buf;
+        buf << "BoundingBox::BoundingBox: Mismatch in dimensions of lower and upper corner. Lower: " << lower.size()
+            << ", Upper:" << upper.size();
+        throw chunked_data_view::BoundingBoxException(buf.str());
+    }
 
-    const auto req = requestAt(std::vector<size_t>(axes_.size()));
+    lower_ = lower;
+    upper_ = upper;
+};
+
+size_t BoundingBox::entries() const {
+    const auto ext = extension();
+
+    size_t prod = 1;
+
+    for (size_t i = 0; i < ext.size(); ++i) {
+        prod *= (ext[i] + 1);
+    }
+    return prod;
+}
+
+bool BoundingBox::contains(const BoundingBox& other) const {
+    ASSERT(other.dimensions() == this->dimensions());
+
+    for (size_t i = 0; i < other.dimensions(); ++i) {
+        if (other.upper()[i] > upper()[i] || other.lower()[i] < lower()[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+BoundingBox BoundingBox::subtract(const std::vector<size_t>& subtrahend) const {
+    assert(subtrahend.size() == lower_.size());
+
+    std::vector<size_t> newLower;
+    std::vector<size_t> newUpper;
+
+    for (size_t i = 0; i < lower_.size(); ++i) {
+        newLower.push_back(lower_[i] - subtrahend[i]);
+        newUpper.push_back(upper_[i] - subtrahend[i]);
+    }
+    return BoundingBox(newLower, newUpper);
+}
+
+BoundingBox BoundingBox::dropLastDimension() const {
+
+    std::vector<size_t> lowerRestricted;
+    std::vector<size_t> upperRestricted;
+
+    for (size_t i = 0; i < lower_.size() - 1; ++i) {
+        lowerRestricted.push_back(lower_[i]);
+        upperRestricted.push_back(upper_[i]);
+    }
+    return BoundingBox(lowerRestricted, upperRestricted);
+}
+
+std::optional<BoundingBox> BoundingBox::intersect(const BoundingBox& other) const {
+    // For two intervals [l1, u1], [l2, u2] no intersections exists if
+    // u1 < l2 or l1 > u2 (separating axis)
+    // If there is an intersection it's [max(l1, l2), min(u1, u2)]
+    // For every axis
+    std::vector<size_t> lower;
+    std::vector<size_t> upper;
+
+    for (size_t i = 0; i < lower_.size(); ++i) {
+        const auto l1 = lower_[i];
+        const auto u1 = upper_[i];
+        const auto l2 = other.lower_[i];
+        const auto u2 = other.upper_[i];
+
+        eckit::Log::debug() << "Axis: " << i << " | [l1, u1], [l2, u2]:  [" << l1 << ", " << u1 << "], [" << l2 << ", "
+                            << u2 << "]" << std::endl;
+
+        if ((u1 < l2) || (l1 > u2)) {
+            eckit::Log::debug() << "Returning empty bounding box" << std::endl;
+            return std::nullopt;  // empty (separating axis theorem)
+        }
+
+        const auto lowerAxis = std::max(l1, l2);
+        const auto upperAxis = std::min(u1, u2);
+
+        lower.push_back(lowerAxis);
+        upper.push_back(upperAxis);
+    }
+
+    return std::make_optional<>(BoundingBox(lower, upper));
+}
+
+ViewPart::ViewPart(const metkit::mars::MarsRequest& request, const DataLayout& data_layout,
+                   const std::vector<std::pair<Axis, AxisChunks>>& axes, const std::vector<size_t>& offset) :
+    request_(request), layout_(data_layout), offset_(offset) {
+
+    std::transform(axes.begin(), axes.end(), std::back_inserter(axes_),
+                   [](const auto& pair) { return std::get<0>(pair); });
+    std::transform(axes.begin(), axes.end(), std::back_inserter(chunks_),
+                   [](const auto& pair) { return std::get<1>(pair); });
+
+
     extension_.reserve(axes_.size() + 1);
     std::transform(std::begin(axes_), std::end(axes_), std::back_inserter(extension_),
                    [](const auto& axis) { return axis.size(); });
     extension_.push_back(data_layout.countValues);
+
+
+    auto lower = offset_;
+    lower.push_back(0);  // Add dimensions for the implicit values
+
+    auto upper = offset_;
+
+    for (size_t i = 0; i < offset_.size(); ++i) {
+        upper[i] += (extension_[i] - 1);
+    }
+    upper.push_back(data_layout.countValues - 1);  // Add dimensions for the implicit values
+
+    bb_ = BoundingBox(lower, upper);
 }
 
 metkit::mars::MarsRequest ViewPart::at(const std::vector<size_t>& chunkIndex) const {
     ASSERT(chunkIndex.size() - 1 == axes_.size());
     return RequestManipulation::selectRequest(request_, axes_, chunkIndex);
 }
+
+metkit::mars::MarsRequest ViewPart::at(const ChunkedDataViewPartBoundingBox& boundingBox) const {
+
+    const chunked_data_view::PartBoundingBox& partRelativeBoundingBox = boundingBox.subtract(bb_.lower());
+    const auto translatedBB = bb_.subtract(bb_.lower());
+    const auto intersection = translatedBB.intersect(boundingBox);
+    ASSERT(intersection.has_value());
+    ASSERT(intersection->entries() > 0);
+
+    return RequestManipulation::selectRequest(request_, axes_, boundingBox);
+}
+
 
 metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIndex) const {
     ASSERT(chunkIndex.size() == axes_.size());

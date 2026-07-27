@@ -24,9 +24,13 @@ struct AxisDefinition {
     /// Indicate no chunking should be applied, the whole axis is accessed in one chunk.
     struct NoChunking {};
     /// Indicate each value of this axis is one chunk
-    struct IndividualChunking {};
+    struct SingleValueChunking {};
+    /// Indicate individual shape of chunk
+    struct IndividualChunking {
+        size_t chunkSize;
+    };
     /// Possible typs of chunking
-    using ChunkingType = std::variant<NoChunking, IndividualChunking>;
+    using ChunkingType = std::variant<NoChunking, SingleValueChunking, IndividualChunking>;
     /// Which mars keys form the resuling axis.
     std::vector<std::string> keys{};
     /// Defines how the Axis will be chunked.

@@ -12,9 +12,9 @@
 #include "chunked_data_view/AxisDefinition.h"
 #include "chunked_data_view/ChunkedDataView.h"
 #include "chunked_data_view/Extractor.h"
-#include "chunked_data_view/Fdb.h"
 
 #include <cstddef>
+#include <filesystem>
 #include <memory>
 #include <optional>
 #include <string>
@@ -29,7 +29,7 @@ class ViewPart;
 class ChunkedDataViewBuilder {
 public:
 
-    explicit ChunkedDataViewBuilder(std::shared_ptr<FdbInterface> fdb);
+    explicit ChunkedDataViewBuilder(const std::optional<std::filesystem::path>& configPath = std::nullopt);
     /// Add data to the view defined by a mars request.
     /// Multiple parts can be added by repeated calls to addPart, e.g. adding surface and non surface fields.
     /// Every keyword with more than one value needs to be mapped to the output axes with an AxisDefinition.
@@ -48,11 +48,11 @@ public:
 
     std::unique_ptr<ChunkedDataView> build();
 
-    std::shared_ptr<FdbInterface> getFdb() const { return fdb_; }
+    std::optional<std::filesystem::path> getFdbConfigPath() const { return configPath_; }
 
 private:
 
-    std::shared_ptr<FdbInterface> fdb_{};
+    std::optional<std::filesystem::path> configPath_{};
     std::vector<std::tuple<std::string, std::vector<AxisDefinition>, std::shared_ptr<Extractor>>> parts_{};
     std::optional<size_t> extensionAxisIndex_ = std::nullopt;
     float fillValue_ = std::numeric_limits<float>::infinity();

@@ -14,6 +14,7 @@
 #include "chunked_data_view/Fdb.h"
 #include "chunked_data_view/IndexMapper.h"
 #include "chunked_data_view/ListIterator.h"
+#include "chunked_data_view/ViewPart.h"
 #include "chunked_data_view/exception/GribExtractorException.h"
 
 #include "eckit/exception/Exceptions.h"
@@ -45,30 +46,42 @@ DataLayout GribExtractor::layout(const metkit::mars::MarsRequest& mars_request) 
     return {countValues, 4};
 }
 
-size_t computeBufferIndex(const std::vector<Axis>& axes, const fdb5::Key& key, size_t extensionAxisIdx,
-                          size_t combinedExtSize = 0, size_t extensionOffset = 0) {
-    std::vector<size_t> result;
-    result.reserve(axes.size());
+size_t computeBufferIndex(const std::vector<Axis>& axes, const fdb5::Key& key, std::vector<size_t> offset) {
+    std::vector<size_t> indices;
+    indices.reserve(axes.size());
 
-    for (const Axis& axis : axes) {
-
-        if (axis.isChunked()) {
-            result.push_back(0);
-            continue;
-        }
-
-        result.emplace_back(axis.index(key));
+    auto index = 0;
+    for (size_t i = 0; i < axes.size(); ++i) {
+        const auto& axis = axes[i];
+        indices.emplace_back(axis.index(key) - offset[i]);
     }
 
-    ASSERT(result.size() == axes.size());
+    //
+    // ASSERT(indices.size() == axes.size());
+    //
+    // size_t prod = 1;
+    // size_t index = 0;
+    //
+    // for (int i = axes.size() - 1; i >= 0; --i) {
+    //
+    //     if (!axes[i].isChunked()) {
+    //         if (static_cast<size_t>(i) == extensionAxisIdx) {
+    //             index += (indices[i] + extensionOffset) * prod;
+    //             prod *= combinedExtSize;
+    //         }
+    //         else {
+    //             index += indices[i] * prod;
+    //             prod *= axes[i].size();
+    //         }
+    //     }
+    // }
 
-    return chunked_data_view::index_mapping::axis_index_to_buffer_index(result, axes, extensionAxisIdx, combinedExtSize,
-                                                                        extensionOffset);
+    return index;
 }
 
 size_t GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
-                                const DataLayout& layout, float* ptr, size_t len, size_t extensionAxisIdx,
-                                size_t combinedExtSize, size_t extensionOffset) const {
+                                const DataLayout& layout, float* ptr, size_t len,
+                                const BufferBoundingBox& bufferRelativeBoundingBox) const {
 
     bool iterator_empty = true;
     size_t messagesWritten = 0;
@@ -82,7 +95,7 @@ size_t GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iter
 
         const auto& key = std::get<0>(*res);
         auto& data_handle = std::get<1>(*res);
-        const size_t msgIndex = computeBufferIndex(axes, key, extensionAxisIdx, combinedExtSize, extensionOffset);
+        const size_t msgIndex = computeBufferIndex(axes, key, bufferRelativeBoundingBox.lower());
 
         eckit::message::Reader reader(*data_handle);
         eckit::message::Message msg{};
@@ -112,15 +125,21 @@ size_t GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iter
     return messagesWritten;
 }
 
-size_t GribExtractor::extractInto(const ViewPart& part, const std::vector<std::size_t>& chunkIndex, float* ptr,
-                                  size_t len, size_t extensionAxisIdx, size_t combinedExtSize,
-                                  size_t extensionOffset) const {
+size_t GribExtractor::extractInto(const ViewPart& part, const ChunkedDataViewPartBoundingBox& chunkBoundingBox,
+                                  const ChunkedDataViewPartBoundingBox& intersectionBoundingBox, float* ptr,
+                                  size_t len) const {
+    ASSERT(chunkBoundingBox.contains(intersectionBoundingBox));
+    ASSERT(part.boundingBox().contains(intersectionBoundingBox));
 
-    const auto& request = part.at(chunkIndex);
+    const PartBoundingBox& partRelativeBoundingBox = intersectionBoundingBox.subtract(part.boundingBox().lower());
+
+    const auto& request = part.at(partRelativeBoundingBox);
     auto listIterator = fdb_->inspect(request);
 
-    size_t written = writeInto(std::move(listIterator), part.axes(), part.layout(), ptr, len, extensionAxisIdx,
-                               combinedExtSize, extensionOffset);
+    const BufferBoundingBox& bufferRelativeBoundingBox = intersectionBoundingBox.subtract(chunkBoundingBox.lower());
+
+    size_t written =
+        writeInto(std::move(listIterator), part.axes(), part.layout(), ptr, len, bufferRelativeBoundingBox);
 
     return written;
 }

@@ -31,6 +31,8 @@ add_library(chunked_data_view STATIC
     mapping/AxisMapper.h
     exception/GribExtractorException.cc
     exception/UnknownExtractorException.cc
+    exception/BoundingBoxException.cc
+    exception/RequestManipulationException.cc
     include/chunked_data_view/AxisDefinition.h
     include/chunked_data_view/Buffer.h
     include/chunked_data_view/ChunkedDataView.h
@@ -42,6 +44,8 @@ add_library(chunked_data_view STATIC
     include/chunked_data_view/ListIterator.h
     include/chunked_data_view/exception/GribExtractorException.h
     include/chunked_data_view/exception/UnknownExtractorException.h
+    include/chunked_data_view/exception/BoundingBoxException.h
+    include/chunked_data_view/exception/RequestManipulationException.h
 )
 
 target_include_directories(chunked_data_view
