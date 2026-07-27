@@ -1,18 +1,12 @@
 
 #include "fdb5/remote/client/ClientConnection.h"
 
-#include <unistd.h>
-#include <cstddef>
-#include <cstdint>
-#include <exception>
-#include <future>
-#include <iostream>
-#include <memory>
-#include <mutex>
-#include <string>
-#include <thread>
-#include <utility>
-#include <vector>
+#include "fdb5/LibFdb5.h"
+#include "fdb5/remote/Connection.h"
+#include "fdb5/remote/Messages.h"
+#include "fdb5/remote/RemoteConfiguration.h"
+#include "fdb5/remote/client/Client.h"
+#include "fdb5/remote/client/ClientConnectionRouter.h"
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/config/Resource.h"
@@ -27,12 +21,19 @@
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/Literals.h"
 
-#include "fdb5/LibFdb5.h"
-#include "fdb5/remote/Connection.h"
-#include "fdb5/remote/Messages.h"
-#include "fdb5/remote/RemoteConfiguration.h"
-#include "fdb5/remote/client/Client.h"
-#include "fdb5/remote/client/ClientConnectionRouter.h"
+#include <unistd.h>
+
+#include <cstddef>
+#include <cstdint>
+#include <exception>
+#include <future>
+#include <iostream>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <utility>
+#include <vector>
 
 using namespace eckit;
 using namespace eckit::literals;
@@ -356,21 +357,26 @@ void ClientConnection::listeningControlThreadLoop() {
 
                     ASSERT(hdr.control() || single_);
 
-                    std::lock_guard<std::mutex> lock(promisesMutex_);
+                    bool isPromise = false;
+                    {
+                        // Hold promisesMutex_ only for the promise lookup/erase (NOT across handle(); risk a deadlock.
+                        std::lock_guard<std::mutex> lock(promisesMutex_);
 
-                    auto pp = promises_.find(hdr.requestID);
-                    if (pp != promises_.end()) {
-                        if (hdr.payloadSize == 0) {
-                            ASSERT(hdr.message == Message::Received);
-                            pp->second.set_value(Buffer(0));
+                        auto pp = promises_.find(hdr.requestID);
+                        if (pp != promises_.end()) {
+                            if (hdr.payloadSize == 0) {
+                                ASSERT(hdr.message == Message::Received);
+                                pp->second.set_value(Buffer(0));
+                            }
+                            else {
+                                pp->second.set_value(std::move(payload));
+                            }
+                            promises_.erase(pp);
+                            handled = true;
+                            isPromise = true;
                         }
-                        else {
-                            pp->second.set_value(std::move(payload));
-                        }
-                        promises_.erase(pp);
-                        handled = true;
                     }
-                    else {
+                    if (!isPromise) {
                         Client* client = nullptr;
                         {
                             std::lock_guard lock(clientsMutex_);
