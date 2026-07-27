@@ -1,0 +1,159 @@
+
+# * Format of the rules is:
+
+# [a1, a2, a3 ...[b1, b2, b3... [c1, c2, c3...]]]
+
+# - The first level (a) defines which attributes are used to name the top level directory
+# - The second level (b) defines which attributes are used to name the data files
+# - The third level (c) defines which attributes are used as index keys
+
+# * Rules can be grouped
+
+# [a1, a2, a3 ...
+#   [b1, b2, b3... [c1, c2, c3...]]
+#   [B1, B2, B3... [C1, C2, C3...]]
+# ]
+
+# * A list of values can be given for an attribute
+# [ ..., stream=enfo/efov, ... ]
+# This will be used when matching rules.
+
+# * Attributes can be typed
+#   Globally, at the begining of this file:
+
+#   refdate: Date;
+
+#   or in the context of a rule:
+#   [type=cl, ... [date:ClimateMonth, ...]]
+
+# Typing attributes is done when the user's requests or the GRIB values need to be modified before directories, files and indexes are created. For example, ClimateMonth will transform 2010-04-01 to 'may' internally.
+
+# * Attributes can be optional
+# [ step, levelist?, param ]
+# They will be replaced internally by an empty value. It is also posiible to provide a default subtitution value: e.g. [domain?g] will consider the domain to be 'g' if missing.
+
+# * Attributes can be removed:
+# [grid-]
+# This is useful to remove attributes present in the GRIB that should not be ignored
+
+# * Rules are matched:
+
+# - If the attributes are present in the GRIB/Request, or marked optional or ignored
+# - If a list of possible value is provided, one of them must match, for example
+#   [ class, expver, stream=enfo/efov, date, time, domain ]
+#   will match either stream=enfo or stream=efov, all other attributes will be matched if they exist in the GRIB or user's request
+
+# * On archive:
+# - Attributes are extracted from the GRIB (namespace 'mars'), possibly modified by the attribute type
+# - Only the first rule is used, so order is important
+# - All GRIB attributes must be used by the rules, otherwise an error is raised
+
+# * On retrieve:
+# - Attributes are extracted from the user's request, possibly modified by the attribute type (e.g. for handling of U/V)
+# - All the matching rules are considered
+# - Only attributes listed in the rules are used to extract values from the user's request
+
+
+# Default types
+
+channel:Integer;
+date:Date;
+diagnostic:Integer;
+direction:Integer;
+expver:Expver;
+fcmonth:Integer;
+frequency:Integer;
+grid:Grid;
+hdate:Date;
+ident:Integer;
+instrument:Integer;
+iteration:Integer;
+latitude:Double;
+levelist:Double;
+longitude:Double;
+method:Integer;
+number:Integer;
+param:Param;
+refdate:Date;
+step:Step;
+system:Integer;
+time:Time;
+
+########################################################
+# These are the rules for the Climate DT
+# clte/wave
+[ class=d1, dataset=climate-dt, activity, experiment, generation, model, realization, expver, stream=clte/wave, date: Year
+       [ date: Month, resolution, type, levtype
+               [ date: Date, time, levelist?, param, frequency?, direction? ]]
+]
+# clmn
+[ class=d1, dataset=climate-dt, activity, experiment, generation, model, realization, expver, stream=clmn, year
+       [ month, resolution, type, levtype
+               [ levelist?, param ]]
+]
+########################################################
+# These are the rules for the Extremes DT
+# oper/wave
+[ class=d1, dataset=extremes-dt, expver, stream=oper/wave, date, time
+        [ type, levtype, timespan?
+                [ step, levelist?, param, frequency?, direction? ]]
+]
+# enfo/waef
+[ class=d1, dataset=extremes-dt, expver, stream=enfo/waef, date, time
+        [ type, levtype, timespan?
+                [ step, number?, levelist?, param, frequency?, direction? ]]
+]
+# lwda/lwwv
+[ class=d1, dataset=extremes-dt, expver, stream=lwda/lwwv, date, time
+        [ type, levtype, anoffset, timespan?
+                [ step, levelist?, param, frequency?, direction? ]]
+]
+########################################################
+# These are the rules for the On-Demand Extremes DT
+# oper
+[ class=d1, dataset=on-demand-extremes-dt, expver, stream=oper, date, time
+ 
+        [ type=ssd, georef, timespan?
+                [ step, param, ident, instrument, channel ]]
+ 
+        [ type, levtype, georef, timespan?
+                [ step, levelist?, param ]]
+]
+# enfo
+[ class=d1, dataset=on-demand-extremes-dt, expver, stream=enfo, date, time
+ 
+        [ type, levtype, georef, timespan?
+                [ step, number?, levelist?, param ]]
+]
+########################################################
+# These are the rules for NextGEMS
+# clte/wave
+[ class=ng, activity, experiment, generation, model, realization, expver, stream=clte/wave, date: Year
+    [ date: Month, resolution, type, levtype
+        [ date: Date, time, levelist?, param, frequency?, direction? ]]
+]
+# clmn
+[ class=ng, activity, experiment, generation, model, realization, expver, stream=clmn, year
+    [ month, resolution, type, levtype
+        [ levelist?, param ]]
+]
+########################################################
+# These are the rules for rd
+# oper/wave
+[ class=rd, expver, stream=oper/wave/dcda/dcwv, date, time, domain?
+        [ type, levtype
+                [ step, levelist?, param, frequency?, direction? ]
+  ]
+]
+# lwda/lwwv
+[ class=rd, expver, stream=lwda/lwwv, date, time, domain?
+        [ type, levtype, anoffset
+                [ step, levelist?, param, frequency?, direction? ]
+  ]
+]
+# mnth
+[ class=rd, expver, stream=mnth, domain?
+       [ type, levtype
+               [ date , time, step?, levelist?, param ]]
+]
+########################################################
