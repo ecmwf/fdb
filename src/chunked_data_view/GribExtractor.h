@@ -34,14 +34,24 @@ public:
                        const ChunkedDataViewPartBoundingBox& intersectionBoundingBox, float* ptr,
                        size_t len) const override;
 
+private:  // types
+
+    /// Bundles all index-mapping and field metadata needed by writeInto.
+    struct WriteContext {
+        const std::vector<Axis>& axes;
+        const DataLayout& layout;
+        const std::vector<size_t>& partAxisOffset;  // Intersection start within the part's axis space
+        const std::vector<size_t>& bufferOffset;    // Intersection start within the chunk buffer
+        const std::vector<size_t>& bufferExtent;    // Total size of the chunk buffer per axis
+    };
+
 private:  // members
 
     std::shared_ptr<FdbInterface> fdb_;
 
 private:  // methods
 
-    size_t writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const std::vector<Axis>& axes,
-                     const DataLayout& layout, float* ptr, size_t len,
-                     const BufferBoundingBox& bufferBoundingBox) const;
+    size_t writeInto(std::unique_ptr<ListIteratorInterface> list_iterator, const WriteContext& ctx, float* ptr,
+                     size_t len) const;
 };
 }  // namespace chunked_data_view

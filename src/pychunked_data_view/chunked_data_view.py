@@ -30,7 +30,7 @@ class Chunking(enum.Enum):
 
     @dataclass(frozen=True)
     class IndividualChunk:
-        chunkShape: list[int]
+        chunkShape: int
 
 
 class AxisDefinition:

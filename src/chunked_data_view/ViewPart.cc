@@ -44,12 +44,12 @@ BoundingBox::BoundingBox(const std::vector<size_t>& lower, const std::vector<siz
 };
 
 size_t BoundingBox::entries() const {
-    const auto ext = extension();
+    const auto ext = extent();
 
     size_t prod = 1;
 
     for (size_t i = 0; i < ext.size(); ++i) {
-        prod *= (ext[i] + 1);
+        prod *= ext[i];
     }
     return prod;
 }
@@ -133,21 +133,21 @@ ViewPart::ViewPart(const metkit::mars::MarsRequest& request, const DataLayout& d
                    [](const auto& pair) { return std::get<1>(pair); });
 
 
-    extension_.reserve(axes_.size() + 1);
+    extension_.reserve(axes_.size());
     std::transform(std::begin(axes_), std::end(axes_), std::back_inserter(extension_),
                    [](const auto& axis) { return axis.size(); });
-    extension_.push_back(data_layout.countValues);
+    // extension_.push_back(data_layout.countValues);
 
 
     auto lower = offset_;
-    lower.push_back(0);  // Add dimensions for the implicit values
+    // lower.push_back(0);  // Add dimensions for the implicit values
 
     auto upper = offset_;
 
     for (size_t i = 0; i < offset_.size(); ++i) {
         upper[i] += (extension_[i] - 1);
     }
-    upper.push_back(data_layout.countValues - 1);  // Add dimensions for the implicit values
+    // upper.push_back(data_layout.countValues - 1);  // Add dimensions for the implicit values
 
     bb_ = BoundingBox(lower, upper);
 }
@@ -166,16 +166,6 @@ metkit::mars::MarsRequest ViewPart::at(const ChunkedDataViewPartBoundingBox& bou
     ASSERT(intersection->entries() > 0);
 
     return RequestManipulation::selectRequest(request_, axes_, boundingBox);
-}
-
-
-metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIndex) const {
-    ASSERT(chunkIndex.size() == axes_.size());
-    auto request = request_;
-    for (size_t idx = 0; idx < chunkIndex.size(); ++idx) {
-        RequestManipulation::updateRequest(request, axes_[idx], chunkIndex[idx]);
-    }
-    return request;
 }
 
 bool ViewPart::extensibleWith(const ViewPart& other, const size_t extension_axis) const {
