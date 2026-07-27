@@ -122,5 +122,45 @@ expect_output "Deleted" \
     fdb-fam --endpoint="$fam_endpoint" --delete "/$test_region"
 
 ########################################################################################################################
+# 8. Argument validation: no action flag — expect failure exit code
+########################################################################################################################
+
+echo "--- TEST: no action flag (validation failure) ---"
+if out=$(fdb-fam --endpoint="$fam_endpoint" "/$test_region" 2>&1); then
+    die "Expected non-zero exit when no action flag is given, got success: $out"
+fi
+echo "$out" | grep -qF "exactly one of" || die "Expected 'exactly one of' for no action flag, got: $out"
+
+########################################################################################################################
+# 9. Argument validation: multiple action flags — expect failure exit code
+########################################################################################################################
+
+echo "--- TEST: multiple action flags (validation failure) ---"
+if out=$(fdb-fam --endpoint="$fam_endpoint" --create --delete --size=4096 "/$test_region" 2>&1); then
+    die "Expected non-zero exit when multiple action flags are given, got success: $out"
+fi
+echo "$out" | grep -qF "exactly one of" || die "Expected 'exactly one of' for multiple action flags, got: $out"
+
+########################################################################################################################
+# 10. Argument validation: missing [path] argument — expect failure exit code
+########################################################################################################################
+
+echo "--- TEST: missing path argument (validation failure) ---"
+if out=$(fdb-fam --endpoint="$fam_endpoint" --lookup 2>&1); then
+    die "Expected non-zero exit when path argument is missing, got success: $out"
+fi
+echo "$out" | grep -qF "missing argument" || die "Expected 'missing argument' for missing path, got: $out"
+
+########################################################################################################################
+# 11. Argument validation: --create without --size — expect failure exit code
+########################################################################################################################
+
+echo "--- TEST: create without size (validation failure) ---"
+if out=$(fdb-fam --endpoint="$fam_endpoint" --create --perm=0640 "/$test_region" 2>&1); then
+    die "Expected non-zero exit when --size is missing for --create, got success: $out"
+fi
+echo "$out" | grep -qF "missing option [size]" || die "Expected 'missing option [size]' for create without size, got: $out"
+
+########################################################################################################################
 
 echo "=== All fdb-fam CLI tests passed ==="
