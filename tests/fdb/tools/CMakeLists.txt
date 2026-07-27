@@ -40,4 +40,5 @@ add_subdirectory( wipe )
 add_subdirectory( reindex )
 add_subdirectory( dump-toc )
 add_subdirectory( copy )
+add_subdirectory( fam )
 
