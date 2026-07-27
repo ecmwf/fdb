@@ -14,6 +14,8 @@
 /// @date   April 2016
 
 #include "fdb5/rules/SchemaParser.h"
+#include "eckit/log/Log.h"
+#include "eckit/parser/StreamParser.h"
 #include "fdb5/rules/ExcludeAll.h"
 #include "fdb5/rules/MatchAlways.h"
 #include "fdb5/rules/MatchAny.h"
@@ -24,6 +26,7 @@
 #include "fdb5/rules/Rule.h"
 
 #include <memory>
+#include <sstream>
 #include <utility>
 
 namespace fdb5 {
@@ -250,18 +253,52 @@ std::unique_ptr<RuleDatabase> SchemaParser::parseDatabase() {
 void SchemaParser::parse(RuleList& result, TypesRegistry& registry) {
     eckit::StringDict types;
 
-    parseTypes(types);
-    for (const auto& [keyword, type] : types) {
-        registry.addType(keyword, type);
+    try {
+        parseTypes(types);
+        for (const auto& [keyword, type] : types) {
+            registry.addType(keyword, type);
+        }
+    }
+    catch (StreamParser::Error& spe) {
+        std::stringstream buf;
+        buf << "SchemaParser::parse: Error during parsing of types in schema, check the definitions: '<name>: "
+               "<type>;'."
+            << " Underlying issue: " << spe.what();
+
+        throw SchemaParser::Error(buf.str());
     }
 
-    char c;
-    while ((c = peek()) == '[') {
-        result.emplace_back(parseDatabase());
+    try {
+        char c;
+        while ((c = peek()) == '[') {
+            try {
+                result.emplace_back(parseDatabase());
+            }
+            catch (eckit::StreamParser::Error& spe) {
+                std::stringstream buf;
+                buf << "SchemaParser::parse: Error during parsing of rules in schema, check rules: for closing "
+                       "brackets and syntax."
+                    << " Underlying issue: " << spe.what();
+                throw SchemaParser::Error(buf.str());
+            }
+        }
+
+        if (c) {
+            throw SchemaParser::Error(std::string("Error parsing rules: remaining char: ") + c);
+        }
+    }
+    catch (StreamParser::Error& spe) {
+        std::stringstream buf;
+        buf << "SchemaParser::parse: Error during parsing of rules in schema, check the definitions.";
+        buf << " Underlying issue: " << spe.what();
+        throw SchemaParser::Error(buf.str());
     }
 
-    if (c) {
-        throw StreamParser::Error(std::string("Error parsing rules: remaining char: ") + c);
+
+    if (result.size() == 0) {
+        std::stringstream buf;
+        buf << "SchemaParser::parse: Empty rule list. Didn't find any rule in the provided schema file." << std::endl;
+        throw SchemaParser::Error(buf.str());
     }
 }
 
