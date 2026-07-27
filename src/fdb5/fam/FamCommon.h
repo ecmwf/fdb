@@ -1,0 +1,132 @@
+/*
+ * (C) Copyright 1996- ECMWF.
+ *
+ * This software is licensed under the terms of the Apache Licence Version 2.0
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
+ * granted to it by virtue of its status as an intergovernmental organisation nor
+ * does it submit to any jurisdiction.
+ */
+
+/*
+ * This software was developed as part of the Horizon Europe programme funded project OpenCUBE
+ * (Grant agreement: 101092984) horizon-opencube.eu
+ */
+
+/// @file   FamCommon.h
+/// @author Metin Cakircali
+/// @date   Jun 2024
+
+#pragma once
+
+#include "eckit/io/fam/FamMap.h"
+#include "eckit/io/fam/FamObjectName.h"
+#include "eckit/io/fam/FamRegion.h"
+#include "eckit/io/fam/FamRegionName.h"
+#include "eckit/io/fam/FamTypes.h"
+#include "eckit/serialisation/MemoryStream.h"
+
+#include <cstddef>
+#include <mutex>
+#include <optional>
+#include <string>
+
+namespace fdb5 {
+
+class Key;
+class Config;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+struct FamCommon {
+
+    using Map = eckit::FamMap128;
+
+    static constexpr auto type = eckit::fam::scheme;
+
+    static constexpr const char* db_keyword = "_fdb_";
+
+    static constexpr const char* schema_keyword = "_schema_";
+
+    static constexpr const char* registry_keyword = "_fdb-reg_";
+
+    static constexpr const char* axes_keyword = "_axes_";
+
+    static constexpr const char* catalogue_prefix = "c";
+
+    static constexpr const char* index_prefix = "i";
+
+    static constexpr const char* index_entry_prefix = "i:";
+
+    static constexpr const char* mask_entry_prefix = "m:";
+
+    /// Suffix appended to every FAM map table name.
+    static constexpr const char* table_suffix = Map::table_suffix;
+
+    static constexpr size_t encode_buffer_hint = 4096;
+
+    /// Render a Key's values as a string for use as a FamMap key (':' replaced by '-').
+    static std::string toString(const Key& key);
+
+    /// Serialise a Key to a binary string (inverse of decodeKey).
+    static std::string encodeKey(const Key& key);
+
+    /// Deserialise a Key from a binary string (inverse of encodeKey).
+    static Key decodeKey(eckit::MemoryStream key);
+
+    // rules
+
+    FamCommon(const FamCommon&) = delete;
+    FamCommon& operator=(const FamCommon&) = delete;
+    FamCommon(FamCommon&&) = delete;
+    FamCommon& operator=(FamCommon&&) = delete;
+
+    explicit FamCommon(eckit::FamRegionName root);
+
+    explicit FamCommon(const eckit::URI& root);
+
+    FamCommon(const Key& key, const Config& config);
+
+    FamCommon(const eckit::URI& uri, const Config& config);
+
+    virtual ~FamCommon() = default;
+
+    // methods
+
+    bool exists() const;
+
+    eckit::URI uri() const;
+
+    /// True iff @p uri belongs to the configured root region.
+    bool uriBelongs(const eckit::URI& uri) const;
+
+    /// Return the FAM object that backs the table of a FamMap-like data structure
+    /// named @p name (i.e. with the canonical FamMap table suffix).
+    eckit::FamObjectName tableObject(const std::string& name) const;
+
+    /// @note Throws if the region does not exist
+    const eckit::FamRegion& getRegion() const;
+
+
+private:  // methods
+
+    explicit FamCommon(const Config& config);
+
+protected:  // methods
+
+    eckit::FamRegionName& root() { return root_; }
+
+    const eckit::FamRegionName& root() const { return root_; }
+
+
+private:  // members
+
+    eckit::FamRegionName root_;
+
+    mutable std::once_flag regionOnce_;
+    mutable std::optional<eckit::FamRegion> region_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+}  // namespace fdb5
