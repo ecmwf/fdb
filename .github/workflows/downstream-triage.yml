@@ -24,6 +24,7 @@ jobs:
     name: downstream-triage
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       checks: read
       contents: read
     steps:
@@ -47,13 +48,39 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: List failed runs
-        if: ${{ inputs.downstream_ci_result == 'failure' || inputs.downstream_ci_hpc_result == 'failure' }}
+        if: ${{ inputs.downstream_ci_result == 'failure' || inputs.private_downstream_ci_result == 'failure' || inputs.downstream_ci_hpc_result == 'failure' || inputs.private_downstream_ci_hpc_result == 'failure' }}
         uses: actions/github-script@v8
         with:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const ref = context.sha;
+            const runId = context.runId;
+
+            const failedConclusions = new Set(['failure', 'timed_out', 'cancelled', 'startup_failure']);
+            const excludedPatterns = ['downstream-triage', 'notify'];
+            const isExcluded = (name) => {
+              const n = (name || '').toLowerCase();
+              return excludedPatterns.some((p) => n.includes(p));
+            };
+
+            // 1) Primary source: failed jobs in this workflow run.
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+              owner,
+              repo,
+              run_id: runId,
+              per_page: 100,
+            });
+
+            const failedJobs = jobs.filter((j) => {
+              if (!failedConclusions.has(j.conclusion)) {
+                return false;
+              }
+              if (isExcluded(j.name)) {
+                return false;
+              }
+              return true;
+            });
 
             const checks = await github.paginate(github.rest.checks.listForRef, {
               owner,
@@ -62,33 +89,41 @@ jobs:
               per_page: 100,
             });
 
-            const failedConclusions = new Set(['failure', 'timed_out', 'cancelled', 'startup_failure']);
-            // exclude helper checks
-            const excludedNames = new Set(['downstream-triage', 'notify']);
-            const failed = checks.filter((c) => {
+            // 2) Secondary source: failed check-runs for this ref.
+            const failedChecks = checks.filter((c) => {
               if (!failedConclusions.has(c.conclusion)) {
                 return false;
               }
-              if (excludedNames.has(c.name)) {
+              if (isExcluded(c.name)) {
                 return false;
               }
               return true;
             });
 
             const header = '### Failed Downstream Runs';
-            if (failed.length === 0) {
+            if (failedJobs.length === 0 && failedChecks.length === 0) {
               await core.summary
-                .addRaw(`${header}\n\nNo failed runs found.\n\n`)
+                .addRaw(`${header}\n\nNo failed runs found in jobs or check-runs.\n\n`)
                 .write();
               return;
             }
 
-            // write up to 30 failed runs to the summary
-            const lines = failed.slice(0, 30).map((c) => {
-              const url = c.html_url || `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const jobLines = failedJobs.slice(0, 30).map((j) => {
+              const url = j.html_url || `${context.serverUrl}/${owner}/${repo}/actions/runs/${runId}`;
+              return `- [${j.name}](${url}) (${j.conclusion})`;
+            });
+
+            const checkLines = failedChecks.slice(0, 30).map((c) => {
+              const url = c.html_url || `${context.serverUrl}/${owner}/${repo}/actions/runs/${runId}`;
               return `- [${c.name}](${url}) (${c.conclusion})`;
             });
 
+            let out = `${header}\n\n`;
+            out += '#### Failed jobs in this workflow run\n\n';
+            out += jobLines.length ? `${jobLines.join('\n')}\n\n` : 'None\n\n';
+            out += '#### Failed check-runs on this ref\n\n';
+            out += checkLines.length ? `${checkLines.join('\n')}\n\n` : 'None\n\n';
+
             await core.summary
-              .addRaw(`${header}\n\n${lines.join('\n')}\n\n`)
+              .addRaw(out)
               .write();
