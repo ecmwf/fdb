@@ -119,6 +119,15 @@ struct FakeExtractor : public cdv::Extractor {
         }
         return count;
     };
+
+    size_t extractInto(const chunked_data_view::ViewPart& part, const std::vector<std::size_t>& chunkIndex, float* ptr,
+                       size_t len, size_t extensionAxisIdx, size_t combinedExtSize,
+                       size_t extensionOffset) const override {
+        size_t count = 0;
+
+        // TODO(TKR): Implement for the view part
+        return count;
+    };
 };
 
 CASE("ChunkedDataView | View from 1 request | Can compute shape") {

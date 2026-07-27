@@ -34,9 +34,9 @@
 
 namespace chunked_data_view {
 
-ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor> extractor,
+ViewPart::ViewPart(metkit::mars::MarsRequest request, std::shared_ptr<Extractor> extractor,
                    std::shared_ptr<FdbInterface> fdb, const std::vector<AxisDefinition>& axes) :
-    request_(std::move(request)), extractor_(std::move(extractor)), fdb_(std::move(fdb)) {
+    request_(std::move(request)), extractor_(extractor), fdb_(std::move(fdb)) {
     ASSERT(fdb_);
     axes_.reserve(axes.size());
 
@@ -82,30 +82,9 @@ ViewPart::ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor>
     shape_.push_back(layout_.countValues);
 }
 
-void ViewPart::at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len, size_t expected_msg_count,
-                  size_t extensionAxisIdx, size_t combinedExtSize, size_t extensionOffset) const {
+metkit::mars::MarsRequest ViewPart::at(const std::vector<size_t>& chunkIndex) const {
     ASSERT(chunkIndex.size() - 1 == axes_.size());
-
-    auto request = RequestManipulation::selectRequest(request_, axes_, chunkIndex);
-
-    auto listIterator = fdb_->inspect(request);
-    try {
-        size_t written = extractor_->writeInto(std::move(listIterator), axes_, layout_, ptr, len, extensionAxisIdx,
-                                               combinedExtSize, extensionOffset);
-
-        if (written != expected_msg_count) {
-            std::ostringstream ss;
-            ss << "ViewPart::at: retrieved only " << written << " of " << expected_msg_count << " fields in request "
-               << request;
-            throw eckit::UserError(ss.str());
-        }
-    }
-    catch (GribExtractorException& exception) {
-        std::ostringstream ss;
-        ss << exception.what();
-        ss << "Request was: " << request_ << std::endl;
-        throw GribExtractorException(ss.str());
-    }
+    return RequestManipulation::selectRequest(request_, axes_, chunkIndex);
 }
 
 metkit::mars::MarsRequest ViewPart::requestAt(const std::vector<size_t>& chunkIndex) const {

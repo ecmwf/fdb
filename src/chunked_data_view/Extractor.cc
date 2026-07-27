@@ -9,18 +9,4 @@
  */
 #include "chunked_data_view/Extractor.h"
 
-#include "GribExtractor.h"
-#include "eckit/exception/Exceptions.h"
-
-#include <memory>
-
-namespace chunked_data_view {
-std::unique_ptr<Extractor> makeExtractor(ExtractorType type) {
-    switch (type) {
-        case ExtractorType::GRIB:
-            return std::make_unique<GribExtractor>();
-        default:
-            throw eckit::UserError("makeExtractor: Unknown extractor type specified");
-    }
-}
-}  // namespace chunked_data_view
+namespace chunked_data_view {}  // namespace chunked_data_view

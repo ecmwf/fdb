@@ -26,7 +26,7 @@ namespace chunked_data_view {
 class ViewPart {
 public:
 
-    ViewPart(metkit::mars::MarsRequest request, std::unique_ptr<Extractor> extractor, std::shared_ptr<FdbInterface> fdb,
+    ViewPart(metkit::mars::MarsRequest request, std::shared_ptr<Extractor> extractor, std::shared_ptr<FdbInterface> fdb,
              const std::vector<AxisDefinition>& axes);
 
     ~ViewPart() = default;
@@ -36,10 +36,11 @@ public:
     ViewPart(const ViewPart&) = delete;
     ViewPart& operator=(const ViewPart&) = delete;
 
-    void at(const std::vector<size_t>& chunkIndex, float* ptr, size_t len, size_t expected_msg_count,
-            size_t extensionAxisIdx = SIZE_MAX, size_t combinedExtSize = 0, size_t extensionOffset = 0) const;
+    metkit::mars::MarsRequest at(const std::vector<size_t>& chunkIndex) const;
     std::vector<size_t> shape() const { return shape_; }
     const DataLayout& layout() const { return layout_; }
+    const std::vector<Axis>& axes() const { return axes_; }
+
     bool isAxisChunked(size_t index) const { return axes_.at(index).isChunked(); };
 
     bool extensibleWith(const ViewPart& other, size_t extension_axis) const;
@@ -53,8 +54,8 @@ private:
     // Each keyword with cardinality greater than 1 needs to be covered by exactly one
     // axis definition
     metkit::mars::MarsRequest request_{};
-    std::vector<Axis> axes_;
-    std::unique_ptr<Extractor> extractor_{};
+    std::vector<Axis> axes_{};
+    std::shared_ptr<Extractor> extractor_{};
     std::shared_ptr<FdbInterface> fdb_{};
     DataLayout layout_{};
     std::vector<size_t> shape_{};

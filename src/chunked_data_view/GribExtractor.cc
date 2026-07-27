@@ -11,6 +11,7 @@
 
 #include "chunked_data_view/Axis.h"
 #include "chunked_data_view/DataLayout.h"
+#include "chunked_data_view/Fdb.h"
 #include "chunked_data_view/IndexMapper.h"
 #include "chunked_data_view/ListIterator.h"
 #include "chunked_data_view/exception/GribExtractorException.h"
@@ -27,6 +28,9 @@
 
 
 namespace chunked_data_view {
+
+GribExtractor::GribExtractor(const std::shared_ptr<FdbInterface> fdb) : _fdb(fdb) {}
+
 DataLayout GribExtractor::layout(eckit::DataHandle& handle) const {
     eckit::message::Reader reader(handle);
     eckit::message::Message msg = reader.next();
@@ -97,9 +101,24 @@ size_t GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iter
     }
 
     if (iterator_empty) {
-        throw GribExtractorException("GribExtractor: Empty iterator for request. Is the request correctly specified?");
+        throw chunked_data_view::GribExtractorException(
+            "GribExtractor: Empty iterator for request. Is the request correctly specified?");
     }
 
     return messagesWritten;
 }
+
+size_t GribExtractor::extractInto(const ViewPart& part, const std::vector<std::size_t>& chunkIndex, float* ptr,
+                                  size_t len, size_t extensionAxisIdx, size_t combinedExtSize,
+                                  size_t extensionOffset) const {
+
+    const auto& request = part.at(chunkIndex);
+    auto listIterator = _fdb->inspect(request);
+
+    size_t written = writeInto(std::move(listIterator), part.axes(), part.layout(), ptr, len, extensionAxisIdx,
+                               combinedExtSize, extensionOffset);
+
+    return written;
+}
+
 };  // namespace chunked_data_view

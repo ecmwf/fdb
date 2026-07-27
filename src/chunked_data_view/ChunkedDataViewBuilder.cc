@@ -32,7 +32,7 @@ ChunkedDataViewBuilder::ChunkedDataViewBuilder(std::unique_ptr<FdbInterface> fdb
 
 ChunkedDataViewBuilder& ChunkedDataViewBuilder::addPart(std::string marsRequestKeyValues,
                                                         std::vector<AxisDefinition> axes,
-                                                        std::unique_ptr<Extractor> extractor) {
+                                                        std::shared_ptr<Extractor> extractor) {
     parts_.emplace_back(std::move(marsRequestKeyValues), std::move(axes), std::move(extractor));
     return *this;
 }
@@ -42,10 +42,11 @@ ChunkedDataViewBuilder& ChunkedDataViewBuilder::extendOnAxis(size_t index) {
     return *this;
 }
 
-bool ChunkedDataViewBuilder::doPartsAlign(const std::vector<ViewPart>& viewParts) {
-    const ViewPart& first = viewParts[0];
+bool ChunkedDataViewBuilder::doPartsAlign(
+    const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& viewParts) {
+    const ViewPart& first = std::get<0>(viewParts[0]);
     bool extensible = true;
-    for (const ViewPart& viewPart : viewParts) {
+    for (const auto& [viewPart, _] : viewParts) {
         extensible &= first.extensibleWith(viewPart, extensionAxisIndex_.value_or(0));
     }
     return extensible;
@@ -60,13 +61,14 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
         throw eckit::UserError("Must specify an extension axis if multiple parts are specified.");
     }
 
-    std::vector<ViewPart> viewParts{};
+    std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>> viewParts{};
     viewParts.reserve(parts_.size());
 
     std::shared_ptr<FdbInterface> fdb = std::move(fdb_);
     for (auto& [req, defs, ext] : parts_) {
         auto request = fdb5::FDBToolRequest::requestsFromString(req).at(0).request();
-        viewParts.emplace_back(std::move(request), std::move(ext), fdb, defs);
+        ViewPart vp(std::move(request), ext, fdb, defs);
+        viewParts.emplace_back(std::move(vp), std::move(ext));
     }
 
     if (!doPartsAlign(viewParts)) {
