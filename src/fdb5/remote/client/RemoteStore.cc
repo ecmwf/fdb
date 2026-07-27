@@ -10,7 +10,6 @@
 
 #include "fdb5/remote/client/RemoteStore.h"
 
-#include "eckit/serialisation/ResizableMemoryStream.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Field.h"
@@ -33,9 +32,11 @@
 #include "eckit/runtime/Main.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/serialisation/Reanimator.h"
+#include "eckit/serialisation/ResizableMemoryStream.h"
 
 #include <dirent.h>
 #include <fcntl.h>
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -88,7 +89,7 @@ public:  // methods
         currentBuffer_(0),
         complete_(false) {}
 
-    virtual bool canSeek() const override { return false; }
+    bool canSeek() const override { return false; }
 
     ~FDBRemoteDataHandle() override {
         if (!complete_) {
@@ -286,11 +287,10 @@ void RemoteStore::archiveCb(
     ASSERT(static_cast<long long>(length) != 0ll);
 
     uint32_t id = generateRequestID();
-    {  // send the archival request
-        std::lock_guard<std::mutex> lock(locations_.mutex());
-        if (locations_.archived() == 0) {  // if this is the first archival request, notify the server
-            controlWriteCheckResponse(Message::Store, id, true);
-        }
+    // If this is the first archival request of this flush cycle, notify the server.
+    // Note: this must NOT be done while holding locations_.mutex(), a potential deadlock.
+    if (locations_.markStoreRequested()) {
+        controlWriteCheckResponse(Message::Store, id, true);
     }
     // store the callback, associated with the request id - to be done BEFORE sending the data
     locations_.archive(id, catalogue_archive);
