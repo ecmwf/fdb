@@ -71,8 +71,11 @@ TocCatalogueWriter::~TocCatalogueWriter() {
 
 // selectIndex is called during schema traversal and in case of out-of-order fieldLocation archival
 bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
-
     std::lock_guard lock(mutex_);
+    return selectIndexUnlocked(idxKey);
+}
+
+bool TocCatalogueWriter::selectIndexUnlocked(const Key& idxKey) {
 
     currentIndexKey_ = idxKey;
 
@@ -101,8 +104,11 @@ bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
 }
 
 bool TocCatalogueWriter::createIndex(const Key& idxKey, size_t datumKeySize) {
-
     std::lock_guard lock(mutex_);
+    return createIndexUnlocked(idxKey, datumKeySize);
+}
+
+bool TocCatalogueWriter::createIndexUnlocked(const Key& idxKey, size_t datumKeySize) {
 
     ASSERT(datumKeySize > 0);
     currentIndexKey_ = idxKey;
@@ -137,6 +143,10 @@ bool TocCatalogueWriter::createIndex(const Key& idxKey, size_t datumKeySize) {
 
 void TocCatalogueWriter::deselectIndex() {
     std::lock_guard lock(mutex_);
+    deselectIndexUnlocked();
+}
+
+void TocCatalogueWriter::deselectIndexUnlocked() {
     current_ = Index();
     currentFull_ = Index();
     currentIndexKey_ = Key();
@@ -261,12 +271,15 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
 }
 
 const Index& TocCatalogueWriter::currentIndex() {
+    std::lock_guard lock(mutex_);
+    return currentIndexUnlocked();
+}
 
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+const Index& TocCatalogueWriter::currentIndexUnlocked() {
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
-        selectIndex(currentIndexKey_);
+        selectIndexUnlocked(currentIndexKey_);
     }
 
     return current_;
@@ -274,7 +287,7 @@ const Index& TocCatalogueWriter::currentIndex() {
 
 const Key TocCatalogueWriter::currentIndexKey() {
     std::lock_guard lock(mutex_);
-    currentIndex();
+    currentIndexUnlocked();
     return currentIndexKey_;
 }
 
@@ -357,12 +370,12 @@ void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
     // Ensure the index matching idxKey is selected. we must NOT rely on currentIndexKey_
     // with a remote store, this runs on the listening thread and the archival thread may already have moved on
     if (current_.null() || currentIndexKey_ != idxKey) {
-        if (!selectIndex(idxKey)) {
-            createIndex(idxKey, datumKey.size());
+        if (!selectIndexUnlocked(idxKey)) {
+            createIndexUnlocked(idxKey, datumKey.size());
         }
     }
 
-    Field field(std::move(fieldLocation), currentIndex().timestamp());
+    Field field(std::move(fieldLocation), currentIndexUnlocked().timestamp());
 
     current_.put(datumKey, field);
 
@@ -372,7 +385,7 @@ void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
 }
 
 void TocCatalogueWriter::flush(size_t archivedFields) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     ASSERT(archivedFields == archivedLocations_);
 
     if (archivedLocations_ == 0) {

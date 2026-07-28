@@ -89,6 +89,13 @@ protected:  // methods
 
 private:  // methods
 
+    /// @note non-locking; callers must hold mutex_
+
+    bool selectIndexUnlocked(const Key& idxKey);
+    bool createIndexUnlocked(const Key& idxKey, size_t datumKeySize);
+    void deselectIndexUnlocked();
+    const Index& currentIndexUnlocked();
+
     void closeIndexes();
     void flushIndexes();
     void compactSubTocIndexes();
@@ -119,8 +126,7 @@ private:  // members
     eckit::AutoUmask umask_;
     size_t archivedLocations_;
 
-    // Recursive because archive()/currentIndex() call selectIndex()/createIndex() internally.
-    std::recursive_mutex mutex_;
+    std::mutex mutex_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
