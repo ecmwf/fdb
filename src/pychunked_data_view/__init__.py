@@ -18,6 +18,7 @@ from pychunked_data_view.chunked_data_view import (  # noqa: E402
     ChunkedDataViewBuilder,
     Chunking,
     ExtractorType,
+    MarsSelection,
 )
 
 __all__ = [
@@ -26,4 +27,5 @@ __all__ = [
     "ChunkedDataViewBuilder",
     "Chunking",
     "ExtractorType",
+    "MarsSelection",
 ]
