@@ -354,19 +354,11 @@ void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
 
     archivedLocations_++;
 
-    if (current_.null()) {
-        ASSERT(!currentIndexKey_.empty());
-        if (!selectIndex(currentIndexKey_)) {
-            createIndex(currentIndexKey_, datumKey.size());
-        }
-    }
-    else {
-        // in case of async archival (out of order store/catalogue archival), currentIndexKey_ can differ from the
-        // indexKey used for store archival. Reset it
-        if (currentIndexKey_ != idxKey) {
-            if (!selectIndex(idxKey)) {
-                createIndex(idxKey, datumKey.size());
-            }
+    // Ensure the index matching idxKey is selected. we must NOT rely on currentIndexKey_
+    // with a remote store, this runs on the listening thread and the archival thread may already have moved on
+    if (current_.null() || currentIndexKey_ != idxKey) {
+        if (!selectIndex(idxKey)) {
+            createIndex(idxKey, datumKey.size());
         }
     }
 
