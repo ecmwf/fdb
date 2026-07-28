@@ -7,20 +7,14 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
-#include "Buffer.h"
+#pragma once
 
-#include <algorithm>
-#include <cassert>
-#include <cstddef>
-
+#include "chunked_data_view/exception/RequestManipulationException.h"
 
 namespace chunked_data_view {
+RequestManipulationException::RequestManipulationException(const std::string& w) : Exception(w) {}
 
-void Buffer::setBits(size_t index) {
-    assert(index < bitset_.size());
-    bitset_[index] = true;
-}
-bool Buffer::filled() const {
-    return std::all_of(bitset_.begin(), bitset_.end(), [](bool v) { return v; });
-}
-};  // namespace chunked_data_view
+RequestManipulationException::RequestManipulationException(const std::string& w, const eckit::CodeLocation& l) :
+    Exception(w, l) {}
+
+}  // namespace chunked_data_view
