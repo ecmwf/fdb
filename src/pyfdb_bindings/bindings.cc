@@ -25,6 +25,7 @@
 #include <exception>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -87,6 +88,13 @@ class PyDataHandle : public eckit::DataHandle, public py::trampoline_self_life_s
 };
 
 metkit::mars::MarsRequest mars_request_from_map(const std::map<std::string, std::vector<std::string>>& map) {
+    // metkit's MARS language expansion is not thread-safe: MarsExpansion/MarsLanguage read (and, via
+    // eckit::Value's non-const std::map::operator[], mutate) process-global static state, and the
+    // eckit::Value copy-on-write refcount check is unsynchronised. Serialise all expansion here so
+    // concurrent list/retrieve/inspect calls that reach this helper cannot race inside metkit/eckit.
+    static std::mutex mars_expansion_mutex;
+    std::lock_guard<std::mutex> lock(mars_expansion_mutex);
+
     eckit::ValueMap value_map;
 
     for (const auto& pair : map) {
