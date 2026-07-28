@@ -79,26 +79,24 @@ std::string hashKey(const Key& key) {
     return eckit::MD5(key_str).digest().substr(0, k_hash_length);
 }
 
+bool hasSuffix(const std::string& name, const std::string& suffix) {
+    return name.size() >= suffix.size() && name.compare(name.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
 std::string stripSuffix(const std::string& name, const std::string& suffix) {
-    if (name.size() >= suffix.size() && name.compare(name.size() - suffix.size(), suffix.size(), suffix) == 0) {
-        return name.substr(0, name.size() - suffix.size());
-    }
-    return name;
+    return hasSuffix(name, suffix) ? name.substr(0, name.size() - suffix.size()) : name;
 }
 
 bool hasPrefix(const std::string& name, const std::string& prefix) {
     return name.size() >= prefix.size() && name.compare(0, prefix.size(), prefix) == 0;
 }
 
-void deallocateMap(const eckit::FamRegionName& root, const std::string& name) {
-    using Map = FamCommon::Map;
-    for (const char* suffix : {Map::table_suffix, Map::count_suffix, Map::lock_suffix}) {
-        try {
-            root.object(name + suffix).lookup().deallocate();
-        }
-        catch (const eckit::NotFound& e) {
-            LOG_DEBUG_LIB(LibFdb5) << "object already absent: " << e.what() << '\n';
-        }
+void deallocateObject(const eckit::FamRegion& region, const std::string& name) {
+    try {
+        region.deallocateObject(name);
+    }
+    catch (const eckit::NotFound& e) {
+        LOG_DEBUG_LIB(LibFdb5) << "FamCatalogue::deallocateObject: " << name << " (" << e.what() << ")\n";
     }
 }
 
@@ -324,12 +322,7 @@ bool FamCatalogue::doWipeUnknowns(const std::set<eckit::URI>& unknown_uris) cons
         if (!uriBelongs(uri)) {
             continue;
         }
-        try {
-            root().object(eckit::FamPath(uri).objectName()).lookup().deallocate();
-        }
-        catch (const eckit::NotFound& e) {
-            LOG_DEBUG_LIB(LibFdb5) << "FamCatalogue::doWipeUnknowns: object already absent: " << e.what() << '\n';
-        }
+        deallocateObject(getRegion(), eckit::FamPath(uri).objectName());
     }
     return true;
 }
@@ -342,29 +335,12 @@ bool FamCatalogue::doWipeURIs(const CatalogueWipeState& wipe_state) const {
             if (!uriBelongs(uri)) {
                 continue;
             }
-            // Each URI points to a FAM object (table/count/lock of a FamMap, or other data item).
-            // Best-effort removal: treat NotFound as benign.
-            try {
-                const auto obj_name = eckit::FamPath(uri).objectName();
-                root().object(obj_name).lookup().deallocate();
-
-                // A FamMap also creates companion objects (.c count, .l lock);
-                // attempt to clean those up if the URI was a table (.t) object.
-                if (obj_name.size() > 2 && obj_name.substr(obj_name.size() - 2) == FamCommon::table_suffix) {
-                    const auto base = obj_name.substr(0, obj_name.size() - 2);
-                    for (const char* suffix : {Map::count_suffix, Map::lock_suffix}) {
-                        try {
-                            root().object(base + suffix).lookup().deallocate();
-                        }
-                        catch (const eckit::NotFound& e) {
-                            LOG_DEBUG_LIB(LibFdb5)
-                                << "FamCatalogue::doWipeURIs: companion object already absent: " << e.what() << '\n';
-                        }
-                    }
-                }
+            const auto obj_name = eckit::FamPath(uri).objectName();
+            if (hasSuffix(obj_name, FamCommon::table_suffix)) {
+                Map::deallocate(getRegion(), stripSuffix(obj_name, FamCommon::table_suffix));
             }
-            catch (const eckit::NotFound& e) {
-                LOG_DEBUG_LIB(LibFdb5) << "FamCatalogue::doWipeURIs: object already absent: " << e.what() << '\n';
+            else {
+                deallocateObject(getRegion(), obj_name);
             }
         }
     }
@@ -427,9 +403,9 @@ bool FamCatalogue::doUnsafeFullWipe() const {
 
     // Deallocate index maps, then the catalogue map itself.
     for (const auto& idx_name : index_names) {
-        deallocateMap(root(), idx_name);
+        Map::deallocate(getRegion(), idx_name);
     }
-    deallocateMap(root(), name_);
+    Map::deallocate(getRegion(), name_);
 
     // Deregister from the global registry.
     try {
