@@ -2,7 +2,9 @@ list(APPEND tests
     view
     axis
     index_mapper
-    builder
+    request_manipulation_bounding_box
+    bounding_box
+    view_individual_chunking
 )
 
 foreach(test ${tests})

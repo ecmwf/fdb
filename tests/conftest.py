@@ -20,6 +20,16 @@ from numpy import repeat
 from pyfdb import FDB
 
 
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        "offline: tests that run without network access using synthetic local FDB data",
+    )
+    config.addinivalue_line(
+        "markers", "online: tests that require network access to ECMWF open data"
+    )
+
+
 def create_fdb(root: pathlib.Path, schema_src: pathlib.Path) -> pathlib.Path:
     """Create a new FDB under 'root' using the provided schema.
 
@@ -84,6 +94,16 @@ def populate_fdb(config: pathlib.Path, messages: list[pathlib.Path]):
     fdb.flush()
 
 
+@pytest.fixture(scope="function")
+def empty_fdb(data_path, function_tmp) -> pathlib.Path:
+    """Provide an empty, writable FDB backed by the standard test schema.
+
+    Returns the path to the ``fdb_config.yaml`` for the newly created database.
+    The database directory is isolated per test function and torn down automatically.
+    """
+    return create_fdb(function_tmp, data_path / "schema")
+
+
 @pytest.fixture(scope="session")
 def data_path() -> pathlib.Path:
     """
@@ -97,6 +117,11 @@ def data_path() -> pathlib.Path:
 @pytest.fixture(scope="session")
 def session_tmp(tmp_path_factory) -> pathlib.Path:
     return tmp_path_factory.mktemp("session_data")
+
+
+@pytest.fixture(scope="function")
+def function_tmp(tmp_path_factory) -> pathlib.Path:
+    return tmp_path_factory.mktemp("function_data")
 
 
 @pytest.fixture(scope="session")
@@ -222,8 +247,8 @@ def read_only_fdb_setup_for_sfc_pl_example(
     return cfg
 
 
-@pytest.fixture(scope="session", autouse=False)
-def read_only_fdb_setup(data_path, session_tmp, build_grib_messages) -> pathlib.Path:
+@pytest.fixture(scope="function", autouse=False)
+def read_only_fdb_setup(data_path, function_tmp, build_grib_messages) -> pathlib.Path:
     """
     Creates a FDB setup in this tests temp directory.
     Test FDB currently reads all grib files in `tests/data`
@@ -232,10 +257,10 @@ def read_only_fdb_setup(data_path, session_tmp, build_grib_messages) -> pathlib.
     """
     schema_path_src = data_path / "schema"
     assert schema_path_src.is_file()
-    schema_path = session_tmp / "schema"
+    schema_path = function_tmp / "schema"
     shutil.copy(schema_path_src, schema_path)
 
-    db_store_path = session_tmp / "db_store"
+    db_store_path = function_tmp / "db_store"
     db_store_path.mkdir()
     fdb_config = dict(
         type="local",
@@ -251,7 +276,7 @@ def read_only_fdb_setup(data_path, session_tmp, build_grib_messages) -> pathlib.
         ],
     )
     fdb_config_str = yaml.dump(fdb_config)
-    fdb_config_path = session_tmp / "fdb_config.yaml"
+    fdb_config_path = function_tmp / "fdb_config.yaml"
     fdb_config_path.write_text(fdb_config_str)
     fdb = FDB(fdb_config_str)
     fdb.archive(build_grib_messages.read_bytes())
@@ -362,7 +387,9 @@ def build_pattern_grib_messages(data_path, session_tmp) -> pathlib.Path:
             ec.codes_set(gid, "time", time)
             ec.codes_set(gid, "paramId", parameter)
             ec.codes_set(gid, "level", level)
-            ec.codes_set_values(gid, list(itertools.repeat(total_values + value, count_values)))
+            ec.codes_set_values(
+                gid, list(itertools.repeat(total_values + value, count_values))
+            )
             ec.codes_write(gid, out)
 
     ec.codes_release(gid)

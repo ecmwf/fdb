@@ -12,65 +12,7 @@ from z3fdb import (
 
 logging.basicConfig(level=logging.DEBUG)
 
-
-def test_additional_comma_end_of_request(
-    read_only_fdb_pattern_setup,
-) -> None:
-    builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
-
-    # The individual values are scrambled to check for persistent retrieval on the FDB side
-    builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "time=18/0/12/6,"
-        "date=2020-01-03/2020-01-01/2020-01-02,"
-        "levtype=sfc,"
-        "step=0,"
-        "param=167/165/166,",  # Ending in an additional comma
-        [
-            AxisDefinition(["time"], Chunking.SINGLE_VALUE),
-            AxisDefinition(["step"], Chunking.SINGLE_VALUE),
-            AxisDefinition(["param"], Chunking.SINGLE_VALUE),
-            AxisDefinition(["date"], Chunking.SINGLE_VALUE),
-        ],
-        ExtractorType.GRIB,
-    )
-
-    with pytest.raises(MarsRequestFormattingError):
-        builder.build()
-
-
-def test_missing_comma_between_keys(
-    read_only_fdb_pattern_setup,
-) -> None:
-    builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
-
-    # The individual values are scrambled to check for persistent retrieval on the FDB side
-    builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "time=18/0/12/6"  # Missing comma here
-        "date=2020-01-03/2020-01-01/2020-01-02,"
-        "levtype=sfc,"
-        "step=0,"
-        "param=167/165/166",
-        [
-            AxisDefinition(["time"], Chunking.SINGLE_VALUE),
-            AxisDefinition(["step"], Chunking.SINGLE_VALUE),
-            AxisDefinition(["param"], Chunking.SINGLE_VALUE),
-            AxisDefinition(["date"], Chunking.SINGLE_VALUE),
-        ],
-        ExtractorType.GRIB,
-    )
-
-    with pytest.raises(MarsRequestFormattingError):
-        builder.build()
+pytestmark = pytest.mark.offline
 
 
 @pytest.mark.parametrize("invalid_axis", [3, 4])
@@ -84,16 +26,12 @@ def test_extend_on_invalid_axis_raises(
     # Index 3 is the implicit field dimension (must not be used as extension
     # axis); index 4 is strictly out of bounds.
     builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "time=0/6/12/18,"
-        "date=2020-01-01/to/2020-01-02,"
-        "levtype=sfc,"
-        "step=0,"
-        "param=165/166/167",
+        {
+            "type": "an", "class": "ea", "domain": "g", "expver": "0001",
+            "stream": "oper", "time": [0, 6, 12, 18],
+            "date": "2020-01-01/to/2020-01-02",
+            "levtype": "sfc", "step": 0, "param": [165, 166, 167],
+        },
         [
             AxisDefinition(["date"], Chunking.SINGLE_VALUE),
             AxisDefinition(["time"], Chunking.SINGLE_VALUE),
@@ -114,18 +52,14 @@ def test_wrong_key(
 ) -> None:
     builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
 
-    # The individual values are scrambled to check for persistent retrieval on the FDB side
     builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "blubb=0001,"  # There is no blubb key
-        "stream=oper,"
-        "time=18/0/12/6,"
-        "date=2020-01-03/2020-01-01/2020-01-02,"
-        "levtype=sfc,"
-        "step=0,"
-        "param=167/165/166",
+        {
+            "type": "an", "class": "ea", "domain": "g",
+            "blubb": "0001",  # There is no blubb key
+            "stream": "oper", "time": [18, 0, 12, 6],
+            "date": ["2020-01-03", "2020-01-01", "2020-01-02"],
+            "levtype": "sfc", "step": 0, "param": [167, 165, 166],
+        },
         [
             AxisDefinition(["time"], Chunking.SINGLE_VALUE),
             AxisDefinition(["step"], Chunking.SINGLE_VALUE),
