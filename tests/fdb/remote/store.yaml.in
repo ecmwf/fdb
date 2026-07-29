@@ -1,6 +1,7 @@
 ---
 type: store
 serverPort: 10001
+serverThreaded: true
 spaces:
 - handler: Default
   roots:
