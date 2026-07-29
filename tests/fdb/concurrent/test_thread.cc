@@ -20,6 +20,7 @@
 #include "test_common.h"
 
 #include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/Key.h"
 
@@ -27,9 +28,11 @@
 
 #include <atomic>
 #include <cstddef>
+#include <cstdlib>
 #include <exception>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <thread>
 #include <vector>
@@ -295,6 +298,53 @@ CASE("Multi-thread: concurrent reads (shared FDB)") {
                 // RootManager::fileSpaces() -> Config::getSubConfigurations() copies eckit::Value /
                 // LocalConfiguration objects sharing a non-atomically reference-counted eckit::Counted.
                 if (list_count(shared, key.request("list"), fdb5::ListMode::Deduplicate) != 1) {
+                    return 1;
+                }
+            }
+        }
+        return 0;
+    }));
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+CASE("Multi-thread: concurrent retrieve (shared FDB, shared ClientConnection)") {
+    const auto threads = static_cast<size_t>(thread_count());
+    const int iterations = env_int("TEST_FDB_RETRIEVE_ITERATIONS", 4);
+    const bool config = (::getenv("FDB5_CONFIG_FILE") != nullptr) || (::getenv("FDB5_CONFIG") != nullptr);
+
+    std::unique_ptr<TestFixture> fixture;
+    if (!config) {
+        fixture = std::make_unique<TestFixture>(static_cast<int>(threads));
+        archive_all(static_cast<int>(threads));
+    }
+
+    struct Field {
+        metkit::mars::MarsRequest request;
+        std::string bytes;
+    };
+
+    // single-threaded, this is reference to test against
+    std::vector<Field> fields;
+    {
+        fdb5::FDB fdb;
+        auto iter = fdb.list(fdb5::FDBToolRequest({}, true, {}), /* deduplicate */ true);
+        fdb5::ListElement elem;
+        while (iter.next(elem)) {
+            const auto request = elem.combinedKey().request("retrieve");
+            std::unique_ptr<eckit::DataHandle> handle(fdb.retrieve(request));
+            EXPECT(handle != nullptr);
+            fields.push_back({request, read_handle(*handle)});
+        }
+    }
+    EXPECT(!fields.empty());
+
+    expect_workers_ok(run_threads(threads, [&fields, iterations](size_t) {
+        fdb5::FDB fdb;
+        for (int round = 0; round < iterations; ++round) {
+            for (const auto& field : fields) {
+                std::unique_ptr<eckit::DataHandle> handle(fdb.retrieve(field.request));
+                if (!handle || read_handle(*handle) != field.bytes) {
                     return 1;
                 }
             }
