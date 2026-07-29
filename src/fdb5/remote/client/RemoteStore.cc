@@ -23,6 +23,7 @@
 #include "fdb5/remote/client/ReadLimiter.h"
 #include "fdb5/rules/Rule.h"
 
+#include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/Length.h"
@@ -220,18 +221,27 @@ Client::EndpointList storeEndpoints(const Config& config) {
     return out;
 }
 
+void initReadLimiter(const Config& config) {
+    static const size_t memoryLimit = Resource<size_t>(
+        "$FDB_READ_LIMIT;fdbReadLimit", config.userConfig().getUnsigned("limits.read", size_t(1) * 1024 * 1024 * 1024));
+    ReadLimiter::init(memoryLimit);
+}
+
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
 RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
-    Client(config, storeEndpoints(config)), dbKey_(dbKey), config_(config) {}
+    Client(config, storeEndpoints(config)), dbKey_(dbKey), config_(config) {
+    initReadLimiter(config);
+}
 
 // this is used only in retrieval, with an URI already referring to an accessible Store
 RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
     Client(config, eckit::net::Endpoint(uri.hostport()), uri.hostport()), config_(config) {
     // no need to set the local_ flag on the read path
     ASSERT(uri.scheme() == "fdb");
+    initReadLimiter(config);
 }
 
 RemoteStore::~RemoteStore() {
