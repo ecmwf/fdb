@@ -366,80 +366,76 @@ void ClientConnection::listeningControlThreadLoop() {
                                        << std::endl;
                 return;
             }
-            else {
-                if (hdr.clientID()) {
-                    bool handled = false;
+            if (hdr.clientID()) {
+                bool handled = false;
 
-                    ASSERT(hdr.control() || single_);
+                ASSERT(hdr.control() || single_);
 
-                    bool isPromise = false;
-                    {
-                        // Hold promisesMutex_ only for the promise lookup/erase (NOT across handle(); risk a deadlock.
-                        std::lock_guard<std::mutex> lock(promisesMutex_);
+                bool isPromise = false;
+                {
+                    // Hold promisesMutex_ only for the promise lookup/erase (NOT across handle(); risk a deadlock.
+                    std::lock_guard<std::mutex> lock(promisesMutex_);
 
-                        auto pp = promises_.find(hdr.requestID);
-                        if (pp != promises_.end()) {
-                            if (hdr.payloadSize == 0) {
-                                ASSERT(hdr.message == Message::Received);
-                                pp->second.set_value(Buffer(0));
-                            }
-                            else {
-                                pp->second.set_value(std::move(payload));
-                            }
-                            promises_.erase(pp);
-                            handled = true;
-                            isPromise = true;
-                        }
-                    }
-                    if (!isPromise) {
-                        Client* client = nullptr;
-                        {
-                            std::lock_guard lock(clientsMutex_);
-
-                            auto it = clients_.find(hdr.clientID());
-                            if (it == clients_.end()) {
-                                std::ostringstream ss;
-                                ss << "ERROR: CONTROL connection=" << controlEndpoint_
-                                   << " received [clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID
-                                   << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
-                                ss << "ClientID (" << hdr.clientID() << ") not found. ABORTING";
-                                Log::status() << ss.str() << std::endl;
-                                Log::error() << "Retrieving... " << ss.str() << std::endl;
-                                throw SeriousBug(ss.str(), Here());
-                            }
-                            client = it->second;
-                        }
-
+                    auto pp = promises_.find(hdr.requestID);
+                    if (pp != promises_.end()) {
                         if (hdr.payloadSize == 0) {
-                            handled = client->handle(hdr.message, hdr.requestID);
+                            ASSERT(hdr.message == Message::Received);
+                            pp->second.set_value(Buffer(0));
                         }
                         else {
-                            handled = client->handle(hdr.message, hdr.requestID, std::move(payload));
+                            pp->second.set_value(std::move(payload));
                         }
+                        promises_.erase(pp);
+                        handled = true;
+                        isPromise = true;
                     }
+                }
+                if (!isPromise) {
+                    Client* client = nullptr;
+                    {
+                        std::lock_guard lock(clientsMutex_);
 
-                    if (!handled) {
-                        std::ostringstream ss;
-                        if (hdr.message == Message::Error) {
-                            ss << "RemoteFDB received an unhandled error on CONTROL connection. [clientID="
-                               << hdr.clientID() << ",requestID=" << hdr.requestID << "]";
-                            if (hdr.payloadSize) {
-                                std::string msg;
-                                msg.resize(payload.size(), ' ');
-                                payload.copy(msg.data(), payload.size());
-                                ss << ": " << msg;
-                            }
-                            throw RemoteFDBException(ss.str(), controlEndpoint_);
-                        }
-                        else {
+                        auto it = clients_.find(hdr.clientID());
+                        if (it == clients_.end()) {
+                            std::ostringstream ss;
                             ss << "ERROR: CONTROL connection=" << controlEndpoint_
-                               << "Unexpected message recieved [message=" << hdr.message
-                               << ",clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID << "]. ABORTING";
+                               << " received [clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID
+                               << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
+                            ss << "ClientID (" << hdr.clientID() << ") not found. ABORTING";
                             Log::status() << ss.str() << std::endl;
-                            Log::error() << "Client Retrieving... " << ss.str() << std::endl;
+                            Log::error() << "Retrieving... " << ss.str() << std::endl;
                             throw SeriousBug(ss.str(), Here());
                         }
+                        client = it->second;
                     }
+
+                    if (hdr.payloadSize == 0) {
+                        handled = client->handle(hdr.message, hdr.requestID);
+                    }
+                    else {
+                        handled = client->handle(hdr.message, hdr.requestID, std::move(payload));
+                    }
+                }
+
+                if (!handled) {
+                    std::ostringstream ss;
+                    if (hdr.message == Message::Error) {
+                        ss << "RemoteFDB received an unhandled error on CONTROL connection. [clientID="
+                           << hdr.clientID() << ",requestID=" << hdr.requestID << "]";
+                        if (hdr.payloadSize) {
+                            std::string msg;
+                            msg.resize(payload.size(), ' ');
+                            payload.copy(msg.data(), payload.size());
+                            ss << ": " << msg;
+                        }
+                        throw RemoteFDBException(ss.str(), controlEndpoint_);
+                    }
+                    ss << "ERROR: CONTROL connection=" << controlEndpoint_
+                       << "Unexpected message recieved [message=" << hdr.message << ",clientID=" << hdr.clientID()
+                       << ",requestID=" << hdr.requestID << "]. ABORTING";
+                    Log::status() << ss.str() << std::endl;
+                    Log::error() << "Client Retrieving... " << ss.str() << std::endl;
+                    throw SeriousBug(ss.str(), Here());
                 }
             }
         }
@@ -479,57 +475,53 @@ void ClientConnection::listeningDataThreadLoop() {
                 closeConnection();
                 return;
             }
-            else {
-                if (hdr.clientID()) {
-                    bool handled = false;
-                    Client* client = nullptr;
-                    {
-                        std::lock_guard lock(clientsMutex_);
+            if (hdr.clientID()) {
+                bool handled = false;
+                Client* client = nullptr;
+                {
+                    std::lock_guard lock(clientsMutex_);
 
-                        auto it = clients_.find(hdr.clientID());
-                        if (it == clients_.end()) {
-                            std::ostringstream ss;
-                            ss << "ERROR: DATA connection=" << dataEndpoint_ << " received [clientID=" << hdr.clientID()
-                               << ",requestID=" << hdr.requestID << ",message=" << hdr.message
-                               << ",payload=" << hdr.payloadSize << "]" << std::endl;
-                            ss << "ClientID (" << hdr.clientID() << ") not found. ABORTING";
-                            Log::status() << ss.str() << std::endl;
-                            Log::error() << "Retrieving... " << ss.str() << std::endl;
-                            throw SeriousBug(ss.str(), Here());
-                        }
-                        client = it->second;
-                    }
-
-                    ASSERT(client);
-                    ASSERT(!hdr.control());
-                    if (hdr.payloadSize == 0) {
-                        handled = client->handle(hdr.message, hdr.requestID);
-                    }
-                    else {
-                        handled = client->handle(hdr.message, hdr.requestID, std::move(payload));
-                    }
-
-                    if (!handled) {
+                    auto it = clients_.find(hdr.clientID());
+                    if (it == clients_.end()) {
                         std::ostringstream ss;
-                        if (hdr.message == Message::Error) {
-                            ss << "RemoteFDB received an unhandled error on DATA connection. [clientID="
-                               << hdr.clientID() << ",requestID=" << hdr.requestID << "]";
-                            if (hdr.payloadSize) {
-                                std::string msg;
-                                msg.resize(payload.size(), ' ');
-                                payload.copy(msg.data(), payload.size());
-                                ss << ": " << msg;
-                            }
-                            throw RemoteFDBException(ss.str(), dataEndpoint_);
-                        }
-                        else {
-                            ss << "ERROR: DATA connection=" << dataEndpoint_ << " Unexpected message recieved ("
-                               << hdr.message << "). ABORTING";
-                            Log::status() << ss.str() << std::endl;
-                            Log::error() << "Client Retrieving... " << ss.str() << std::endl;
-                            throw SeriousBug(ss.str(), Here());
-                        }
+                        ss << "ERROR: DATA connection=" << dataEndpoint_ << " received [clientID=" << hdr.clientID()
+                           << ",requestID=" << hdr.requestID << ",message=" << hdr.message
+                           << ",payload=" << hdr.payloadSize << "]" << std::endl;
+                        ss << "ClientID (" << hdr.clientID() << ") not found. ABORTING";
+                        Log::status() << ss.str() << std::endl;
+                        Log::error() << "Retrieving... " << ss.str() << std::endl;
+                        throw SeriousBug(ss.str(), Here());
                     }
+                    client = it->second;
+                }
+
+                ASSERT(client);
+                ASSERT(!hdr.control());
+                if (hdr.payloadSize == 0) {
+                    handled = client->handle(hdr.message, hdr.requestID);
+                }
+                else {
+                    handled = client->handle(hdr.message, hdr.requestID, std::move(payload));
+                }
+
+                if (!handled) {
+                    std::ostringstream ss;
+                    if (hdr.message == Message::Error) {
+                        ss << "RemoteFDB received an unhandled error on DATA connection. [clientID=" << hdr.clientID()
+                           << ",requestID=" << hdr.requestID << "]";
+                        if (hdr.payloadSize) {
+                            std::string msg;
+                            msg.resize(payload.size(), ' ');
+                            payload.copy(msg.data(), payload.size());
+                            ss << ": " << msg;
+                        }
+                        throw RemoteFDBException(ss.str(), dataEndpoint_);
+                    }
+                    ss << "ERROR: DATA connection=" << dataEndpoint_ << " Unexpected message recieved (" << hdr.message
+                       << "). ABORTING";
+                    Log::status() << ss.str() << std::endl;
+                    Log::error() << "Client Retrieving... " << ss.str() << std::endl;
+                    throw SeriousBug(ss.str(), Here());
                 }
             }
         }
