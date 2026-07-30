@@ -53,11 +53,15 @@ private:
 
     ClientConnectionRouter() {}  ///< private constructor only used by singleton
 
+    /// Drop entries whose connection has been destroyed (expired) or invalidated.
+    /// Caller must hold connectionMutex_.
+    void reap();
+
     std::mutex connectionMutex_;
 
-    /// @note The ClientConnection is (jointly) owned by the Client objects.
-    /// When the last client is disconnects, the ClientConnection deregisters itself from this map.
-    std::unordered_map<eckit::net::Endpoint, std::shared_ptr<ClientConnection>> connections_;
+    /// @note ClientConnections are owned by the Client objects.
+    /// dead slots are never handed out and purged lazily by reap().
+    std::unordered_map<eckit::net::Endpoint, std::weak_ptr<ClientConnection>> connections_;
 };
 
 }  // namespace fdb5::remote
