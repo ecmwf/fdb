@@ -17,8 +17,29 @@ namespace fdb5 {
 
 // ---------------------------------------------------------------------------------------------------
 
+namespace {
+
+// RAII helper to restore control state on exit in case wipe fails.
+struct RestoreControlStateOnExit {
+    CatalogueWipeState& state;
+
+    ~RestoreControlStateOnExit() {
+        try {
+            state.restoreControlState();
+        }
+        catch (...) {
+            eckit::Log::warning() << "Failed to restore control state after wipe (db " << state.dbKey() << ")"
+                                  << std::endl;
+        }
+    }
+};
+
+}  // namespace
+
 
 WipeElements WipeCoordinator::wipe(CatalogueWipeState& catalogueWipeState, bool doit, bool unsafeWipeAll) const {
+
+    RestoreControlStateOnExit restoreControlState{catalogueWipeState};
 
     auto& storeWipeStates = catalogueWipeState.storeStates();
 
