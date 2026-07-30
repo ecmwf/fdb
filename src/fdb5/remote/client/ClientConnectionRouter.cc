@@ -1,5 +1,21 @@
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 
+#include "fdb5/remote/client/ClientConnection.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/log/Log.h"
+#include "eckit/net/Endpoint.h"
+
+#include <cstddef>
+#include <cstdlib>
+#include <memory>
+#include <mutex>
+#include <ostream>
+#include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
+
 namespace {
 
 class ConnectionError : public eckit::Exception {
@@ -43,9 +59,7 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(const eckit
         connections_.emplace(endpoint, clientConnection);
         return clientConnection;
     }
-    else {
-        throw ConnectionError(endpoint);
-    }
+    throw ConnectionError(endpoint);
 }
 
 std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
@@ -114,19 +128,8 @@ ClientConnectionRouter& ClientConnectionRouter::instance() {
     return router;
 }
 
-void ClientConnectionRouter::teardown(std::exception_ptr e) {
-
-    try {
-        if (e) {
-            std::rethrow_exception(e);
-        }
-    }
-    catch (const std::exception& e) {
-        eckit::Log::error() << "error: " << e.what();
-    }
-
-    std::lock_guard<std::mutex> lock(connectionMutex_);
-
+ClientConnectionRouter::~ClientConnectionRouter() {
+    std::lock_guard lock(connectionMutex_);
     for (const auto& [endp, conn] : connections_) {
         if (conn) {
             eckit::Log::warning() << "closing connection " << endp << std::endl;

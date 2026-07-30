@@ -12,6 +12,10 @@
 
 #include "fdb5/remote/client/ClientConnection.h"
 
+#include "eckit/net/Endpoint.h"
+
+#include <memory>
+#include <mutex>
 #include <unordered_map>
 
 namespace eckit {
@@ -27,6 +31,8 @@ public:
 
     static ClientConnectionRouter& instance();
 
+    ~ClientConnectionRouter();
+
     ClientConnectionRouter(const ClientConnectionRouter&) = delete;
     ClientConnectionRouter& operator=(const ClientConnectionRouter&) = delete;
     ClientConnectionRouter(ClientConnectionRouter&&) = delete;
@@ -40,8 +46,6 @@ public:
 
     std::shared_ptr<ClientConnection> refresh(const eckit::Configuration& config,
                                               const std::shared_ptr<ClientConnection>& connection);
-
-    void teardown(std::exception_ptr e);
 
     void deregister(ClientConnection& connection);
 
