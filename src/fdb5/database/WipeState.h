@@ -210,19 +210,16 @@ class CatalogueWipeState : public WipeState {
 
 public:
 
-    /// @todo: Can we remove some of these constructors?
-
-    CatalogueWipeState() : WipeState() {}
-
-    CatalogueWipeState(const Key& dbKey) : WipeState(), dbKey_(dbKey) {}
+    CatalogueWipeState(const Key& dbKey, const Config& config) : WipeState(), dbKey_(dbKey), config_(config) {}
 
     CatalogueWipeState(const Key& dbKey, std::set<eckit::URI> safeURIs, URIMap deleteURIs,
-                       std::set<Index> indexesToMask) :
+                       std::set<Index> indexesToMask, const Config& config) :
         WipeState(std::move(safeURIs), std::move(deleteURIs)),
         dbKey_(dbKey),
+        config_(config),
         indexesToMask_(std::move(indexesToMask)) {}
 
-    CatalogueWipeState(eckit::Stream& s);
+    CatalogueWipeState(eckit::Stream& s, const Config& config);
 
     // Non-copyable
     CatalogueWipeState(const CatalogueWipeState&) = delete;
@@ -242,12 +239,14 @@ public:
         }
     }
 
-    Catalogue& catalogue(const Config& config) const {
+    Catalogue& catalogue() const {
         if (!catalogue_) {
-            catalogue_ = CatalogueReaderFactory::instance().build(dbKey_, config);
+            catalogue_ = CatalogueReaderFactory::instance().build(dbKey_, config_);
         }
         return *catalogue_;
     }
+
+    const Config& config() const { return config_; }
 
     void initialControlState(const ControlIdentifiers& ids) { initialControlState_ = ids; }
 
@@ -290,6 +289,7 @@ private:
 
     // For finding the catalogue again later.
     Key dbKey_;
+    Config config_;
 
     mutable std::unique_ptr<Catalogue> catalogue_;
 

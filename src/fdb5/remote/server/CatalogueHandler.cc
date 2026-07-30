@@ -190,6 +190,7 @@ struct BaseHelper {
     virtual size_t encodeBufferSize(const ValueType&) const { return 4096; }
     void extraDecode(eckit::Stream&) {}
     ValueType apiCall(FDB&, const FDBToolRequest&) const { NOTIMP; }
+    ValueType makeValue(const CatalogueHandler&) const { return ValueType(); }
 
     struct Encoded {
         size_t position;
@@ -249,9 +250,11 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
             // Expect this dbKey not to already be in progress
             ASSERT(handler.wipesInProgress_.find(dbKey) == handler.wipesInProgress_.end());
 
-            handler.wipesInProgress_[dbKey] = {
-                unsafeWipeAll_, CatalogueReaderFactory::instance().build(dbKey, handler.config_),
-                CatalogueWipeState(dbKey, state.safeURIs(), state.deleteMap(), state.indexesToMask())};
+            handler.wipesInProgress_.emplace(
+                dbKey, CatalogueHandler::WipeInProgress{
+                           unsafeWipeAll_, CatalogueReaderFactory::instance().build(dbKey, handler.config_),
+                           CatalogueWipeState(dbKey, state.safeURIs(), state.deleteMap(), state.indexesToMask(),
+                                              handler.config_)});
         }
         else {
             handler.wipesInProgress_.erase(dbKey);
@@ -268,6 +271,10 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
         // XXX: I'm inclined to say that in a multi-server scenario, unsafe wipe all is a bad idea.
         ASSERT(!unsafeWipeAll_);
         return fdb.internal_->wipe(request, doit_, false, unsafeWipeAll_);
+    }
+
+    CatalogueWipeState makeValue(const CatalogueHandler& handler) const {
+        return CatalogueWipeState(Key(), handler.config());
     }
 
 private:
@@ -316,7 +323,7 @@ void CatalogueHandler::handleApiCall(uint32_t clientID, uint32_t requestID, ecki
                                    }
                                    auto iterator = helper.apiCall(*fdb, request);
 
-                                   typename decltype(iterator)::value_type elem;
+                                   typename decltype(iterator)::value_type elem = helper.makeValue(*this);
                                    while (iterator.next(elem)) {
                                        auto encoded(helper.encode(elem, *this));
                                        write(Message::Blob, false, clientID, requestID, encoded.buf, encoded.position);

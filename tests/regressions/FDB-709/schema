@@ -1,0 +1,30 @@
+# Default types
+
+param:      Param;
+step:       Step;
+date:       Date;
+hdate:      Date;
+refdate:    Date;
+latitude:   Double;
+longitude:  Double;
+levelist:   Double;
+grid:       Grid;
+expver:     Expver;
+
+time:       Time;
+fcmonth:    Integer;
+
+number:     Integer;
+frequency:  Integer;
+direction:  Integer;
+channel:    Integer;
+
+# Classic operational-style schema: the first (database) level carries
+# class, expver, stream, date, time and domain. This ensures the database
+# key (and therefore the wipe request) contains 'time', so a SelectFDB lane
+# keyed on time can be matched unambiguously.
+
+[ class, expver, stream, date, time, domain
+       [ type, levtype
+               [ step, levelist, param ]]
+]

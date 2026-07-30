@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+
+# Non-regression test for FDB-709:
+#
+#   fdb-wipe against a 'type: select' configuration fails while fdb-list
+#   against the exact same configuration succeeds.
+#
+# This was due to the WipeCoordinator constructing Catalogues from the
+# high-level selectfdb config, where in fact the specific lane's config
+# must be used.
+
+set -eux
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+fdbwipe="$<TARGET_FILE:fdb-wipe>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+wdir=$bindir/FDB-709
+
+### cleanup and prepare test
+
+rm -rf "$wdir"
+mkdir -p "$wdir"
+
+for f in config.yaml schema x.grib
+do
+    cp "$srcdir/$f" "$wdir"
+done
+
+cd "$wdir"
+
+mkdir -p root1200 root0000
+
+export FDB_HOME="$wdir"
+export FDB5_CONFIG_FILE=config.yaml
+
+request="class=od,expver=xxxx,stream=oper,date=20250614,time=1200,domain=g"
+minkeys="class,expver,stream,date,time"
+
+### populate the (time=1200) lane
+$fdbwrite x.grib
+
+### list works against the select config.
+$fdblist "$request" --minimum-keys="$minkeys" --porcelain | tee out.list
+[[ -s out.list ]] || die "expected list to find the archived data"
+
+# Dry-run
+$fdbwipe "$request" --minimum-keys="$minkeys"
+
+# Actually wipe.
+$fdbwipe "$request" --minimum-keys="$minkeys" --doit
+
+### Data is in fact wiped.
+$fdblist --all --minimum-keys="" --porcelain | tee out.after
+[[ ! -s out.after ]] || die "expected all data to be wiped"
+
+# Also ensure the folders are empty.
+[[ -z "$(ls -A root1200)" ]] || die "expected root1200 to be empty"
+[[ -z "$(ls -A root0000)" ]] || die "expected root0000 to be empty"

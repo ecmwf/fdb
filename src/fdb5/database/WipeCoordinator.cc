@@ -30,9 +30,11 @@ WipeElements WipeCoordinator::wipe(CatalogueWipeState& catalogueWipeState, bool 
 
     LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - processing store wipe states" << std::endl;
 
+    const Config& config = catalogueWipeState.config();
+
     // Contact each of the relevant stores.
     for (const auto& [storeURI, storeState] : storeWipeStates) {
-        storeState->store(config_).finaliseWipeState(*storeState, doit, unsafeWipeAll);
+        storeState->store(config).finaliseWipeState(*storeState, doit, unsafeWipeAll);
     }
 
     UnknownsBuckets unknownURIs = gatherUnknowns(catalogueWipeState, storeWipeStates);
@@ -68,12 +70,13 @@ WipeCoordinator::UnknownsBuckets WipeCoordinator::gatherUnknowns(
     const CatalogueWipeState& catalogueWipeState,
     const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates) const {
     UnknownsBuckets unknowns;
+    const Config& config = catalogueWipeState.config();
 
     // 1) The catalogue should ignore URIs belonging to stores.
     for (const auto& uri : catalogueWipeState.unrecognisedURIs()) {
         bool found = false;
         for (const auto& [storeURI, storeState] : storeWipeStates) {
-            if (storeState->store(config_).uriBelongs(uri)) {
+            if (storeState->store(config).uriBelongs(uri)) {
                 found = true;
                 break;
             }
@@ -86,7 +89,7 @@ WipeCoordinator::UnknownsBuckets WipeCoordinator::gatherUnknowns(
     // 2) Each store should ignore URIs belonging to the catalogue.
     for (const auto& [storeURI, storeState] : storeWipeStates) {
         for (const auto& uri : storeState->unrecognisedURIs()) {
-            if (catalogueWipeState.catalogue(config_).uriBelongs(uri)) {
+            if (catalogueWipeState.catalogue().uriBelongs(uri)) {
                 continue;
             }
             unknowns.store[storeURI].insert(uri);
@@ -145,8 +148,9 @@ void WipeCoordinator::doWipeURIs(const CatalogueWipeState& catalogueWipeState,
 
     LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - DOIT! performing wipe operations" << std::endl;
 
+    const Config& config = catalogueWipeState.config();
     std::unique_ptr<Catalogue> catalogue =
-        CatalogueReaderFactory::instance().build(catalogueWipeState.dbKey(), config_);
+        CatalogueReaderFactory::instance().build(catalogueWipeState.dbKey(), config);
 
     // 1. Mask indexes
     /// @todo: This requires better test coverage...
@@ -167,7 +171,7 @@ void WipeCoordinator::doWipeURIs(const CatalogueWipeState& catalogueWipeState,
         LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - attempting store wipe all" << std::endl;
         bool fullWipeSupported = true;
         for (const auto& [uri, storeState] : storeWipeStates) {
-            const Store& store = storeState->store(config_);
+            const Store& store = storeState->store(config);
             if (store.doUnsafeFullWipe()) {
                 storeWiped[uri] = true;
             }
@@ -195,7 +199,7 @@ void WipeCoordinator::doWipeURIs(const CatalogueWipeState& catalogueWipeState,
                 continue;
             }
 
-            const Store& store = storeState->store(config_);
+            const Store& store = storeState->store(config);
 
             auto it = unknownBuckets.store.find(uri);
             if (it != unknownBuckets.store.end()) {
@@ -210,7 +214,7 @@ void WipeCoordinator::doWipeURIs(const CatalogueWipeState& catalogueWipeState,
         if (storeWiped[uri]) {
             continue;
         }
-        const Store& store = storeState->store(config_);
+        const Store& store = storeState->store(config);
         store.doWipeURIs(*storeState);
     }
 
@@ -231,7 +235,7 @@ void WipeCoordinator::doWipeURIs(const CatalogueWipeState& catalogueWipeState,
         if (storeWiped[uri]) {
             continue;
         }
-        const Store& store = storeState->store(config_);
+        const Store& store = storeState->store(config);
         store.doWipeEmptyDatabase();
     }
 }

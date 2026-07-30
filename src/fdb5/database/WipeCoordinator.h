@@ -13,7 +13,6 @@
 #include <memory>
 #include "eckit/filesystem/URI.h"
 #include "fdb5/api/helpers/WipeIterator.h"
-#include "fdb5/config/Config.h"
 #include "fdb5/database/WipeState.h"
 
 namespace fdb5 {
@@ -22,14 +21,13 @@ namespace fdb5 {
 class WipeCoordinator {
 public:
 
+    WipeCoordinator() = default;
+    ~WipeCoordinator() = default;
+
     struct UnknownsBuckets {
         std::map<eckit::URI, std::set<eckit::URI>> store;  // store -> URIs
         std::set<eckit::URI> catalogue;
     };
-
-public:
-
-    WipeCoordinator(const Config& config) : config_(config) {}
 
     /// Perform a wipe operation on the provided wipe state.
     /// URIs will only be deleted if 'doit' is true.
@@ -52,9 +50,6 @@ private:
                     const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
                     const UnknownsBuckets& unknownURIs, bool unsafeWipeAll) const;
 
-private:
-
-    const Config& config_;
 };
 
 }  // namespace fdb5

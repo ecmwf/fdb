@@ -1,0 +1,36 @@
+---
+# Reproducer for FDB-709.
+#
+# A 'type: select' FDB whose lanes each define their roots *inline* via a
+# 'spaces:' block. There is deliberately NO ~fdb/etc/fdb/roots or
+# ~fdb/etc/fdb/spaces file on disk (FDB_HOME points at a directory without
+# them). fdb-list resolves the inline spaces correctly and works. fdb-wipe,
+# however, rebuilds the catalogue from its Key inside the WipeCoordinator using
+# the top-level select config (which has no inline 'spaces:'), so RootManager
+# falls back to parsing the (intentionally absent) ~fdb/etc/fdb/{roots,spaces}
+# files and aborts with a "Read error on .../etc/fdb/spaces" exception.
+type: select
+schema: ./schema
+fdbs:
+- select: time=1200
+  type: local
+  engine: toc
+  spaces:
+  - handler: Default
+    roots:
+    - path: ./root1200
+      list: true
+      retrieve: true
+      archive: true
+      wipe: true
+- select: time=0000
+  type: local
+  engine: toc
+  spaces:
+  - handler: Default
+    roots:
+    - path: ./root0000
+      list: true
+      retrieve: true
+      archive: true
+      wipe: true

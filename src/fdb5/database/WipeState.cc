@@ -160,7 +160,7 @@ WipeElements CatalogueWipeState::extractWipeElements() {
     return wipeElements;
 }
 
-CatalogueWipeState::CatalogueWipeState(eckit::Stream& s) : WipeState(s) {
+CatalogueWipeState::CatalogueWipeState(eckit::Stream& s, const Config& config) : WipeState(s), config_(config) {
 
     s >> dbKey_;
 
