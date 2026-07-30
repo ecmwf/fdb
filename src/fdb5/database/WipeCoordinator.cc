@@ -149,8 +149,7 @@ void WipeCoordinator::doWipeURIs(const CatalogueWipeState& catalogueWipeState,
     LOG_DEBUG_LIB(LibFdb5) << "WipeCoordinator::wipe - DOIT! performing wipe operations" << std::endl;
 
     const Config& config = catalogueWipeState.config();
-    std::unique_ptr<Catalogue> catalogue =
-        CatalogueReaderFactory::instance().build(catalogueWipeState.dbKey(), config);
+    std::unique_ptr<Catalogue> catalogue = CatalogueReaderFactory::instance().build(catalogueWipeState.dbKey(), config);
 
     // 1. Mask indexes
     /// @todo: This requires better test coverage...

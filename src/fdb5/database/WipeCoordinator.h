@@ -49,7 +49,6 @@ private:
     void doWipeURIs(const CatalogueWipeState& catalogueWipeState,
                     const std::map<eckit::URI, std::unique_ptr<StoreWipeState>>& storeWipeStates,
                     const UnknownsBuckets& unknownURIs, bool unsafeWipeAll) const;
-
 };
 
 }  // namespace fdb5
