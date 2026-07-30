@@ -46,7 +46,7 @@ public:  // methods
         options_.push_back(new eckit::option::SimpleOption<bool>("lookup", "Lookup item"));
 
         options_.push_back(new eckit::option::SimpleOption<bool>("create", "Create item if it doesn't exist"));
-        options_.push_back(new eckit::option::SimpleOption<std::uint64_t>("size", "Size in bytes (needed by create)"));
+        options_.push_back(new eckit::option::SimpleOption<std::size_t>("size", "Size in bytes (needed by create)"));
         options_.push_back(new eckit::option::SimpleOption<std::string>("perm", "Permissions (needed by create)"));
 
         options_.push_back(new eckit::option::SimpleOption<bool>("delete", "Delete item if it exists"));
