@@ -331,6 +331,21 @@ SessionID ClientConnection::verifyServerStartupResponse() {
     return serverSession;
 }
 
+void ClientConnection::handleConnectionError(const std::exception_ptr& eptr) {
+    try {
+        if (eptr) {
+            std::rethrow_exception(eptr);
+        }
+    }
+    catch (const std::exception& e) {
+        Log::error() << "error: " << e.what() << std::endl;
+    }
+    catch (...) {
+        Log::error() << "error: unknown exception on connection " << controlEndpoint_ << std::endl;
+    }
+    teardown();
+}
+
 void ClientConnection::listeningControlThreadLoop() {
 
     try {
@@ -431,11 +446,8 @@ void ClientConnection::listeningControlThreadLoop() {
 
         // We don't want to let exceptions escape inside a worker thread.
     }
-    catch (const std::exception& e) {
-        ClientConnectionRouter::instance().teardown(std::make_exception_ptr(e));
-    }
     catch (...) {
-        ClientConnectionRouter::instance().teardown(std::current_exception());
+        handleConnectionError(std::current_exception());
     }
 }
 
@@ -524,11 +536,8 @@ void ClientConnection::listeningDataThreadLoop() {
 
         // We don't want to let exceptions escape inside a worker thread.
     }
-    catch (const std::exception& e) {
-        ClientConnectionRouter::instance().teardown(std::make_exception_ptr(e));
-    }
     catch (...) {
-        ClientConnectionRouter::instance().teardown(std::current_exception());
+        handleConnectionError(std::current_exception());
     }
 }
 
