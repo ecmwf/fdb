@@ -23,7 +23,7 @@ foreach( _t ${fdb_tools_grib_tests} )
     ecbuild_add_test(
         TARGET fdb_test_tools_${_t}
         TYPE SCRIPT
-        CONDITION HAVE_GRIB
+        CONDITION HAVE_GRIB AND eccodes_HAVE_BUILD_TOOLS
         ENVIRONMENT ECCODES_BINARY_PATH=$<TARGET_FILE_DIR:grib_set>
         ENVIRONMENT "${test_environment}"
         COMMAND fdb_${_t}.sh)
@@ -32,13 +32,15 @@ endforeach()
 
 add_subdirectory( auxiliary )
 add_subdirectory( list )
-if ( HAVE_GRIB AND ( metkit_VERSION VERSION_GREATER_EQUAL 1.16 ))
-    add_subdirectory( compare )
-endif()
 add_subdirectory( inspect )
 add_subdirectory( wipe )
-add_subdirectory( reindex )
 add_subdirectory( dump-toc )
-add_subdirectory( copy )
-add_subdirectory( fam )
+if (HAVE_GRIB AND eccodes_HAVE_BUILD_TOOLS)
+    if (metkit_VERSION VERSION_GREATER_EQUAL 1.16 )
+        add_subdirectory( compare )
+    endif()
+    add_subdirectory( reindex )
+    add_subdirectory( copy )
+    add_subdirectory( fam )
+endif()
 

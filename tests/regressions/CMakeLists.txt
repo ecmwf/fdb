@@ -1,6 +1,6 @@
 if (HAVE_FDB_BUILD_TOOLS) # test scripts use the fdb tools
 
-    if (HAVE_GRIB)
+    if (HAVE_GRIB AND eccodes_HAVE_BUILD_TOOLS)
         add_subdirectory(FDB-238)
         add_subdirectory(FDB-239)
         add_subdirectory(FDB-240)
@@ -33,7 +33,7 @@ if (HAVE_FDB_BUILD_TOOLS) # test scripts use the fdb tools
     if (HAVE_FDB_REMOTE)
         add_subdirectory(FDB-419)
         
-        if (HAVE_GRIB)
+        if (HAVE_GRIB AND eccodes_HAVE_BUILD_TOOLS)
             add_subdirectory(FDB-610)
             # add_subdirectory(FDB-491)
             add_subdirectory(FDB-595)
