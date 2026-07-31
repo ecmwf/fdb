@@ -33,7 +33,6 @@
 #include <string>
 #include <thread>
 #include <utility>
-#include <vector>
 
 using namespace eckit;
 using namespace eckit::literals;
@@ -372,14 +371,23 @@ void ClientConnection::listeningControlThreadLoop() {
                 ASSERT(hdr.control() || single_);
 
                 bool isPromise = false;
-                {
+                // messages "Blob/Complete/Store/etc" must be dispatched to the client
+                // only a Received/Error may fulfill a promise
+                if (hdr.message == Message::Received || hdr.message == Message::Error) {
                     // Hold promisesMutex_ only for the promise lookup/erase (NOT across handle(); risk a deadlock.
                     std::lock_guard<std::mutex> lock(promisesMutex_);
 
                     auto pp = promises_.find(hdr.requestID);
                     if (pp != promises_.end()) {
-                        if (hdr.payloadSize == 0) {
-                            ASSERT(hdr.message == Message::Received);
+                        if (hdr.message == Message::Error) {
+                            std::string msg(hdr.payloadSize, ' ');
+                            if (hdr.payloadSize != 0) {
+                                payload.copy(msg.data(), payload.size());
+                            }
+                            pp->second.set_exception(
+                                std::make_exception_ptr(RemoteFDBException(msg, controlEndpoint_)));
+                        }
+                        else if (hdr.payloadSize == 0) {
                             pp->second.set_value(Buffer(0));
                         }
                         else {
