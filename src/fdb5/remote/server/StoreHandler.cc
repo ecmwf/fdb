@@ -296,8 +296,7 @@ Store& StoreHandler::getStore(uint32_t clientID) {
         for (const auto& kv : stores_) {
             Log::error() << "  clientID: " << kv.first << ", store: " << *(kv.second.store) << std::endl;
         }
-        write(Message::Error, true, 0, 0, what.c_str(), what.length());
-        throw;
+        error(what, 0, 0);
     }
 
     return *(it->second.store);
@@ -315,7 +314,7 @@ Store& StoreHandler::store(uint32_t clientID, const Key& dbKey) {
     if (!single_) {
         numDataConnection_++;
     }
-    return *((stores_.emplace(clientID, StoreHelper(!single_, dbKey, config_)).first)->second.store);
+    return *((stores_.emplace(clientID, StoreHelper(!single_, dbKey, innerConfig_)).first)->second.store);
 }
 
 Store& StoreHandler::getStore(uint32_t clientID, const eckit::URI& uri) {
@@ -330,7 +329,7 @@ Store& StoreHandler::getStore(uint32_t clientID, const eckit::URI& uri) {
     if (!single_) {
         numDataConnection_++;
     }
-    return *((stores_.emplace(clientID, StoreHelper(!single_, uri, config_)).first)->second.store);
+    return *((stores_.emplace(clientID, StoreHelper(!single_, uri, innerConfig_)).first)->second.store);
 }
 
 void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) const {
@@ -342,7 +341,7 @@ void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, con
     {
         eckit::MemoryStream stream(payload);
         const Key dbKey(stream);
-        exists = StoreFactory::instance().build(dbKey, config_)->exists();
+        exists = StoreFactory::instance().build(dbKey, innerConfig_)->exists();
     }
 
     eckit::Buffer existBuf(5);
@@ -358,7 +357,12 @@ void StoreHandler::doWipeUnknowns(const uint32_t clientID, const uint32_t reques
 
     const WipeInProgress& currentWipe = cachedWipeState(key);
 
-    std::set<eckit::URI> uris{s};
+    size_t numUnknowns = 0;
+    s >> numUnknowns;
+    std::set<eckit::URI> uris;
+    for (size_t i = 0; i < numUnknowns; ++i) {
+        uris.emplace(s);
+    }
 
     // Only proceed if unsafeWipeAll is set.
     ASSERT(currentWipe.unsafeWipeAll);
@@ -430,6 +434,9 @@ const StoreHandler::WipeInProgress& StoreHandler::cachedWipeState(const Key& uri
 
 void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
 
+    static bool acceptUnsigned =
+        eckit::Resource<bool>("$FDB_ACCEPT_UNSIGNED_WIPE_STATE;fdbAcceptUnsignedWipeState", false);
+
     bool unsafeAll = false;
     bool doit = false;
     eckit::MemoryStream inStream(payload);
@@ -441,11 +448,12 @@ void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t req
 
     // XXX Validate signature.
     const std::string dummy_secret = eckit::Resource<std::string>("$FDB_WIPE_SECRET;fdbWipeSecret", "");
-    ASSERT(!dummy_secret.empty());
+    if (!acceptUnsigned) {
+        ASSERT(!dummy_secret.empty());
 
-    uint64_t expected_hash = inState.hash(dummy_secret);
-    ASSERT(inState.signature().validSignature(expected_hash));
-
+        uint64_t expected_hash = inState.hash(dummy_secret);
+        ASSERT(inState.signature().validSignature(expected_hash));
+    }
     // -- From here on, we can trust the state came from the catalogue. --
 
     // The URIs need to be converted to internal URIs for this store.
@@ -478,7 +486,9 @@ void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t req
 
     // keep state for doWipeURIs
     if (doit) {
-        ASSERT(!unsafeAll);  // Until Im explicitly told otherwise, we dont support unsafeAll on remote fdb.
+        if (unsafeAll) {
+            isEnabled(ControlIdentifier::UnsafeWipeAll);
+        }
         wipesInProgress_.emplace(dbkey, WipeInProgress{unsafeAll, std::move(storeState)});
     }
 }

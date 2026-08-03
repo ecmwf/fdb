@@ -47,7 +47,7 @@ public:
 
 private:
 
-    ClientConnectionRouter() {}  ///< private constructor only used by singleton
+    ClientConnectionRouter();  ///< private constructor only used by singleton
 
     std::mutex connectionMutex_;
 

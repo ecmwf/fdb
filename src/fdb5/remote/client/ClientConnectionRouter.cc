@@ -1,7 +1,11 @@
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 
-namespace {
+#include <unistd.h>
+#include <cstdlib>
+#include <mutex>
+#include <random>
 
+namespace {
 class ConnectionError : public eckit::Exception {
 public:
 
@@ -24,7 +28,11 @@ ConnectionError::ConnectionError(const eckit::net::Endpoint& endpoint) {
     reason(s.str());
     eckit::Log::status() << what() << std::endl;
 }
+
+std::mutex initMutex;
+std::unique_ptr<fdb5::remote::ClientConnectionRouter> instance_{nullptr};
 }  // namespace
+
 namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -57,7 +65,8 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
     while (fullEndpoints.size() > 0) {
 
         // select a random endpoint
-        size_t idx = std::rand() % fullEndpoints.size();
+        std::mt19937 rd;
+        size_t idx = std::uniform_int_distribution<size_t>(0, fullEndpoints.size() - 1)(rd);
         eckit::net::Endpoint endpoint = fullEndpoints.at(idx).first;
 
         // look for the selected endpoint
@@ -86,7 +95,7 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
 
 std::shared_ptr<ClientConnection> ClientConnectionRouter::refresh(const eckit::Configuration& config,
                                                                   const std::shared_ptr<ClientConnection>& connection) {
-    std::lock_guard lock(connectionMutex_);
+    std::lock_guard<std::mutex> lock(connectionMutex_);
     const auto iter = connections_.find(connection->controlEndpoint());
     if (iter == connections_.end() || !iter->second->valid()) {
         auto newConnection =
@@ -109,9 +118,14 @@ void ClientConnectionRouter::deregister(ClientConnection& connection) {
     }
 }
 
+ClientConnectionRouter::ClientConnectionRouter() {}
+
 ClientConnectionRouter& ClientConnectionRouter::instance() {
-    static ClientConnectionRouter router;
-    return router;
+    std::lock_guard<std::mutex> lock(initMutex);
+    if (!instance_) {
+        instance_.reset(new ClientConnectionRouter());
+    }
+    return *instance_;
 }
 
 void ClientConnectionRouter::teardown(std::exception_ptr e) {

@@ -17,6 +17,7 @@
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/client/ClientConnection.h"
 
+#include <atomic>
 #include <mutex>
 #include <utility>  // std::pair
 #include <vector>
@@ -24,15 +25,6 @@
 using namespace eckit::literals;
 
 namespace fdb5::remote {
-
-//----------------------------------------------------------------------------------------------------------------------
-
-class RemoteFDBException : public eckit::RemoteException {
-public:
-
-    RemoteFDBException(const std::string& msg, const eckit::net::Endpoint& endpoint) :
-        eckit::RemoteException(msg, endpoint) {}
-};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -91,6 +83,11 @@ public:  // methods
 
 protected:
 
+    /// Deregister this client from its connection. Idempotent.
+    /// Derived classes with state accessed by handle() should call this
+    /// in their destructor, before that state is destroyed.
+    void deregister();
+
     std::shared_ptr<ClientConnection> connection_;
 
 private:
@@ -100,6 +97,7 @@ private:
 private:
 
     uint32_t id_;
+    std::atomic<bool> deregistered_{false};
     mutable std::mutex blockingRequestMutex_;
 };
 

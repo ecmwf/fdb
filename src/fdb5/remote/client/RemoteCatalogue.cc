@@ -196,14 +196,14 @@ const eckit::Configuration& RemoteCatalogue::clientConfig() const {
 }
 
 bool RemoteCatalogue::handle(Message message, uint32_t requestID) {
-    Log::warning() << *this << " - Received [message=" << ((uint)message) << ",requestID=" << requestID << "]"
+    Log::warning() << *this << " - Received unexpected [message=" << message << ",requestID=" << requestID << "]"
                    << std::endl;
     return false;
 }
 
 bool RemoteCatalogue::handle(Message message, uint32_t requestID, eckit::Buffer&& payload) {
-    LOG_DEBUG_LIB(LibFdb5) << *this << " - Received [message=" << ((uint)message) << ",requestID=" << requestID
-                           << ",payloadSize=" << payload.size() << "]" << std::endl;
+    Log::warning() << *this << " - Received unexpected [message=" << message << ",requestID=" << requestID
+                   << ",payloadSize=" << payload.size() << "]" << std::endl;
     return false;
 }
 

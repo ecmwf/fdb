@@ -9,6 +9,7 @@
  */
 
 #include "fdb5/remote/client/ReadLimiter.h"
+#include <mutex>
 #include <sstream>
 #include "eckit/config/Resource.h"
 #include "fdb5/remote/client/RemoteStore.h"
@@ -17,22 +18,30 @@ namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 namespace {
-ReadLimiter* instance_ = nullptr;
+std::mutex instanceMutex_;
+std::unique_ptr<ReadLimiter> instance_{nullptr};
 }  // namespace
 
-bool ReadLimiter::isInitialised() {
-    return instance_ != nullptr;
-}
 
 ReadLimiter& ReadLimiter::instance() {
-    ASSERT(instance_);
+    // the instance cannot be a static ReadLimiter, which is causing the following error on exit,
+    // when the instance is destroyed and the mutex is destroyed before the instance:
+    // libc++abi: terminating due to uncaught exception of type std::__1::system_error: mutex lock failed: Invalid
+    // argument
+    std::lock_guard<std::mutex> lock(instanceMutex_);
+    if (instance_ == nullptr) {
+        instance_.reset(new ReadLimiter(defaultReadLimit()));
+    }
     return *instance_;
 }
 
-void ReadLimiter::init(size_t memoryLimit) {
-    if (!instance_) {
-        instance_ = new ReadLimiter(memoryLimit);
-    }
+size_t ReadLimiter::defaultReadLimit() {
+    static size_t limit = eckit::Resource<size_t>("$FDB_READ_LIMIT;fdbReadLimit", size_t{1_GiB});  // 1 GiB default
+    return limit;
+}
+
+void ReadLimiter::setMemoryLimit(size_t memoryLimit) {
+    memoryLimit_ = memoryLimit;
 }
 
 ReadLimiter::ReadLimiter(size_t memoryLimit) : memoryUsed_{0}, memoryLimit_{memoryLimit} {}
@@ -61,7 +70,6 @@ void ReadLimiter::add(RemoteStore* client, uint32_t id, const FieldLocation& fie
 }
 
 bool ReadLimiter::tryNextRequest() {
-    std::lock_guard<std::mutex> lock(mutex_);
     if (requests_.empty()) {
         return false;
     }
@@ -104,33 +112,38 @@ void ReadLimiter::finishRequest(uint32_t clientID, uint32_t requestID) {
 
 /// @note: Only called when a RemoteStore is destroyed, which is currently on exit.
 void ReadLimiter::evictClient(size_t clientID) {
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(instanceMutex_);
+    if (instance_ != nullptr) {
+        std::lock_guard<std::mutex> lock(instance_->mutex_);
         // Remove the client's active requests
-        auto it = activeRequests_.find(clientID);
+        auto it = instance_->activeRequests_.find(clientID);
 
-        if (it != activeRequests_.end()) {
+        if (it != instance_->activeRequests_.end()) {
             for (auto requestID : it->second) {
-                memoryUsed_ -= resultSizes_[{clientID, requestID}];
-                resultSizes_.erase({clientID, requestID});
+                instance_->memoryUsed_ -= instance_->resultSizes_[{clientID, requestID}];
+                instance_->resultSizes_.erase({clientID, requestID});
             }
-            activeRequests_.erase(it);
+            instance_->activeRequests_.erase(it);
         }
 
         // Clean up any pending requests attributed to this client
         ///@note O(n), room for optimisation.
-        auto it2 = requests_.begin();
-        while (it2 != requests_.end()) {
+        auto it2 = instance_->requests_.begin();
+        while (it2 != instance_->requests_.end()) {
             if (it2->client->id() == clientID) {
-                it2 = requests_.erase(it2);
+                it2 = instance_->requests_.erase(it2);
             }
             else {
                 ++it2;  // Only increment if we didn't erase
             }
         }
-    }
+        instance_->tryNextRequest();
 
-    tryNextRequest();
+        if (instance_->activeRequests_.empty() && instance_->requests_.empty()) {
+            // If there are no more active or pending requests, we can reset the instance to free memory.
+            instance_.reset();
+        }
+    }
 }
 
 void ReadLimiter::print(std::ostream& out) const {

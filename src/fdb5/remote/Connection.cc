@@ -15,7 +15,7 @@ namespace fdb5::remote {
 Connection::Connection() : single_(false) {}
 
 void Connection::teardown() {
-    closingSocket_ = true;
+    closingSocket_.store(true);
 
     if (!valid()) {
         return;
@@ -91,11 +91,29 @@ eckit::Buffer Connection::read(bool control, MessageHeader& hdr) const {
             && readUnsafe(socket, &tail, sizeof(tail))) {
 
             ASSERT(tail == MessageHeader::EndMarker);
+
+            if (hdr.message == Message::Exit) {
+                closingSocket_.store(true);
+            }
+            if (hdr.message == Message::Error) {
+                eckit::net::Endpoint remoteEndpoint{socket.remoteHost(), socket.remotePort()};
+                std::ostringstream ss;
+                if (payload.size() == 0) {
+                    ss << "Received an error without error description for clientID " << hdr.clientID() << " requestID "
+                       << hdr.requestID << std::endl;
+                    throw RemoteFDBException(ss.str(), remoteEndpoint);
+                }
+                std::string errmsg{static_cast<const char*>(payload.data()), payload.size()};
+                ss << "Received error message: \"" << errmsg << "\" from " << remoteEndpoint << " for clientID "
+                   << hdr.clientID() << " requestID " << hdr.requestID << std::endl;
+                eckit::Log::warning() << ss.str();
+            }
             return payload;
         }
     }
 
     hdr.message = Message::Exit;
+    closingSocket_.store(true);
     return eckit::Buffer{0};
 }
 
@@ -130,7 +148,7 @@ void Connection::write(const Message msg, const bool control, const uint32_t cli
 
 void Connection::error(std::string_view msg, uint32_t clientID, uint32_t requestID) const {
     eckit::Log::error() << "[clientID=" << clientID << ",requestID=" << requestID << "]  " << msg << std::endl;
-    write(Message::Error, false, clientID, requestID, msg.data(), msg.length());
+    write(Message::Error, true, clientID, requestID, msg.data(), msg.length());
 }
 
 eckit::Buffer Connection::readControl(MessageHeader& hdr) const {

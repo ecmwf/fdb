@@ -78,6 +78,7 @@ enum class Message : uint16_t {
     // Responses
     Received = 200,
     Complete,
+    Unauthorised,
 
     // Data communication
     Blob = 300,

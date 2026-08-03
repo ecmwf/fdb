@@ -10,6 +10,8 @@
 
 #include "fdb5/api/helpers/ControlIterator.h"
 
+#include <optional>
+
 #include "eckit/serialisation/Stream.h"
 
 #include "fdb5/database/Catalogue.h"
@@ -27,6 +29,36 @@ eckit::Stream& operator>>(eckit::Stream& s, ControlAction& a) {
     typename std::underlying_type<ControlAction>::type tmp;
     s >> tmp;
     a = static_cast<ControlAction>(tmp);
+    return s;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+std::ostream& operator<<(std::ostream& s, const ControlIdentifier& i) {
+    switch (i) {
+        case ControlIdentifier::None:
+            s << "None";
+            break;
+        case ControlIdentifier::List:
+            s << "List";
+            break;
+        case ControlIdentifier::Retrieve:
+            s << "Retrieve";
+            break;
+        case ControlIdentifier::Archive:
+            s << "Archive";
+            break;
+        case ControlIdentifier::Wipe:
+            s << "Wipe";
+            break;
+        case ControlIdentifier::UniqueRoot:
+            s << "UniqueRoot";
+            break;
+        case ControlIdentifier::UnsafeWipeAll:
+            s << "UnsafeWipeAll";
+            break;
+    }
+    s << "(" << static_cast<typename std::underlying_type<ControlIdentifier>::type>(i) << ")";
     return s;
 }
 
@@ -84,6 +116,61 @@ ControlIdentifiers::ControlIdentifiers(const ControlIdentifier& val) : value_(st
 
 ControlIdentifiers::ControlIdentifiers(eckit::Stream& s) {
     s >> value_;
+}
+
+ControlIdentifiers ControlIdentifiers::parse(const eckit::LocalConfiguration& config, bool unsafeWipeAllDefault) {
+    ControlIdentifiers identifiers;
+
+    bool writable = config.getBool("writable", true);
+    bool visitable = config.getBool("visitable", true);
+    if (!config.getBool("list", visitable)) {
+        identifiers.value_ |= static_cast<value_type>(ControlIdentifier::List);
+    }
+    if (!config.getBool("retrieve", visitable)) {
+        identifiers.value_ |= static_cast<value_type>(ControlIdentifier::Retrieve);
+    }
+    if (!config.getBool("archive", writable)) {
+        identifiers.value_ |= static_cast<value_type>(ControlIdentifier::Archive);
+    }
+    if (!config.getBool("wipe", writable)) {
+        identifiers.value_ |= static_cast<value_type>(ControlIdentifier::Wipe);
+    }
+    // Unsafe Wipe all is disabled by default, unless explicitly enabled in the configuration file
+    if (!config.getBool("unsafeWipeAll", identifiers.enabled(ControlIdentifier::Wipe) && unsafeWipeAllDefault)) {
+        identifiers.value_ |= static_cast<value_type>(ControlIdentifier::UnsafeWipeAll);
+    }
+    return identifiers;
+}
+
+ControlIdentifiers ControlIdentifiers::parse(const eckit::LocalConfiguration& config, ControlIdentifiers defaultValue) {
+    ControlIdentifiers identifiers = defaultValue;
+
+    std::optional<bool> writable;
+    if (config.has("writable")) {
+        writable = config.getBool("writable");
+    }
+    std::optional<bool> visitable;
+    if (config.has("visitable")) {
+        visitable = config.getBool("visitable");
+    }
+    if (!config.getBool("list", visitable ? *visitable : defaultValue.enabled(ControlIdentifier::List))) {
+        identifiers.value_ |= static_cast<value_type>(ControlIdentifier::List);
+    }
+    if (!config.getBool("retrieve", visitable ? *visitable : defaultValue.enabled(ControlIdentifier::Retrieve))) {
+        identifiers.value_ |= static_cast<value_type>(ControlIdentifier::Retrieve);
+    }
+    if (!config.getBool("archive", writable ? *writable : defaultValue.enabled(ControlIdentifier::Archive))) {
+        identifiers.value_ |= static_cast<value_type>(ControlIdentifier::Archive);
+    }
+    if (!config.getBool("wipe", writable ? *writable : defaultValue.enabled(ControlIdentifier::Wipe))) {
+        identifiers.value_ |= static_cast<value_type>(ControlIdentifier::Wipe);
+    }
+    // Unsafe Wipe all is disabled by default, unless explicitly enabled in the configuration file
+    if (!config.getBool("unsafeWipeAll", identifiers.enabled(ControlIdentifier::Wipe) &&
+                                             defaultValue.enabled(ControlIdentifier::UnsafeWipeAll))) {
+        identifiers.value_ |= static_cast<value_type>(ControlIdentifier::UnsafeWipeAll);
+    }
+    return identifiers;
 }
 
 ControlIdentifiers& ControlIdentifiers::operator|=(const ControlIdentifier& val) {

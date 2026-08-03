@@ -21,7 +21,10 @@
 #include <map>
 #include <mutex>
 
+
 namespace fdb5::remote {
+
+class RemoteStore;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -40,24 +43,17 @@ struct RequestInfo {
 class ReadLimiter {
 public:
 
-    static bool isInitialised();
-
     static ReadLimiter& instance();
+    void setMemoryLimit(size_t memoryLimit);
 
     ReadLimiter(const ReadLimiter&) = delete;
     ReadLimiter& operator=(const ReadLimiter&) = delete;
     ReadLimiter(ReadLimiter&&) = delete;
     ReadLimiter& operator=(ReadLimiter&&) = delete;
 
-    static void init(size_t memoryLimit);
-
     // Add a new request to the queue of requests to be sent. Will not be sent until we know we have buffer space.
     void add(RemoteStore* client, uint32_t id, const FieldLocation& fieldLocation,
              const Key& remapKey);  // use const *?
-
-    // Attempt to send the next request in the queue. Returns true if a request was sent.
-    // If not enough memory is available, or there is no next request, returns false.
-    bool tryNextRequest();
 
     void finishRequest(uint32_t clientID, uint32_t requestID);
 
@@ -66,7 +62,7 @@ public:
     // request).
     /// @todo: This is somewhat pointless right now because the RemoteStores appear to be infinitely long lived...
     /// Revisit if this changes.
-    void evictClient(size_t clientID);
+    static void evictClient(size_t clientID);
 
     // Debugging
     void print(std::ostream& out) const;
@@ -74,6 +70,12 @@ public:
 private:
 
     ReadLimiter(size_t memoryLimit);
+
+    static size_t defaultReadLimit();
+
+    // Attempt to send the next request in the queue. Returns true if a request was sent.
+    // If not enough memory is available, or there is no next request, returns false.
+    bool tryNextRequest();
 
     // Send the request to the server
     void sendRequest(const RequestInfo& request) const;
@@ -83,7 +85,7 @@ private:
     mutable std::mutex mutex_;
 
     size_t memoryUsed_;
-    const size_t memoryLimit_;
+    size_t memoryLimit_;
 
     // Enqueued requests
     std::deque<RequestInfo> requests_;
