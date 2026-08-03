@@ -2,8 +2,9 @@
 #include <string>
 #include <vector>
 #include "chunked_data_view/Axis.h"
-#include "chunked_data_view/IndexMapper.h"
+#include "chunked_data_view/mapping/IndexMapper.h"
 #include "eckit/testing/Test.h"
+#include "fdb5/database/Key.h"
 
 
 CASE("index_mapping | delinearize | 1 axes 1 param | Chunked | Access valid") {
@@ -11,7 +12,7 @@ CASE("index_mapping | delinearize | 1 axes 1 param | Chunked | Access valid") {
     // Given
     std::vector<std::string> dates = {"20200101", "20200102", "20200103", "20200104"};
     chunked_data_view::Parameter date_parameter = {"date", dates};
-    const chunked_data_view::Axis axis = {{date_parameter}, true};
+    const chunked_data_view::Axis axis = {{date_parameter}};
 
     EXPECT_EQUAL(chunked_data_view::index_mapping::to_axis_parameter_index({0}, axis), std::vector{0UL});
 }
@@ -22,7 +23,7 @@ CASE("index_mapping | delinearize | 1 axes 1 param | Chunked | Access out of bou
 
     std::vector<std::string> dates = {"20200101", "20200102", "20200103", "20200104"};
     chunked_data_view::Parameter date_parameter = {"date", dates};
-    const chunked_data_view::Axis axis = {{date_parameter}, true};
+    const chunked_data_view::Axis axis = {{date_parameter}};
 
     EXPECT_THROWS(chunked_data_view::index_mapping::to_axis_parameter_index({4}, axis));
 }
@@ -36,7 +37,7 @@ CASE("index_mapping | delinearize | 1 axes 2 param | Chunked | Valid access") {
     chunked_data_view::Parameter date_parameter = {"date", dates};
     chunked_data_view::Parameter time_parameter = {"time", times};
 
-    const chunked_data_view::Axis axis = {{date_parameter, time_parameter}, true};
+    const chunked_data_view::Axis axis = {{date_parameter, time_parameter}};
 
     EXPECT_EQUAL(chunked_data_view::index_mapping::to_axis_parameter_index(0, axis), std::vector<size_t>({0UL, 0UL}));
     EXPECT_EQUAL(chunked_data_view::index_mapping::to_axis_parameter_index(1, axis), std::vector<size_t>({0UL, 1UL}));
@@ -46,103 +47,145 @@ CASE("index_mapping | delinearize | 1 axes 2 param | Chunked | Valid access") {
     EXPECT_EQUAL(chunked_data_view::index_mapping::to_axis_parameter_index(11, axis), std::vector<size_t>({3UL, 2UL}));
 }
 
-CASE("index_mapping | 2 axes 2/1 param | Chunked | Valid access") {
+CASE("index_mapping | computeBufferIndex | Invalid access") {
 
     // Given
-    std::vector<std::string> dates = {"20200101", "20200102", "20200103", "20200104"};
+    std::vector<std::string> dates = {"2020-01-01", "2020-01-02", "2020-01-03", "2020-01-04"};
     std::vector<std::string> times = {"0", "6", "12"};
-    std::vector<std::string> steps = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
-    // std::vector<std::string> params = {"v"};
 
     chunked_data_view::Parameter date_parameter = {"date", dates};
     chunked_data_view::Parameter time_parameter = {"time", times};
-    chunked_data_view::Parameter steps_parameter = {"steps", steps};
 
-    const std::vector<chunked_data_view::Axis> axes = {{{date_parameter, time_parameter}, true},
-                                                       {{steps_parameter}, true}};
+    const std::vector<chunked_data_view::Axis> axes = {chunked_data_view::Axis({date_parameter}),
+                                                       chunked_data_view::Axis({time_parameter})};
+    const fdb5::Key key_01_0 = fdb5::Key::parse(
+        "type=an,"
+        "domain=g,"
+        "expver=0001,"
+        "stream=oper,"
+        "date=2020-01-01,"
+        "levtype=sfc,"
+        "param=v,"
+        "time=0");
 
-
-    EXPECT_EQUAL(chunked_data_view::index_mapping::axis_index_to_buffer_index({0, 0}, axes), 0);
-    EXPECT_EQUAL(chunked_data_view::index_mapping::axis_index_to_buffer_index({3, 0}, axes), 0);
+    EXPECT_THROWS((chunked_data_view::index_mapping::computeBufferIndex(axes, key_01_0, {0, 0}, {5, 3}, {5, 3}), 0));
+    EXPECT_THROWS((chunked_data_view::index_mapping::computeBufferIndex(axes, key_01_0, {0, 0}, {5, 3}, {0, 3}), 0));
+    EXPECT_THROWS((chunked_data_view::index_mapping::computeBufferIndex(axes, key_01_0, {0, 0}, {5, 3}, {5, 0}), 0));
+    EXPECT_NO_THROW((chunked_data_view::index_mapping::computeBufferIndex(axes, key_01_0, {0, 0}, {4, 2}, {5, 3}), 0));
 }
 
-CASE("index_mapping | 3 axes 2/1 param | Chunked/Non-Chunked| Valid access") {
+CASE("index_mapping | computeBufferIndex | 1 axes 2 param | Valid access / Sliding window") {
 
     // Given
-    std::vector<std::string> dates = {"20200101", "20200102", "20200103", "20200104"};
+    std::vector<std::string> dates = {"2020-01-01", "2020-01-02", "2020-01-03", "2020-01-04"};
     std::vector<std::string> times = {"0", "6", "12"};
-    std::vector<std::string> steps = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"};
-    std::vector<std::string> params = {"u", "v", "w", "x", "y"};
 
     chunked_data_view::Parameter date_parameter = {"date", dates};
     chunked_data_view::Parameter time_parameter = {"time", times};
-    chunked_data_view::Parameter steps_parameter = {"steps", steps};
-    chunked_data_view::Parameter params_parameter = {"param", params};
 
-    const std::vector<chunked_data_view::Axis> axes = {
-        {{date_parameter, time_parameter}, true}, {{steps_parameter}, false}, {{params_parameter}, true}};
+    const std::vector<chunked_data_view::Axis> axes = {chunked_data_view::Axis({date_parameter}),
+                                                       chunked_data_view::Axis({time_parameter})};
 
+    for (size_t k = 0; k < dates.size(); ++k) {
 
-    EXPECT_EQUAL(chunked_data_view::index_mapping::axis_index_to_buffer_index({0, 0, 0}, axes), 0);
-    EXPECT_EQUAL(chunked_data_view::index_mapping::axis_index_to_buffer_index({3, 0, 0}, axes), 0);
+        for (size_t l = 0; l < times.size(); ++l) {
+
+            const auto bufferOffset = std::vector<size_t>{k, l};
+            const auto bufferExtent = std::vector<size_t>{5, 3};
+
+            for (size_t i = 0; i < dates.size(); ++i) {
+
+                for (size_t j = 0; j < times.size(); ++j) {
+
+                    std::string req_str =
+                        "type=an,"
+                        "domain=g,"
+                        "expver=0001,"
+                        "stream=oper,"
+                        "levtype=sfc,"
+                        "param=v,";
+
+                    req_str += "date=" + dates[i] + ",";
+                    req_str += "time=" + times[j];
+
+                    const fdb5::Key key = fdb5::Key::parse(req_str);
+
+                    std::cout << "i: " << i << " | j: " << j << " | k:" << k << " | l: " << l << std::endl;
+                    if (k + i < bufferExtent[0] && j + l < bufferExtent[1]) {
+                        EXPECT_EQUAL(chunked_data_view::index_mapping::computeBufferIndex(axes, key, {0, 0},
+                                                                                          bufferOffset, bufferExtent),
+                                     times.size() * (k + i) + (j + l));
+                    }
+                    else {
+                        EXPECT_THROWS((chunked_data_view::index_mapping::computeBufferIndex(axes, key, {0, 0},
+                                                                                            bufferOffset, bufferExtent),
+                                       times.size() * (k + i) + (j + l)));
+                    }
+                }
+            }
+        }
+    }
 }
 
+CASE("index_mapping | computeBufferIndex | 1 axes 2 param | Valid access") {
 
-CASE("index_mapping | axis_index_to_buffer_index | extension axis remaps stride and offset") {
+    // Given
+    std::vector<std::string> dates = {"2020-01-01", "2020-01-02", "2020-01-03", "2020-01-04"};
+    std::vector<std::string> times = {"0", "6", "12"};
 
-    // 3 unchunked axes: [A(size=3), B(size=2, extension), C(size=4)]
-    // Without extension: flat index = a * 2*4 + b * 4 + c = a*8 + b*4 + c
-    // With extension (combinedExtSize=5, offset=2):
-    //   flat index = a * 5*4 + (b+2) * 4 + c = a*20 + (b+2)*4 + c
+    chunked_data_view::Parameter date_parameter = {"date", dates};
+    chunked_data_view::Parameter time_parameter = {"time", times};
 
-    std::vector<std::string> a_vals = {"a0", "a1", "a2"};
-    std::vector<std::string> b_vals = {"b0", "b1"};
-    std::vector<std::string> c_vals = {"c0", "c1", "c2", "c3"};
+    const std::vector<chunked_data_view::Axis> axes = {chunked_data_view::Axis({date_parameter}),
+                                                       chunked_data_view::Axis({time_parameter})};
+    const fdb5::Key key_01_0 = fdb5::Key::parse(
+        "type=an,"
+        "domain=g,"
+        "expver=0001,"
+        "stream=oper,"
+        "date=2020-01-01,"
+        "levtype=sfc,"
+        "param=v,"
+        "time=0");
 
-    chunked_data_view::Parameter a_param = {"a", a_vals};
-    chunked_data_view::Parameter b_param = {"b", b_vals};
-    chunked_data_view::Parameter c_param = {"c", c_vals};
+    EXPECT_EQUAL(chunked_data_view::index_mapping::computeBufferIndex(axes, key_01_0, {0, 0}, {0, 0}, {5, 3}), 0);
+    EXPECT_EQUAL(chunked_data_view::index_mapping::computeBufferIndex(axes, key_01_0, {0, 0}, {0, 1}, {5, 3}), 1);
+    EXPECT_EQUAL(chunked_data_view::index_mapping::computeBufferIndex(axes, key_01_0, {0, 0}, {0, 2}, {5, 3}), 2);
+    EXPECT_EQUAL(chunked_data_view::index_mapping::computeBufferIndex(axes, key_01_0, {0, 0}, {1, 0}, {5, 3}), 3);
+    EXPECT_EQUAL(chunked_data_view::index_mapping::computeBufferIndex(axes, key_01_0, {0, 0}, {1, 1}, {5, 3}), 4);
+    EXPECT_EQUAL(chunked_data_view::index_mapping::computeBufferIndex(axes, key_01_0, {0, 0}, {1, 2}, {5, 3}), 5);
+    EXPECT_EQUAL(chunked_data_view::index_mapping::computeBufferIndex(axes, key_01_0, {0, 0}, {2, 0}, {5, 3}), 6);
+    EXPECT_EQUAL(chunked_data_view::index_mapping::computeBufferIndex(axes, key_01_0, {0, 0}, {3, 0}, {5, 3}), 9);
+    EXPECT_EQUAL(chunked_data_view::index_mapping::computeBufferIndex(axes, key_01_0, {0, 0}, {4, 0}, {5, 3}), 12);
+    EXPECT_EQUAL(chunked_data_view::index_mapping::computeBufferIndex(axes, key_01_0, {0, 0}, {4, 1}, {5, 3}), 13);
+    EXPECT_EQUAL(chunked_data_view::index_mapping::computeBufferIndex(axes, key_01_0, {0, 0}, {4, 2}, {5, 3}), 14);
 
-    const std::vector<chunked_data_view::Axis> axes = {{{a_param}, false}, {{b_param}, false}, {{c_param}, false}};
+    const fdb5::Key key_02_12 = fdb5::Key::parse(
+        "type=an,"
+        "domain=g,"
+        "expver=0001,"
+        "stream=oper,"
+        "date=2020-01-02,"
+        "levtype=sfc,"
+        "param=v,"
+        "time=12");
 
-    // Without extension params: a=1, b=1, c=2 → 1*8 + 1*4 + 2 = 14
-    EXPECT_EQUAL(chunked_data_view::index_mapping::axis_index_to_buffer_index({1, 1, 2}, axes), 14);
+    EXPECT_EQUAL(chunked_data_view::index_mapping::computeBufferIndex(axes, key_02_12, {0, 0}, {0, 0}, {5, 3}), 5);
+    EXPECT_THROWS((chunked_data_view::index_mapping::computeBufferIndex(axes, key_02_12, {0, 0}, {0, 1}, {5, 3}), 6));
+    EXPECT_THROWS((chunked_data_view::index_mapping::computeBufferIndex(axes, key_02_12, {0, 0}, {0, 2}, {5, 3}), 7));
 
-    // With extension on axis 1 (combinedExtSize=5, offset=2):
-    // a=1, b=1, c=2 → 1*20 + (1+2)*4 + 2 = 20 + 12 + 2 = 34
-    EXPECT_EQUAL(chunked_data_view::index_mapping::axis_index_to_buffer_index({1, 1, 2}, axes, 1, 5, 2), 34);
+    EXPECT_EQUAL(chunked_data_view::index_mapping::computeBufferIndex(axes, key_02_12, {0, 0}, {1, 0}, {5, 3}), 8);
+    EXPECT_THROWS((chunked_data_view::index_mapping::computeBufferIndex(axes, key_02_12, {0, 0}, {1, 1}, {5, 3}), 9));
+    EXPECT_THROWS((chunked_data_view::index_mapping::computeBufferIndex(axes, key_02_12, {0, 0}, {1, 2}, {5, 3}), 10));
 
-    // a=0, b=0, c=0 with offset=2 → 0*20 + (0+2)*4 + 0 = 8
-    EXPECT_EQUAL(chunked_data_view::index_mapping::axis_index_to_buffer_index({0, 0, 0}, axes, 1, 5, 2), 8);
+    EXPECT_EQUAL(chunked_data_view::index_mapping::computeBufferIndex(axes, key_02_12, {0, 0}, {2, 0}, {5, 3}), 11);
+    EXPECT_EQUAL(chunked_data_view::index_mapping::computeBufferIndex(axes, key_02_12, {0, 0}, {3, 0}, {5, 3}), 14);
 
-    // a=0, b=0, c=0 with offset=0 → 0 (same as no extension)
-    EXPECT_EQUAL(chunked_data_view::index_mapping::axis_index_to_buffer_index({0, 0, 0}, axes, 1, 5, 0), 0);
+    EXPECT_THROWS((chunked_data_view::index_mapping::computeBufferIndex(axes, key_02_12, {0, 0}, {4, 0}, {5, 3}), 15));
+    EXPECT_THROWS((chunked_data_view::index_mapping::computeBufferIndex(axes, key_02_12, {0, 0}, {4, 1}, {5, 3}), 16));
+    EXPECT_THROWS((chunked_data_view::index_mapping::computeBufferIndex(axes, key_02_12, {0, 0}, {4, 2}, {5, 3}), 17));
 }
 
-CASE("index_mapping | axis_index_to_buffer_index | extension axis with chunked neighbours") {
-
-    // Axes: [A(chunked), B(unchunked, size=3, extension), C(unchunked, size=4)]
-    // Chunked axes are skipped in index computation.
-    // Without extension: flat = b * 4 + c
-    // With extension (combinedExtSize=7, offset=3): flat = (b+3) * 4 + c
-
-    std::vector<std::string> a_vals = {"a0", "a1"};
-    std::vector<std::string> b_vals = {"b0", "b1", "b2"};
-    std::vector<std::string> c_vals = {"c0", "c1", "c2", "c3"};
-
-    chunked_data_view::Parameter a_param = {"a", a_vals};
-    chunked_data_view::Parameter b_param = {"b", b_vals};
-    chunked_data_view::Parameter c_param = {"c", c_vals};
-
-    const std::vector<chunked_data_view::Axis> axes = {{{a_param}, true}, {{b_param}, false}, {{c_param}, false}};
-
-    // Without extension: a=0 (chunked, ignored), b=2, c=3 → 2*4 + 3 = 11
-    EXPECT_EQUAL(chunked_data_view::index_mapping::axis_index_to_buffer_index({0, 2, 3}, axes), 11);
-
-    // With extension on axis 1 (combinedExtSize=7, offset=3):
-    // b=2, c=3 → (2+3)*4 + 3 = 23
-    EXPECT_EQUAL(chunked_data_view::index_mapping::axis_index_to_buffer_index({0, 2, 3}, axes, 1, 7, 3), 23);
-}
 
 int main(int argc, char** argv) {
     return ::eckit::testing::run_tests(argc, argv);

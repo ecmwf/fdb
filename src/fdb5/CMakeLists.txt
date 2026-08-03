@@ -422,6 +422,8 @@ else()
     set( UUID_INCLUDE_DIRS "" )
 endif()
 
+add_subdirectory( fam )
+
 ecbuild_add_library(
 
     TARGET  fdb5
@@ -494,6 +496,12 @@ endif()
 if ( HAVE_GRIB AND ( metkit_VERSION VERSION_GREATER_EQUAL 1.16 ))
     list( APPEND fdb5_tools
         fdb-patch
+    )
+endif()
+
+if ( HAVE_FAMFDB )
+    list( APPEND fdb5_tools
+        fdb-fam
     )
 endif()
 
