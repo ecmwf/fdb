@@ -10,17 +10,18 @@
 
 #include "fdb5/config/Config.h"
 
-#include <algorithm>
-#include <map>
-#include <mutex>
+#include "fdb5/LibFdb5.h"
+#include "fdb5/rules/Schema.h"
 
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/filesystem/FileMode.h"
 #include "eckit/runtime/Main.h"
 
-#include "fdb5/LibFdb5.h"
-#include "fdb5/rules/Schema.h"
+#include <algorithm>
+#include <memory>
+#include <mutex>
 
 using namespace eckit;
 
@@ -49,6 +50,27 @@ Config Config::make(const eckit::PathName& path, const eckit::Configuration& use
 Config::Config(const Configuration& config, const eckit::Configuration& userConfig) :
     LocalConfiguration(config), schemaPathInitialised_(false) {
     userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
+}
+
+Config::Config(const Config& other) :
+    LocalConfiguration(other), schemaPathInitialised_(false), userConfig_(other.userConfig_) {
+    std::lock_guard lock(other.schemaMutex_);
+    schemaPath_ = other.schemaPath_;
+    schemaPathInitialised_ = other.schemaPathInitialised_;
+}
+
+Config& Config::operator=(const Config& other) {
+    if (this == &other) {
+        return *this;
+    }
+    LocalConfiguration::operator=(other);
+    /// @note A mutex member makes the implicit copy operations ill-formed.
+    /// They lock the source to stay safe against concurrent lazy schema-path init.
+    std::scoped_lock lock(schemaMutex_, other.schemaMutex_);
+    schemaPath_ = other.schemaPath_;
+    schemaPathInitialised_ = other.schemaPathInitialised_;
+    userConfig_ = other.userConfig_;
+    return *this;
 }
 
 Config Config::expandConfig() const {
@@ -158,9 +180,7 @@ PathName Config::expandPath(const std::string& path) const {
 }
 
 const PathName& Config::schemaPath() const {
-    if (schemaPath_.path().empty() || !schemaPathInitialised_) {
-        initializeSchemaPath();
-    }
+    initializeSchemaPath();
     return schemaPath_;
 }
 
@@ -170,11 +190,14 @@ void Config::overrideSchema(const eckit::PathName& schemaPath, Schema* schema) {
     schema->path_ = schemaPath;
     SchemaRegistry::instance().add(schemaPath, schema);
 
+    std::lock_guard<std::mutex> lock(schemaMutex_);
     schemaPath_ = schemaPath;
     schemaPathInitialised_ = true;
 }
 
 void Config::initializeSchemaPath() const {
+
+    std::lock_guard<std::mutex> lock(schemaMutex_);
 
     if (schemaPathInitialised_) {
         return;
@@ -203,7 +226,7 @@ PathName Config::configPath() const {
 
 const Schema& Config::schema() const {
     initializeSchemaPath();
-    return SchemaRegistry::instance().get(schemaPath());
+    return SchemaRegistry::instance().get(schemaPath_);
 }
 
 mode_t Config::umask() const {
