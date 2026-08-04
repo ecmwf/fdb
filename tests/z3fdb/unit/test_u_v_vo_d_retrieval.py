@@ -62,6 +62,26 @@ def test_retrieve_u_and_v(read_only_fdb_setup_for_div_vo_example) -> None:
         builder.build()
 
 
+def test_retrieve_u_and_v_with_short_names(read_only_fdb_setup_for_div_vo_example) -> None:
+    """Same as test_retrieve_u_and_v but using MARS short names "u" and "v".
+
+    metkit expands "u" -> "131" and "v" -> "132" before the request reaches
+    GribExtractor, so this should behave identically to the numeric-ID variant.
+    """
+    builder = SimpleStoreBuilder(read_only_fdb_setup_for_div_vo_example)
+    builder.add_part(
+        {**_BASE_REQUEST, "param": ["u", "v"]},
+        [
+            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["param", "levelist"], Chunking.SINGLE_VALUE),
+        ],
+        ExtractorType.GRIB,
+    )
+
+    with pytest.raises(RuntimeError, match=".*FDB returned paramId=.*"):
+        builder.build()
+
+
 def test_retrieve_vo_and_v(read_only_fdb_setup_for_div_vo_example) -> None:
     builder1 = SimpleStoreBuilder(read_only_fdb_setup_for_div_vo_example)
     builder1.add_part(
@@ -75,6 +95,32 @@ def test_retrieve_vo_and_v(read_only_fdb_setup_for_div_vo_example) -> None:
 
     with pytest.raises(RuntimeError, match=".*FDB returned paramId=.*"):
         builder1.build()
+
+
+def test_retrieve_vo_and_d_with_short_names(read_only_fdb_setup_for_div_vo_example) -> None:
+    """Same as test_retrieve_vo_and_d but using MARS short names instead of numeric paramIds.
+
+    metkit's TypeParam expansion converts "vo" -> "138" and "d" -> "155" before GribExtractor
+    sees the request, so the paramId check must not reject these valid textual param names.
+    """
+    builder = SimpleStoreBuilder(read_only_fdb_setup_for_div_vo_example)
+    builder.add_part(
+        {**_BASE_REQUEST, "param": ["vo", "d"]},
+        [
+            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
+            AxisDefinition(["param", "levelist"], Chunking.SINGLE_VALUE),
+        ],
+        ExtractorType.GRIB,
+    )
+    data = zarr.open_array(builder.build(), mode="r", zarr_format=3, use_consolidated=False)
+
+    assert data.shape[:2] == (16, 4)
+    assert all(data[0, 0] == 1)   # vo, level=50:  0+0+0+1 = 1
+    assert all(data[0, 1] == 3)   # vo, level=100: 0+0+2+1 = 3
+    assert all(data[0, 2] == 0)   # d,  level=50:  0+0+0+0 = 0
+    assert all(data[0, 3] == 2)   # d,  level=100: 0+0+2+0 = 2
+    assert all(data[8, 0] == 33)  # vo, level=50:  32+0+0+1 = 33
+    assert all(data[8, 2] == 32)  # d,  level=50:  32+0+0+0 = 32
 
 
 def test_retrieve_vo_and_d(read_only_fdb_setup_for_div_vo_example) -> None:

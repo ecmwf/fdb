@@ -56,6 +56,11 @@ DataLayout GribExtractor::layout(const metkit::mars::MarsRequest& mars_request) 
     // That case is not supported: the axis mapping relies on the returned keys matching
     // the request exactly. Checking all messages (not just the first) catches cases where
     // the mismatch only appears for certain parameters.
+    //
+    // Note: mars_request was produced by FDBToolRequest::requestsFromString() which runs
+    // metkit's TypeParam expansion pass. Short param names (e.g. "v", "vo") are resolved
+    // to numeric paramId strings (e.g. "132", "138") before this point, so the comparison
+    // against std::to_string(msg.getLong("paramId")) is always numeric-vs-numeric.
     if (mars_request.has("param")) {
         const auto& requestedParams = mars_request.values("param");
         do {
