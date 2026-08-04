@@ -15,12 +15,14 @@
 #ifndef fdb5_config_Config_H
 #define fdb5_config_Config_H
 
-#include <sys/stat.h>  // for mode_t
-
-#include <string>
-
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/filesystem/PathName.h"
+
+#include <sys/stat.h>  // for mode_t
+
+#include <memory>
+#include <mutex>
+#include <string>
 
 
 namespace fdb5 {
@@ -40,6 +42,9 @@ public:  // methods
 
     Config();
     Config(const eckit::Configuration& config, const eckit::Configuration& userConfig = eckit::LocalConfiguration());
+
+    Config(const Config& other);
+    Config& operator=(const Config& other);
 
     /// Given a (potentially skeleton) configuration, expand it fully. This
     /// may involve loading a specific config.json
@@ -73,6 +78,7 @@ private:  // members
 
     mutable eckit::PathName schemaPath_;
     mutable bool schemaPathInitialised_;
+    mutable std::mutex schemaMutex_;
     std::shared_ptr<eckit::LocalConfiguration> userConfig_;
 };
 
