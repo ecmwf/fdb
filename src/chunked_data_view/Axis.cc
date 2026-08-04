@@ -77,7 +77,12 @@ size_t Axis::index(const fdb5::Key& key) const {
             buf << "Couldn't find request's key value (";
             buf << it->second;
             buf << ") in the axis (";
-            buf << param.values();
+            bool first = true;
+            for (const auto& v : param.values()) {
+                if (!first) buf << ", ";
+                buf << v;
+                first = false;
+            }
             buf << ").";
             throw eckit::Exception(buf.str());
         }

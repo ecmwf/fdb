@@ -423,10 +423,7 @@ class FdbZarrStore(store.Store):
         raise Z3fdbError("Partial values aren't supported yet.")
 
     async def exists(self, key: str) -> bool:
-        try:
-            return key in self._known_paths
-        except KeyError:
-            return False
+        return key in self
 
     @property
     def supports_writes(self) -> bool:
