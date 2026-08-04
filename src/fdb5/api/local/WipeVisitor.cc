@@ -40,10 +40,10 @@ WipeCatalogueVisitor::WipeCatalogueVisitor(eckit::Queue<CatalogueWipeState>& que
 bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
 
     EntryVisitor::visitDatabase(catalogue);
-    catalogueWipeState_.reset();
 
     // If the Catalogue is locked for wiping, then it "doesn't exist"
     if (!catalogue.enabled(ControlIdentifier::Wipe)) {
+        catalogueWipeState_.reset();
         return false;
     }
 
