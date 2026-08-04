@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <memory>
 #include <mutex>
+#include <vector>
 
 using namespace eckit;
 
@@ -146,10 +147,6 @@ Config Config::expandConfig() const {
     return *this;
 }
 
-
-Config::~Config() {}
-
-
 // TODO: We could add this to expandTilde.
 
 PathName Config::expandPath(const std::string& path) const {
@@ -179,7 +176,8 @@ PathName Config::expandPath(const std::string& path) const {
     return PathName(path);
 }
 
-const PathName& Config::schemaPath() const {
+PathName Config::schemaPath() const {
+    std::lock_guard lock(schemaMutex_);
     initializeSchemaPath();
     return schemaPath_;
 }
@@ -190,14 +188,12 @@ void Config::overrideSchema(const eckit::PathName& schemaPath, Schema* schema) {
     schema->path_ = schemaPath;
     SchemaRegistry::instance().add(schemaPath, schema);
 
-    std::lock_guard<std::mutex> lock(schemaMutex_);
+    std::lock_guard lock(schemaMutex_);
     schemaPath_ = schemaPath;
     schemaPathInitialised_ = true;
 }
 
 void Config::initializeSchemaPath() const {
-
-    std::lock_guard<std::mutex> lock(schemaMutex_);
 
     if (schemaPathInitialised_) {
         return;
@@ -225,8 +221,7 @@ PathName Config::configPath() const {
 }
 
 const Schema& Config::schema() const {
-    initializeSchemaPath();
-    return SchemaRegistry::instance().get(schemaPath_);
+    return SchemaRegistry::instance().get(schemaPath());
 }
 
 mode_t Config::umask() const {

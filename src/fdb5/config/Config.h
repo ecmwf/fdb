@@ -50,15 +50,14 @@ public:  // methods
     /// may involve loading a specific config.json
     Config expandConfig() const;
 
-    ~Config() override;
-
     /// Given paths of the form ~fdb, if FDB_HOME has been expanded in the configuration
     /// then do the expansion in here.
     eckit::PathName expandPath(const std::string& path) const;
 
 
     void overrideSchema(const eckit::PathName& schemaPath, Schema* schema);
-    const eckit::PathName& schemaPath() const;
+    /// @note Return copy; a reference would race with overrideSchema().
+    eckit::PathName schemaPath() const;
     eckit::PathName configPath() const;
 
     const Schema& schema() const;
@@ -72,6 +71,7 @@ public:  // methods
 
 private:  // methods
 
+    /// @pre schemaMutex_ must be held by the caller.
     void initializeSchemaPath() const;
 
 private:  // members
