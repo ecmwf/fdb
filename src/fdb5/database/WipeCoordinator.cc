@@ -219,11 +219,9 @@ void WipeCoordinator::doWipeURIs(const CatalogueWipeState& catalogueWipeState,
                 continue;
             }
 
-            const Store& store = storeState->store(config);
-
             auto it = unknownBuckets.store.find(uri);
             if (it != unknownBuckets.store.end()) {
-                store.doWipeUnknowns(it->second);
+                storeState->store(config).doWipeUnknowns(it->second);
             }
         }
     }

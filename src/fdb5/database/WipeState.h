@@ -211,7 +211,7 @@ class CatalogueWipeState : public WipeState {
 public:
 
     CatalogueWipeState(const Key& dbKey, const Config& config) :
-        WipeState(), dbKey_(dbKey), config_(std::make_unique<Config>(config)) {}
+        dbKey_(dbKey), config_(std::make_unique<Config>(config)) {}
 
     CatalogueWipeState(const Key& dbKey, std::set<eckit::URI> safeURIs, URIMap deleteURIs,
                        std::set<Index> indexesToMask, const Config& config) :
@@ -230,7 +230,7 @@ public:
     CatalogueWipeState(CatalogueWipeState&&) noexcept = default;
     CatalogueWipeState& operator=(CatalogueWipeState&&) noexcept = default;
 
-    virtual ~CatalogueWipeState() override {
+    ~CatalogueWipeState() override {
         try {
             restoreControlState();
         }

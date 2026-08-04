@@ -198,7 +198,7 @@ std::vector<Index> FamCatalogue::indexes(bool /*sorted*/) const {
 }
 
 CatalogueWipeState FamCatalogue::wipeInit() const {
-    return CatalogueWipeState(dbKey_, config());
+    return {dbKey_, config_};
 }
 
 //----------------------------------------------------------------------------------------------------------------------

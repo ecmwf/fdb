@@ -10,8 +10,12 @@
 
 #pragma once
 
+#include <map>
 #include <memory>
+#include <set>
+
 #include "eckit/filesystem/URI.h"
+
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/WipeState.h"
 
@@ -20,9 +24,6 @@ namespace fdb5 {
 // Class for coordinating fdb.wipe across catalogue and stores
 class WipeCoordinator {
 public:
-
-    WipeCoordinator() = default;
-    ~WipeCoordinator() = default;
 
     struct UnknownsBuckets {
         std::map<eckit::URI, std::set<eckit::URI>> store;  // store -> URIs
