@@ -10,11 +10,21 @@ Z3FDB
    :caption: Contents:
    :hidden:
 
+   installation
    getting_started
    dimension_mapping
    architecture
-   technical_insights
    api
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Technical Insights:
+   :hidden:
+
+   technical_insights/dev_setup
+   technical_insights/chunk_access
+   technical_insights/buffer_layout
+   technical_insights/extractor
 
 
 
@@ -53,27 +63,8 @@ acceptable. That trade-off makes sense in two situations:
 Installation
 ------------
 
-Z3FDB requires ``libfdb5`` to be present at runtime.
-
-During the CMake configure step, set:
-
-.. code-block:: bash
-
-   -DENABLE_PYTHON_ZARR_INTERFACE=ON
-
-After building with ``ninja`` or ``make``, a Python project is created
-inside ``CMAKE_BINARY_DIR`` in a directory named ``staging…``. Change into
-that directory and install normally:
-
-.. code-block:: bash
-
-   pip install .
-
-To verify the installation, run the test suite:
-
-.. code-block:: bash
-
-   pytest <FDB_SRC_FOLDER>/tests/z3fdb
+Install Z3FDB from PyPI, see :doc:`installation` for the full instructions,
+including how to run the test suite.
 
 Next steps
 ----------
