@@ -133,7 +133,7 @@ CASE("Setup") {
 CASE("RadosCatalogue tests") {
 
     std::string test_id = "test-catalogue";
-#ifdef eckit_HAVE_RADOS_ADMIN
+#ifdef eckit_HAVE_RADOS_TESTS_MANAGE_POOLS
     std::string pool = test_id;
     eckit::RadosPool{pool}.ensureDestroyed();
     eckit::RadosPool{pool}.ensureCreated();  /// @todo: auto pool destroyer
@@ -447,7 +447,7 @@ CASE("RadosCatalogue tests") {
 
         /// @note: earlier sections share the same catalogue namespaces/pool; reset them so this
         ///   section starts from a clean, empty catalogue (it asserts the FDB is initially empty).
-#ifdef eckit_HAVE_RADOS_ADMIN
+#ifdef eckit_HAVE_RADOS_TESTS_MANAGE_POOLS
         eckit::RadosPool{pool}.ensureDestroyed();
         eckit::RadosPool{pool}.ensureCreated();
 #else
@@ -808,7 +808,7 @@ CASE("RadosCatalogue tests") {
 
     // teardown rados
 
-#ifdef eckit_HAVE_RADOS_ADMIN
+#ifdef eckit_HAVE_RADOS_TESTS_MANAGE_POOLS
     eckit::RadosPool{pool}.ensureDestroyed();
 #else
     ensureCleanNamespaces(pool, test_id);

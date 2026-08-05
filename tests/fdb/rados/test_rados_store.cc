@@ -73,8 +73,8 @@ void ensureCleanNamespaces(const std::string& pool, const std::string& prefix) {
     }
 }
 
-#ifdef fdb5_HAVE_RADOS_ADMIN
-void ensureClean(const std::string& prefix) {
+#ifdef fdb5_HAVE_RADOS_TESTS_MANAGE_POOLS
+void ensureCleanPools(const std::string& prefix) {
     ASSERT(prefix.length() > 3);
     for (const std::string& name : eckit::RadosCluster::instance().listPools()) {
         if (name.rfind(prefix, 0) == 0) {
@@ -150,7 +150,7 @@ CASE("RadosStore tests") {
     SECTION("archive and retrieve") {
 
         std::string test_id = "test-store1";
-#ifdef eckit_HAVE_RADOS_ADMIN
+#ifdef eckit_HAVE_RADOS_TESTS_MANAGE_POOLS
         std::string pool = test_id;
         eckit::RadosPool{pool}.ensureDestroyed();
         eckit::RadosPool{pool}.ensureCreated();  /// @todo: auto pool destroyer
@@ -223,7 +223,7 @@ CASE("RadosStore tests") {
     SECTION("with POSIX Catalogue") {
 
         std::string test_id = "test-store2";
-#ifdef eckit_HAVE_RADOS_ADMIN
+#ifdef eckit_HAVE_RADOS_TESTS_MANAGE_POOLS
         std::string pool = test_id;
         eckit::RadosPool{pool}.ensureDestroyed();
         eckit::RadosPool{pool}.ensureCreated();  /// @todo: auto pool destroyer
@@ -344,7 +344,7 @@ CASE("RadosStore tests") {
             deldir(store_tests_tmp_root());
         }
         store_tests_tmp_root().mkdir();
-#ifdef eckit_HAVE_RADOS_ADMIN
+#ifdef eckit_HAVE_RADOS_TESTS_MANAGE_POOLS
         std::string pool = test_id;
         eckit::RadosPool{pool}.ensureDestroyed();
         eckit::RadosPool{pool}.ensureCreated();  /// @todo: auto pool destroyer
@@ -499,7 +499,7 @@ CASE("RadosStore tests") {
             deldir(store_tests_tmp_root());
         }
         store_tests_tmp_root().mkdir();
-#ifdef eckit_HAVE_RADOS_ADMIN
+#ifdef eckit_HAVE_RADOS_TESTS_MANAGE_POOLS
         std::string pool = test_id;
         eckit::RadosPool{pool}.ensureDestroyed();
         eckit::RadosPool{pool}.ensureCreated();  /// @todo: auto pool destroyer
@@ -596,8 +596,8 @@ int main(int argc, char** argv) {
     catch (...) {
     }
 
-#ifdef fdb5_HAVE_RADOS_ADMIN
-    ensureClean("test-store");
+#ifdef fdb5_HAVE_RADOS_TESTS_MANAGE_POOLS
+    ensureCleanPools("test-store");
 #endif
 
     return ret;

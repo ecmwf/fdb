@@ -7,7 +7,7 @@ if (HAVE_RADOSFDB)
 
   list( APPEND unit_test_libraries fdb5 )
 
-  # The Rados unit tests need a pool to run against (with RADOS_ADMIN=OFF the pool
+  # The Rados unit tests need a pool to run against (with RADOS_TESTS_MANAGE_POOLS=OFF the pool
   # must already exist, e.g. one created in the Ceph service). The pool name can be
   # provided at configure time via -DFDB_RADOS_TEST_POOL=<pool>, or inherited from
   # the FDB_RADOS_TEST_POOL environment variable (e.g. exported in the dev container
