@@ -35,6 +35,7 @@
 #include "eckit/log/Log.h"
 #include "eckit/serialisation/HandleStream.h"
 
+#include <climits>
 #include <cstddef>
 #include <iterator>
 #include <memory>
@@ -248,11 +249,7 @@ void RadosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
     std::string axisNames = "";
     std::string sep = "";
 
-    for (Key::const_iterator i = datumKey.begin(); i != datumKey.end(); ++i) {
-
-        const std::string& keyword = i->first;
-
-        const std::string& value = i->second;
+    for (const auto& [keyword, value] : datumKey) {
 
         if (value.length() == 0) {
             continue;
