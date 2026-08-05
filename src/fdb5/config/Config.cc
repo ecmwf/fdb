@@ -31,7 +31,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Config::Config() : schemaPath_(""), schemaPathInitialised_(false) {
+Config::Config() : schemaPath_(std::nullopt), userConfig_(nullptr) {
     userConfig_ = std::make_shared<eckit::LocalConfiguration>(eckit::LocalConfiguration());
 }
 
@@ -49,27 +49,19 @@ Config Config::make(const eckit::PathName& path, const eckit::Configuration& use
 }
 
 Config::Config(const Configuration& config, const eckit::Configuration& userConfig) :
-    LocalConfiguration(config), schemaPathInitialised_(false) {
-    userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
-}
+    LocalConfiguration(config),
+    schemaPath_(std::nullopt),
+    userConfig_(std::make_shared<eckit::LocalConfiguration>(userConfig)) {}
 
 Config::Config(const Config& other) :
-    LocalConfiguration(other), schemaPathInitialised_(false), userConfig_(other.userConfig_) {
-    std::lock_guard lock(other.schemaMutex_);
-    schemaPath_ = other.schemaPath_;
-    schemaPathInitialised_ = other.schemaPathInitialised_;
-}
+    LocalConfiguration(other), schemaPath_(other.schemaPath_), userConfig_(other.userConfig_) {}
 
 Config& Config::operator=(const Config& other) {
     if (this == &other) {
         return *this;
     }
     LocalConfiguration::operator=(other);
-    /// @note A mutex member makes the implicit copy operations ill-formed.
-    /// They lock the source to stay safe against concurrent lazy schema-path init.
-    std::scoped_lock lock(schemaMutex_, other.schemaMutex_);
     schemaPath_ = other.schemaPath_;
-    schemaPathInitialised_ = other.schemaPathInitialised_;
     userConfig_ = other.userConfig_;
     return *this;
 }
@@ -176,44 +168,43 @@ PathName Config::expandPath(const std::string& path) const {
     return PathName(path);
 }
 
-PathName Config::schemaPath() const {
-    std::lock_guard lock(schemaMutex_);
-    initializeSchemaPath();
-    return schemaPath_;
+const PathName& Config::schemaPath() const {
+    std::call_once(schemaOnce_, [this] { initializeSchemaAux(std::nullopt, nullptr); });
+    return *schemaPath_;
 }
 
-void Config::overrideSchema(const eckit::PathName& schemaPath, Schema* schema) {
-    ASSERT(schema);
-
-    schema->path_ = schemaPath;
-    SchemaRegistry::instance().add(schemaPath, schema);
-
-    std::lock_guard lock(schemaMutex_);
-    schemaPath_ = schemaPath;
-    schemaPathInitialised_ = true;
+void Config::initializeSchema(const eckit::PathName& schemaPath, Schema* schema) {
+    std::call_once(schemaOnce_, [this, &schemaPath, schema] { initializeSchemaAux(schemaPath, schema); });
 }
 
-void Config::initializeSchemaPath() const {
+void Config::initializeSchemaAux(std::optional<std::reference_wrapper<const eckit::PathName>> schemaPath,
+                                 Schema* schema) const {
 
-    if (schemaPathInitialised_) {
-        return;
-    }
-    // If the user has specified the schema location in the FDB config, use that,
-    // otherwise use the library-wide schema path.
+    if (!schemaPath_) {    // copy ctor or assignment operator have already initialised the schema path,
+                           // so we don't need to do it again
+        if (schemaPath) {  // user provided a schema path and schema object, so use that
+            ASSERT(schema);
 
-    if (has("schema")) {
-        schemaPath_ = expandPath(getString("schema"));
-    }
-    else {
-        // TODO: deduplicate this with the library-level schemaPath()
-        //       N.B. this uses Config expandPath()
-        static std::string fdbSchemaFile =
-            Resource<std::string>("fdbSchemaFile;$FDB_SCHEMA_FILE", "~fdb/etc/fdb/schema");
-        schemaPath_ = expandPath(fdbSchemaFile);
-    }
+            schema->path_ = schemaPath->get();
+            SchemaRegistry::instance().add(schemaPath->get(), schema);
 
-    schemaPathInitialised_ = true;
-    LOG_DEBUG_LIB(LibFdb5) << "Using FDB schema: " << schemaPath_ << std::endl;
+            schemaPath_ = schemaPath->get();
+        }
+        else {  // If the user has specified the schema location in the FDB config, use that, otherwise use the
+                // library-wide schema path.
+            if (has("schema")) {
+                schemaPath_ = expandPath(getString("schema"));
+            }
+            else {
+                // TODO: deduplicate this with the library-level schemaPath()
+                //       N.B. this uses Config expandPath()
+                static std::string fdbSchemaFile =
+                    Resource<std::string>("fdbSchemaFile;$FDB_SCHEMA_FILE", "~fdb/etc/fdb/schema");
+                schemaPath_ = expandPath(fdbSchemaFile);
+            }
+        }
+        LOG_DEBUG_LIB(LibFdb5) << "Using FDB schema: " << *schemaPath_ << std::endl;
+    }
 }
 
 PathName Config::configPath() const {

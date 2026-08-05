@@ -113,7 +113,7 @@ private:  // methods
 
     friend std::ostream& operator<<(std::ostream& out, const Schema& schema);
 
-    friend void Config::overrideSchema(const eckit::PathName& schemaPath, Schema* schema);
+    friend class fdb5::Config;
 
 private:  // members
 
