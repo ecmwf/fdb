@@ -48,10 +48,7 @@ class TestFdbZarrStore(StoreTests[FdbZarrStore, Buffer]):
     store_cls = FdbZarrStore
     buffer_cls = CpuBuffer
 
-    # ------------------------------------------------------------------
     # Fixtures
-    # ------------------------------------------------------------------
-
     @pytest.fixture
     def store_kwargs(self, read_only_fdb_setup):
         pytest.xfail("FdbZarrStore is built via SimpleStoreBuilder, not open() kwargs")
@@ -64,10 +61,7 @@ class TestFdbZarrStore(StoreTests[FdbZarrStore, Buffer]):
         log.debug("store fixture: %s, known_paths=%d", type(store).__name__, len(store._known_paths))
         return store
 
-    # ------------------------------------------------------------------
     # Required abstract helpers
-    # ------------------------------------------------------------------
-
     async def get(self, store: FdbZarrStore, key: str) -> Buffer:
         """Bypass store.get() and read directly from the internal tree."""
         result = store._child[key]
@@ -78,14 +72,9 @@ class TestFdbZarrStore(StoreTests[FdbZarrStore, Buffer]):
 
     async def set(self, store: FdbZarrStore, key: str, value: Buffer) -> None:
         """FdbZarrStore is read-only; skip any test that needs to inject data."""
-        pytest.xfail(
-            "FdbZarrStore is read-only — cannot inject arbitrary test data via set()"
-        )
+        pytest.xfail("FdbZarrStore is read-only — cannot inject arbitrary test data via set()")
 
-    # ------------------------------------------------------------------
     # Required abstract tests
-    # ------------------------------------------------------------------
-
     def test_store_repr(self, store: FdbZarrStore) -> None:
         r = repr(store)
         log.debug("repr(store)=%r", r)
@@ -99,27 +88,21 @@ class TestFdbZarrStore(StoreTests[FdbZarrStore, Buffer]):
         log.debug("supports_listing=%r", store.supports_listing)
         assert store.supports_listing
 
-    # ------------------------------------------------------------------
     # Overrides: harness assumes a mutable store; correct for read-only
-    # ------------------------------------------------------------------
-
     def test_store_read_only(self, store: FdbZarrStore) -> None:
         log.debug("read_only=%r", store.read_only)
         assert store.read_only
         with pytest.raises(AttributeError):
             store.read_only = False
 
-    def test_store_eq(
-        self, store: FdbZarrStore, store_kwargs: dict[str, Any] = None
-    ) -> None:
+    def test_store_eq(self, store: FdbZarrStore, store_kwargs: dict[str, Any] = None) -> None:
         log.debug("store == store -> %r", store == store)
         assert store == store
 
-    @pytest.mark.xfail(
-        raises=TypeError, reason="FdbZarrStore wraps C++ objects that are not picklable"
-    )
+    @pytest.mark.xfail(raises=TypeError, reason="FdbZarrStore wraps C++ objects that are not picklable")
     async def test_serializable_store(self, store: FdbZarrStore) -> None:
         import pickle
+
         log.debug("attempting pickle.dumps on %s", type(store).__name__)
         pickle.dumps(store)
 
@@ -128,9 +111,7 @@ class TestFdbZarrStore(StoreTests[FdbZarrStore, Buffer]):
         raises=TypeError,
         reason="FdbZarrStore does not support open() kwargs construction",
     )
-    async def test_store_open_read_only(
-        self, open_kwargs: dict[str, Any], read_only: bool
-    ) -> None:
+    async def test_store_open_read_only(self, open_kwargs: dict[str, Any], read_only: bool) -> None:
         log.debug("attempting FdbZarrStore.open(read_only=%r)", read_only)
         await FdbZarrStore.open(read_only=read_only)
 
@@ -196,8 +177,12 @@ class TestFdbZarrStore(StoreTests[FdbZarrStore, Buffer]):
             )
         )
         observed = {k: b for k, b in observed_buffers if b is not None}
-        log.debug("_get_many returned %d/%d buffers: %s", len(observed), len(keys),
-                  {k: type(v).__name__ for k, v in observed.items()})
+        log.debug(
+            "_get_many returned %d/%d buffers: %s",
+            len(observed),
+            len(keys),
+            {k: type(v).__name__ for k, v in observed.items()},
+        )
         assert set(observed.keys()) == set(keys)
 
     async def test_getsize(self, store: FdbZarrStore) -> None:
@@ -223,37 +208,37 @@ class TestFdbZarrStore(StoreTests[FdbZarrStore, Buffer]):
             await store.getsize("nonexistent_key")
 
     async def test_get_bytes(self, store: FdbZarrStore) -> None:
-        expected = (
-            await store.get("zarr.json", prototype=default_buffer_prototype())
-        ).to_bytes()
+        expected = (await store.get("zarr.json", prototype=default_buffer_prototype())).to_bytes()
         result = await store._get_bytes("zarr.json", prototype=default_buffer_prototype())
         log.debug("_get_bytes('zarr.json') -> %s, len=%d", type(result).__name__, len(result))
         assert result == expected
         log.debug("_get_bytes('nonexistent_key') should raise FileNotFoundError")
         with pytest.raises(FileNotFoundError):
-            await store._get_bytes(
-                "nonexistent_key", prototype=default_buffer_prototype()
-            )
+            await store._get_bytes("nonexistent_key", prototype=default_buffer_prototype())
 
     def test_get_bytes_sync(self, store: FdbZarrStore) -> None:
-        expected = sync(
-            store.get("zarr.json", prototype=default_buffer_prototype())
-        ).to_bytes()
+        expected = sync(store.get("zarr.json", prototype=default_buffer_prototype())).to_bytes()
         result = store._get_bytes_sync("zarr.json", prototype=default_buffer_prototype())
         log.debug("_get_bytes_sync('zarr.json') -> %s, len=%d", type(result).__name__, len(result))
         assert result == expected
 
     async def test_get_json(self, store: FdbZarrStore) -> None:
-        result = await store._get_json(
-            "zarr.json", prototype=default_buffer_prototype()
+        result = await store._get_json("zarr.json", prototype=default_buffer_prototype())
+        log.debug(
+            "_get_json('zarr.json') -> %s, keys=%s",
+            type(result).__name__,
+            list(result.keys()) if isinstance(result, dict) else result,
         )
-        log.debug("_get_json('zarr.json') -> %s, keys=%s", type(result).__name__, list(result.keys()) if isinstance(result, dict) else result)
         assert isinstance(result, dict)
         assert result["zarr_format"] == 3
 
     def test_get_json_sync(self, store: FdbZarrStore) -> None:
         result = store._get_json_sync("zarr.json", prototype=default_buffer_prototype())
-        log.debug("_get_json_sync('zarr.json') -> %s, keys=%s", type(result).__name__, list(result.keys()) if isinstance(result, dict) else result)
+        log.debug(
+            "_get_json_sync('zarr.json') -> %s, keys=%s",
+            type(result).__name__,
+            list(result.keys()) if isinstance(result, dict) else result,
+        )
         assert isinstance(result, dict)
         assert result["zarr_format"] == 3
 
@@ -342,55 +327,39 @@ class TestFdbZarrStore(StoreTests[FdbZarrStore, Buffer]):
     # Write operations: all must raise
     # ------------------------------------------------------------------
 
-    @pytest.mark.xfail(
-        raises=Z3fdbError, reason="FdbZarrStore is read-only — writes are not supported"
-    )
+    @pytest.mark.xfail(raises=Z3fdbError, reason="FdbZarrStore is read-only — writes are not supported")
     @pytest.mark.parametrize("key", ["zarr.json", "c/0", "foo/c/0.0", "foo/0/0"])
     @pytest.mark.parametrize("data", [b"\x01\x02\x03\x04", b""])
     async def test_set(self, store: FdbZarrStore, key: str, data: bytes) -> None:
         log.debug("set(key=%r, data=%r), expecting Z3fdbError", key, data)
         await store.set(key, self.buffer_cls.from_bytes(data))
 
-    @pytest.mark.xfail(
-        raises=Z3fdbError, reason="FdbZarrStore is read-only — writes are not supported"
-    )
+    @pytest.mark.xfail(raises=Z3fdbError, reason="FdbZarrStore is read-only — writes are not supported")
     async def test_set_many(self, store: FdbZarrStore) -> None:
         log.debug("_set_many([('zarr.json', ...)]), expecting Z3fdbError")
         await store._set_many([("zarr.json", self.buffer_cls.from_bytes(b"x"))])
 
-    @pytest.mark.xfail(
-        raises=Z3fdbError, reason="FdbZarrStore is read-only — writes are not supported"
-    )
+    @pytest.mark.xfail(raises=Z3fdbError, reason="FdbZarrStore is read-only — writes are not supported")
     async def test_set_if_not_exists(self, store: FdbZarrStore) -> None:
         log.debug("set_if_not_exists('zarr.json', ...), expecting Z3fdbError")
         await store.set_if_not_exists("zarr.json", self.buffer_cls.from_bytes(b"x"))
 
-    @pytest.mark.xfail(
-        raises=NotImplementedError, reason="FdbZarrStore does not support deletes"
-    )
+    @pytest.mark.xfail(raises=NotImplementedError, reason="FdbZarrStore does not support deletes")
     async def test_clear(self, store: FdbZarrStore) -> None:
         log.debug("clear(), expecting NotImplementedError")
         await store.clear()
 
-    @pytest.mark.xfail(
-        raises=Z3fdbError, reason="FdbZarrStore is read-only — writes are not supported"
-    )
+    @pytest.mark.xfail(raises=Z3fdbError, reason="FdbZarrStore is read-only — writes are not supported")
     async def test_delete(self, store: FdbZarrStore) -> None:
         log.debug("delete('zarr.json'), expecting Z3fdbError")
         await store.delete("zarr.json")
 
-    @pytest.mark.xfail(
-        raises=NotImplementedError, reason="FdbZarrStore does not support deletes"
-    )
+    @pytest.mark.xfail(raises=NotImplementedError, reason="FdbZarrStore does not support deletes")
     async def test_delete_dir(self, store: FdbZarrStore) -> None:
         log.debug("delete_dir('c'), expecting NotImplementedError")
         await store.delete_dir("c")
 
-    @pytest.mark.xfail(
-        raises=Z3fdbError, reason="FdbZarrStore is read-only — writes are not supported"
-    )
-    async def test_delete_nonexistent_key_does_not_raise(
-        self, store: FdbZarrStore
-    ) -> None:
+    @pytest.mark.xfail(raises=Z3fdbError, reason="FdbZarrStore is read-only — writes are not supported")
+    async def test_delete_nonexistent_key_does_not_raise(self, store: FdbZarrStore) -> None:
         log.debug("delete('nonexistent_key'), expecting Z3fdbError")
         await store.delete("nonexistent_key")

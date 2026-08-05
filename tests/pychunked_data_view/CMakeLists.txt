@@ -26,6 +26,7 @@ endfunction()
 
 set(test_files
     test_chunked_data_view.py
+    test_chunked_data_view_errors.py
     test_mars_selection.py
 )
 
