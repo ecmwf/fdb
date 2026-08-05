@@ -113,7 +113,7 @@ private:  // methods
 
     friend std::ostream& operator<<(std::ostream& out, const Schema& schema);
 
-    friend void Config::overrideSchema(const eckit::PathName& schemaPath, Schema* schema);
+    friend class Config;
 
 private:  // members
 
@@ -138,7 +138,7 @@ public:
 
     static SchemaRegistry& instance();
 
-    const Schema& add(const eckit::PathName& path, Schema* schema);
+    const Schema& add(const eckit::PathName& path, std::unique_ptr<Schema> schema);
     const Schema& get(const eckit::PathName& path);
 
 private:
