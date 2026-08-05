@@ -190,7 +190,7 @@ Default: ``true``.
 ``FDB_DATA_WRITE_QUEUE_LENGTH``
 -------------------------------
 
-Maximum length of the queue of pending data-write requests used by the remote client connection.
+Maximum number of requests in the queue of pending data-write requests on a remote client connection.
 
 Default: ``320``.
 
@@ -314,7 +314,8 @@ Indexing
 ------------------
 
 Overrides the index type used for new indexes. When left empty, FDB selects ``BTreeIndex`` for keys
-shorter than 8 characters and ``BTreeIndex64`` for longer keys.
+shorter than 8 characters and ``BTreeIndex64`` for longer keys. Accepted values are 
+``BTreeIndex``, ``BTreeIndex64``, ``PointDBIndex``, ``BTreeIndex4MB``.
 
 Default: unset (automatic selection).
 
@@ -325,9 +326,10 @@ Auxiliary data
 ``FDB_AUX_EXTENSIONS``
 ----------------------
 
-Set of filename extensions for auxiliary files associated with each archived field. For every data
-file written, FDB also considers auxiliary files sharing the field's path with one of these
-extensions appended.
+Set of accepted filename extensions for auxiliary files. These are files not produced directly by FDB, 
+but FDB will still consider them as part of the database for the purposes of wiping.
+Multiple extensions can be specified as a comma or space separated list, e.g.:
+   ``export FDB_AUX_EXTENSIONS="gribjump,foo,bar"``
 
 Default: ``gribjump``.
 
@@ -335,25 +337,28 @@ Default: ``gribjump``.
 Protocol and serialisation versions
 ------------------------------------
 
-``FDB_REMOTE_PROTOCOL_VERSION``
--------------------------------
-
-Overrides the protocol version used to communicate with a remote FDB. A value of ``0`` means the
-built-in default version is used. An unsupported value causes an error.
-
-Default: ``0``.
-
-
-``FDB5_REMOTE_PROTOCOL_VERSION``
---------------------------------
-Deprecated. Equivalent to ``FDB_REMOTE_PROTOCOL_VERSION``. If both are specified, ``FDB_REMOTE_PROTOCOL_VERSION`` takes precedence over ``FDB5_REMOTE_PROTOCOL_VERSION``.
+.. @maby: I notice in code that the value of this is ignored. We should remove it from the code.
+..
+.. ``FDB_REMOTE_PROTOCOL_VERSION``
+.. -------------------------------
+..
+.. Overrides the protocol version used to communicate with a remote FDB. A value of ``0`` means the
+.. built-in default version is used. An unsupported value causes an error.
+..
+.. Default: ``0``.
+..
+..
+.. ``FDB5_REMOTE_PROTOCOL_VERSION``
+.. --------------------------------
+.. Deprecated. Equivalent to ``FDB_REMOTE_PROTOCOL_VERSION``. If both are specified, ``FDB_REMOTE_PROTOCOL_VERSION`` takes precedence over ``FDB5_REMOTE_PROTOCOL_VERSION``.
 
 
 ``FDB_SERIALISATION_VERSION``
 -----------------------------
 
 Overrides the TOC serialisation version used when writing. A value of ``0`` means the default
-version is used. An unsupported value causes an error.
+version is used. Explicitly supported values are ``1``, ``2`` and ``3``. An unsupported value
+causes an error.
 
 Default: ``0``.
 
