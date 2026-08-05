@@ -51,18 +51,12 @@ namespace fdb5 {
 static StoreBuilder<RadosStore> builder("rados");
 
 RadosStore::RadosStore(const Key& key, const Config& config) :
-    Store(), RadosCommon(config, "store", key), archivedFields_(0) {
-
-    parseConfig(config);
-}
+    Store(), RadosCommon(config, "store", key), archivedFields_(0) {}
 
 RadosStore::RadosStore(const Schema& schema, const Key& key, const Config& config) : RadosStore(key, config) {}
 
 RadosStore::RadosStore(const eckit::URI& uri, const Config& config) :
-    Store(), RadosCommon(config, "store", uri), archivedFields_(0) {
-
-    parseConfig(config);
-}
+    Store(), RadosCommon(config, "store", uri), archivedFields_(0) {}
 
 eckit::URI RadosStore::uri() const {
 
@@ -159,30 +153,6 @@ std::unique_ptr<const FieldLocation> RadosStore::archive(const Key& key, const v
 
     archivedFields_++;
 
-#ifdef fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD
-
-    /// @note: generate unique object name starting by indexkey_
-    eckit::RadosObject o = generateDataObject(key);
-
-#ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-    eckit::DataHandle* h = o.asyncDataHandle();
-    ASSERT(handles_.size() < maxHandleBuffSize_);
-    handles_.push_back(h);
-#else
-    std::unique_ptr<eckit::DataHandle> h(o.dataHandle());
-#endif
-
-    /// @todo: should throw here if object already exists
-
-    h->openForWrite(length);
-    eckit::AutoClose closer(*h);
-
-    h->write(data, length);
-
-    return std::unique_ptr<RadosFieldLocation>(new RadosFieldLocation(o.uri(), 0, length, fdb5::Key{}));
-
-#else
-
     const eckit::RadosObject& o = getDataObject(key);
 
     eckit::DataHandle& h = getDataHandle(key, o);
@@ -194,8 +164,6 @@ std::unique_ptr<const FieldLocation> RadosStore::archive(const Key& key, const v
     ASSERT(len == length);
 
     return std::make_unique<RadosFieldLocation>(o.uri(), offset, length, fdb5::Key{});
-
-#endif
 }
 
 size_t RadosStore::flush() {
@@ -204,34 +172,15 @@ size_t RadosStore::flush() {
         return 0;
     }
 
-#ifdef fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD
-
-#ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-    for (const auto& h : handles_) {
-        h->flush();
-    }
-#else
-    // NOOP
-#endif
-
-#else
-
 #ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
 
-    /// @note: needs to be called even if PERSIST_ON_FLUSH=OFF, as the
-    ///   multipart handles need to persist the multipart attributes which
-    ///   is performed in the multihandle flush.
+    /// @note: the multipart handles need to persist the multipart attributes which is
+    ///   performed in the multihandle flush.
     flushDataHandles();
 
 #else
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-    flushDataHandles();
-#else
     // NOOP
-#endif
-
-#endif
 
 #endif
 
@@ -242,21 +191,7 @@ size_t RadosStore::flush() {
 
 void RadosStore::close() {
 
-#ifdef fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD
-
-#ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-    for (const auto& h : handles_) {
-        h->close();
-    }
-#else
-    // NOOP
-#endif
-
-#else
-
     closeDataHandles();
-
-#endif
 }
 
 void RadosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const {
@@ -289,7 +224,7 @@ void RadosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ost
         logVerbose << "destroy Rados object: ";
         logAlways << obj.str() << std::endl;
 
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && !defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART)
         if (doit) {
             obj.ensureAllDestroyed();
         }
@@ -342,7 +277,7 @@ void RadosStore::finaliseWipeState(StoreWipeState& storeState, bool doit, bool u
 
     for (const auto& obj : db.listObjects()) {
 
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && !defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART)
         // Parts belong to a main object and are removed together with it.
         if (obj.name().find(";part-") != std::string::npos) {
             continue;
@@ -430,18 +365,8 @@ eckit::RadosObject RadosStore::generateDataObject(const Key& key) const {
 
     eckit::MD5 md5(name);
 
-#ifdef fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD
-
-    return eckit::RadosObject{pool_, db_namespace_, md5.digest()};
-
-#else
-
     return eckit::RadosObject{pool_, db_namespace_, key.valuesToString() + "." + md5.digest() + ".data"};
-
-#endif
 }
-
-#ifndef fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD
 
 const eckit::RadosObject& RadosStore::getDataObject(const Key& key) const {
 
@@ -460,21 +385,9 @@ eckit::DataHandle& RadosStore::getDataHandle(const Key& key, const eckit::RadosO
     }
 
 #ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
-
-#ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-    eckit::DataHandle* dh = name.asyncMultipartWriteHandle(maxPartSize_, maxAioBuffSize_, maxPartHandleBuffSize_);
-#else
     eckit::DataHandle* dh = name.multipartWriteHandle(maxPartSize_);
-#endif
-
-#else
-
-#ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-    eckit::DataHandle* dh = name.asyncDataHandle(maxAioBuffSize_);
 #else
     eckit::DataHandle* dh = name.dataHandle();
-#endif
-
 #endif
 
     ASSERT(dh);
@@ -504,33 +417,6 @@ void RadosStore::flushDataHandles() {
         eckit::DataHandle* dh = j->second;
         dh->flush();
     }
-}
-
-#endif
-
-void RadosStore::parseConfig(const fdb5::Config& config) {
-
-    eckit::LocalConfiguration rados{}, store_conf{};
-
-    if (config.has("rados")) {
-        rados = config.getSubConfiguration("rados");
-        if (rados.has("store")) {
-            store_conf = rados.getSubConfiguration("store");
-        }
-    }
-
-#if defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD) && defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
-    maxHandleBuffSize_ = store_conf.getInt("maxHandleBuffSize", 1024 * 1024);
-#endif
-
-#if (!defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)) && defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
-#ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
-    maxAioBuffSize_ = store_conf.getInt("maxAioBuffSize", 1024);
-    maxPartHandleBuffSize_ = store_conf.getInt("maxPartHandleBuffSize", 1024);
-#else
-    maxAioBuffSize_ = store_conf.getInt("maxAioBuffSize", 1024 * 1024);
-#endif
-#endif
 }
 
 //----------------------------------------------------------------------------------------------------------------------

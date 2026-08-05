@@ -71,13 +71,8 @@ protected:  // members
     mutable std::string root_namespace_;
     // std::string db_namespace_;
 
-#if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
-    mutable std::optional<eckit::RadosAsyncKeyValue> root_kv_;
-    // std::optional<eckit::RadosAsyncKeyValue> db_kv_;
-#else
     mutable std::optional<eckit::RadosKeyValue> root_kv_;
     // std::optional<eckit::RadosKeyValue> db_kv_;
-#endif
 
     // eckit::Length maxPartSize_;
 

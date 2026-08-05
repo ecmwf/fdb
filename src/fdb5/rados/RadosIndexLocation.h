@@ -13,11 +13,10 @@
 
 #pragma once
 
-#include "eckit/exception/Exceptions.h"
-#include "eckit/io/rados/RadosAsyncKeyValue.h"
-#include "eckit/io/rados/RadosKeyValue.h"
-
 #include "fdb5/database/IndexLocation.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/io/rados/RadosKeyValue.h"
 
 
 namespace fdb5 {
@@ -28,15 +27,9 @@ class RadosIndexLocation : public IndexLocation {
 
 public:  // methods
 
-    // #if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE) || defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
-    //     RadosIndexLocation(const eckit::RadosPersistentKeyValue& name, off_t offset);
-
-    //     const eckit::RadosPersistentKeyValue& radosName() const { return name_; };
-    // #else
     RadosIndexLocation(const eckit::RadosKeyValue& name, off_t offset);
 
     const eckit::RadosKeyValue& radosName() const { return name_; };
-    // #endif
 
     eckit::URI uri() const override { return name_.uri(); }
 
@@ -52,11 +45,7 @@ private:  // methods
 
 private:  // members
 
-    // #if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE) || defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
-    //     eckit::RadosPersistentKeyValue name_;
-    // #else
     eckit::RadosKeyValue name_;
-    // #endif
 
     off_t offset_;
 };

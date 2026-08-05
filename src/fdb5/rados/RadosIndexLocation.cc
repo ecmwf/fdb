@@ -14,11 +14,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// #if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE) || defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
-// RadosIndexLocation::RadosIndexLocation(const eckit::RadosPersistentKeyValue& name, off_t offset) : name_(name),
-// offset_(offset) {} #else
 RadosIndexLocation::RadosIndexLocation(const eckit::RadosKeyValue& name, off_t offset) : name_(name), offset_(offset) {}
-// #endif
 
 void RadosIndexLocation::print(std::ostream& out) const {
 

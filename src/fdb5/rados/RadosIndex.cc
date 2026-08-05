@@ -10,6 +10,15 @@
 
 #include "fdb5/rados/RadosIndex.h"
 
+#include "fdb5/database/EntryVisitMechanism.h"
+#include "fdb5/database/Field.h"
+#include "fdb5/database/FieldDetails.h"
+#include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/Index.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/rados/RadosCommon.h"
+#include "fdb5/rados/RadosLazyFieldLocation.h"
+
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
@@ -23,16 +32,6 @@
 #include "eckit/serialisation/Reanimator.h"
 #include "eckit/utils/Tokenizer.h"
 
-#include "fdb5/rados/RadosCommon.h"
-
-#include "fdb5/database/EntryVisitMechanism.h"
-#include "fdb5/database/Field.h"
-#include "fdb5/database/FieldDetails.h"
-#include "fdb5/database/FieldLocation.h"
-#include "fdb5/database/Index.h"
-#include "fdb5/database/Key.h"
-#include "fdb5/rados/RadosLazyFieldLocation.h"
-
 #include <climits>  // for PATH_MAX
 #include <cstddef>
 #include <ctime>
@@ -43,25 +42,6 @@
 #include <tuple>
 #include <utility>
 #include <vector>
-
-// #if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE) || defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
-// eckit::RadosPersistentKeyValue buildIndexKvName(const fdb5::Key& key, const eckit::RadosNamespace& name) {
-// #else
-// eckit::RadosKeyValue buildIndexKvName(const fdb5::Key& key, const eckit::RadosNamespace& name) {
-// #endif
-/// create index kv
-/// @todo: pass oclass from config
-/// @todo: hash string into lower oid bits
-
-// #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
-//     return eckit::RadosPersistentKeyValue{name.poolName(), name.containerName(), key.valuesToString(), true};
-// #elif fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-//     return eckit::RadosPersistentKeyValue{name.poolName(), name.containerName(), key.valuesToString()};
-// #else
-// return eckit::RadosKeyValue{name.poolName(), name.containerName(), key.valuesToString()};
-// #endif
-
-// }
 
 namespace fdb5 {
 
@@ -96,11 +76,7 @@ RadosIndex::RadosIndex(const Key& key, const eckit::RadosNamespace& name) :
     idx_kv_.put("key", h.data(), hs.bytesWritten());
 }
 
-// #if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE) || defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
-// RadosIndex::RadosIndex(const Key& key, const eckit::RadosPersistentKeyValue& name, bool readAxes) :
-// #else
 RadosIndex::RadosIndex(const Key& key, const eckit::RadosKeyValue& name, bool readAxes) :
-    // #endif
     IndexBase(key, "radosKeyValue"), location_(name, 0), idx_kv_(name.uri()) {
 
     if (readAxes) {
@@ -301,17 +277,6 @@ std::vector<eckit::URI> RadosIndex::dataURIs() const {
 
     return std::vector<eckit::URI>(res.begin(), res.end());
 }
-
-#ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-void RadosIndex::flush() {
-
-    for (auto& axis : axis_kvs_) {
-        axis.second.flush();
-    }
-
-    idx_kv_.flush();
-}
-#endif
 
 //-----------------------------------------------------------------------------
 

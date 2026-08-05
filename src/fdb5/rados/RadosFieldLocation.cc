@@ -53,7 +53,7 @@ std::shared_ptr<const FieldLocation> RadosFieldLocation::make_shared() const {
 
 eckit::DataHandle* RadosFieldLocation::dataHandle() const {
 
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && !defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART)
 
     return eckit::RadosObject(uri_).multipartRangeReadHandle(offset(), length());
 

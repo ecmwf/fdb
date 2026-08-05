@@ -317,7 +317,7 @@ CASE("RadosCatalogue tests") {
         // retrieve data
 
         std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && !defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART)
         /// @note: with multipart enabled, the field spans potentially several objects and is
         ///   returned as an eckit::PartHandle wrapping a RadosMultiObjReadHandle.
         EXPECT(dynamic_cast<eckit::PartHandle*>(dh.get()));

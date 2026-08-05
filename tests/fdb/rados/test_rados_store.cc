@@ -34,11 +34,11 @@
 // #include "eckit/io/s3/S3Client.h"
 // #include "eckit/io/s3/S3Session.h"
 // #include "eckit/io/s3/S3Credential.h"
-#include "eckit/io/PartHandle.h"
-#include "eckit/io/rados/RadosPartHandle.h"
-
 #include "fdb5/rados/RadosFieldLocation.h"
 #include "fdb5/rados/RadosStore.h"
+
+#include "eckit/io/PartHandle.h"
+#include "eckit/io/rados/RadosPartHandle.h"
 // #include "fdb5/daos/DaosException.h"
 
 using namespace eckit::testing;
@@ -200,7 +200,7 @@ CASE("RadosStore tests") {
         fdb5::Field field(std::move(loc), std::time(nullptr));
         std::cout << "Read location: " << field.location() << std::endl;
         std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && !defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART)
         /// @note: with multipart enabled, the field spans potentially several objects and is
         ///   returned as an eckit::PartHandle wrapping a RadosMultiObjReadHandle.
         EXPECT(dynamic_cast<eckit::PartHandle*>(dh.get()));
@@ -308,7 +308,7 @@ CASE("RadosStore tests") {
         // retrieve data
 
         std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && !defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART)
         /// @note: with multipart enabled, the field spans potentially several objects and is
         ///   returned as an eckit::PartHandle wrapping a RadosMultiObjReadHandle.
         EXPECT(dynamic_cast<eckit::PartHandle*>(dh.get()));
@@ -378,7 +378,7 @@ CASE("RadosStore tests") {
             "store: rados\n"
             "rados:\n"};
 
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && !defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART)
         config_str += "  maxPartSize: 16\n";
 #endif
 
@@ -391,19 +391,6 @@ CASE("RadosStore tests") {
                       "_root\n"
                       "    namespace_prefix: " +
                       test_id + "\n";
-
-#if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
-#if defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
-        config_str += "    maxHandleBuffSize: 100\n";
-#else
-#ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
-        config_str += "    maxAioBuffSize: 10\n";
-        config_str += "    maxPartHandleBuffSize: 10\n";
-#else
-        config_str += "    maxAioBuffSize: 100\n";
-#endif
-#endif
-#endif
 
         fdb5::Config config{YAMLConfiguration(config_str)};
 
@@ -440,7 +427,7 @@ CASE("RadosStore tests") {
 
         char data[] = "test123456";
 
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && !defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART)
         /// @note: maxPartSize is set to 16, and four 10-byte fields are archived, spanning 3 objects
         for (int i = 0; i < 4; i++) {
             std::cout << "Archive field " << i << std::endl;
@@ -456,7 +443,7 @@ CASE("RadosStore tests") {
 
         // retrieve data
 
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && !defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART)
         for (int i = 0; i < 4; i++) {
             std::cout << "Retrieve field " << i << std::endl;
             fdb5::Key request_key_i(
@@ -562,7 +549,7 @@ CASE("RadosStore tests") {
             "store: rados\n"
             "rados:\n"};
 
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && !defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
+#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART)
         config_str += "  maxPartSize: 16\n";
 #endif
 
@@ -575,19 +562,6 @@ CASE("RadosStore tests") {
                       "_root\n"
                       "    namespace_prefix: " +
                       test_id + "\n";
-
-#if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
-#if defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
-        config_str += "    maxHandleBuffSize: 100\n";
-#else
-#ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
-        config_str += "    maxAioBuffSize: 10\n";
-        config_str += "    maxPartHandleBuffSize: 10\n";
-#else
-        config_str += "    maxAioBuffSize: 100\n";
-#endif
-#endif
-#endif
 
         fdb5::Config config{YAMLConfiguration(config_str)};
 

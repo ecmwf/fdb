@@ -137,17 +137,7 @@ bool RadosCatalogueWriter::selectIndex(const Key& key) {
             res = db_kv_->get(key.valuesToString(), &n[0], idx_loc_max_len);
 
             indexes_[key] = Index(new fdb5::RadosIndex(
-                key,
-                // #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
-                //                     eckit::RadosPersistentKeyValue{eckit::URI{std::string{n.begin(),
-                //                     std::next(n.begin(), res)}}, true},
-                // #elif fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-                //                     eckit::RadosPersistentKeyValue{eckit::URI{std::string{n.begin(),
-                //                     std::next(n.begin(), res)}}},
-                // #else
-                eckit::RadosKeyValue{eckit::URI{std::string{n.begin(), std::next(n.begin(), res)}}},
-                // #endif
-                false));
+                key, eckit::RadosKeyValue{eckit::URI{std::string{n.begin(), std::next(n.begin(), res)}}}, false));
         }
         catch (eckit::RadosEntityNotFoundException& e) {
 
@@ -308,15 +298,7 @@ void RadosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
     }
 }
 
-void RadosCatalogueWriter::flush(size_t archivedFields) {
-
-#ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-    for (IndexStore::iterator j = indexes_.begin(); j != indexes_.end(); ++j) {
-        j->second.flush();
-    }
-    db_kv_->flush();
-    root_kv_->flush();
-#endif
+void RadosCatalogueWriter::flush(size_t /* archivedFields */) {
 
     if (!current_.null()) {
         current_ = Index();

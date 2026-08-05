@@ -10,17 +10,6 @@
 
 #include "fdb5/rados/RadosCatalogueReader.h"
 
-#include <iterator>
-#include <optional>
-#include <ostream>
-#include <string>
-#include <vector>
-
-#include "eckit/exception/Exceptions.h"
-#include "eckit/filesystem/URI.h"
-#include "eckit/io/rados/RadosException.h"
-#include "eckit/io/rados/RadosKeyValue.h"
-#include "eckit/log/Log.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/database/Catalogue.h"
@@ -30,6 +19,18 @@
 #include "fdb5/rados/RadosCatalogue.h"
 #include "fdb5/rados/RadosCommon.h"
 #include "fdb5/rados/RadosIndex.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/rados/RadosException.h"
+#include "eckit/io/rados/RadosKeyValue.h"
+#include "eckit/log/Log.h"
+
+#include <iterator>
+#include <optional>
+#include <ostream>
+#include <string>
+#include <vector>
 
 namespace fdb5 {
 
@@ -81,13 +82,7 @@ bool RadosCatalogueReader::selectIndex(const Key& key) {
         }
 
         eckit::URI uri{std::string{n.begin(), std::next(n.begin(), res)}};
-        // #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_WRITE
-        //         eckit::RadosPersistentKeyValue index_kv{uri, true};
-        // #elif fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-        //         eckit::RadosPersistentKeyValue index_kv{uri};
-        // #else
         eckit::RadosKeyValue index_kv{uri};
-        // #endif
 
         indexes_[key] = Index(new RadosIndex(key, index_kv, true));
 

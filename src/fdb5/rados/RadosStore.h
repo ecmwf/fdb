@@ -14,12 +14,11 @@
 
 #pragma once
 
-#include "eckit/io/rados/RadosObject.h"
-
 #include "fdb5/database/Store.h"
+#include "fdb5/rados/RadosCommon.h"
 #include "fdb5/rules/Schema.h"
 
-#include "fdb5/rados/RadosCommon.h"
+#include "eckit/io/rados/RadosObject.h"
 
 namespace fdb5 {
 
@@ -73,11 +72,8 @@ protected:  // methods
 
     void print(std::ostream& out) const override;
 
-    void parseConfig(const fdb5::Config& config);
-
     eckit::RadosObject generateDataObject(const Key& key) const;
 
-#ifndef fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD
     const eckit::RadosObject& getDataObject(const Key& key) const;
     eckit::DataHandle& getDataHandle(const Key& key, const eckit::RadosObject& name);
     void closeDataHandles();
@@ -87,28 +83,14 @@ private:  // types
 
     typedef std::map<Key, eckit::DataHandle*> HandleStore;
     typedef std::map<Key, eckit::RadosObject> ObjectStore;
-#endif
 
 private:  // members
 
     // mutable bool dirty_;
     size_t archivedFields_{0};
 
-#ifdef fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD
-#ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-    std::vector<eckit::DataHandle*> handles_;
-    size_t maxHandleBuffSize_;
-#endif
-#else
     HandleStore handles_;
     mutable ObjectStore dataObjects_;
-#ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
-    size_t maxAioBuffSize_;
-#ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
-    size_t maxPartHandleBuffSize_;
-#endif
-#endif
-#endif
 };
 
 //----------------------------------------------------------------------------------------------------------------------

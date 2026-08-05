@@ -13,13 +13,13 @@
 
 #pragma once
 
-#include "eckit/filesystem/URI.h"
-#include "eckit/io/Length.h"
-#include "eckit/io/rados/RadosKeyValue.h"
-
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/fdb5_config.h"
+
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/Length.h"
+#include "eckit/io/rados/RadosKeyValue.h"
 
 #include <optional>
 #include <string>
@@ -48,13 +48,8 @@ protected:  // members
     std::string root_namespace_;
     std::string db_namespace_;
 
-#if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
-    std::optional<eckit::RadosAsyncKeyValue> root_kv_;
-    std::optional<eckit::RadosAsyncKeyValue> db_kv_;
-#else
     std::optional<eckit::RadosKeyValue> root_kv_;
     std::optional<eckit::RadosKeyValue> db_kv_;
-#endif
 
     eckit::Length maxPartSize_;
 
