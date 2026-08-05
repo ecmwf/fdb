@@ -10,26 +10,39 @@
 
 #include "fdb5/rados/RadosStore.h"
 
-#include "eckit/config/Resource.h"
-#include "eckit/io/EmptyHandle.h"
+#include "fdb5/LibFdb5.h"
+#include "fdb5/database/Field.h"
+#include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/Store.h"
+#include "fdb5/database/WipeState.h"
+#include "fdb5/rados/RadosCommon.h"
+#include "fdb5/rados/RadosFieldLocation.h"
+#include "fdb5/rules/Rule.h"
+
+#include "eckit/config/LocalConfiguration.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/Length.h"
+#include "eckit/io/Offset.h"
 #include "eckit/io/rados/RadosNamespace.h"
+#include "eckit/io/rados/RadosObject.h"
 #include "eckit/io/rados/RadosPool.h"
-#include "eckit/log/Bytes.h"
 #include "eckit/log/TimeStamp.h"
-#include "eckit/log/Timer.h"
 #include "eckit/runtime/Main.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/StaticMutex.h"
 #include "eckit/utils/MD5.h"
 #include "eckit/utils/Tokenizer.h"
 
-#include "fdb5/LibFdb5.h"
-#include "fdb5/database/FieldLocation.h"
-#include "fdb5/database/WipeState.h"
-#include "fdb5/rados/RadosFieldLocation.h"
-#include "fdb5/rules/Rule.h"
-
 #include <unistd.h>
+
+#include <cstddef>
+#include <iostream>
+#include <memory>
+#include <ostream>
+#include <set>
+#include <sstream>
+#include <string>
 
 namespace fdb5 {
 
@@ -53,30 +66,14 @@ RadosStore::RadosStore(const eckit::URI& uri, const Config& config) :
 
 eckit::URI RadosStore::uri() const {
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-
     return eckit::RadosNamespace(pool_, db_namespace_).uri();
-
-#else
-
-    return eckit::RadosPool(db_pool_).uri();
-
-#endif
 }
 
 eckit::URI RadosStore::uri(const eckit::URI& dataURI) {
 
     eckit::RadosObject o{dataURI};
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-
     return o.nspace().uri();
-
-#else
-
-    return o.nspace().pool().uri();
-
-#endif
 }
 
 bool RadosStore::uriBelongs(const eckit::URI& uri) const {
@@ -84,17 +81,8 @@ bool RadosStore::uriBelongs(const eckit::URI& uri) const {
     const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
     const auto n = parts.size();
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-
     ASSERT(n == 2 || n == 3);
     return ((uri.scheme() == type()) && (parts[0] == pool_) && (parts[1] == db_namespace_));
-
-#else
-
-    ASSERT(n == 2 || n == 3);
-    return ((uri.scheme() == type()) && (parts[0] == db_pool_) && (parts[1] == namespace_));
-
-#endif
 }
 
 bool RadosStore::uriExists(const eckit::URI& uri) const {
@@ -106,8 +94,6 @@ bool RadosStore::uriExists(const eckit::URI& uri) const {
 
     ASSERT(uri.scheme() == type());
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-
     ASSERT(n == 2 || n == 3);
     ASSERT(parts[0] == pool_);
     ASSERT(parts[1] == db_namespace_);
@@ -116,20 +102,6 @@ bool RadosStore::uriExists(const eckit::URI& uri) const {
         return eckit::RadosNamespace(uri).exists();
     }
 
-#else
-
-    ASSERT(n == 1 || n == 3);
-    ASSERT(parts[0] == db_pool_);
-    if (n > 1) {
-        ASSERT(parts[1] == namespace_);
-    }
-
-    if (n == 1) {
-        return eckit::RadosPool(uri).exists();
-    }
-
-#endif
-
     return eckit::RadosObject(uri).exists();
 }
 
@@ -137,15 +109,7 @@ std::set<eckit::URI> RadosStore::collocatedDataURIs() const {
 
     std::set<eckit::URI> store_unit_uris;
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-
     eckit::RadosNamespace n{pool_, db_namespace_};
-
-#else
-
-    eckit::RadosNamespace n{db_pool_, namespace_};
-
-#endif
 
     if (!n.exists()) {
         return store_unit_uris;
@@ -173,7 +137,7 @@ std::set<eckit::URI> RadosStore::asCollocatedDataURIs(const std::set<eckit::URI>
 
     /// @note: this is only uniquefying the input uris (coming from an index)
     ///   in case theres any duplicate.
-    for (auto& uri : uris) {
+    for (const auto& uri : uris) {
         res.insert(uri);
     }
 
@@ -182,15 +146,7 @@ std::set<eckit::URI> RadosStore::asCollocatedDataURIs(const std::set<eckit::URI>
 
 bool RadosStore::exists() const {
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-
     return eckit::RadosNamespace(pool_, db_namespace_).exists();
-
-#else
-
-    return eckit::RadosNamespace(db_pool_, namespace_).exists();
-
-#endif
 }
 
 /// @todo: never used in actual fdb-read?
@@ -207,18 +163,6 @@ std::unique_ptr<const FieldLocation> RadosStore::archive(const Key& key, const v
 
     /// @note: generate unique object name starting by indexkey_
     eckit::RadosObject o = generateDataObject(key);
-
-#ifndef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-
-    /// @todo: ensure pool if not yet seen by this process
-    static std::set<std::string> knownPools;
-    const eckit::RadosPool& p = o.nspace().pool();
-    if (knownPools.find(p.name()) == knownPools.end()) {
-        p.ensureCreated();
-        knownPools.insert(p.name());
-    }
-
-#endif
 
 #ifdef fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH
     eckit::DataHandle* h = o.asyncDataHandle();
@@ -239,20 +183,7 @@ std::unique_ptr<const FieldLocation> RadosStore::archive(const Key& key, const v
 
 #else
 
-    /// @note: get or generate unique key name
     const eckit::RadosObject& o = getDataObject(key);
-
-#ifndef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-
-    /// @todo: ensure pool if not yet seen by this process
-    static std::set<std::string> knownPools;
-    const eckit::RadosPool& p = o.nspace().pool();
-    if (knownPools.find(p.name()) == knownPools.end()) {
-        p.ensureCreated();
-        knownPools.insert(p.name());
-    }
-
-#endif
 
     eckit::DataHandle& h = getDataHandle(key, o);
 
@@ -262,7 +193,7 @@ std::unique_ptr<const FieldLocation> RadosStore::archive(const Key& key, const v
 
     ASSERT(len == length);
 
-    return std::unique_ptr<RadosFieldLocation>(new RadosFieldLocation(o.uri(), offset, length, fdb5::Key{}));
+    return std::make_unique<RadosFieldLocation>(o.uri(), offset, length, fdb5::Key{});
 
 #endif
 }
@@ -335,8 +266,6 @@ void RadosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ost
     const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
     const auto n = parts.size();
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-
     ASSERT(n == 2 || n == 3);
 
     ASSERT(parts[0] == pool_);
@@ -370,64 +299,17 @@ void RadosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ost
         }
 #endif
     }
-
-#else
-
-    ASSERT(n == 1 || n == 3);
-
-    ASSERT(parts[0] == db_pool_);
-
-    if (n == 1) {  // pool
-
-        eckit::RadosPool pool{uri};
-
-        logVerbose << "destroy Rados pool: ";
-        logAlways << pool.name() << std::endl;
-
-        if (doit) {
-            pool.ensureDestroyed();
-        }
-    }
-    else {  // object
-
-        ASSERT(parts[1] == namespace_);
-
-        eckit::RadosObject obj{uri};
-
-        logVerbose << "destroy Rados object: ";
-        logAlways << obj.str() << std::endl;
-
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART) && !defined(fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD)
-        if (doit) {
-            obj.ensureAllDestroyed();
-        }
-#else
-        if (doit) {
-            obj.ensureDestroyed();
-        }
-#endif
-    }
-
-#endif
 }
 
 void RadosStore::print(std::ostream& out) const {
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-
     out << "RadosStore(" << pool_ << "/" << db_namespace_ << ")";
-
-#else
-
-    out << "RadosStore(" << db_pool_ << "/" << namespace_ << ")";
-
-#endif
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// @note: for SINGLE_POOL the database maps to a Rados namespace, otherwise to a Rados pool.
-///   Only the namespace/pool holding this database's objects is ever touched here.
+/// @note: the database maps to a Rados namespace. Only the namespace holding this database's
+///   objects is ever touched here.
 
 void RadosStore::finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) {
     /// @note: doit and unsafeWipeAll do not affect the preparation of a Rados store wipe.
@@ -451,12 +333,8 @@ void RadosStore::finaliseWipeState(StoreWipeState& storeState, bool doit, bool u
         return;
     }
 
-    // Full wipe: scan the database namespace/pool for any objects unaccounted for by the catalogue.
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
+    // Full wipe: scan the database namespace for any objects unaccounted for by the catalogue.
     eckit::RadosNamespace db{pool_, db_namespace_};
-#else
-    eckit::RadosNamespace db{db_pool_, namespace_};
-#endif
 
     if (!db.exists()) {
         return;
@@ -507,11 +385,7 @@ void RadosStore::doWipeEmptyDatabase() const {
         return;
     }
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
     eckit::RadosNamespace db{pool_, db_namespace_};
-#else
-    eckit::RadosNamespace db{db_pool_, namespace_};
-#endif
 
     if (db.exists()) {
         remove(db.uri(), std::cout, std::cout, true);
@@ -525,11 +399,7 @@ bool RadosStore::doUnsafeFullWipe() const {
     ///   determine whether a catalogue exists here.
     if (db_kv_ && (!db_kv_->exists() || !db_kv_->has("key"))) {
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
         eckit::RadosNamespace db{pool_, db_namespace_};
-#else
-        eckit::RadosNamespace db{db_pool_, namespace_};
-#endif
 
         if (db.exists()) {
             remove(db.uri(), std::cout, std::cout, true);
@@ -560,8 +430,6 @@ eckit::RadosObject RadosStore::generateDataObject(const Key& key) const {
 
     eckit::MD5 md5(name);
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-
 #ifdef fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD
 
     return eckit::RadosObject{pool_, db_namespace_, md5.digest()};
@@ -569,20 +437,6 @@ eckit::RadosObject RadosStore::generateDataObject(const Key& key) const {
 #else
 
     return eckit::RadosObject{pool_, db_namespace_, key.valuesToString() + "." + md5.digest() + ".data"};
-
-#endif
-
-#else
-
-#ifdef fdb5_HAVE_RADOS_STORE_OBJ_PER_FIELD
-
-    return eckit::RadosObject{db_pool_, namespace_, md5.digest()};
-
-#else
-
-    return eckit::RadosObject{db_pool_, namespace_, key.valuesToString() + "." + md5.digest() + ".data"};
-
-#endif
 
 #endif
 }

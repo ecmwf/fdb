@@ -8,24 +8,17 @@
  * does it submit to any jurisdiction.
  */
 
-#include <limits.h>
-// #include <numeric>
+
+#include "fdb5/rados/RadosCatalogueWriter.h"
+
+#include "fdb5/LibFdb5.h"
+#include "fdb5/rados/RadosIndex.h"
 
 #include "eckit/io/FileHandle.h"
 #include "eckit/io/MemoryHandle.h"
-#include "eckit/serialisation/HandleStream.h"
-
-#include "fdb5/LibFdb5.h"
-
-// #include "fdb5/daos/DaosSession.h"
-// #include "fdb5/daos/DaosName.h"
 #include "eckit/io/rados/RadosException.h"
 #include "eckit/io/rados/RadosKeyValue.h"
-
-#include "fdb5/rados/RadosCatalogueWriter.h"
-#include "fdb5/rados/RadosIndex.h"
-
-// using namespace eckit;
+#include "eckit/serialisation/HandleStream.h"
 
 namespace fdb5 {
 
@@ -38,13 +31,8 @@ RadosCatalogueWriter::RadosCatalogueWriter(const Key& key, const fdb5::Config& c
     /// - daos_pool_connect
     /// - root cont open (daos_cont_open)
     /// - root cont create (daos_cont_create)
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
     std::string db_name = db_namespace_;
     ASSERT(root_kv_->nspace().pool().exists());
-#else
-    std::string db_name = db_pool_;
-    root_kv_->nspace().pool().ensureCreated();
-#endif
 
     /// @note: the DaosKeyValue constructor checks if the kv exists, which results in creation if not exists
     /// @note: performed RPCs:
@@ -56,9 +44,6 @@ RadosCatalogueWriter::RadosCatalogueWriter(const Key& key, const fdb5::Config& c
     if (!root_kv_->has(db_name)) {
 
         /// create catalogue kv
-#ifndef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-        db_kv_->nspace().pool().ensureCreated();
-#endif
         db_kv_->ensureCreated();
 
         /// write schema under "schema"
@@ -129,13 +114,8 @@ bool RadosCatalogueWriter::createIndex(const Key& /* idxKey */, size_t /* datumK
 
 bool RadosCatalogueWriter::selectIndex(const Key& key) {
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
     std::string pool = pool_;
     std::string nspace = db_namespace_;
-#else
-    std::string pool = db_pool_;
-    std::string nspace = namespace_;
-#endif
 
     currentIndexKey_ = key;
 
@@ -233,13 +213,8 @@ const Index& RadosCatalogueWriter::currentIndex() {
 void RadosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
                                    std::shared_ptr<const FieldLocation> fieldLocation) {
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
     std::string pool = pool_;
     std::string nspace = db_namespace_;
-#else
-    std::string pool = db_pool_;
-    std::string nspace = namespace_;
-#endif
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());

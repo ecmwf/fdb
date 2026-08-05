@@ -60,13 +60,8 @@ RadosCatalogue::RadosCatalogue(const eckit::URI& uri, const ControlIdentifiers& 
                                const fdb5::Config& config) :
     CatalogueImpl(Key(), controlIdentifiers, config), RadosCommon(config, "catalogue", uri) {
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
     std::string pool = pool_;
     std::string nspace = db_namespace_;
-#else
-    std::string pool = db_pool_;
-    std::string nspace = namespace_;
-#endif
 
     // Read the real DB key into the DB base object
     try {
@@ -189,15 +184,7 @@ bool RadosCatalogue::uriBelongs(const eckit::URI& uri) const {
     const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
     const auto n = parts.size();
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
-
     return (uri.scheme() == type()) && (n >= 2) && (parts[0] == pool_) && (parts[1] == db_namespace_);
-
-#else
-
-    return (uri.scheme() == type()) && (n >= 2) && (parts[0] == db_pool_) && (parts[1] == namespace_);
-
-#endif
 }
 
 //----------------------------------------------------------------------------------------------------------------------

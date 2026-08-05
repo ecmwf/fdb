@@ -73,17 +73,6 @@ void ensureCleanNamespaces(const std::string& pool, const std::string& prefix) {
     }
 }
 
-#ifdef fdb5_HAVE_RADOS_ADMIN
-void ensureClean(const std::string& prefix) {
-    ASSERT(prefix.length() > 3);
-    for (const std::string& name : eckit::RadosCluster::instance().listPools()) {
-        if (name.rfind(prefix, 0) == 0) {
-            eckit::RadosPool{name}.destroy();
-        }
-    }
-}
-#endif
-
 }  // namespace
 
 // temporary schema,spaces,root files common to all DAOS Catalogue tests
@@ -107,12 +96,6 @@ namespace fdb {
 namespace test {
 
 CASE("Setup") {
-
-#if !defined(fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL) && !defined(fdb5_HAVE_RADOS_ADMIN)
-    throw eckit::Exception(
-        "RadosStore unit tests require Rados admin permissions to create pools if "
-        "RADOS_BACKENDS_SINGLE_POOL=OFF, and require enabling RADOS_ADMIN=ON.");
-#endif
 
     // ensure fdb root directory exists. If not, then that root is
     // registered as non existing and Catalogue/Store tests fail.
@@ -151,7 +134,6 @@ CASE("Setup") {
 CASE("RadosCatalogue tests") {
 
     std::string test_id = "test-catalogue";
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 #ifdef eckit_HAVE_RADOS_ADMIN
     std::string pool = test_id;
     eckit::RadosPool{pool}.ensureDestroyed();
@@ -162,14 +144,9 @@ CASE("RadosCatalogue tests") {
     EXPECT(pool.length() > 0);
     ensureCleanNamespaces(pool, test_id);
 #endif
-#else
-    std::string prefix = test_id;
-    ensureClean(prefix);
-#endif
 
     SECTION("DaosCatalogue archive (index) and retrieve without a Store") {
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
         std::string config_str{
             "spaces:\n"
             "- roots:\n"
@@ -189,25 +166,6 @@ CASE("RadosCatalogue tests") {
             "_root\n"
             "    namespace_prefix: " +
             test_id + "\n"};
-#else
-        std::string config_str{
-            "spaces:\n"
-            "- roots:\n"
-            "  - path: " +
-            catalogue_tests_tmp_root().asString() +
-            "\n"
-            "schema : " +
-            schema_file().path() +
-            "\n"
-            "rados:\n"
-            "  catalogue:\n"
-            "    namespace: default\n"
-            "    root_pool: " +
-            prefix +
-            "_root\n"
-            "    pool_prefix: " +
-            prefix + "\n"};
-#endif
 
         fdb5::Config config{YAMLConfiguration(config_str)};
         fdb5::Schema schema{schema_file()};
@@ -290,7 +248,6 @@ CASE("RadosCatalogue tests") {
 
         // FDB configuration
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
         std::string config_str{
             "spaces:\n"
             "- roots:\n"
@@ -309,24 +266,6 @@ CASE("RadosCatalogue tests") {
             "_root\n"
             "  namespace_prefix: " +
             test_id + "\n"};
-#else
-        std::string config_str{
-            "spaces:\n"
-            "- roots:\n"
-            "  - path: " +
-            catalogue_tests_tmp_root().asString() +
-            "\n"
-            "schema : " +
-            schema_file().path() +
-            "\n"
-            "rados:\n"
-            "  namespace: default\n"
-            "  root_pool: " +
-            prefix +
-            "_root\n"
-            "  pool_prefix: " +
-            prefix + "\n"};
-#endif
 
         fdb5::Config config{YAMLConfiguration(config_str)};
 
@@ -513,15 +452,11 @@ CASE("RadosCatalogue tests") {
 
         /// @note: earlier sections share the same catalogue namespaces/pool; reset them so this
         ///   section starts from a clean, empty catalogue (it asserts the FDB is initially empty).
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 #ifdef eckit_HAVE_RADOS_ADMIN
         eckit::RadosPool{pool}.ensureDestroyed();
         eckit::RadosPool{pool}.ensureCreated();
 #else
         ensureCleanNamespaces(pool, test_id);
-#endif
-#else
-        ensureClean(prefix);
 #endif
 
         // FDB configuration
@@ -540,7 +475,6 @@ CASE("RadosCatalogue tests") {
             "store: rados\n"
             "rados:\n"};
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
         config_str += "  pool: " + pool +
                       "\n"
                       "  root_namespace: " +
@@ -548,15 +482,6 @@ CASE("RadosCatalogue tests") {
                       "_root\n"
                       "  namespace_prefix: " +
                       test_id + "\n";
-#else
-        config_str +=
-            "  namespace: default\n"
-            "  root_pool: " +
-            prefix +
-            "_root\n"
-            "  pool_prefix: " +
-            prefix + "\n";
-#endif
 
         fdb5::Config config{YAMLConfiguration(config_str)};
 
@@ -888,14 +813,10 @@ CASE("RadosCatalogue tests") {
 
     // teardown rados
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
 #ifdef eckit_HAVE_RADOS_ADMIN
     eckit::RadosPool{pool}.ensureDestroyed();
 #else
     ensureCleanNamespaces(pool, test_id);
-#endif
-#else
-    ensureClean(prefix);
 #endif
 }
 

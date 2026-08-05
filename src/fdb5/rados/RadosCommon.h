@@ -40,23 +40,13 @@ public:  // methods
 
 private:  // methods
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
     void readConfig(const Config& config, const std::string& component, bool readPool);
-#else
-    void readConfig(const Config& config, const std::string& component, bool readNamespace);
-#endif
 
 protected:  // members
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
     std::string pool_;
     std::string root_namespace_;
     std::string db_namespace_;
-#else
-    std::string root_pool_;
-    std::string db_pool_;
-    std::string namespace_;
-#endif
 
 #if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
     std::optional<eckit::RadosAsyncKeyValue> root_kv_;
@@ -70,11 +60,7 @@ protected:  // members
 
 private:  // members
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
     std::string nspace_prefix_;
-#else
-    std::string pool_prefix_;
-#endif
 };
 
 }  // namespace fdb5

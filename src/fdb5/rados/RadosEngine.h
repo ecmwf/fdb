@@ -63,23 +63,13 @@ private:  // methods
     std::vector<eckit::URI> visitableLocations(const std::function<bool(const fdb5::Key&)>& matches,
                                                const Config& config) const;
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
     void readConfig(const fdb5::Config& config, const std::string& component, bool readPool) const;
-#else
-    void readConfig(const fdb5::Config& config, const std::string& component, bool readNamespace) const;
-#endif
 
 protected:  // members
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
     mutable std::string pool_;
     mutable std::string root_namespace_;
     // std::string db_namespace_;
-#else
-    mutable std::string root_pool_;
-    // std::string db_pool_;
-    mutable std::string namespace_;
-#endif
 
 #if defined(fdb5_HAVE_RADOS_BACKENDS_PERSIST_ON_FLUSH)
     mutable std::optional<eckit::RadosAsyncKeyValue> root_kv_;
@@ -93,11 +83,7 @@ protected:  // members
 
 private:  // members
 
-#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
     mutable std::string nspace_prefix_;
-#else
-    mutable std::string pool_prefix_;
-#endif
 };
 
 //----------------------------------------------------------------------------------------------------------------------
