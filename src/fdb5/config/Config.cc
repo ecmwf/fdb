@@ -60,14 +60,16 @@ Config::Config(const Config& other) :
     schemaPathInitialised_ = other.schemaPathInitialised_;
 }
 
-Config::Config(Config&& other, const eckit::PathName& schemaPath, Schema& schema) noexcept :
+Config::Config(Config&& other, const eckit::PathName& schemaPath, std::unique_ptr<Schema> schema) :
     LocalConfiguration(std::move(other)),
     schemaPath_(schemaPath),
     schemaPathInitialised_(true),
     userConfig_(std::move(other.userConfig_)) {
 
-    schema.path_ = schemaPath;
-    SchemaRegistry::instance().add(schemaPath, &schema);
+    ASSERT(schema);
+
+    schema->path_ = schemaPath;
+    SchemaRegistry::instance().add(schemaPath, std::move(schema));
 }
 
 Config& Config::operator=(const Config& other) {

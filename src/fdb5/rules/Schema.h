@@ -138,7 +138,7 @@ public:
 
     static SchemaRegistry& instance();
 
-    const Schema& add(const eckit::PathName& path, Schema* schema);
+    const Schema& add(const eckit::PathName& path, std::unique_ptr<Schema> schema);
     const Schema& get(const eckit::PathName& path);
 
 private:
