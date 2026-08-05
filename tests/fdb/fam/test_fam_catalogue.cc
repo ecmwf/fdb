@@ -389,7 +389,7 @@ CASE("FamCatalogue: wipe methods work correctly") {
     writer_iface.createIndex(idx_key, 3);
     writer_iface.selectIndex(idx_key);
     auto index = writer_iface.currentIndex();
-    fdb5::CatalogueWipeState wipe_state(db_key);
+    fdb5::CatalogueWipeState wipe_state(db_key, config);
     EXPECT(cat.markIndexForWipe(index, true, wipe_state));
 
     // doWipeURIs returns true
@@ -435,13 +435,13 @@ CASE("FamCatalogue: finaliseWipeState with non-empty safeURIs marks safe") {
     fdb5::Catalogue& cat = writer;
 
     // With safeURIs present, finalise marks cat URI as safe
-    fdb5::CatalogueWipeState wipe_state(db_key);
+    fdb5::CatalogueWipeState wipe_state(db_key, config);
     wipe_state.markAsSafe({eckit::URI("fam://host:1234/safe_object")});
     cat.finaliseWipeState(wipe_state);
     EXPECT(!wipe_state.safeURIs().empty());
 
     // With empty safeURIs (full wipe), marks cat for deletion
-    fdb5::CatalogueWipeState full_wipe(db_key);
+    fdb5::CatalogueWipeState full_wipe(db_key, config);
     cat.finaliseWipeState(full_wipe);
     EXPECT(full_wipe.countURIsToDelete() > 0);
 }
