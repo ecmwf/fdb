@@ -147,28 +147,9 @@ StatusIterator SelectFDB::status(const FDBToolRequest& request) {
 
 WipeStateIterator SelectFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
     LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::wipe() >> " << request << std::endl;
-
-    FDBLane* matchingLane = nullptr;
-    for (auto& lane : subFdbs_) {
-        if (lane.matches(request.request(), Matcher::MatchOnMissing)) {
-            if (matchingLane != nullptr) {
-                std::stringstream ss;
-                ss << "Multiple matching lanes for request " << request.request();
-                ss << " - wipe request must not match multiple SelectFDB lanes.";
-                throw eckit::UserError(ss.str(), Here());
-            }
-
-            matchingLane = &lane;
-        }
-    }
-
-    if (matchingLane == nullptr) {
-        std::stringstream ss;
-        ss << "No matching lane for request " << request.request();
-        throw eckit::UserError(ss.str(), Here());
-    }
-
-    return matchingLane->get().wipe(request, doit, porcelain, unsafeWipeAll);
+    return queryInternal(request, [doit, porcelain, unsafeWipeAll](FDBBase& fdb, const FDBToolRequest& request) {
+        return fdb.wipe(request, doit, porcelain, unsafeWipeAll);
+    });
 }
 
 PurgeIterator SelectFDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {
