@@ -9,11 +9,14 @@
  */
 
 
-#include "eckit/config/Resource.h"
-#include "eckit/serialisation/MemoryStream.h"
+#include "fdb5/rados/RadosEngine.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/rados/RadosEngine.h"
+
+#include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/serialisation/MemoryStream.h"
+#include "eckit/utils/Tokenizer.h"
 
 using namespace eckit;
 
@@ -23,6 +26,44 @@ namespace fdb5 {
 
 std::string RadosEngine::name() const {
     return RadosEngine::typeName();
+}
+
+eckit::URI RadosEngine::location(const Key& key, const Config& config) const {
+
+    /// @note: cannot inherit from RadosCommon here, as the Engine is always instantiated even when
+    ///   Rados is not used; it would then initialise RadosCommon unnecessarily. So the db key-value
+    ///   naming is resolved locally via readConfig, mirroring RadosCommon's key-based constructor.
+
+    readConfig(config, "catalogue", true);
+
+#ifdef fdb5_HAVE_RADOS_BACKENDS_SINGLE_POOL
+    const std::string db_namespace = nspace_prefix_ + "_" + key.valuesToString();
+    return eckit::RadosKeyValue{pool_, db_namespace, "catalogue_kv"}.uri();
+#else
+    const std::string db_pool = pool_prefix_ + "_" + key.valuesToString();
+    return eckit::RadosKeyValue{db_pool, namespace_, "catalogue_kv"}.uri();
+#endif
+}
+
+bool RadosEngine::canHandle(const eckit::URI& uri, const Config&) const {
+
+    if (uri.scheme() != typeName()) {
+        return false;
+    }
+
+    const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
+    if (parts.size() != 2 && parts.size() != 3) {
+        return false;
+    }
+
+    try {
+        return eckit::RadosKeyValue{parts[0], parts[1], "catalogue_kv"}.exists();
+    }
+    catch (const eckit::Exception& e) {
+        Log::debug<LibFdb5>() << "RadosEngine::canHandle: exception checking URI " << uri << ": " << e.what()
+                              << std::endl;
+        return false;
+    }
 }
 
 std::vector<eckit::URI> RadosEngine::visitableLocations(const std::function<bool(const fdb5::Key&)>& matches,

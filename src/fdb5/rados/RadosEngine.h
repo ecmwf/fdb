@@ -13,14 +13,14 @@
 
 #pragma once
 
-#include "eckit/exception/Exceptions.h"
-#include "eckit/filesystem/URI.h"
-#include "eckit/io/rados/RadosKeyValue.h"
+#include "fdb5/database/Engine.h"
+#include "fdb5/fdb5_config.h"
 
 #include "metkit/mars/MarsRequest.h"
 
-#include "fdb5/database/Engine.h"
-#include "fdb5/fdb5_config.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/rados/RadosKeyValue.h"
 
 #include <functional>
 #include <optional>
@@ -32,11 +32,11 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class RadosEngine : public fdb5::Engine {
+class RadosEngine : public Engine {
 
 public:  // methods
 
-    RadosEngine() {};
+    RadosEngine() = default;
 
     static const char* typeName() { return "rados"; }
 
@@ -44,19 +44,15 @@ protected:  // methods
 
     std::string name() const override;
 
-    std::string dbType() const override { NOTIMP; };
+    std::string dbType() const override { return typeName(); };
 
-    eckit::URI location(const Key& key, const Config& config) const override { NOTIMP; };
+    eckit::URI location(const Key& key, const Config& config) const override;
 
-    bool canHandle(const eckit::URI&, const Config&) const override { NOTIMP; };
-
-    // std::vector<eckit::URI> allLocations(const Key& key, const Config& config) const override { NOTIMP; };
+    bool canHandle(const eckit::URI& uri, const Config& config) const override;
 
     std::vector<eckit::URI> visitableLocations(const Key& key, const Config& config) const override;
     std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq,
                                                const Config& config) const override;
-
-    // std::vector<eckit::URI> writableLocations(const Key& key, const Config& config) const override { NOTIMP; };
 
     void print(std::ostream& out) const override { NOTIMP; };
 
