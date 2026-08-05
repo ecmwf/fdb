@@ -12,7 +12,7 @@
 #  RADOS_FOUND        - True if Rados was found
 #
 # This module also defines the following IMPORTED target:
-#  Ceph::rados
+#  Ceph::RADOS
 
 # Find the header path by looking for the subdirectory file
 find_path(RADOS_INCLUDE_DIR

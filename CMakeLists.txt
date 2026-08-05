@@ -73,7 +73,7 @@ ecbuild_add_option( FEATURE RADOS_BACKENDS_PERSIST_ON_FLUSH
 
 ecbuild_add_option( FEATURE RADOS_ADMIN
                     DEFAULT OFF
-                    DESCRIPTION "Have unit tests create pools automatically rather than using an existing pool specified in the ECKIT_RADOS_TEST_POOL cmake variable." )
+                    DESCRIPTION "Have unit tests create pools automatically rather than using an existing pool specified in the FDB_RADOS_TEST_POOL cmake variable." )
 
 ### FDB backend in indexed filesystem with table-of-contents, i.e. TOC
 ### Supports Lustre parallel filesystem stripping control
