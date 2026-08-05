@@ -218,7 +218,7 @@ RemoteFDB::RemoteFDB(const Configuration& config, const std::string& name) : Loc
 
     config_.set("stores", stores);
     config_.set("fieldLocationEndpoints", fieldLocationEndpoints);
-    config_.overrideSchema(static_cast<std::string>(controlEndpoint()) + "/schema", schema);
+    config_ = Config(std::move(config_), static_cast<std::string>(controlEndpoint()) + "/schema", *schema);
 
     /// @note: We must instantiate the ReadLimiter before any RemoteStores due to their static initialisation.
     /// @todo: this may change in future.

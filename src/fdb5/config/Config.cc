@@ -60,6 +60,16 @@ Config::Config(const Config& other) :
     schemaPathInitialised_ = other.schemaPathInitialised_;
 }
 
+Config::Config(Config&& other, const eckit::PathName& schemaPath, Schema& schema) noexcept :
+    LocalConfiguration(std::move(other)),
+    schemaPath_(schemaPath),
+    schemaPathInitialised_(true),
+    userConfig_(std::move(other.userConfig_)) {
+
+    schema.path_ = schemaPath;
+    SchemaRegistry::instance().add(schemaPath, &schema);
+}
+
 Config& Config::operator=(const Config& other) {
     if (this == &other) {
         return *this;
@@ -180,17 +190,6 @@ PathName Config::schemaPath() const {
     std::lock_guard lock(schemaMutex_);
     initializeSchemaPath();
     return schemaPath_;
-}
-
-void Config::overrideSchema(const eckit::PathName& schemaPath, Schema* schema) {
-    ASSERT(schema);
-
-    schema->path_ = schemaPath;
-    SchemaRegistry::instance().add(schemaPath, schema);
-
-    std::lock_guard lock(schemaMutex_);
-    schemaPath_ = schemaPath;
-    schemaPathInitialised_ = true;
 }
 
 void Config::initializeSchemaPath() const {

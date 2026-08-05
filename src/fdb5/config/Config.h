@@ -46,6 +46,8 @@ public:  // methods
     Config(const Config& other);
     Config& operator=(const Config& other);
 
+    Config(Config&& other, const eckit::PathName& schemaPath, Schema& schema) noexcept;
+
     /// Given a (potentially skeleton) configuration, expand it fully. This
     /// may involve loading a specific config.json
     Config expandConfig() const;
@@ -55,7 +57,6 @@ public:  // methods
     eckit::PathName expandPath(const std::string& path) const;
 
 
-    void overrideSchema(const eckit::PathName& schemaPath, Schema* schema);
     /// @note Return copy; a reference would race with overrideSchema().
     eckit::PathName schemaPath() const;
     eckit::PathName configPath() const;
