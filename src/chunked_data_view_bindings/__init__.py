@@ -7,7 +7,6 @@ findlibs.load("fdb5")
 from chunked_data_view_bindings.chunked_data_view_bindings import (
     init_bindings,
     AxisDefinition,
-    AxisDefinition.WholeAxisChunking,
     ChunkedDataView,
     ChunkedDataViewBuilder,
     ExtractorType,
@@ -21,6 +20,5 @@ __all__ = [
     "AxisDefinition",
     "ChunkedDataView",
     "ChunkedDataViewBuilder",
-    "AxisDefinition.WholeAxisChunking",
     "ExtractorType",
 ]
