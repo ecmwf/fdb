@@ -55,22 +55,6 @@ ecbuild_add_option( FEATURE RADOSFDB  # option defined in fdb5_config.h
                     DEFAULT OFF
                     DESCRIPTION "Ceph/Rados support for FDB Store" )
 
-ecbuild_add_option( FEATURE RADOS_BACKENDS_SINGLE_POOL
-                    DEFAULT ON
-                    DESCRIPTION "Use a single Rados pool with a namespace per database (ON) or a pool per database (OFF)" )
-
-ecbuild_add_option( FEATURE RADOS_STORE_OBJ_PER_FIELD
-                    DEFAULT OFF
-                    DESCRIPTION "Use a Rados object per archived field (ON) or per process and collocation key (OFF)" )
-
-ecbuild_add_option( FEATURE RADOS_STORE_MULTIPART
-                    DEFAULT ON
-                    DESCRIPTION "If RADOS_STORE_OBJ_PER_FIELD=OFF and the maximum object size is exceeded, use multiple Rados objects per process and collocation key (ON) or throw an exception (OFF)" )
-
-ecbuild_add_option( FEATURE RADOS_BACKENDS_PERSIST_ON_FLUSH
-                    DEFAULT OFF
-                    DESCRIPTION "Ensure writes/puts are persisted in Rados storage on flush rather than immediately." )
-
 ecbuild_add_option( FEATURE RADOS_ADMIN
                     DEFAULT OFF
                     DESCRIPTION "Have unit tests create pools automatically rather than using an existing pool specified in the FDB_RADOS_TEST_POOL cmake variable." )

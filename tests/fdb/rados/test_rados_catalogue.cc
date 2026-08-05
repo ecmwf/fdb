@@ -21,7 +21,6 @@
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/io/PartHandle.h"
-#include "eckit/io/rados/RadosPartHandle.h"
 
 // #include "metkit/mars/MarsRequest.h"
 
@@ -317,13 +316,9 @@ CASE("RadosCatalogue tests") {
         // retrieve data
 
         std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART)
-        /// @note: with multipart enabled, the field spans potentially several objects and is
-        ///   returned as an eckit::PartHandle wrapping a RadosMultiObjReadHandle.
+        /// @note: the field spans potentially several objects and is returned as an
+        ///   eckit::PartHandle wrapping a RadosMultiObjReadHandle.
         EXPECT(dynamic_cast<eckit::PartHandle*>(dh.get()));
-#else
-        EXPECT(dynamic_cast<eckit::RadosPartHandle*>(dh.get()));
-#endif
 
         eckit::MemoryHandle mh;
         dh->copyTo(mh);

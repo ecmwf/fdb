@@ -113,11 +113,9 @@ std::set<eckit::URI> RadosStore::collocatedDataURIs() const {
     ///   be done here to discriminate store objects from catalogue objects
     for (const auto& obj : n.listObjects()) {
 
-#ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
         if (obj.name().find(";part-") != std::string::npos) {
             continue;
         }
-#endif
 
         store_unit_uris.insert(obj.uri());
     }
@@ -172,17 +170,9 @@ size_t RadosStore::flush() {
         return 0;
     }
 
-#ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
-
     /// @note: the multipart handles need to persist the multipart attributes which is
     ///   performed in the multihandle flush.
     flushDataHandles();
-
-#else
-
-    // NOOP
-
-#endif
 
     size_t out = archivedFields_;
     archivedFields_ = 0;
@@ -224,15 +214,9 @@ void RadosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ost
         logVerbose << "destroy Rados object: ";
         logAlways << obj.str() << std::endl;
 
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART)
         if (doit) {
             obj.ensureAllDestroyed();
         }
-#else
-        if (doit) {
-            obj.ensureDestroyed();
-        }
-#endif
     }
 }
 
@@ -277,12 +261,10 @@ void RadosStore::finaliseWipeState(StoreWipeState& storeState, bool doit, bool u
 
     for (const auto& obj : db.listObjects()) {
 
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART)
         // Parts belong to a main object and are removed together with it.
         if (obj.name().find(";part-") != std::string::npos) {
             continue;
         }
-#endif
 
         const eckit::URI uri = obj.uri();
         if (dataURIs.find(uri) == dataURIs.end() && safeURIs.find(uri) == safeURIs.end()) {
@@ -384,11 +366,7 @@ eckit::DataHandle& RadosStore::getDataHandle(const Key& key, const eckit::RadosO
         return *(j->second);
     }
 
-#ifdef fdb5_HAVE_RADOS_STORE_MULTIPART
     eckit::DataHandle* dh = name.multipartWriteHandle(maxPartSize_);
-#else
-    eckit::DataHandle* dh = name.dataHandle();
-#endif
 
     ASSERT(dh);
 

@@ -38,7 +38,6 @@
 #include "fdb5/rados/RadosStore.h"
 
 #include "eckit/io/PartHandle.h"
-#include "eckit/io/rados/RadosPartHandle.h"
 // #include "fdb5/daos/DaosException.h"
 
 using namespace eckit::testing;
@@ -200,13 +199,9 @@ CASE("RadosStore tests") {
         fdb5::Field field(std::move(loc), std::time(nullptr));
         std::cout << "Read location: " << field.location() << std::endl;
         std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART)
-        /// @note: with multipart enabled, the field spans potentially several objects and is
-        ///   returned as an eckit::PartHandle wrapping a RadosMultiObjReadHandle.
+        /// @note: the field spans potentially several objects and is returned as an
+        ///   eckit::PartHandle wrapping a RadosMultiObjReadHandle.
         EXPECT(dynamic_cast<eckit::PartHandle*>(dh.get()));
-#else
-        EXPECT(dynamic_cast<eckit::RadosPartHandle*>(dh.get()));
-#endif
 
         eckit::MemoryHandle mh;
         dh->copyTo(mh);
@@ -308,13 +303,9 @@ CASE("RadosStore tests") {
         // retrieve data
 
         std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART)
-        /// @note: with multipart enabled, the field spans potentially several objects and is
-        ///   returned as an eckit::PartHandle wrapping a RadosMultiObjReadHandle.
+        /// @note: the field spans potentially several objects and is returned as an
+        ///   eckit::PartHandle wrapping a RadosMultiObjReadHandle.
         EXPECT(dynamic_cast<eckit::PartHandle*>(dh.get()));
-#else
-        EXPECT(dynamic_cast<eckit::RadosPartHandle*>(dh.get()));
-#endif
 
         eckit::MemoryHandle mh;
         dh->copyTo(mh);
@@ -378,9 +369,7 @@ CASE("RadosStore tests") {
             "store: rados\n"
             "rados:\n"};
 
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART)
         config_str += "  maxPartSize: 16\n";
-#endif
 
         config_str += "  store:\n";
 
@@ -427,7 +416,6 @@ CASE("RadosStore tests") {
 
         char data[] = "test123456";
 
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART)
         /// @note: maxPartSize is set to 16, and four 10-byte fields are archived, spanning 3 objects
         for (int i = 0; i < 4; i++) {
             std::cout << "Archive field " << i << std::endl;
@@ -435,15 +423,11 @@ CASE("RadosStore tests") {
                 {{"a", "1"}, {"b", "2"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", std::to_string(6 + i)}});
             fdb.archive(request_key_i, data, sizeof(data));
         }
-#else
-        fdb.archive(request_key, data, sizeof(data));
-#endif
 
         fdb.flush();
 
         // retrieve data
 
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART)
         for (int i = 0; i < 4; i++) {
             std::cout << "Retrieve field " << i << std::endl;
             fdb5::Key request_key_i(
@@ -456,15 +440,6 @@ CASE("RadosStore tests") {
             EXPECT(mh.size() == eckit::Length(sizeof(data)));
             EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
         }
-#else
-        metkit::mars::MarsRequest r = request_key.request("retrieve");
-        std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(r));
-
-        eckit::MemoryHandle mh;
-        dh->copyTo(mh);
-        EXPECT(mh.size() == eckit::Length(sizeof(data)));
-        EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
-#endif
 
         // wipe data
 
@@ -549,9 +524,7 @@ CASE("RadosStore tests") {
             "store: rados\n"
             "rados:\n"};
 
-#if defined(fdb5_HAVE_RADOS_STORE_MULTIPART)
         config_str += "  maxPartSize: 16\n";
-#endif
 
         config_str += "  store:\n";
 

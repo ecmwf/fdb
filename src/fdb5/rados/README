@@ -48,12 +48,5 @@ ctest -R rados_store
 cmake options:
 ==============
 
-# multipart disabled
 cmake $src_dir -DENABLE_MEMFS=ON -DENABLE_AEC=OFF -DENABLE_RADOS=ON \
-    -DENABLE_RADOSFDB=ON \
-    -DENABLE_RADOS_STORE_MULTIPART=OFF
-
-# multipart enabled (default)
-cmake $src_dir -DENABLE_MEMFS=ON -DENABLE_AEC=OFF -DENABLE_RADOS=ON \
-    -DENABLE_RADOSFDB=ON \
-    -DENABLE_RADOS_STORE_MULTIPART=ON
+    -DENABLE_RADOSFDB=ON
