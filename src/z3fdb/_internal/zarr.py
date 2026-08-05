@@ -98,18 +98,12 @@ class DotZarrArrayJson:
     shape: tuple[int, ...]
     data_type: str | Sequence[str] | MetadataConfiguration
     chunk_grid: MetadataConfiguration
-    chunk_key_encoding: MetadataConfiguration = MetadataConfiguration(
-        name="default", configuration={"separator": "/"}
-    )
+    chunk_key_encoding: MetadataConfiguration = MetadataConfiguration(name="default", configuration={"separator": "/"})
     codecs: Sequence[MetadataConfiguration] = field(
-        default_factory=lambda: [
-            MetadataConfiguration(name="bytes", configuration={"endian": "little"})
-        ]
+        default_factory=lambda: [MetadataConfiguration(name="bytes", configuration={"endian": "little"})]
     )
     fill_value: bool | int | float | None = None
-    attributes: Optional[dict[str, str] | DotZarrAttributes] = field(
-        default=DotZarrAttributes()
-    )
+    attributes: Optional[dict[str, str] | DotZarrAttributes] = field(default=DotZarrAttributes())
     storage_transformers: Optional[Sequence[MetadataConfiguration]] = None
     dimension_names: Optional[Sequence[str | None]] = None
     # INFO: If additional fields are introduced, read the documentation about must_understand
@@ -167,9 +161,7 @@ class FdbSource:
     def __contains__(self, key: tuple[int, ...]) -> bool:
         if len(key) != len(self._shape):
             return False
-        if any(
-            k < 0 or k >= limit for k, limit in zip(key, self._chunks_per_dimension)
-        ):
+        if any(k < 0 or k >= limit for k, limit in zip(key, self._chunks_per_dimension)):
             return False
         return True
 
@@ -179,9 +171,7 @@ class FdbSource:
     def __getitem__(self, key: tuple[int, ...]) -> CpuBuffer:
         if len(key) != len(self._shape):
             raise KeyError
-        if any(
-            k < 0 or k >= limit for k, limit in zip(key, self._chunks_per_dimension)
-        ):
+        if any(k < 0 or k >= limit for k, limit in zip(key, self._chunks_per_dimension)):
             raise KeyError
         return CpuBuffer.from_bytes(self._chunked_data_view.at(key))
 
@@ -221,13 +211,6 @@ class FdbZarrArray:
             files += chunk_names
         return files
 
-    async def list_prefix(self, prefix: str) -> AsyncIterator[str]:
-        new_prefix = prefix.removeprefix("/" + self._name)
-        new_prefix_token = new_prefix.split("/")
-
-        if len(new_prefix_token) == 1:
-            yield self.name
-
 
 class FdbZarrGroup:
     def __init__(
@@ -241,9 +224,7 @@ class FdbZarrGroup:
         self._attributes = to_cpu_buffer(asdict(DotZarrAttributes()))
         for c in children:
             if c.name == "":
-                raise Z3fdbError(
-                    "A group with the empty name can only be the root group."
-                )
+                raise Z3fdbError("A group with the empty name can only be the root group.")
 
         # TODO(TKR): Metadata consolidation can happen for groups, wait for the standard to settle, see:
         # https://github.com/zarr-developers/zarr-specs/issues/371
@@ -276,19 +257,6 @@ class FdbZarrGroup:
             A list of paths belonging to this group
         """
         return ["zarr.json"]
-
-    async def list_prefix(self, prefix: str) -> AsyncIterator[str]:
-        new_prefix = prefix.removeprefix("/" + self._name)
-        new_prefix_token = new_prefix.split("/")
-
-        assert len(new_prefix_token) > 0
-
-        if len(new_prefix_token) == 1:
-            for k, _ in self._children.items():
-                yield k
-        else:
-            async for i in self._children[new_prefix_token[0]].list_prefix(new_prefix):
-                yield i
 
 
 class FdbZarrStore(store.Store):
@@ -342,9 +310,7 @@ class FdbZarrStore(store.Store):
                 if prefix and not abs_path.startswith(prefix):
                     continue
                 result[abs_path[len(prefix) :]] = meta
-            return dict(
-                sorted(result.items(), key=lambda kv: (kv[0].count("/"), kv[0]))
-            )
+            return dict(sorted(result.items(), key=lambda kv: (kv[0].count("/"), kv[0])))
 
         # Build the flat metadata dict.  Every group gets a consolidated_metadata
         # whose metadata contains all its descendants with relative paths and plain
@@ -363,9 +329,7 @@ class FdbZarrStore(store.Store):
             flat[abs_path] = node_meta
 
         # Sort: shallower nodes first, then alphabetically (mirrors zarr-python output)
-        sorted_flat = dict(
-            sorted(flat.items(), key=lambda kv: (kv[0].count("/"), kv[0]))
-        )
+        sorted_flat = dict(sorted(flat.items(), key=lambda kv: (kv[0].count("/"), kv[0])))
 
         root_meta = json.loads(self._child._metadata.to_bytes())
         root_meta["consolidated_metadata"] = {
@@ -377,9 +341,7 @@ class FdbZarrStore(store.Store):
 
     async def __getitem__(self, key) -> AbstractBuffer | None:
         if key == "zarr.json":
-            return (
-                self._root_zarr_json
-            )  # includes consolidated_metadata for group roots
+            return self._root_zarr_json  # includes consolidated_metadata for group roots
         return self._child[key]
 
     def __iter__(self):
@@ -449,9 +411,7 @@ class FdbZarrStore(store.Store):
     def supports_partial_writes(self) -> Literal[False]:
         return False
 
-    async def set_partial_values(
-        self, key_start_values: Iterable[tuple[str, int, BytesLike]]
-    ) -> None:
+    async def set_partial_values(self, key_start_values: Iterable[tuple[str, int, BytesLike]]) -> None:
         raise Z3fdbError("Views into FDB are not writable")
 
     @property
