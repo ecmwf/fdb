@@ -334,24 +334,8 @@ Multiple extensions can be specified as a comma or space separated list, e.g.:
 Default: ``gribjump``.
 
 
-Protocol and serialisation versions
-------------------------------------
-
-.. @maby: I notice in code that the value of this is ignored. We should remove it from the code.
-..
-.. ``FDB_REMOTE_PROTOCOL_VERSION``
-.. -------------------------------
-..
-.. Overrides the protocol version used to communicate with a remote FDB. A value of ``0`` means the
-.. built-in default version is used. An unsupported value causes an error.
-..
-.. Default: ``0``.
-..
-..
-.. ``FDB5_REMOTE_PROTOCOL_VERSION``
-.. --------------------------------
-.. Deprecated. Equivalent to ``FDB_REMOTE_PROTOCOL_VERSION``. If both are specified, ``FDB_REMOTE_PROTOCOL_VERSION`` takes precedence over ``FDB5_REMOTE_PROTOCOL_VERSION``.
-
+Serialisation version
+---------------------
 
 ``FDB_SERIALISATION_VERSION``
 -----------------------------
