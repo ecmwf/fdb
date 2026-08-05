@@ -93,7 +93,11 @@ const std::set<std::string>& LibFdb5::auxiliaryRegistry() {
 static unsigned getUserEnvRemoteProtocol() {
 
     static unsigned fdbRemoteProtocolVersion =
-        eckit::Resource<unsigned>("fdbRemoteProtocolVersion;$FDB5_REMOTE_PROTOCOL_VERSION", 0);
+        eckit::Resource<unsigned>("fdbRemoteProtocolVersion;$FDB_REMOTE_PROTOCOL_VERSION", 0);
+    if (!fdbRemoteProtocolVersion) {
+        // backwards compatibility
+        fdbRemoteProtocolVersion = eckit::Resource<unsigned>("$FDB5_REMOTE_PROTOCOL_VERSION", 0);
+    }
     if (fdbRemoteProtocolVersion) {
         LOG_DEBUG_LIB(LibFdb5) << "fdbRemoteProtocolVersion overidde to version: " << fdbRemoteProtocolVersion
                                << std::endl;
