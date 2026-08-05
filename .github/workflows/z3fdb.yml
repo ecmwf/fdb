@@ -131,7 +131,7 @@ jobs:
           path: fdb-src
       - name: Display Python version
         run: python --version
-      - name: Install 'build'
+      - name: Install build dependencies
         run: pip install -r fdb-src/requirements.txt
       - name: Build fdb
         run: |

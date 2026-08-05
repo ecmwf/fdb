@@ -16,13 +16,7 @@ import chunked_data_view_bindings.chunked_data_view_bindings as pdv
 
 from pychunked_data_view.exceptions import MarsRequestFormattingError, InternalError
 
-# Init the bindings (eckit initialization)
-pdv.init_bindings()
-
-
-MarsSelection: TypeAlias = Mapping[
-    str, str | int | float | Collection[str | int | float]
-]
+MarsSelection: TypeAlias = Mapping[str, str | int | float | Collection[str | int | float]]
 
 
 # Mapping functionality for MarsSelection

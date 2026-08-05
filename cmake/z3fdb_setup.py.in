@@ -35,7 +35,7 @@ setup(
         "chunked_data_view_bindings",
     ],
     package_data={
-        "chunked_data_view_bindings": ["*.so", "*.pyd"],
+        "chunked_data_view_bindings": ["*.so", "*.pyd", "*.pyi", "py.typed"],
     },
     install_requires=["numpy", "zarr>=3,<4", "findlibs>=0.1.2"] + requires_extra,
     has_ext_modules=lambda: True,
