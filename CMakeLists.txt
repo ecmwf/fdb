@@ -55,7 +55,7 @@ ecbuild_add_option( FEATURE RADOSFDB  # option defined in fdb5_config.h
                     DEFAULT OFF
                     DESCRIPTION "Ceph/Rados support for FDB Store" )
 
-ecbuild_add_option( FEATURE RADOS_ADMIN
+ecbuild_add_option( FEATURE RADOS_TESTS_MANAGE_POOLS
                     DEFAULT OFF
                     DESCRIPTION "Have unit tests create pools automatically rather than using an existing pool specified in the FDB_RADOS_TEST_POOL cmake variable." )
 

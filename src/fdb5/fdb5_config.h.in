@@ -8,7 +8,7 @@
 
 #cmakedefine fdb5_HAVE_LUSTRE
 #cmakedefine fdb5_HAVE_RADOSFDB
-#cmakedefine fdb5_HAVE_RADOS_ADMIN
+#cmakedefine fdb5_HAVE_RADOS_TESTS_MANAGE_POOLS
 #cmakedefine fdb5_HAVE_TOCFDB
 #cmakedefine fdb5_HAVE_DUMMY_DAOS
 #cmakedefine fdb5_HAVE_DAOSFDB

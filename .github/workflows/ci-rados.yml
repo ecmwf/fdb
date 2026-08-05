@@ -158,7 +158,7 @@ jobs:
             ${CMAKE_FLAGS} \
             -DENABLE_MPI=ON \
             -DENABLE_RADOS=ON \
-            -DENABLE_RADOS_ADMIN=OFF
+            -DENABLE_RADOS_TESTS_MANAGE_POOLS=OFF
           cmake --build build/eckit --parallel
           cmake --install build/eckit
 
@@ -194,7 +194,7 @@ jobs:
             -DCMAKE_PREFIX_PATH="${INSTALL_PREFIX}" \
             ${CMAKE_FLAGS} \
             -DENABLE_RADOSFDB=ON \
-            -DENABLE_RADOS_ADMIN=OFF \
+            -DENABLE_RADOS_TESTS_MANAGE_POOLS=OFF \
             -DFDB_RADOS_TEST_POOL="${FDB_RADOS_TEST_POOL}"
           cmake --build build/fdb --parallel
 
