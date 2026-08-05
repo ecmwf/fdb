@@ -65,7 +65,10 @@ class AxisDefinition:
         elif chunking is Chunking.SINGLE_VALUE:
             return pdv.AxisDefinition.SingleValueChunking()
         else:
-            raise InternalError()
+            raise TypeError(
+                f"chunking must be Chunking.WHOLE_AXIS, Chunking.SINGLE_VALUE, or an instance of "
+                f"Chunking.FixedSizeChunk, got {type(chunking).__qualname__!r}"
+            )
 
     def __init__(self, keys: list[str], chunking: Chunking | Chunking.FixedSizeChunk):
         """Defines which axis from a MARS Request form an axis in the Zarr array.

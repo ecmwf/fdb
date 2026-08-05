@@ -14,7 +14,7 @@ from pychunked_data_view import (
     Chunking,
     ExtractorType,
 )
-from pychunked_data_view.exceptions import InternalError, MarsRequestFormattingError
+from pychunked_data_view.exceptions import MarsRequestFormattingError
 
 pytestmark = pytest.mark.offline
 
@@ -25,12 +25,10 @@ pytestmark = pytest.mark.offline
         # Trailing comma — triggers StreamParser::next in the eckit MARS parser
         ("class=ea,", "Did the MARS request end in a comma"),
         # Missing comma between key=value pairs — triggers MarsParser::parseVerb
-        ("class=ea,,domain=g", "Did you miss a comma between keys"),
+        ("class=eadomain=g", "Did you miss a comma between keys"),
     ],
 )
-def test_malformed_mars_string_raises(
-    read_only_fdb_setup, malformed_request, expected_hint
-) -> None:
+def test_malformed_mars_string_raises(read_only_fdb_setup, malformed_request, expected_hint) -> None:
     """Malformed raw MARS request strings are caught in build() and re-raised as
     MarsRequestFormattingError with an actionable hint.
 
@@ -76,8 +74,9 @@ def test_misspelled_mars_key_raises(read_only_fdb_setup) -> None:
 
 
 def test_invalid_chunking_type_raises() -> None:
-    """Passing an arbitrary object as the chunking argument raises InternalError
-    immediately when constructing AxisDefinition, before any builder or FDB call.
+    """Passing an arbitrary object as the chunking argument raises TypeError with a
+    descriptive message immediately when constructing AxisDefinition, before any
+    builder or FDB call.
     """
-    with pytest.raises(InternalError):
+    with pytest.raises(TypeError, match="chunking must be Chunking"):
         AxisDefinition(["param"], object())
