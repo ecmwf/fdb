@@ -31,6 +31,8 @@ def test_axis_definition_can_assign():
     assert obj.keys == []
     obj.chunking = Chunking.SINGLE_VALUE
     assert obj.chunking == Chunking.SINGLE_VALUE
+    obj.chunking = Chunking.WHOLE_AXIS
+    assert obj.chunking == Chunking.WHOLE_AXIS
 
 
 def test_axis_definition_individual_chunk():
@@ -47,9 +49,15 @@ def test_builder(read_only_fdb_setup):
     builder = ChunkedDataViewBuilder(read_only_fdb_setup)
     builder.add_part(
         {
-            "type": "an", "class": "ea", "domain": "g", "expver": "0001",
-            "stream": "oper", "date": "2020-01-01/to/2020-01-04",
-            "levtype": "sfc", "step": 0, "param": [167, 131, 132],
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "2020-01-01/to/2020-01-04",
+            "levtype": "sfc",
+            "step": 0,
+            "param": [167, 131, 132],
             "time": "0/to/21/by/3",
         },
         [
