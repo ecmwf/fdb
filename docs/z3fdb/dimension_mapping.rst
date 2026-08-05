@@ -359,6 +359,10 @@ without overlap; their bounding boxes are identical on every other axis.
 
 .. seealso::
 
-   :doc:`technical_insights` — how the library resolves a chunk access
-   into FDB sub-requests and writes each field into the correct buffer slot.
+   :doc:`technical_insights/chunk_access` — how the library resolves a chunk
+   access into FDB sub-requests and writes each field into the correct buffer
+   slot.
+
+   :doc:`technical_insights/buffer_layout` — the buffer position formula and
+   flat-index calculation in full detail.
 
