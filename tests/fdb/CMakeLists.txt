@@ -70,6 +70,8 @@ add_subdirectory( api )
 add_subdirectory( database )
 add_subdirectory( type )
 add_subdirectory( daos )
+add_subdirectory( fam )
+add_subdirectory( concurrent )
 
 if (HAVE_FDB_BUILD_TOOLS)
     add_subdirectory( timespan )

@@ -44,8 +44,7 @@ Parameter::Parameter(const std::string name, const std::vector<std::string> valu
 // class Axis
 //======================================================================================================================
 
-Axis::Axis(std::vector<Parameter> parameters, bool chunked) :
-    parameters_(std::move(parameters)), size_(combinedSize(parameters_)), chunked_(chunked) {}
+Axis::Axis(std::vector<Parameter> parameters) : parameters_(std::move(parameters)), size_(combinedSize(parameters_)) {}
 
 size_t Axis::index(const fdb5::Key& key) const {
 
@@ -70,7 +69,7 @@ size_t Axis::index(const fdb5::Key& key) const {
         auto res = std::find(std::begin(param.values()), std::end(param.values()), it->second);
 
         if (res == param.values().end()) {
-            throw eckit::Exception("Couldn't request's key value in the axis.");
+            throw eckit::Exception("Couldn't find request's key value in the axis.");
         }
 
         size_t value_index = std::distance(param.values().begin(), res);

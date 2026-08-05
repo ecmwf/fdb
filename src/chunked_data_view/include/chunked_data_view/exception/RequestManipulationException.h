@@ -7,20 +7,19 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
-#include "chunked_data_view/Extractor.h"
+#pragma once
 
-#include "GribExtractor.h"
 #include "eckit/exception/Exceptions.h"
 
-#include <memory>
-
 namespace chunked_data_view {
-std::unique_ptr<Extractor> makeExtractor(ExtractorType type) {
-    switch (type) {
-        case ExtractorType::GRIB:
-            return std::make_unique<GribExtractor>();
-        default:
-            throw eckit::UserError("makeExtractor: Unknown extractor type specified");
-    }
-}
+
+/// Thrown by RequestManipulation when a bounding box cannot be mapped to a single MARS request
+/// (e.g. the box is not aligned with a sub-axis boundary, which would require multiple requests).
+class RequestManipulationException : public eckit::Exception {
+
+public:
+
+    RequestManipulationException(const std::string&);
+    RequestManipulationException(const std::string&, const eckit::CodeLocation&);
+};
 }  // namespace chunked_data_view

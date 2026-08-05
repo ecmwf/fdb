@@ -15,12 +15,18 @@
 
 #include "fdb5/api/LocalFDB.h"
 
-#include "eckit/container/Queue.h"
-#include "eckit/log/Log.h"
-
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/FDBFactory.h"
+#include "fdb5/api/helpers/APIIterator.h"
+#include "fdb5/api/helpers/AxesIterator.h"
+#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/api/helpers/DumpIterator.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/MoveIterator.h"
+#include "fdb5/api/helpers/PurgeIterator.h"
+#include "fdb5/api/helpers/StatsIterator.h"
+#include "fdb5/api/helpers/StatusIterator.h"
 #include "fdb5/api/local/AxesVisitor.h"
 #include "fdb5/api/local/ControlVisitor.h"
 #include "fdb5/api/local/DumpVisitor.h"
@@ -31,11 +37,22 @@
 #include "fdb5/api/local/StatusVisitor.h"
 #include "fdb5/api/local/WipeVisitor.h"
 #include "fdb5/database/Archiver.h"
-#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/EntryVisitMechanism.h"
+#include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Inspector.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/Reindexer.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/rules/Schema.h"
+
+#include "eckit/container/Queue.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/log/Log.h"
+
+#include <cstddef>
+#include <memory>
+#include <mutex>
+#include <ostream>
 
 
 using namespace fdb5::api::local;
@@ -45,32 +62,42 @@ using namespace eckit;
 namespace fdb5 {
 
 void LocalFDB::archive(const Key& key, const void* data, size_t length) {
-
-    if (!archiver_) {
-        LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new archiver" << std::endl;
-        archiver_.reset(new Archiver(config_, archiveCallback_));
+    Archiver* archiver = nullptr;
+    {
+        std::lock_guard lock(mutex_);
+        if (!archiver_) {
+            LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new archiver" << std::endl;
+            archiver_ = std::make_unique<Archiver>(config_, archiveCallback_);
+        }
+        archiver = archiver_.get();
     }
-
-    archiver_->archive(key, data, length);
+    archiver->archive(key, data, length);
 }
 
 void LocalFDB::reindex(const Key& key, const FieldLocation& location) {
-    if (!reindexer_) {
-        LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new reindexer" << std::endl;
-        reindexer_.reset(new Reindexer(config_));
+    Reindexer* reindexer = nullptr;
+    {
+        std::lock_guard lock(mutex_);
+        if (!reindexer_) {
+            LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new reindexer" << std::endl;
+            reindexer_ = std::make_unique<Reindexer>(config_);
+        }
+        reindexer = reindexer_.get();
     }
-
-    reindexer_->reindex(key, location);
+    reindexer->reindex(key, location);
 }
 
 ListIterator LocalFDB::inspect(const metkit::mars::MarsRequest& request) {
-
-    if (!inspector_) {
-        LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new retriever" << std::endl;
-        inspector_.reset(new Inspector(config_));
+    Inspector* inspector = nullptr;
+    {
+        std::lock_guard lock(mutex_);
+        if (!inspector_) {
+            LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new retriever" << std::endl;
+            inspector_ = std::make_unique<Inspector>(config_);
+        }
+        inspector = inspector_.get();
     }
-
-    return inspector_->inspect(request);
+    return inspector->inspect(request);
 }
 
 template <typename VisitorType, typename... Ts>
@@ -135,13 +162,20 @@ AxesIterator LocalFDB::axesIterator(const FDBToolRequest& request, int level) {
 }
 
 void LocalFDB::flush() {
-    ASSERT(!(archiver_ && reindexer_));
-    if (archiver_) {
-        archiver_->flush();
+    Archiver* archiver = nullptr;
+    Reindexer* reindexer = nullptr;
+    {
+        std::lock_guard lock(mutex_);
+        ASSERT(!(archiver_ && reindexer_));
+        archiver = archiver_.get();
+        reindexer = reindexer_.get();
+    }
+    if (archiver) {
+        archiver->flush();
         flushCallback_();
     }
-    else if (reindexer_) {
-        reindexer_->flush();
+    else if (reindexer) {
+        reindexer->flush();
         flushCallback_();
     }
 }

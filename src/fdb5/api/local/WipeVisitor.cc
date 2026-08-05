@@ -43,10 +43,11 @@ bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
 
     // If the Catalogue is locked for wiping, then it "doesn't exist"
     if (!catalogue.enabled(ControlIdentifier::Wipe)) {
+        catalogueWipeState_.reset();
         return false;
     }
 
-    catalogueWipeState_ = catalogue.wipeInit();
+    catalogueWipeState_ = std::make_unique<CatalogueWipeState>(catalogue.wipeInit());
 
     if (doit_) {
         // Lock the database for everything but wiping.
@@ -58,7 +59,7 @@ bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
         ///    are consumers allowed to access intermediate states?
 
         // Bind catalogue to the wipe state so that it can later restore the control state
-        catalogueWipeState_.catalogue(catalogue.config());
+        catalogueWipeState_->catalogue();
 
         // Store the initial control state
         ControlIdentifiers initialID;
@@ -69,7 +70,7 @@ bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
             }
         }
 
-        catalogueWipeState_.initialControlState(initialID);
+        catalogueWipeState_->initialControlState(initialID);
 
         catalogue.control(ControlAction::Disable,
                           ControlIdentifier::Archive | ControlIdentifier::Retrieve | ControlIdentifier::List);
@@ -88,20 +89,21 @@ bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
 bool WipeCatalogueVisitor::visitIndex(const Index& index) {
 
     EntryVisitor::visitIndex(index);
+    ASSERT(catalogueWipeState_);
 
     // Is this index matched by the supplied request?
     // n.b. If the request is over-specified (i.e. below the index level), nothing will be removed
     bool include = index.key().match(indexRequest_);
 
-    include = currentCatalogue_->markIndexForWipe(index, include, catalogueWipeState_);
+    include = currentCatalogue_->markIndexForWipe(index, include, *catalogueWipeState_);
 
     // Enumerate data files
     for (auto& dataURI : index.dataURIs()) {
         if (include) {
-            catalogueWipeState_.includeData(dataURI);
+            catalogueWipeState_->includeData(dataURI);
         }
         else {
-            catalogueWipeState_.excludeData(dataURI);
+            catalogueWipeState_->excludeData(dataURI);
         }
     }
     return true;
@@ -110,11 +112,13 @@ bool WipeCatalogueVisitor::visitIndex(const Index& index) {
 void WipeCatalogueVisitor::catalogueComplete(const Catalogue& catalogue) {
 
     ASSERT(currentCatalogue_ == &catalogue);
+    ASSERT(catalogueWipeState_);
 
-    catalogue.finaliseWipeState(catalogueWipeState_);
-    catalogueWipeState_.sanityCheck();
+    catalogue.finaliseWipeState(*catalogueWipeState_);
+    catalogueWipeState_->sanityCheck();
 
-    queue_.emplace(std::move(catalogueWipeState_));
+    queue_.emplace(std::move(*catalogueWipeState_));
+    catalogueWipeState_.reset();
     EntryVisitor::catalogueComplete(catalogue);
 }
 
