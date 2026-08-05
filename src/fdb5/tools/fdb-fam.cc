@@ -46,7 +46,7 @@ public:  // methods
         options_.push_back(new eckit::option::SimpleOption<bool>("lookup", "Lookup item"));
 
         options_.push_back(new eckit::option::SimpleOption<bool>("create", "Create item if it doesn't exist"));
-        options_.push_back(new eckit::option::SimpleOption<std::uint64_t>("size", "Size in bytes (needed by create)"));
+        options_.push_back(new eckit::option::SimpleOption<std::size_t>("size", "Size in bytes (needed by create)"));
         options_.push_back(new eckit::option::SimpleOption<std::string>("perm", "Permissions (needed by create)"));
 
         options_.push_back(new eckit::option::SimpleOption<bool>("delete", "Delete item if it exists"));
@@ -113,14 +113,12 @@ void FDBFam::init(const eckit::option::CmdArgs& args) {
     }
 
     if (create_) {
-        try {
-            item_ = eckit::FamProperty{args.getUnsigned("size"), args.getString("perm", "0640")};
-        }
-        catch (const eckit::Exception& e) {
+        if (!args.has("size")) {
             eckit::Log::info() << "!!! missing option [size] (see usage below) !!!\n";
             usage(args.tool());
             exit(1);
         }
+        item_ = eckit::FamProperty{args.getUnsigned("size"), args.getString("perm", "0640")};
     }
 
     path_ = eckit::FamPath{args(0)};

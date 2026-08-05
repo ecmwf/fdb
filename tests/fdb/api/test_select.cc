@@ -483,7 +483,6 @@ CASE("wipe_distributed_according_to_select") {
     EXPECT_EQUAL(spy_rd2.counts().wipe, 0);
 
     // Now match all the rd lanes
-    // We currently prohibit wipes that match multiple lanes, check that we raise an error
 
     bool caught = false;
     try {
@@ -496,10 +495,9 @@ CASE("wipe_distributed_according_to_select") {
         caught = true;
     }
 
-    EXPECT(caught);
+    EXPECT(!caught);
 
     // Explicitly match everything
-    // We currently prohibit wipes that match multiple lanes, check that we raise an error
     caught = false;
     try {
         auto x = fdb.wipe(fdb5::FDBToolRequest({}, true));
@@ -509,7 +507,7 @@ CASE("wipe_distributed_according_to_select") {
     catch (eckit::UserError& err) {
         caught = true;
     }
-    EXPECT(caught);
+    EXPECT(!caught);
 
     // And unused functions
 

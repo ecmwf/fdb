@@ -189,7 +189,7 @@ void DaosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways,
 }
 
 CatalogueWipeState DaosCatalogue::wipeInit() const {
-    return CatalogueWipeState(dbKey_);
+    return CatalogueWipeState(dbKey_, config());
 }
 
 bool DaosCatalogue::markIndexForWipe(const Index& index, bool include, CatalogueWipeState& wipeState) const {

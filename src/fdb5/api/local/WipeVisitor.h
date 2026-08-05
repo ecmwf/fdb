@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/database/WipeState.h"
@@ -48,7 +50,7 @@ private:  // members
 
     metkit::mars::MarsRequest indexRequest_;
 
-    CatalogueWipeState catalogueWipeState_;
+    std::unique_ptr<CatalogueWipeState> catalogueWipeState_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
