@@ -11,24 +11,28 @@ add_library(chunked_data_view STATIC
     ${CMAKE_CURRENT_BINARY_DIR}/chunked_data_view_version.h
     Axis.cc
     Axis.h
-    Buffer.cc
     ChunkedDataViewBuilder.cc
     ChunkedDataViewImpl.cc
     ChunkedDataViewImpl.h
-    Extractor.cc
     Fdb.cc
     GribExtractor.cc
     GribExtractor.h
-    IndexMapper.cc
-    IndexMapper.h
     LibChunkedDataView.cc
     ListIterator.cc
     RequestManipulation.cc
     RequestManipulation.h
     ViewPart.cc
     ViewPart.h
+    mapping/AxisMapper.cc
+    mapping/AxisMapper.h
+    mapping/IndexMapper.cc
+    mapping/IndexMapper.h
+    exception/GribExtractorException.cc
+    exception/UnknownExtractorException.cc
+    exception/BoundingBoxException.cc
+    exception/RequestManipulationException.cc
+    exception/AxisMapperException.cc
     include/chunked_data_view/AxisDefinition.h
-    include/chunked_data_view/Buffer.h
     include/chunked_data_view/ChunkedDataView.h
     include/chunked_data_view/ChunkedDataViewBuilder.h
     include/chunked_data_view/DataLayout.h
@@ -36,6 +40,12 @@ add_library(chunked_data_view STATIC
     include/chunked_data_view/Fdb.h
     include/chunked_data_view/LibChunkedDataView.h
     include/chunked_data_view/ListIterator.h
+    include/chunked_data_view/Types.h
+    include/chunked_data_view/exception/GribExtractorException.h
+    include/chunked_data_view/exception/UnknownExtractorException.h
+    include/chunked_data_view/exception/BoundingBoxException.h
+    include/chunked_data_view/exception/RequestManipulationException.h
+    include/chunked_data_view/exception/AxisMapperException.h
 )
 
 target_include_directories(chunked_data_view

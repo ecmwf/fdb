@@ -9,7 +9,7 @@
  */
 #include "IndexMapper.h"
 
-#include "Axis.h"
+#include "chunked_data_view/Axis.h"
 
 #include "eckit/exception/Exceptions.h"
 
@@ -28,28 +28,48 @@ namespace chunked_data_view {
  * @param axes the axes
  * @return index in the buffer (an offset)
  */
-size_t index_mapping::axis_index_to_buffer_index(const std::vector<size_t>& indices, const std::vector<Axis>& axes,
-                                                 size_t extensionAxisIdx, size_t combinedExtSize,
-                                                 size_t extensionOffset) {
+size_t index_mapping::computeBufferIndex(const std::vector<Axis>& axes, const fdb5::Key& key,
+                                         const std::vector<size_t>& partAxisOffset,
+                                         const std::vector<size_t>& bufferOffset,
+                                         const std::vector<size_t>& bufferExtent) {
+
+    ASSERT(axes.size() == partAxisOffset.size());
+    ASSERT(axes.size() == bufferOffset.size());
+    ASSERT(axes.size() == bufferExtent.size());
+
+    for (size_t i = 0; i < bufferOffset.size(); ++i) {
+        ASSERT(bufferExtent[i] > 0);
+        ASSERT(bufferOffset[i] < bufferExtent[i]);
+    }
+
+    std::vector<size_t> indices;
+    indices.reserve(axes.size());
+
+    for (size_t i = 0; i < axes.size(); ++i) {
+        const auto& axis = axes[i];
+        // axis.index() returns the position within the full part axis; subtract partAxisOffset[i]
+        // to get the position relative to the start of the intersection (i.e., chunk-buffer-local).
+        const size_t axisIdx = axis.index(key);
+        ASSERT(axisIdx >= partAxisOffset[i]);
+        const size_t localIdx = axisIdx - partAxisOffset[i];
+        indices.emplace_back(localIdx);
+        ASSERT(indices[i] + bufferOffset[i] < bufferExtent[i]);
+    }
 
     ASSERT(indices.size() == axes.size());
 
     size_t prod = 1;
     size_t index = 0;
+    size_t maxIndex = 0;
 
     for (int i = axes.size() - 1; i >= 0; --i) {
+        index += (indices[i] + bufferOffset[i]) * prod;
+        maxIndex += (bufferExtent[i] - 1) * prod;
 
-        if (!axes[i].isChunked()) {
-            if (static_cast<size_t>(i) == extensionAxisIdx) {
-                index += (indices[i] + extensionOffset) * prod;
-                prod *= combinedExtSize;
-            }
-            else {
-                index += indices[i] * prod;
-                prod *= axes[i].size();
-            }
-        }
+        prod *= bufferExtent[i];
     }
+
+    ASSERT(index <= maxIndex);
 
     return index;
 }

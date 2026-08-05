@@ -14,6 +14,7 @@ from pychunked_data_view import (
     ChunkedDataViewBuilder,
     AxisDefinition,
     ExtractorType,
+    MarsSelection,
 )
 
 
@@ -33,27 +34,34 @@ class SimpleStoreBuilder:
 
     def add_part(
         self,
-        mars_request_key_values: str,
+        mars_request: MarsSelection,
         axes: list[AxisDefinition],
         extractor_type: ExtractorType,
     ) -> None:
         """Add a MARS request to the view.
 
         Args:
-            mars_request_key_values(str):
-                A string with fully spefified MARS key:values pairs.
+            mars_request(MarsSelection):
+                A dict mapping MARS keys to their values. Single values may be
+                given as ``str``, ``int``, or ``float``; multi-valued keys may
+                be given as a list. MARS range expressions (e.g.
+                ``"2020-01-01/to/2020-01-04"``) must be passed as a plain
+                string value.
 
-                For example:
-                    type=an,
-                    class=ea,
-                    domain=g,
-                    expver=0001,
-                    stream=oper,
-                    date=2020-01-01/to/2020-01-04,
-                    levtype=sfc,
-                    step=0,
-                    param=167/131/132,
-                    time=0/to/21/by/3
+                For example::
+
+                    {
+                        "type": "an",
+                        "class": "ea",
+                        "domain": "g",
+                        "expver": "0001",
+                        "stream": "oper",
+                        "date": "2020-01-01/to/2020-01-04",
+                        "levtype": "sfc",
+                        "step": 0,
+                        "param": [167, 131, 132],
+                        "time": "0/to/21/by/3",
+                    }
 
             axes(:obj:`list` of :obj:`AxisDefinition`):  List of
                 AxisDefinitions that describe how axis in the MARS request are
@@ -61,7 +69,16 @@ class SimpleStoreBuilder:
             extractor_type: Defines how to extract data from FDB. Currently
                 only ExtractorType.GRIB is supported.
         """
-        self._builder.add_part(mars_request_key_values, axes, extractor_type)
+        self._builder.add_part(mars_request, axes, extractor_type)
+
+    def fill_missing_value(self, value: float) -> None:
+        """Set the fill value used for missing / bitmap-masked grid points.
+
+        Args:
+            value(float): Fill value written into array positions that carry a
+                GRIB bitmap missing flag. Also used as the zarr array fill_value.
+        """
+        self._builder.fill_missing_value(value)
 
     def extend_on_axis(self, axis: int) -> None:
         """Defines the extension axis when multiple parts are added.

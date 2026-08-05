@@ -1,5 +1,6 @@
 import logging
 
+import pytest
 import zarr
 
 from z3fdb import (
@@ -10,6 +11,8 @@ from z3fdb import (
 )
 
 logging.basicConfig(level=logging.DEBUG)
+
+pytestmark = pytest.mark.offline
 
 
 def test_random_axis_retrieval(read_only_fdb_pattern_setup) -> None:
@@ -25,16 +28,12 @@ def test_random_axis_retrieval(read_only_fdb_pattern_setup) -> None:
 
     # The individual values are scrambled to check for persistent retrieval on the FDB side
     builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "date=2020-01-03/2020-01-01/2020-01-02,"
-        "levtype=sfc,"
-        "step=0,"
-        "param=167/165/166,"
-        "time=18/0/12/6",
+        {
+            "type": "an", "class": "ea", "domain": "g", "expver": "0001",
+            "stream": "oper", "date": ["2020-01-03", "2020-01-01", "2020-01-02"],
+            "levtype": "sfc", "step": 0,
+            "param": [167, 165, 166], "time": [18, 0, 12, 6],
+        },
         [
             AxisDefinition(["date"], Chunking.SINGLE_VALUE),
             AxisDefinition(["time"], Chunking.SINGLE_VALUE),
@@ -91,16 +90,12 @@ def test_random_axis_retrieval_swapped_axis_and_request(
 
     # The individual values are scrambled to check for persistent retrieval on the FDB side
     builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "time=18/0/12/6,"
-        "date=2020-01-03/2020-01-01/2020-01-02,"
-        "levtype=sfc,"
-        "step=0,"
-        "param=167/165/166",
+        {
+            "type": "an", "class": "ea", "domain": "g", "expver": "0001",
+            "stream": "oper", "time": [18, 0, 12, 6],
+            "date": ["2020-01-03", "2020-01-01", "2020-01-02"],
+            "levtype": "sfc", "step": 0, "param": [167, 165, 166],
+        },
         [
             AxisDefinition(["time"], Chunking.SINGLE_VALUE),
             AxisDefinition(["step"], Chunking.SINGLE_VALUE),
@@ -158,18 +153,14 @@ def test_random_axis_retrieval_swapped_axis_and_request_combined_axis(
 
     # The individual values are scrambled to check for persistent retrieval on the FDB side
     builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "time=18/0/12/6,"
-        "date=2020-01-03/2020-01-01/2020-01-02,"
-        "levtype=sfc,"
-        "step=0,"
-        "param=167/165/166",
+        {
+            "type": "an", "class": "ea", "domain": "g", "expver": "0001",
+            "stream": "oper", "time": [18, 0, 12, 6],
+            "date": ["2020-01-03", "2020-01-01", "2020-01-02"],
+            "levtype": "sfc", "step": 0, "param": [167, 165, 166],
+        },
         [
-            AxisDefinition(["time", "step", "param", "date"], Chunking.NONE),
+            AxisDefinition(["time", "step", "param", "date"], Chunking.WHOLE_AXIS),
         ],
         ExtractorType.GRIB,
     )

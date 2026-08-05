@@ -20,9 +20,9 @@
 #ifndef fdb5_FDBStats_H
 #define fdb5_FDBStats_H
 
-#include <iosfwd>
-
 #include "eckit/log/Statistics.h"
+
+#include <iosfwd>
 
 
 namespace fdb5 {
@@ -34,6 +34,12 @@ public:
 
     FDBStats();
     ~FDBStats();
+
+    // rules
+    FDBStats(const FDBStats&) = default;
+    FDBStats(FDBStats&&) = default;
+    FDBStats& operator=(const FDBStats&) = default;
+    FDBStats& operator=(FDBStats&&) = default;
 
     size_t numArchive() const { return numArchive_; }
     size_t numLocation() const { return numLocation_; }

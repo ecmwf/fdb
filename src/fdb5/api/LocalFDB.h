@@ -16,12 +16,14 @@
 /// @author Simon Smart
 /// @date   Mar 2018
 
-#ifndef fdb5_api_LocalFDB_H
-#define fdb5_api_LocalFDB_H
+#pragma once
 
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/database/Inspector.h"
 #include "fdb5/database/Reindexer.h"
+
+#include <memory>
+#include <mutex>
 
 
 namespace fdb5 {
@@ -77,6 +79,8 @@ protected:  // members
 
     std::string home_;
 
+    mutable std::mutex mutex_;
+
     std::unique_ptr<Archiver> archiver_;
     std::unique_ptr<Reindexer> reindexer_;
     std::unique_ptr<Inspector> inspector_;
@@ -85,5 +89,3 @@ protected:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif  // fdb5_api_LocalFDB_H
