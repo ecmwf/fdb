@@ -12,13 +12,36 @@
 #include "fdb5/rados/RadosCatalogueWriter.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Field.h"
+#include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/Index.h"
+#include "fdb5/database/IndexAxis.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/rados/RadosCatalogue.h"
+#include "fdb5/rados/RadosCommon.h"
 #include "fdb5/rados/RadosIndex.h"
 
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/DataHandle.h"
 #include "eckit/io/FileHandle.h"
+#include "eckit/io/Length.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/io/rados/RadosException.h"
 #include "eckit/io/rados/RadosKeyValue.h"
+#include "eckit/io/rados/RadosNamespace.h"
+#include "eckit/log/Log.h"
 #include "eckit/serialisation/HandleStream.h"
+
+#include <cstddef>
+#include <iterator>
+#include <memory>
+#include <ostream>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace fdb5 {
 
