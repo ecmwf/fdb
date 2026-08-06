@@ -158,9 +158,8 @@ fn test_concurrent_list_operations() {
         .map(|_| {
             let fdb = Arc::clone(&fdb);
             thread::spawn(move || {
-                let request = metkit::MarsRequestBuilder::new("retrieve")
-                    .with("class", "rd")
-                    .build();
+                let mut request = metkit::MarsRequest::new("retrieve");
+                request.set("class", "rd");
                 for _ in 0..10 {
                     let _ = fdb.list(
                         &request,
@@ -191,9 +190,8 @@ fn test_concurrent_axes() {
         .map(|_| {
             let fdb = Arc::clone(&fdb);
             thread::spawn(move || {
-                let request = metkit::MarsRequestBuilder::new("retrieve")
-                    .with("class", "rd")
-                    .build();
+                let mut request = metkit::MarsRequest::new("retrieve");
+                request.set("class", "rd");
                 for _ in 0..10 {
                     let _ = fdb.axes(&request, 1);
                 }
@@ -220,9 +218,8 @@ fn test_stress_concurrent_access() {
         .map(|i| {
             let fdb = Arc::clone(&fdb);
             thread::spawn(move || {
-                let request = metkit::MarsRequestBuilder::new("retrieve")
-                    .with("class", "rd")
-                    .build();
+                let mut request = metkit::MarsRequest::new("retrieve");
+                request.set("class", "rd");
                 for j in 0..iterations {
                     if (i + j) % 2 == 0 {
                         // Read-only operations
@@ -268,9 +265,8 @@ fn test_concurrent_errors_no_crash() {
             thread::spawn(move || {
                 // Use invalid requests to trigger errors
                 let value = format!("value_{i}");
-                let request = metkit::MarsRequestBuilder::new("retrieve")
-                    .with("INVALID_KEY", &value)
-                    .build();
+                let mut request = metkit::MarsRequest::new("retrieve");
+                request.set("INVALID_KEY", &value);
                 for _ in 0..20 {
                     // Ignore the error - testing that concurrent errors don't crash
                     let _ = fdb.list(
@@ -352,10 +348,9 @@ fn test_concurrent_archive_operations() {
     fdb.flush().expect("flush failed");
 
     // Verify data was archived by listing
-    let request = metkit::MarsRequestBuilder::new("retrieve")
-        .with("class", "rd")
-        .with("expver", "xxxx")
-        .build();
+    let mut request = metkit::MarsRequest::new("retrieve");
+    request.set("class", "rd");
+    request.set("expver", "xxxx");
     let items: Vec<_> = fdb
         .list(
             &request,
@@ -414,10 +409,9 @@ fn test_concurrent_read_write_mix() {
             let fdb = Arc::clone(&fdb);
             let grib_data = Arc::clone(&grib_data);
             thread::spawn(move || {
-                let request = metkit::MarsRequestBuilder::new("retrieve")
-                    .with("class", "rd")
-                    .with("expver", "xxxx")
-                    .build();
+                let mut request = metkit::MarsRequest::new("retrieve");
+                request.set("class", "rd");
+                request.set("expver", "xxxx");
 
                 for i in 0..iterations {
                     if thread_id % 2 == 0 {

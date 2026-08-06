@@ -46,11 +46,11 @@ spaces:
 /// Build a `MarsRequest` from a Key.
 fn request_from_key(key: &Key) -> metkit::MarsRequest {
     eckit::init();
-    let mut builder = metkit::MarsRequestBuilder::new("retrieve");
+    let mut request = metkit::MarsRequest::new("retrieve");
     for (k, v) in key.entries() {
-        builder = builder.with(k, v);
+        request.set(k, v);
     }
-    builder.build()
+    request
 }
 
 /// Archive test data and return the key used.
@@ -198,11 +198,10 @@ async fn test_fdb_concurrent_list() {
         let fdb = Arc::clone(&fdb);
 
         tasks.spawn(async move {
-            let request = metkit::MarsRequestBuilder::new("retrieve")
-                .with("class", "rd")
-                .with("expver", "xxxx")
-                .with("stream", "oper")
-                .build();
+            let mut request = metkit::MarsRequest::new("retrieve");
+            request.set("class", "rd");
+            request.set("expver", "xxxx");
+            request.set("stream", "oper");
 
             let entries: Vec<_> = fdb
                 .list(

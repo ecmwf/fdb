@@ -42,8 +42,9 @@ pub struct ArchiveCallbackBox(Box<dyn ArchiveCallback>);
 /// Opaque wrapper for an arbitrary Rust [`std::io::Read`] source.
 ///
 /// Exposed to the C++ side as an `eckit::DataHandle` by
-/// [`archive_reader`] to stream GRIB data from a Rust source into FDB
-/// without buffering the entire payload in memory first.
+/// [`FdbHandle::archive_reader`](ffi::FdbHandle::archive_reader) to stream
+/// GRIB data from a Rust source into FDB without buffering the entire
+/// payload in memory first.
 pub struct ReaderBox(Box<dyn std::io::Read + Send>);
 
 // Methods intentionally not exposed:

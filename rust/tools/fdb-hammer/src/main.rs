@@ -777,19 +777,19 @@ fn build_request(config: &HammerConfig, step: u32, member: u32) -> metkit::MarsR
         .collect::<Vec<_>>()
         .join("/");
 
-    metkit::MarsRequestBuilder::new("retrieve")
-        .with("class", config.class.as_str())
-        .with("expver", config.expver.as_str())
-        .with("stream", &config.stream)
-        .with("date", &config.date)
-        .with("time", &config.time)
-        .with("type", &config.type_)
-        .with("levtype", &config.levtype)
-        .with("step", &step.to_string())
-        .with("levelist", &levels_str)
-        .with("param", &params_str)
-        .with("number", &member.to_string())
-        .build()
+    let mut request = metkit::MarsRequest::new("retrieve");
+    request.set("class", config.class.as_str());
+    request.set("expver", config.expver.as_str());
+    request.set("stream", &config.stream);
+    request.set("date", &config.date);
+    request.set("time", &config.time);
+    request.set("type", &config.type_);
+    request.set("levtype", &config.levtype);
+    request.set("step", step.to_string());
+    request.set("levelist", &levels_str);
+    request.set("param", &params_str);
+    request.set("number", member.to_string());
+    request
 }
 
 // =============================================================================
