@@ -18,6 +18,7 @@
 #include "eckit/utils/Literals.h"
 
 #include <atomic>
+#include <future>
 #include <memory>
 #include <mutex>
 #include <utility>  // std::pair
@@ -103,6 +104,9 @@ protected:
 private:
 
     void setClientID();
+
+    // rethrows any exception as a RemoteFDBException.
+    eckit::Buffer waitControlResponse(std::future<eckit::Buffer>& response, Message msg, uint32_t requestID) const;
 
 private:
 
