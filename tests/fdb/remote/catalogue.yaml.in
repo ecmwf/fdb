@@ -1,6 +1,7 @@
 ---
 type: catalogue
 serverPort: 10000
+serverThreaded: true
 stores:
 - default: "localhost:10001"
 schema: @CMAKE_CURRENT_SOURCE_DIR@/schema

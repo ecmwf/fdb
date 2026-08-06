@@ -18,6 +18,8 @@ from z3fdb import (
     ExtractorType,
 )
 
+pytestmark = pytest.mark.offline
+
 
 def test_zarr_use_spec_v2(read_only_fdb_setup) -> None:
     assert zarr.config.get("default_zarr_format") == 3
@@ -26,16 +28,12 @@ def test_zarr_use_spec_v2(read_only_fdb_setup) -> None:
 def test_access(read_only_fdb_setup) -> None:
     builder = SimpleStoreBuilder(read_only_fdb_setup)
     builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "date=2020-01-01/to/2020-01-04,"
-        "levtype=sfc,"
-        "step=0,"
-        "param=167/131/132,"
-        "time=0/to/21/by/3",
+        {
+            "type": "an", "class": "ea", "domain": "g", "expver": "0001",
+            "stream": "oper", "date": "2020-01-01/to/2020-01-04",
+            "levtype": "sfc", "step": 0, "param": [167, 131, 132],
+            "time": "0/to/21/by/3",
+        },
         [
             AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
@@ -56,16 +54,12 @@ def test_axis_check_out_of_bounds(read_only_fdb_setup_for_sfc_pl_example) -> Non
     """
     builder = SimpleStoreBuilder(read_only_fdb_setup_for_sfc_pl_example)
     builder.add_part(
-        "type=an,"
-        "class=ea,"
-        "domain=g,"
-        "expver=0001,"
-        "stream=oper,"
-        "date=2020-01-01/2020-01-02,"
-        "levtype=sfc,"
-        "step=0,"
-        "param=165/166/167,"
-        "time=0/to/21/by/3",
+        {
+            "type": "an", "class": "ea", "domain": "g", "expver": "0001",
+            "stream": "oper", "date": ["2020-01-01", "2020-01-02"],
+            "levtype": "sfc", "step": 0, "param": [165, 166, 167],
+            "time": "0/to/21/by/3",
+        },
         [
             AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),

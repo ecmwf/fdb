@@ -9,9 +9,11 @@
  */
 
 #include "fdb5/remote/client/ReadLimiter.h"
-#include <sstream>
-#include "eckit/config/Resource.h"
+
 #include "fdb5/remote/client/RemoteStore.h"
+
+#include <mutex>
+#include <sstream>
 
 namespace fdb5::remote {
 
@@ -30,6 +32,8 @@ ReadLimiter& ReadLimiter::instance() {
 }
 
 void ReadLimiter::init(size_t memoryLimit) {
+    static std::mutex initMutex;
+    std::lock_guard lock(initMutex);
     if (!instance_) {
         instance_ = new ReadLimiter(memoryLimit);
     }

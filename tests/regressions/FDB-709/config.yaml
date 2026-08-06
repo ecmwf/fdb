@@ -1,0 +1,26 @@
+---
+type: select
+schema: ./schema
+fdbs:
+- select: time=1200
+  type: local
+  engine: toc
+  spaces:
+  - handler: Default
+    roots:
+    - path: ./root1200
+      list: true
+      retrieve: true
+      archive: true
+      wipe: true
+- select: time=0000
+  type: local
+  engine: toc
+  spaces:
+  - handler: Default
+    roots:
+    - path: ./root0000
+      list: true
+      retrieve: true
+      archive: true
+      wipe: true

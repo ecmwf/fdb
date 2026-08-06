@@ -12,6 +12,7 @@ configure_file( wipe.sh.in wipe.sh @ONLY )
 foreach( _test ${fdb_tools_wipe_configs} )
     ecbuild_add_test(
         TARGET fdb_test_tools_wipe_${_test}
+        CONDITION HAVE_GRIB
         TYPE SCRIPT
         LABELS wipe
         TEST_DEPENDS fdb_test_get_data

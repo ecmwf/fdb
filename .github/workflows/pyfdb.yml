@@ -9,8 +9,9 @@ on:
     tags-ignore:
       - '**'
 
-  # Trigger the workflow on pull request
-  pull_request: ~
+  # Trigger the workflow on pull request (skips draft PRs)
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
 
   # Trigger the workflow manually
   workflow_dispatch: ~
@@ -22,7 +23,7 @@ on:
 jobs:
   prepare-deps:
     runs-on: ubuntu-latest
-    if: ${{ (success() || failure()) && (!github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci') }}
+    if: ${{ !github.event.pull_request.draft && (success() || failure()) && (!github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci') }}
     steps:
       - name: Get ecbuild
         uses: actions/checkout@v5
@@ -106,12 +107,12 @@ jobs:
   build-wheels:
     needs: prepare-deps
     runs-on: ubuntu-latest
-    if: ${{ (success() || failure()) && (!github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci') }}
+    if: ${{ !github.event.pull_request.draft && (success() || failure()) && (!github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci') }}
     strategy:
       matrix:
         python-version: ['3.11', '3.12', '3.13'] # eccodes does not yet support 3.14
       fail-fast: false  # Continue running other versions if one fails
-    
+
     steps:
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -159,4 +160,3 @@ jobs:
           path: "fdb-build/pyfdb-*.whl"
           retention-days: 10
           if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
-

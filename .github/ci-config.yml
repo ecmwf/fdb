@@ -1,9 +1,9 @@
 dependencies: |
   ecmwf/ecbuild
-  MathisRosenhauer/libaec@refs/tags/v1.1.3
+  Deutsches-Klimarechenzentrum/libaec@refs/tags/v1.1.6
   ecmwf/eccodes
   ecmwf/eckit
   ecmwf/metkit
 dependency_branch: develop
-cmake_options: -DENABLE_DUMMY_DAOS=ON
+cmake_options: -DENABLE_MEMFS=ON -DENABLE_DUMMY_DAOS=ON -DENABLE_FAMFDB=ON
 parallelism_factor: 8

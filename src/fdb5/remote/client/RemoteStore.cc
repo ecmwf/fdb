@@ -10,7 +10,6 @@
 
 #include "fdb5/remote/client/RemoteStore.h"
 
-#include "eckit/serialisation/ResizableMemoryStream.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Field.h"
@@ -24,6 +23,7 @@
 #include "fdb5/remote/client/ReadLimiter.h"
 #include "fdb5/rules/Rule.h"
 
+#include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/Length.h"
@@ -33,9 +33,11 @@
 #include "eckit/runtime/Main.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/serialisation/Reanimator.h"
+#include "eckit/serialisation/ResizableMemoryStream.h"
 
 #include <dirent.h>
 #include <fcntl.h>
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -88,7 +90,7 @@ public:  // methods
         currentBuffer_(0),
         complete_(false) {}
 
-    virtual bool canSeek() const override { return false; }
+    bool canSeek() const override { return false; }
 
     ~FDBRemoteDataHandle() override {
         if (!complete_) {
@@ -219,18 +221,27 @@ Client::EndpointList storeEndpoints(const Config& config) {
     return out;
 }
 
+void initReadLimiter(const Config& config) {
+    static const size_t memoryLimit = Resource<size_t>(
+        "$FDB_READ_LIMIT;fdbReadLimit", config.userConfig().getUnsigned("limits.read", size_t(1) * 1024 * 1024 * 1024));
+    ReadLimiter::init(memoryLimit);
+}
+
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
 RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
-    Client(config, storeEndpoints(config)), dbKey_(dbKey), config_(config) {}
+    Client(config, storeEndpoints(config)), dbKey_(dbKey), config_(config) {
+    initReadLimiter(config);
+}
 
 // this is used only in retrieval, with an URI already referring to an accessible Store
 RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
     Client(config, eckit::net::Endpoint(uri.hostport()), uri.hostport()), config_(config) {
     // no need to set the local_ flag on the read path
     ASSERT(uri.scheme() == "fdb");
+    initReadLimiter(config);
 }
 
 RemoteStore::~RemoteStore() {
@@ -286,11 +297,10 @@ void RemoteStore::archiveCb(
     ASSERT(static_cast<long long>(length) != 0ll);
 
     uint32_t id = generateRequestID();
-    {  // send the archival request
-        std::lock_guard<std::mutex> lock(locations_.mutex());
-        if (locations_.archived() == 0) {  // if this is the first archival request, notify the server
-            controlWriteCheckResponse(Message::Store, id, true);
-        }
+    // If this is the first archival request of this flush cycle, notify the server.
+    // Note: this must NOT be done while holding locations_.mutex(), a potential deadlock.
+    if (locations_.markStoreRequested()) {
+        controlWriteCheckResponse(Message::Store, id, true);
     }
     // store the callback, associated with the request id - to be done BEFORE sending the data
     locations_.archive(id, catalogue_archive);
