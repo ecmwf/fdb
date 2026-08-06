@@ -66,8 +66,8 @@ void Archiver::flushDatabase(Database& db) {
 
 void Archiver::flush() {
     std::lock_guard<std::recursive_mutex> lock(flushMutex_);
-    for (auto i = databases_.begin(); i != databases_.end(); ++i) {
-        flushDatabase(i->second);
+    for (auto& kv : databases_) {
+        flushDatabase(kv.second);
     }
 }
 
