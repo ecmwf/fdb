@@ -145,7 +145,9 @@ void ClientConnectionRouter::deregister(ClientConnection& connection) {
 }
 
 ClientConnectionRouter& ClientConnectionRouter::instance() {
-    static ClientConnectionRouter router;
+    // Leaked deliberately: avoids racing this destructor against other threads tearing
+    // down connections during static/process deinitialisation.
+    static ClientConnectionRouter& router = *new ClientConnectionRouter();
     return router;
 }
 
