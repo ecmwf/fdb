@@ -246,7 +246,7 @@ RemoteFDB::RemoteFDB(const Configuration& config, const std::string& name) : Loc
 
 RemoteFDB::~RemoteFDB() {
     // 1- stop listening thread dispatching to this client
-    connection_->remove(id());
+    deregister();
     // 2- wait for any handle() before destroying
     std::lock_guard lock(messageQueueMutex_);
 }

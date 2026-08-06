@@ -66,7 +66,7 @@ RemoteCatalogue::RemoteCatalogue(const eckit::URI& /*uri*/, const Config& config
 
 RemoteCatalogue::~RemoteCatalogue() {
     // stop listening otherwise it may invoke a virtual call - e.g. closeConnection()
-    connection_->remove(id());
+    deregister();
 }
 
 void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey,
