@@ -15,10 +15,9 @@
 //! eckit::init();
 //! let fdb = Fdb::open_default()?;
 //!
-//! let request = metkit::MarsRequestBuilder::new("retrieve")
-//!     .with("class", "od")
-//!     .with("expver", "0001")
-//!     .build();
+//! let mut request = metkit::MarsRequest::new("retrieve");
+//! request.set("class", "od");
+//! request.set("expver", "0001");
 //!
 //! // ListOptions::default() is depth=3 (full traversal), deduplicate=true
 //! for item in fdb.list(&request, ListOptions::default())? {

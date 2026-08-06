@@ -120,15 +120,13 @@ fn bench_request_creation(c: &mut Criterion) {
     eckit::init();
     c.bench_function("fdb_request_creation", |b| {
         b.iter(|| {
-            black_box(
-                metkit::MarsRequestBuilder::new("retrieve")
-                    .with("class", "rd")
-                    .with("expver", "xxxx")
-                    .with("stream", "oper")
-                    .with("date", "20230508")
-                    .with("time", "1200")
-                    .build(),
-            );
+            let mut request = metkit::MarsRequest::new("retrieve");
+            request.set("class", "rd");
+            request.set("expver", "xxxx");
+            request.set("stream", "oper");
+            request.set("date", "20230508");
+            request.set("time", "1200");
+            black_box(request);
         });
     });
 }
@@ -138,12 +136,10 @@ fn bench_request_multi_values(c: &mut Criterion) {
     eckit::init();
     c.bench_function("fdb_request_multi_values", |b| {
         b.iter(|| {
-            black_box(
-                metkit::MarsRequestBuilder::new("retrieve")
-                    .with("class", "rd")
-                    .with_values("step", &["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"])
-                    .build(),
-            );
+            let mut request = metkit::MarsRequest::new("retrieve");
+            request.set("class", "rd");
+            request.set("step", ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
+            black_box(request);
         });
     });
 }
@@ -157,11 +153,10 @@ fn bench_list(c: &mut Criterion) {
 
     eckit::init();
     let fdb = Fdb::open_default().expect("failed to create FDB handle");
-    let request = metkit::MarsRequestBuilder::new("retrieve")
-        .with("class", "rd")
-        .with("expver", "xxxx")
-        .with("stream", "oper")
-        .build();
+    let mut request = metkit::MarsRequest::new("retrieve");
+    request.set("class", "rd");
+    request.set("expver", "xxxx");
+    request.set("stream", "oper");
 
     c.bench_function("fdb_list", |b| {
         b.iter(|| {
@@ -189,11 +184,10 @@ fn bench_axes(c: &mut Criterion) {
 
     eckit::init();
     let fdb = Fdb::open_default().expect("failed to create FDB handle");
-    let request = metkit::MarsRequestBuilder::new("retrieve")
-        .with("class", "rd")
-        .with("expver", "xxxx")
-        .with("stream", "oper")
-        .build();
+    let mut request = metkit::MarsRequest::new("retrieve");
+    request.set("class", "rd");
+    request.set("expver", "xxxx");
+    request.set("stream", "oper");
 
     c.bench_function("fdb_axes", |b| {
         b.iter(|| {

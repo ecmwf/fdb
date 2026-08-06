@@ -53,9 +53,8 @@ unsafe impl Send for HandleInner {}
 /// let handles: Vec<_> = (0..4).map(|_| {
 ///     let fdb = Arc::clone(&fdb);
 ///     thread::spawn(move || {
-///         let request = metkit::MarsRequestBuilder::new("list")
-///             .with("class", "od")
-///             .build();
+///         let mut request = metkit::MarsRequest::new("list");
+///         request.set("class", "od");
 ///         let _ = fdb.list(&request, fdb::ListOptions::default());
 ///     })
 /// }).collect();
@@ -182,9 +181,9 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if listing fails.
-    pub fn list(
+    pub fn list<S: metkit::RequestState>(
         &self,
-        request: &metkit::MarsRequest,
+        request: &metkit::MarsRequest<S>,
         options: ListOptions,
     ) -> Result<ListIterator> {
         let ListOptions { depth, deduplicate } = options;
@@ -201,7 +200,10 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if retrieval fails.
-    pub fn retrieve(&self, request: &metkit::MarsRequest) -> Result<DataHandle> {
+    pub fn retrieve<S: metkit::RequestState>(
+        &self,
+        request: &metkit::MarsRequest<S>,
+    ) -> Result<DataHandle> {
         let handle = self.with_handle(|h| h.retrieve(request.as_sys()))?;
         Ok(DataHandle::from_raw(handle))
     }
@@ -350,9 +352,9 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if the query fails.
-    pub fn axes(
+    pub fn axes<S: metkit::RequestState>(
         &self,
-        request: &metkit::MarsRequest,
+        request: &metkit::MarsRequest<S>,
         depth: i32,
     ) -> Result<HashMap<String, Vec<String>>> {
         let axes = self.with_handle(|h| h.axes(request.as_sys(), depth))?;
@@ -370,9 +372,9 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if the dump fails.
-    pub fn dump(
+    pub fn dump<S: metkit::RequestState>(
         &self,
-        request: &metkit::MarsRequest,
+        request: &metkit::MarsRequest<S>,
         options: DumpOptions,
     ) -> Result<DumpIterator> {
         let DumpOptions { simple } = options;
@@ -389,7 +391,10 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if the status query fails.
-    pub fn status(&self, request: &metkit::MarsRequest) -> Result<StatusIterator> {
+    pub fn status<S: metkit::RequestState>(
+        &self,
+        request: &metkit::MarsRequest<S>,
+    ) -> Result<StatusIterator> {
         let it = self.with_handle(|h| h.status(request.as_sys()))?;
         Ok(StatusIterator::new(it))
     }
@@ -406,9 +411,9 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if the wipe fails.
-    pub fn wipe(
+    pub fn wipe<S: metkit::RequestState>(
         &self,
-        request: &metkit::MarsRequest,
+        request: &metkit::MarsRequest<S>,
         options: WipeOptions,
     ) -> Result<WipeIterator> {
         let WipeOptions {
@@ -433,9 +438,9 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if the purge fails.
-    pub fn purge(
+    pub fn purge<S: metkit::RequestState>(
         &self,
-        request: &metkit::MarsRequest,
+        request: &metkit::MarsRequest<S>,
         options: PurgeOptions,
     ) -> Result<PurgeIterator> {
         let PurgeOptions { doit, porcelain } = options;
@@ -452,7 +457,10 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if the stats query fails.
-    pub fn stats_iter(&self, request: &metkit::MarsRequest) -> Result<StatsIterator> {
+    pub fn stats_iter<S: metkit::RequestState>(
+        &self,
+        request: &metkit::MarsRequest<S>,
+    ) -> Result<StatsIterator> {
         let it = self.with_handle(|h| h.stats_iterator(request.as_sys()))?;
         Ok(StatsIterator::new(it))
     }
@@ -469,9 +477,9 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if the control operation fails.
-    pub fn control(
+    pub fn control<S: metkit::RequestState>(
         &self,
-        request: &metkit::MarsRequest,
+        request: &metkit::MarsRequest<S>,
         action: ControlAction,
         identifiers: &[ControlIdentifier],
     ) -> Result<ControlIterator> {
@@ -562,11 +570,21 @@ impl MessageArchiver {
         })
     }
 
-    /// `fdb5::MessageArchiver::archive(eckit::DataHandle&)` — returns total
-    /// bytes archived.
-    pub fn archive(&self, source: &mut eckit::DataHandle<eckit::Reading>) -> Result<i64> {
+    /// `fdb5::MessageArchiver::archive(eckit::DataHandle&)` — streams
+    /// messages from a Rust [`Read`](std::io::Read) + [`Seek`](std::io::Seek)
+    /// source and returns total bytes archived.
+    ///
+    /// The source is wrapped in an `eckit::DataHandle` that calls back into
+    /// the Rust reader on each `read()`/`seek()`, so nothing is buffered up
+    /// front.
+    pub fn archive<R>(&self, source: R) -> Result<i64>
+    where
+        R: std::io::Read + std::io::Seek + Send + 'static,
+    {
+        let mut handle =
+            eckit_sys::DataHandleWrapper::from_reader(eckit_sys::make_reader_box(source))?;
         let mut guard = self.inner.lock();
-        let bytes = guard.pin_mut().archive(source.inner_mut()?)?;
+        let bytes = guard.pin_mut().archive(handle.pin_mut())?;
         drop(guard);
         Ok(bytes)
     }

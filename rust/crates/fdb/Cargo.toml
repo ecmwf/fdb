@@ -23,6 +23,7 @@ bindman-utils.workspace = true
 [dependencies]
 fdb-sys.workspace = true
 eckit.workspace = true
+eckit-sys = { workspace = true, default-features = false }
 metkit.workspace = true
 parking_lot.workspace = true
 thiserror.workspace = true
