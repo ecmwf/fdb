@@ -52,6 +52,13 @@ TocCatalogueWriter::~TocCatalogueWriter() {
 
 // selectIndex is called during schema traversal and in case of out-of-order fieldLocation archival
 bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
+    std::lock_guard<std::mutex> lock(indexMutex_);
+    return selectIndexUnsafe(idxKey);
+}
+
+// selectIndexUnsafe is not mutex protected, and should only be called by mutex-protected functions (archive, index,
+// selectIndex and reconsolidateIndexesAndTocs)
+bool TocCatalogueWriter::selectIndexUnsafe(const Key& idxKey) {
 
     currentIndexKey_ = idxKey;
 
@@ -139,14 +146,16 @@ void TocCatalogueWriter::close() {
 }
 
 void TocCatalogueWriter::index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) {
+    std::lock_guard<std::mutex> lock(indexMutex_);
+
     archivedLocations_++;
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
-        selectIndex(currentIndexKey_);
+        selectIndexUnsafe(currentIndexKey_);
     }
 
-    Field field(TocFieldLocation(uri, offset, length, Key()), currentIndex().timestamp());
+    Field field(TocFieldLocation(uri, offset, length, Key()), currentIndexUnsafe().timestamp());
 
     current_.put(key, field);
 
@@ -211,6 +220,7 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
     close();
 
     // Add masking entries for all the indexes and subtocs visited so far
+    std::lock_guard<std::mutex> lock(indexMutex_);
 
     Buffer buf(sizeof(TocRecord) * (subtocs.size() + maskable_indexes));
     buf.zero();
@@ -238,10 +248,14 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
 }
 
 const Index& TocCatalogueWriter::currentIndex() {
+    std::lock_guard<std::mutex> lock(indexMutex_);
+    return currentIndexUnsafe();
+}
 
+const Index& TocCatalogueWriter::currentIndexUnsafe() {
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
-        selectIndex(currentIndexKey_);
+        selectIndexUnsafe(currentIndexKey_);
     }
 
     return current_;
@@ -323,12 +337,13 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
 
 void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
                                  std::shared_ptr<const FieldLocation> fieldLocation) {
+    std::lock_guard<std::mutex> lock(indexMutex_);
 
     archivedLocations_++;
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
-        if (!selectIndex(currentIndexKey_)) {
+        if (!selectIndexUnsafe(currentIndexKey_)) {
             createIndex(currentIndexKey_, datumKey.size());
         }
     }
@@ -336,13 +351,13 @@ void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
         // in case of async archival (out of order store/catalogue archival), currentIndexKey_ can differ from the
         // indexKey used for store archival. Reset it
         if (currentIndexKey_ != idxKey) {
-            if (!selectIndex(idxKey)) {
+            if (!selectIndexUnsafe(idxKey)) {
                 createIndex(idxKey, datumKey.size());
             }
         }
     }
 
-    Field field(std::move(fieldLocation), currentIndex().timestamp());
+    Field field(std::move(fieldLocation), currentIndexUnsafe().timestamp());
 
     current_.put(datumKey, field);
 

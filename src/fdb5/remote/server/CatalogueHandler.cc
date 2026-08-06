@@ -235,10 +235,11 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
         eckit::Buffer encodeBuffer(encodeBufferSize(state));
         ResizableMemoryStream s(encodeBuffer);
 
-        const std::string dummy_secret = eckit::Resource<std::string>("$FDB_WIPE_SECRET;fdbWipeSecret", "");
-        ASSERT(!dummy_secret.empty());
-
-        state.signStoreStates(dummy_secret);
+        static const std::string wipeSecret = eckit::Resource<std::string>("$FDB_WIPE_SECRET;fdbWipeSecret", "");
+        if (wipeSecret.empty()) {
+            throw(Exception("Unable to sign the wipe details"));
+        }
+        state.signStoreStates(wipeSecret);
 
         s << state;
 
@@ -526,7 +527,6 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
         if (it == catalogues_.end()) {
             std::string what("Requested unknown catalogue id: " + std::to_string(clientID));
             error(what, 0, 0);
-            throw;
         }
     }
 

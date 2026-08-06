@@ -81,7 +81,6 @@ private:  // methods
     void listeningControlThreadLoop();
     void listeningDataThreadLoop();
     void dataWriteThreadLoop();
-    void closeConnection();
 
     const eckit::net::TCPSocket& controlSocket() const override { return controlClient_; }
 
@@ -104,8 +103,6 @@ private:  // members
 
     std::thread listeningControlThread_;
     std::thread listeningDataThread_;
-
-    std::mutex requestMutex_;
 
     // requestID
     std::mutex idMutex_;
