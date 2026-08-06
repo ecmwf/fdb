@@ -193,9 +193,14 @@ RemoteConfiguration ClientConnection::availableFunctionality(const Configuration
 
 std::future<Buffer> ClientConnection::controlWrite(const Client& client, const Message msg, const uint32_t requestID,
                                                    const bool /*dataListener*/, const PayloadList payloads) const {
+    if (!valid()) {
+        throw RemoteFDBException("Connection to " + std::string(controlEndpoint_) + " is no longer valid",
+                                 controlEndpoint_);
+    }
+
     std::future<Buffer> f;
     {
-        std::lock_guard<std::mutex> lock(promisesMutex_);
+        std::lock_guard lock(promisesMutex_);
         auto pp = promises_.emplace(requestID, std::promise<Buffer>{}).first;
         f = pp->second.get_future();
     }
@@ -220,7 +225,7 @@ void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t r
     }
 
     {
-        std::lock_guard<std::mutex> lock(dataWriteMutex_);
+        std::lock_guard lock(dataWriteMutex_);
         if (!dataWriteThread_.joinable()) {
             // Reset the queue after previous done/errors
             ASSERT(!dataWriteQueue_);
@@ -336,18 +341,35 @@ SessionID ClientConnection::verifyServerStartupResponse() {
     return serverSession;
 }
 
+void ClientConnection::failPendingRequests(const std::exception_ptr& eptr) {
+    std::lock_guard lock(promisesMutex_);
+    for (auto& [requestID, promise] : promises_) {
+        promise.set_exception(eptr);
+    }
+    promises_.clear();
+}
+
 void ClientConnection::handleConnectionError(const std::exception_ptr& eptr) {
+    std::string reason;
     try {
         if (eptr) {
             std::rethrow_exception(eptr);
         }
     }
     catch (const std::exception& e) {
-        Log::error() << "error: " << e.what() << std::endl;
+        reason = e.what();
+        Log::error() << "error: " << reason << std::endl;
     }
     catch (...) {
+        reason = "unknown exception";
         Log::error() << "error: unknown exception on connection " << controlEndpoint_ << std::endl;
     }
+
+    // nothing else will ever fulfil a promise once the listening thread has stopped
+    std::ostringstream ss;
+    ss << "Connection to " << controlEndpoint_ << " lost: " << reason;
+    failPendingRequests(std::make_exception_ptr(RemoteFDBException(ss.str(), controlEndpoint_)));
+
     teardown();
 }
 
