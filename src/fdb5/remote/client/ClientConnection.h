@@ -115,8 +115,6 @@ private:  // members
     std::thread listeningControlThread_;
     std::thread listeningDataThread_;
 
-    std::mutex requestMutex_;
-
     // requestID
     std::mutex idMutex_;
     uint32_t id_;

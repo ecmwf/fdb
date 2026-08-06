@@ -34,6 +34,7 @@
 #include <memory>
 #include <mutex>
 #include <ostream>
+#include <random>
 #include <sstream>
 #include <string>
 #include <unordered_set>
@@ -164,7 +165,9 @@ const net::Endpoint& RemoteFDB::storeEndpoint() const {
     if (storesLocalFields_.empty()) {
         throw SeriousBug("Unable to find a store to serve local data");
     }
-    return storesLocalFields_.at(std::rand() % storesLocalFields_.size());
+    static thread_local std::mt19937 rng{std::random_device{}()};
+    std::uniform_int_distribution<size_t> dist(0, storesLocalFields_.size() - 1);
+    return storesLocalFields_.at(dist(rng));
 }
 const net::Endpoint& RemoteFDB::storeEndpoint(const net::Endpoint& fieldLocationEndpoint) const {
     // looking for an alias for the given endpoint
@@ -237,11 +240,11 @@ RemoteFDB::RemoteFDB(const Configuration& config, const std::string& name) : Loc
     Buffer buf2 = controlWriteReadResponse(remote::Message::Schema, generateRequestID());
     MemoryStream s2(buf2);
 
-    Schema* schema = Reanimator<Schema>::reanimate(s2);
+    auto schema = std::unique_ptr<Schema>(Reanimator<Schema>::reanimate(s2));
 
     config_.set("stores", stores);
     config_.set("fieldLocationEndpoints", fieldLocationEndpoints);
-    config_.overrideSchema(static_cast<std::string>(controlEndpoint()) + "/schema", schema);
+    config_.overrideSchema(static_cast<std::string>(controlEndpoint()) + "/schema", std::move(schema));
 }
 
 RemoteFDB::~RemoteFDB() {

@@ -86,7 +86,7 @@ private:  // methods
 private:  // members
 
     eckit::net::TCPSocket socket_;
-    eckit::LocalConfiguration config_;
+    Config config_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

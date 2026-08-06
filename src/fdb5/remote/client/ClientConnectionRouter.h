@@ -14,9 +14,14 @@
 
 #include "eckit/net/Endpoint.h"
 
+#include <unistd.h>
+
+#include <cstdlib>
 #include <memory>
 #include <mutex>
+#include <random>
 #include <unordered_map>
+
 
 namespace eckit {
 class Configuration;
@@ -51,7 +56,7 @@ public:
 
 private:
 
-    ClientConnectionRouter() {}  ///< private constructor only used by singleton
+    ClientConnectionRouter();  ///< private constructor only used by singleton
 
     /// Drop entries whose connection has been destroyed (expired) or invalidated.
     /// Caller must hold connectionMutex_.

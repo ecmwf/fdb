@@ -11,10 +11,12 @@
 #include <memory>
 #include <mutex>
 #include <ostream>
+#include <random>
 #include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
+
 
 namespace {
 
@@ -40,7 +42,11 @@ ConnectionError::ConnectionError(const eckit::net::Endpoint& endpoint) {
     reason(s.str());
     eckit::Log::status() << what() << std::endl;
 }
+
+std::mutex initMutex;
+std::unique_ptr<fdb5::remote::ClientConnectionRouter> instance_{nullptr};
 }  // namespace
+
 namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -72,7 +78,9 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
     reap();
     while (fullEndpoints.size() > 0) {
         // select a random endpoint
-        size_t idx = std::rand() % fullEndpoints.size();
+        static thread_local std::mt19937 rng{std::random_device{}()};
+        std::uniform_int_distribution<size_t> dist(0, fullEndpoints.size() - 1);
+        size_t idx = dist(rng);
         eckit::net::Endpoint endpoint = fullEndpoints.at(idx).first;
 
         // look for the selected endpoint (a dead connection must not be handed out; replace it)
@@ -143,9 +151,14 @@ void ClientConnectionRouter::deregister(ClientConnection& connection) {
     }
 }
 
+ClientConnectionRouter::ClientConnectionRouter() {}
+
 ClientConnectionRouter& ClientConnectionRouter::instance() {
-    static ClientConnectionRouter router;
-    return router;
+    std::lock_guard<std::mutex> lock(initMutex);
+    if (!instance_) {
+        instance_.reset(new ClientConnectionRouter());
+    }
+    return *instance_;
 }
 
 ClientConnectionRouter::~ClientConnectionRouter() {
@@ -153,7 +166,6 @@ ClientConnectionRouter::~ClientConnectionRouter() {
     std::lock_guard lock(connectionMutex_);
     for (auto& [endp, weak] : connections_) {
         if (auto conn = weak.lock()) {
-            eckit::Log::warning() << "closing connection " << endp << std::endl;
             conn->teardown();
         }
     }
