@@ -189,7 +189,14 @@ eckit::PathName ExpverFileSpaceHandler::selectFileSystem(const Key& key, const F
 
     // Has the user specified a root to use already?
 
-    static std::string fdbRootDirectory = eckit::Resource<std::string>("fdb5Root;$FDB5_ROOT", "");
+    static std::string fdbRootDirectory = []() {
+        std::string root = eckit::Resource<std::string>("fdbRoot;$FDB_ROOT", "");
+        if (root.empty()) {
+            // backwards compatibility
+            root = eckit::Resource<std::string>("fdb5Root;$FDB5_ROOT", "");
+        }
+        return root;
+    }();
 
     // check if key is mapped already to a filesystem
 

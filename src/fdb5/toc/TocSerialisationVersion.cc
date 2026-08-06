@@ -18,8 +18,11 @@ namespace fdb5 {
 static unsigned getUserEnvSerialisationVersion() {
 
     static unsigned fdbSerialisationVersion =
-        eckit::Resource<unsigned>("fdbSerialisationVersion;$FDB5_SERIALISATION_VERSION", 0);
-
+        eckit::Resource<unsigned>("fdbSerialisationVersion;$FDB_SERIALISATION_VERSION", 0);
+    if (!fdbSerialisationVersion) {
+        // backwards compatibility
+        fdbSerialisationVersion = eckit::Resource<unsigned>("$FDB5_SERIALISATION_VERSION", 0);
+    }
     if (fdbSerialisationVersion && fdbSerialisationVersion != TocSerialisationVersion::defaulted()) {
         LOG_DEBUG_LIB(LibFdb5) << "fdbSerialisationVersion overidde to version: " << fdbSerialisationVersion
                                << std::endl;
