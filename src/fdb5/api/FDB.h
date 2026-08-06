@@ -159,7 +159,15 @@ public:  // methods
     /// @return DataHandle for reading the requested data from
     eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request);
 
-    // TODO(kkratz): Provide doc!
+    /// Inspect which fields are present in the FDB for a fully qualified request.
+    ///
+    /// Unlike list(), this takes a raw metkit MarsRequest (rather than an FDBToolRequest) and is
+    /// the query step underlying retrieve(): it resolves the request against the catalogues and
+    /// returns the matching fields together with their locations, so that the associated data can
+    /// subsequently be read. The request is expected to be fully qualified (identifying individual
+    /// fields); it is not expanded like a listing request.
+    /// @param request MarsRequest describing the fields to locate
+    /// @return ListIterator for iterating over the matching fields and their locations
     ListIterator inspect(const metkit::mars::MarsRequest& request);
 
     /// List data present at the archive and which can be retrieved.
@@ -184,7 +192,13 @@ public:  // methods
     /// @return DumpIterator for iterating over the set of found items
     DumpIterator dump(const FDBToolRequest& request, bool simple = false);
 
-    // TODO(kkratz): Provide doc!
+    /// Report the control status of the databases matching the request.
+    ///
+    /// For each database visited, returns its key, location and the set of currently enabled
+    /// control identifiers (List, Retrieve, Archive, Wipe, UniqueRoot). This reflects which
+    /// operations are permitted / have been locked on each database (see control()).
+    /// @param request FDBToolRequest stating which databases should be queried
+    /// @return StatusIterator for iterating over the status of each matching database
     StatusIterator status(const FDBToolRequest& request);
 
     /// Wipe data from the database.
@@ -229,23 +243,37 @@ public:  // methods
     /// @return StatsIterator for iterating over the set of found items
     StatsIterator stats(const FDBToolRequest& request);
 
-    // TODO(kkratz): Provide doc!
-    /// @param request FDB tool request
-    /// @param action control action
-    /// @param identifiers identifiers
-    /// @return ControlIterator for iterating over the set of found items
+    /// Enable or disable operations (locking) on the databases matching the request.
+    ///
+    /// Applies the given action to the specified control identifiers on each matching database.
+    /// ControlAction::Disable locks the identified operations (e.g. prevents further archival,
+    /// listing, retrieval or wiping), while ControlAction::Enable removes the lock. The identifiers
+    /// are a combination of List, Retrieve, Archive, Wipe and UniqueRoot. The resulting status of
+    /// each affected database is reported through the returned iterator.
+    /// @param request FDBToolRequest stating which databases should be controlled
+    /// @param action control action to apply (Enable or Disable)
+    /// @param identifiers the set of control identifiers the action applies to
+    /// @return ControlIterator for iterating over the resulting status of each affected database
     ControlIterator control(const FDBToolRequest& request, ControlAction action, ControlIdentifiers identifiers);
 
-    // TODO(kkratz): Provide doc!
-    /// @param request FDB tool request
-    /// @param level maximum level the axis visitor should respect
-    /// @return IndexAxis
+    /// Aggregate the index axes of the databases matching the request.
+    ///
+    /// Visits the matching databases and merges their axes into a single IndexAxis, describing, for
+    /// each keyword, the set of distinct values present across all visited data. This is the
+    /// aggregated counterpart of axesIterator().
+    /// @param request FDBToolRequest stating which data should be queried
+    /// @param level maximum level the axis visitor should descend to
+    /// @return IndexAxis holding the merged set of values per keyword
     IndexAxis axes(const FDBToolRequest& request, int level = 3);
 
-    // TODO(kkratz): Provide doc!
-    /// @param request FDB tool request
-    /// @param level maximum level the axis visitor should respect
-    /// @return AxisIterator
+    /// Query the index axes of the databases matching the request.
+    ///
+    /// Returns an iterator yielding one element per visited database, each holding the database key
+    /// and its axes (the distinct values present for each keyword). Unlike axes(), the results are
+    /// not merged across databases.
+    /// @param request FDBToolRequest stating which data should be queried
+    /// @param level maximum level the axis visitor should descend to
+    /// @return AxesIterator for iterating over the axes of each matching database
     AxesIterator axesIterator(const FDBToolRequest& request, int level = 3);
 
     /// Check whether a specific control identifier is enabled
@@ -267,7 +295,12 @@ public:  // methods
 
     // -------------- API management -----------------------------------------------------------------------------------
 
-    // TODO(kkratz): Provide doc!
+    /// Return accumulated usage statistics for this FDB object.
+    ///
+    /// These are the internal counters and timers maintained by this FDB instance over its
+    /// lifetime (e.g. number of archives, retrievals and flushes, bytes transferred and associated
+    /// timings), as opposed to the on-disk statistics reported by stats(const FDBToolRequest&).
+    /// @return a copy of this object's FDBStats
     FDBStats stats() const;
 
     /// Type of FDB, local or remote
