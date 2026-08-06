@@ -32,6 +32,13 @@ cat > list <<EOF
 {class=od,expver=0001,stream=oper,date=20251125,time=0000,domain=g}{type=fc,levtype=pl}{step=0,levelist=1000,param=130}
 EOF
 
+cleanup() {
+    local exit_code=$?
+    kill -9 "$catal_pid" "$store_pid" 2>/dev/null || true
+    exit $exit_code
+}
+trap cleanup SIGINT SIGTERM EXIT
+
 FDB5_CONFIG_FILE=$bindir/catalogue.yaml $fdbserver &
 catal_pid=$!
 
@@ -41,8 +48,5 @@ store_pid=$!
 FDB5_CONFIG_FILE=$bindir/client.yaml $fdbwrite levtypes.grib
 
 FDB5_CONFIG_FILE=$bindir/client.yaml $fdblist --all --minimum-keys="" --porcelain | tee out
-
-kill -9 $catal_pid
-kill -9 $store_pid
 
 cmp out list
