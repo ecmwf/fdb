@@ -245,6 +245,11 @@ RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
 }
 
 RemoteStore::~RemoteStore() {
+    // stop listening otherwise it may invoke a virtual call - e.g. closeConnection()
+    connection_->remove(id());
+
+    std::lock_guard lock(retrieveMessageMutex_);
+
     // If we have launched a thread with an async and we manage to get here, this is
     // an error. n.b. if we don't do something, we will block in the destructor
     // of std::future.

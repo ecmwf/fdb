@@ -10,16 +10,16 @@
 
 #include "fdb5/remote/client/RemoteCatalogue.h"
 
-#include "eckit/serialisation/ResizableMemoryStream.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/database/WipeState.h"
 #include "fdb5/remote/Messages.h"
+#include "fdb5/rules/Schema.h"
 
 #include "eckit/filesystem/URI.h"
 #include "eckit/log/Log.h"
 #include "eckit/serialisation/MemoryStream.h"
-#include "fdb5/database/WipeState.h"
-#include "fdb5/rules/Schema.h"
+#include "eckit/serialisation/ResizableMemoryStream.h"
 
 #include <cstddef>
 #include <memory>
@@ -64,7 +64,10 @@ RemoteCatalogue::RemoteCatalogue(const eckit::URI& /*uri*/, const Config& config
     NOTIMP;
 }
 
-RemoteCatalogue::~RemoteCatalogue() = default;
+RemoteCatalogue::~RemoteCatalogue() {
+    // stop listening otherwise it may invoke a virtual call - e.g. closeConnection()
+    connection_->remove(id());
+}
 
 void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey,
                               std::shared_ptr<const FieldLocation> fieldLocation) {
