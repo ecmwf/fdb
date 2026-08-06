@@ -22,6 +22,7 @@
 
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 
 
@@ -54,10 +55,9 @@ public:  // methods
     /// then do the expansion in here.
     eckit::PathName expandPath(const std::string& path) const;
 
+    void initializeSchema(const eckit::PathName& schemaPath, Schema* schema);
 
-    void overrideSchema(const eckit::PathName& schemaPath, Schema* schema);
-    /// @note Return copy; a reference would race with overrideSchema().
-    eckit::PathName schemaPath() const;
+    const eckit::PathName& schemaPath() const;
     eckit::PathName configPath() const;
 
     const Schema& schema() const;
@@ -71,14 +71,13 @@ public:  // methods
 
 private:  // methods
 
-    /// @pre schemaMutex_ must be held by the caller.
-    void initializeSchemaPath() const;
+    void initializeSchemaAux(std::optional<std::reference_wrapper<const eckit::PathName>> schemaPath,
+                             Schema* schema) const;
 
 private:  // members
 
-    mutable eckit::PathName schemaPath_;
-    mutable bool schemaPathInitialised_;
-    mutable std::mutex schemaMutex_;
+    mutable std::optional<eckit::PathName> schemaPath_;
+    mutable std::once_flag schemaOnce_;
     std::shared_ptr<eckit::LocalConfiguration> userConfig_;
 };
 
