@@ -28,12 +28,11 @@
 #include "eckit/utils/Literals.h"
 
 #include <cstdint>
-#include <cstdlib>
-#include <ctime>
 #include <exception>
 #include <memory>
 #include <mutex>
 #include <ostream>
+#include <random>
 #include <sstream>
 #include <string>
 #include <unordered_set>
@@ -164,7 +163,8 @@ const net::Endpoint& RemoteFDB::storeEndpoint() const {
     if (storesLocalFields_.empty()) {
         throw SeriousBug("Unable to find a store to serve local data");
     }
-    return storesLocalFields_.at(std::rand() % storesLocalFields_.size());
+    thread_local std::mt19937 rndGen{std::random_device{}()};
+    return storesLocalFields_.at(std::uniform_int_distribution<size_t>(0, storesLocalFields_.size() - 1)(rndGen));
 }
 const net::Endpoint& RemoteFDB::storeEndpoint(const net::Endpoint& fieldLocationEndpoint) const {
     // looking for an alias for the given endpoint

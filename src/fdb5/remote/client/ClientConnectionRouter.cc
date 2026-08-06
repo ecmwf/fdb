@@ -7,10 +7,10 @@
 #include "eckit/net/Endpoint.h"
 
 #include <cstddef>
-#include <cstdlib>
 #include <memory>
 #include <mutex>
 #include <ostream>
+#include <random>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -72,7 +72,8 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
     reap();
     while (fullEndpoints.size() > 0) {
         // select a random endpoint
-        size_t idx = std::rand() % fullEndpoints.size();
+        thread_local std::mt19937 rndGen{std::random_device{}()};
+        size_t idx = std::uniform_int_distribution<size_t>(0, fullEndpoints.size() - 1)(rndGen);
         eckit::net::Endpoint endpoint = fullEndpoints.at(idx).first;
 
         // look for the selected endpoint (a dead connection must not be handed out; replace it)
