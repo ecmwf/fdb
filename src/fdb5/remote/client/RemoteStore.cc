@@ -419,30 +419,29 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
             if (defaultEndpoint().empty()) {
                 return locations_.location(requestID, std::move(location));
             }
-            std::unique_ptr<RemoteFieldLocation> remoteLocation = std::unique_ptr<RemoteFieldLocation>(
-                new RemoteFieldLocation(eckit::net::Endpoint{defaultEndpoint()}, *location));
+            auto remoteLocation =
+                std::make_unique<RemoteFieldLocation>(eckit::net::Endpoint{defaultEndpoint()}, *location);
             return locations_.location(requestID, std::move(remoteLocation));
         }
         case Message::Blob: {
             std::lock_guard<std::mutex> lock(messageMutex_);
-            auto id = messageQueues_.find(requestID);
-            ASSERT(id != messageQueues_.end());
-            id->second->emplace(std::make_pair(message, std::move(payload)));
+            auto iter = messageQueues_.find(requestID);
+            ASSERT(iter != messageQueues_.end());
+            iter->second->emplace(std::make_pair(message, std::move(payload)));
             return true;
         }
         case Message::Error: {
-
             std::lock_guard lock(messageMutex_);
-            auto it = messageQueues_.find(requestID);
-            if (it != messageQueues_.end()) {
+            auto iter = messageQueues_.find(requestID);
+            if (iter != messageQueues_.end()) {
                 std::string msg;
                 msg.resize(payload.size(), ' ');
                 payload.copy(&msg[0], payload.size());
-                it->second->interrupt(std::make_exception_ptr(RemoteFDBException(msg, controlEndpoint())));
+                iter->second->interrupt(std::make_exception_ptr(RemoteFDBException(msg, controlEndpoint())));
 
                 // Remove entry (shared_ptr --> message queue will be destroyed when it
                 // goes out of scope in the worker thread).
-                messageQueues_.erase(it);
+                messageQueues_.erase(iter);
             }
             return true;
         }

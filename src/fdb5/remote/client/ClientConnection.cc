@@ -403,7 +403,7 @@ void ClientConnection::listeningControlThreadLoop() {
                 // only a Received/Error may fulfill a promise
                 if (hdr.message == Message::Received || hdr.message == Message::Error) {
                     // Hold promisesMutex_ only for the promise lookup/erase (NOT across handle(); risk a deadlock.
-                    std::lock_guard<std::mutex> lock(promisesMutex_);
+                    std::lock_guard lock(promisesMutex_);
 
                     auto pp = promises_.find(hdr.requestID);
                     if (pp != promises_.end()) {
