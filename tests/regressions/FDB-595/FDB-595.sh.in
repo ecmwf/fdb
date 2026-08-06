@@ -34,7 +34,8 @@ EOF
 
 cleanup() {
     local exit_code=$?
-    kill -9 "$catal_pid" "$store_pid" 2>/dev/null || true
+    [[ -n ${catal_pid-} ]] && kill -9 "$catal_pid" 2>/dev/null || true
+    [[ -n ${store_pid-} ]] && kill -9 "$store_pid" 2>/dev/null || true
     exit $exit_code
 }
 trap cleanup SIGINT SIGTERM EXIT
