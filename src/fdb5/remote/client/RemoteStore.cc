@@ -424,7 +424,7 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
             return locations_.location(requestID, std::move(remoteLocation));
         }
         case Message::Blob: {
-            std::lock_guard<std::mutex> lock(messageMutex_);
+            std::lock_guard lock(messageMutex_);
             auto iter = messageQueues_.find(requestID);
             ASSERT(iter != messageQueues_.end());
             iter->second->emplace(std::make_pair(message, std::move(payload)));
@@ -478,7 +478,7 @@ RemoteStore& RemoteStore::get(const eckit::URI& uri) {
     // we memoise one read store for each endpoint. Do not need to have one for each key
     static std::map<std::string, std::unique_ptr<RemoteStore>> readStores_;
 
-    std::lock_guard<std::mutex> lock(storeMutex_);
+    std::lock_guard lock(storeMutex_);
     const std::string& endpoint = uri.hostport();
     auto it = readStores_.find(endpoint);
     if (it != readStores_.end()) {
