@@ -81,7 +81,13 @@ bool ClientConnection::remove(uint32_t clientID) {
 
         if (it != clients_.end()) {
             if (valid()) {
-                Connection::write(Message::Stop, true, clientID, 0);
+                try {
+                    Connection::write(Message::Stop, true, clientID, 0);
+                }
+                catch (...) {
+                    Log::error() << "ClientConnection::remove() - failed to send STOP message to server for clientID "
+                                 << clientID << std::endl;
+                }
             }
 
             clients_.erase(it);
@@ -399,23 +405,21 @@ void ClientConnection::listeningControlThreadLoop() {
                     }
                 }
                 if (!isPromise) {
-                    Client* client = nullptr;
-                    {
-                        std::lock_guard lock(clientsMutex_);
+                    // Hold clientsMutex_ across the virtual dispatch too (not just the lookup)
+                    std::lock_guard lock(clientsMutex_);
 
-                        auto it = clients_.find(hdr.clientID());
-                        if (it == clients_.end()) {
-                            std::ostringstream ss;
-                            ss << "ERROR: CONTROL connection=" << controlEndpoint_
-                               << " received [clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID
-                               << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
-                            ss << "ClientID (" << hdr.clientID() << ") not found. ABORTING";
-                            Log::status() << ss.str() << std::endl;
-                            Log::error() << "Retrieving... " << ss.str() << std::endl;
-                            throw SeriousBug(ss.str(), Here());
-                        }
-                        client = it->second;
+                    auto it = clients_.find(hdr.clientID());
+                    if (it == clients_.end()) {
+                        std::ostringstream ss;
+                        ss << "ERROR: CONTROL connection=" << controlEndpoint_
+                           << " received [clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID
+                           << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
+                        ss << "ClientID (" << hdr.clientID() << ") not found. ABORTING";
+                        Log::status() << ss.str() << std::endl;
+                        Log::error() << "Retrieving... " << ss.str() << std::endl;
+                        throw SeriousBug(ss.str(), Here());
                     }
+                    Client* client = it->second;
 
                     if (hdr.payloadSize == 0) {
                         handled = client->handle(hdr.message, hdr.requestID);
@@ -485,23 +489,21 @@ void ClientConnection::listeningDataThreadLoop() {
             }
             if (hdr.clientID()) {
                 bool handled = false;
-                Client* client = nullptr;
-                {
-                    std::lock_guard lock(clientsMutex_);
+                // Hold clientsMutex_ across the virtual dispatch too (not just the lookup)
+                std::lock_guard lock(clientsMutex_);
 
-                    auto it = clients_.find(hdr.clientID());
-                    if (it == clients_.end()) {
-                        std::ostringstream ss;
-                        ss << "ERROR: DATA connection=" << dataEndpoint_ << " received [clientID=" << hdr.clientID()
-                           << ",requestID=" << hdr.requestID << ",message=" << hdr.message
-                           << ",payload=" << hdr.payloadSize << "]" << std::endl;
-                        ss << "ClientID (" << hdr.clientID() << ") not found. ABORTING";
-                        Log::status() << ss.str() << std::endl;
-                        Log::error() << "Retrieving... " << ss.str() << std::endl;
-                        throw SeriousBug(ss.str(), Here());
-                    }
-                    client = it->second;
+                auto it = clients_.find(hdr.clientID());
+                if (it == clients_.end()) {
+                    std::ostringstream ss;
+                    ss << "ERROR: DATA connection=" << dataEndpoint_ << " received [clientID=" << hdr.clientID()
+                       << ",requestID=" << hdr.requestID << ",message=" << hdr.message << ",payload=" << hdr.payloadSize
+                       << "]" << std::endl;
+                    ss << "ClientID (" << hdr.clientID() << ") not found. ABORTING";
+                    Log::status() << ss.str() << std::endl;
+                    Log::error() << "Retrieving... " << ss.str() << std::endl;
+                    throw SeriousBug(ss.str(), Here());
                 }
+                Client* client = it->second;
 
                 ASSERT(client);
                 ASSERT(!hdr.control());
