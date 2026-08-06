@@ -8,21 +8,40 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/fdb5_config.h"
-
-#include "eckit/config/Resource.h"
-#include "eckit/io/EmptyHandle.h"
-#include "eckit/log/Bytes.h"
-#include "eckit/log/Log.h"
+#include "fdb5/toc/TocCatalogueWriter.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/EntryVisitMechanism.h"
-#include "fdb5/io/FDBFileHandle.h"
+#include "fdb5/database/Field.h"
+#include "fdb5/database/FieldLocation.h"
 #include "fdb5/io/LustreSettings.h"
 #include "fdb5/toc/RootManager.h"
-#include "fdb5/toc/TocCatalogueWriter.h"
+#include "fdb5/toc/TocCatalogue.h"
 #include "fdb5/toc/TocFieldLocation.h"
+#include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
+#include "fdb5/toc/TocRecord.h"
+#include "fdb5/toc/TocSerialisationVersion.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/io/Buffer.h"
+#include "eckit/io/Length.h"
+#include "eckit/io/Offset.h"
+#include "eckit/log/CodeLocation.h"
+#include "eckit/log/Log.h"
+
+#include <cstddef>
+#include <memory>
+#include <mutex>
+#include <ostream>
+#include <set>
+#include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace eckit;
 
@@ -52,6 +71,11 @@ TocCatalogueWriter::~TocCatalogueWriter() {
 
 // selectIndex is called during schema traversal and in case of out-of-order fieldLocation archival
 bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
+    std::lock_guard lock(mutex_);
+    return selectIndexUnlocked(idxKey);
+}
+
+bool TocCatalogueWriter::selectIndexUnlocked(const Key& idxKey) {
 
     currentIndexKey_ = idxKey;
 
@@ -80,6 +104,11 @@ bool TocCatalogueWriter::selectIndex(const Key& idxKey) {
 }
 
 bool TocCatalogueWriter::createIndex(const Key& idxKey, size_t datumKeySize) {
+    std::lock_guard lock(mutex_);
+    return createIndexUnlocked(idxKey, datumKeySize);
+}
+
+bool TocCatalogueWriter::createIndexUnlocked(const Key& idxKey, size_t datumKeySize) {
 
     ASSERT(datumKeySize > 0);
     currentIndexKey_ = idxKey;
@@ -113,6 +142,11 @@ bool TocCatalogueWriter::createIndex(const Key& idxKey, size_t datumKeySize) {
 }
 
 void TocCatalogueWriter::deselectIndex() {
+    std::lock_guard lock(mutex_);
+    deselectIndexUnlocked();
+}
+
+void TocCatalogueWriter::deselectIndexUnlocked() {
     current_ = Index();
     currentFull_ = Index();
     currentIndexKey_ = Key();
@@ -167,7 +201,6 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
     public:
 
         ConsolidateIndexVisitor(TocCatalogueWriter& writer) : writer_(writer) {}
-        ~ConsolidateIndexVisitor() override {}
 
     private:
 
@@ -238,17 +271,23 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
 }
 
 const Index& TocCatalogueWriter::currentIndex() {
+    std::lock_guard lock(mutex_);
+    return currentIndexUnlocked();
+}
+
+const Index& TocCatalogueWriter::currentIndexUnlocked() {
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
-        selectIndex(currentIndexKey_);
+        selectIndexUnlocked(currentIndexKey_);
     }
 
     return current_;
 }
 
 const Key TocCatalogueWriter::currentIndexKey() {
-    currentIndex();
+    std::lock_guard lock(mutex_);
+    currentIndexUnlocked();
     return currentIndexKey_;
 }
 
@@ -324,25 +363,19 @@ bool TocCatalogueWriter::enabled(const ControlIdentifier& controlIdentifier) con
 void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
                                  std::shared_ptr<const FieldLocation> fieldLocation) {
 
+    std::lock_guard lock(mutex_);
+
     archivedLocations_++;
 
-    if (current_.null()) {
-        ASSERT(!currentIndexKey_.empty());
-        if (!selectIndex(currentIndexKey_)) {
-            createIndex(currentIndexKey_, datumKey.size());
-        }
-    }
-    else {
-        // in case of async archival (out of order store/catalogue archival), currentIndexKey_ can differ from the
-        // indexKey used for store archival. Reset it
-        if (currentIndexKey_ != idxKey) {
-            if (!selectIndex(idxKey)) {
-                createIndex(idxKey, datumKey.size());
-            }
+    // Ensure the index matching idxKey is selected. we must NOT rely on currentIndexKey_
+    // with a remote store, this runs on the listening thread and the archival thread may already have moved on
+    if (current_.null() || currentIndexKey_ != idxKey) {
+        if (!selectIndexUnlocked(idxKey)) {
+            createIndexUnlocked(idxKey, datumKey.size());
         }
     }
 
-    Field field(std::move(fieldLocation), currentIndex().timestamp());
+    Field field(std::move(fieldLocation), currentIndexUnlocked().timestamp());
 
     current_.put(datumKey, field);
 
@@ -352,6 +385,7 @@ void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
 }
 
 void TocCatalogueWriter::flush(size_t archivedFields) {
+    std::lock_guard lock(mutex_);
     ASSERT(archivedFields == archivedLocations_);
 
     if (archivedLocations_ == 0) {

@@ -1,0 +1,27 @@
+ecbuild_add_executable(
+    TARGET    fdb_test_multi_store
+    SOURCES   test_multi_store.cc
+    INCLUDES  ${ECKIT_INCLUDE_DIRS}
+    LIBS      fdb5
+    NOINSTALL
+)
+
+if (HAVE_FDB_BUILD_TOOLS)
+    ecbuild_configure_file( client.yaml.in client.yaml @ONLY )
+    ecbuild_configure_file( store1.yaml.in store1.yaml @ONLY )
+    ecbuild_configure_file( store2.yaml.in store2.yaml @ONLY )
+    ecbuild_configure_file( multi_store.sh.in multi_store.sh @ONLY )
+
+    ecbuild_add_test(
+        TARGET         fdb_test_multi_store_script
+        TYPE           SCRIPT
+        COMMAND        ${CMAKE_CURRENT_BINARY_DIR}/multi_store.sh
+        ARGS           ${CMAKE_CURRENT_BINARY_DIR} client.yaml store1.yaml store2.yaml
+        TEST_DEPENDS   fdb_test_multi_store
+        ENVIRONMENT    "${test_environment}"
+        TEST_PROPERTIES
+        TIMEOUT 300
+        RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
+        LABELS remotefdb
+    )
+endif()

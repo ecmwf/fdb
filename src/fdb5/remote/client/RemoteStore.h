@@ -14,15 +14,36 @@
 
 #pragma once
 
+#include "fdb5/api/helpers/MoveIterator.h"
+#include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Field.h"
+#include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/client/Client.h"
 
+#include "eckit/config/Configuration.h"
+#include "eckit/container/Queue.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/Buffer.h"
+#include "eckit/io/DataHandle.h"
+#include "eckit/io/Length.h"
+
+#include <atomic>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <future>
 #include <map>
+#include <memory>
 #include <mutex>
+#include <ostream>
 #include <set>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace fdb5::remote {
@@ -31,11 +52,15 @@ class Locations {
 
 public:
 
-    Locations() : fieldsArchived_(0), locationsReceived_(0) {}
+    Locations() = default;
 
     std::mutex& mutex() { return locationMutex_; }
 
-    size_t archived() { return fieldsArchived_; }
+    size_t archived() const { return fieldsArchived_; }
+
+    // Returns true exactly once per cycle (until reset()), for the first archival request.
+    // Deliberately lock-free to avoid deadlock against the listening thread.
+    bool markStoreRequested() { return !storeRequested_.exchange(true); }
 
     void archive(uint32_t requestID,
                  std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
@@ -89,16 +114,18 @@ public:
         ASSERT(fieldsArchived_ - locationsReceived_ == locations_.size());
         fieldsArchived_ = locations_.size();
         locationsReceived_ = 0;
+        storeRequested_ = false;
     }
 
 private:
 
     std::mutex locationMutex_;
     std::map<uint32_t, std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)>> locations_;
-    size_t fieldsArchived_;
-    size_t locationsReceived_;
+    size_t fieldsArchived_{0};
+    size_t locationsReceived_{0};
     std::promise<size_t> promiseArchivalCompleted_;
     std::future<size_t> archivalCompleted_;
+    std::atomic<bool> storeRequested_{false};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -1,5 +1,21 @@
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 
+#include "fdb5/remote/client/ClientConnection.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/log/Log.h"
+#include "eckit/net/Endpoint.h"
+
+#include <cstddef>
+#include <cstdlib>
+#include <memory>
+#include <mutex>
+#include <ostream>
+#include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
+
 namespace {
 
 class ConnectionError : public eckit::Exception {
@@ -32,20 +48,19 @@ namespace fdb5::remote {
 std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(const eckit::Configuration& config,
                                                                      const eckit::net::Endpoint& endpoint,
                                                                      const std::string& defaultEndpoint) {
-    std::lock_guard<std::mutex> lock(connectionMutex_);
-
-    const auto it = connections_.find(endpoint);
-    if (it != connections_.end()) {
-        return (it->second);
+    std::lock_guard lock(connectionMutex_);
+    reap();
+    if (const auto iter = connections_.find(endpoint); iter != connections_.end()) {
+        if (auto conn = iter->second.lock(); conn && conn->valid()) {
+            return conn;
+        }
     }
     auto clientConnection = std::make_shared<ClientConnection>(endpoint, defaultEndpoint);
     if (clientConnection->connect(config)) {
-        connections_.emplace(endpoint, clientConnection);
+        connections_.insert_or_assign(endpoint, clientConnection);
         return clientConnection;
     }
-    else {
-        throw ConnectionError(endpoint);
-    }
+    throw ConnectionError(endpoint);
 }
 
 std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
@@ -53,23 +68,24 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
 
     std::vector<std::pair<eckit::net::Endpoint, std::string>> fullEndpoints{endpoints};
 
-    std::lock_guard<std::mutex> lock(connectionMutex_);
+    std::lock_guard lock(connectionMutex_);
+    reap();
     while (fullEndpoints.size() > 0) {
-
         // select a random endpoint
         size_t idx = std::rand() % fullEndpoints.size();
         eckit::net::Endpoint endpoint = fullEndpoints.at(idx).first;
 
-        // look for the selected endpoint
-        const auto it = connections_.find(endpoint);
-        if (it != connections_.end()) {
-            return (it->second);
+        // look for the selected endpoint (a dead connection must not be handed out; replace it)
+        if (const auto it = connections_.find(endpoint); it != connections_.end()) {
+            if (auto conn = it->second.lock(); conn && conn->valid()) {
+                return conn;
+            }
         }
 
         // not yet there, trying to connect
         auto clientConnection = std::make_shared<ClientConnection>(endpoint, fullEndpoints.at(idx).second);
         if (clientConnection->connect(config, true)) {
-            connections_.emplace(endpoint, clientConnection);
+            connections_.insert_or_assign(endpoint, clientConnection);
             return clientConnection;
         }
 
@@ -87,25 +103,43 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
 std::shared_ptr<ClientConnection> ClientConnectionRouter::refresh(const eckit::Configuration& config,
                                                                   const std::shared_ptr<ClientConnection>& connection) {
     std::lock_guard lock(connectionMutex_);
-    const auto iter = connections_.find(connection->controlEndpoint());
-    if (iter == connections_.end() || !iter->second->valid()) {
-        auto newConnection =
-            std::make_shared<ClientConnection>(connection->controlEndpoint(), connection->defaultEndpoint());
-        if (newConnection->connect(config)) {
-            connections_.emplace(newConnection->controlEndpoint(), newConnection);
-            return newConnection;
+    reap();
+    if (const auto iter = connections_.find(connection->controlEndpoint()); iter != connections_.end()) {
+        // Another client may already have refreshed this endpoint: reuse the live connection.
+        if (auto conn = iter->second.lock(); conn && conn->valid()) {
+            return conn;
         }
-        throw ConnectionError(newConnection->controlEndpoint());
     }
-    return iter->second;
+    auto newConnection =
+        std::make_shared<ClientConnection>(connection->controlEndpoint(), connection->defaultEndpoint());
+    if (newConnection->connect(config)) {
+        // Replacing keeps a single pooled connection per endpoint.
+        connections_.insert_or_assign(newConnection->controlEndpoint(), newConnection);
+        return newConnection;
+    }
+    throw ConnectionError(newConnection->controlEndpoint());
+}
+
+void ClientConnectionRouter::reap() {
+    for (auto iter = connections_.begin(); iter != connections_.end();) {
+        auto conn = iter->second.lock();
+        if (!conn || !conn->valid()) {
+            iter = connections_.erase(iter);
+        }
+        else {
+            ++iter;
+        }
+    }
 }
 
 void ClientConnectionRouter::deregister(ClientConnection& connection) {
-
-    std::lock_guard<std::mutex> lock(connectionMutex_);
-    const auto it = connections_.find(connection.controlEndpoint());
-    if (it != connections_.end() && &connection == it->second.get()) {
-        connections_.erase(it);
+    std::lock_guard lock(connectionMutex_);
+    const auto iter = connections_.find(connection.controlEndpoint());
+    if (iter != connections_.end()) {
+        auto conn = iter->second.lock();
+        if (!conn || conn.get() == &connection) {
+            connections_.erase(iter);
+        }
     }
 }
 
@@ -114,21 +148,11 @@ ClientConnectionRouter& ClientConnectionRouter::instance() {
     return router;
 }
 
-void ClientConnectionRouter::teardown(std::exception_ptr e) {
-
-    try {
-        if (e) {
-            std::rethrow_exception(e);
-        }
-    }
-    catch (const std::exception& e) {
-        eckit::Log::error() << "error: " << e.what();
-    }
-
-    std::lock_guard<std::mutex> lock(connectionMutex_);
-
-    for (const auto& [endp, conn] : connections_) {
-        if (conn) {
+ClientConnectionRouter::~ClientConnectionRouter() {
+    // there is nothing to tear down here; as a courtesy we notify the server for those.
+    std::lock_guard lock(connectionMutex_);
+    for (auto& [endp, weak] : connections_) {
+        if (auto conn = weak.lock()) {
             eckit::Log::warning() << "closing connection " << endp << std::endl;
             conn->teardown();
         }

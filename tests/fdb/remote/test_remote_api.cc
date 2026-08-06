@@ -8,15 +8,32 @@
  * nor does it submit to any jurisdiction.
  */
 
-#include <string>
-#include "eckit/exception/Exceptions.h"
-#include "eckit/log/Log.h"
-#include "eckit/testing/Test.h"
-#include "eckit/types/Date.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/WipeIterator.h"
+
+#include "metkit/mars/MarsRequest.h"
+
+#include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/Buffer.h"
+#include "eckit/io/DataHandle.h"
+#include "eckit/io/FileHandle.h"
+#include "eckit/log/Log.h"
+#include "eckit/testing/Test.h"
+#include "eckit/types/Date.h"
+
+#include <chrono>
+#include <cstddef>
+#include <exception>
+#include <map>
+#include <memory>
+#include <ostream>
+#include <set>
+#include <string>
+#include <thread>
+#include <vector>
 
 using namespace eckit::testing;
 
@@ -460,6 +477,72 @@ CASE("Remote protocol: more wipe testing") {
     for (const auto& index_uri : index_uris) {
         eckit::PathName p = index_uri.path().dirName();
         EXPECT(!p.exists());
+    }
+}
+
+// This test drives many blocking control RPCs (list) concurrently through a single shared ClientConnection and
+// asserts they all complete correctly, without deadlock, interleaved socket writes, or corrupted responses.
+CASE("Remote protocol: concurrent blocking control RPCs are not serialised") {
+
+    const size_t nfields = 8;
+    const std::string data_string = "Concurrent blocking RPCs should not serialise.";
+    std::vector<Key> keys;
+    {
+        FDB fdb{};  // Expects the config to be set in the environment
+        keys = write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
+    }
+    EXPECT_EQUAL(keys.size(), nfields);
+    std::this_thread::sleep_for(std::chrono::seconds(2));  // Ensure server has flushed consolidated indexes.
+
+    const size_t nthreads = 8;
+    const size_t niterations = 20;
+
+    // Note: all assertions run on the main thread after join()
+    std::vector<int> results(nthreads, -1);
+    std::vector<std::thread> threads;
+    threads.reserve(nthreads);
+
+    for (size_t t = 0; t < nthreads; ++t) {
+        threads.emplace_back([t, &keys, &results]() {
+            try {
+                int result = 0;
+                for (size_t i = 0; i < niterations && result == 0; ++i) {
+                    // every Client shares the same ClientConnection via the ClientConnectionRouter
+                    auto iter = FDB{}.list(FDBToolRequest{make_request(keys)}, true);
+                    ListElement elem;
+                    size_t count = 0;
+                    while (iter.next(elem)) {
+                        ++count;
+                    }
+                    if (count != nfields) {
+                        eckit::Log::error() << "[CLIENT][thread " << t << "] expected " << nfields << " fields, listed "
+                                            << count << std::endl;
+                        result = 1;
+                    }
+                }
+                results[t] = result;
+            }
+            catch (const std::exception& e) {
+                eckit::Log::error() << "[CLIENT][thread " << t << "] " << e.what() << std::endl;
+                results[t] = 1;
+            }
+        });
+    }
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    for (auto result : results) {
+        EXPECT_EQUAL(result, 0);
+    }
+
+    // Clean up the data archived by this test so the FDB is left in a clean state.
+    eckit::Log::info() << "[CLIENT]" << "Wiping concurrent-RPC test data. --doit" << std::endl;
+    auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od")[0], true);
+    WipeElement wipe_elem;
+    while (wipeit.next(wipe_elem)) {
+        eckit::Log::info() << "[CLIENT]" << wipe_elem;
     }
 }
 
