@@ -35,7 +35,6 @@ class SelectFDB : public FDBBase {
 
 private:  // types
 
-
     class FDBLane {
         SelectMatcher matcher_;
         Config config_;

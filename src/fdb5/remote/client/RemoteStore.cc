@@ -26,6 +26,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
+#include "eckit/io/Buffer.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
 #include "eckit/log/Log.h"
@@ -34,6 +35,7 @@
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/serialisation/Reanimator.h"
 #include "eckit/serialisation/ResizableMemoryStream.h"
+#include "eckit/utils/Literals.h"
 
 #include <dirent.h>
 #include <fcntl.h>
@@ -129,9 +131,7 @@ private:  // methods
 
             // If we are in the DataHandle, then there MUST be data to read
             RemoteStore::StoredMessage msg = std::make_pair(remote::Message{}, eckit::Buffer{0});
-            // eckit::Log::info() << "RemoteDataHandle::read() -- popping next" << std::endl;
             ASSERT(queue_->pop(msg) != -1);
-            // eckit::Log::info() << "RemoteDataHandle::read() -- popped next" << std::endl;
 
             // Handle any remote errors communicated from the server
             if (msg.first == Message::Error) {
@@ -207,9 +207,12 @@ private:  // members
 Client::EndpointList storeEndpoints(const Config& config) {
 
     ASSERT(config.has("stores"));
-    ASSERT(config.has("fieldLocationEndpoints"));
     const auto stores = config.getStringVector("stores");
-    const auto fieldLocationEndpoints = config.getStringVector("fieldLocationEndpoints");
+    // endpoints used in RemoteFieldLocations can differ from the store endpoints (e.g. different networks; canonical
+    // store names) if so, the canonical names must be provided in the fieldLocationEndpoints config, otherwise the
+    // store endpoints are used.
+    const auto fieldLocationEndpoints =
+        config.has("fieldLocationEndpoints") ? config.getStringVector("fieldLocationEndpoints") : stores;
 
     ASSERT(stores.size() == fieldLocationEndpoints.size());
 
@@ -220,28 +223,18 @@ Client::EndpointList storeEndpoints(const Config& config) {
     }
     return out;
 }
-
-void initReadLimiter(const Config& config) {
-    static const size_t memoryLimit = Resource<size_t>(
-        "$FDB_READ_LIMIT;fdbReadLimit", config.userConfig().getUnsigned("limits.read", size_t(1) * 1024 * 1024 * 1024));
-    ReadLimiter::init(memoryLimit);
-}
-
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
 RemoteStore::RemoteStore(const Key& dbKey, const Config& config) :
-    Client(config, storeEndpoints(config)), dbKey_(dbKey), config_(config) {
-    initReadLimiter(config);
-}
+    Client(config, storeEndpoints(config)), dbKey_(dbKey), config_(config) {}
 
 // this is used only in retrieval, with an URI already referring to an accessible Store
 RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
     Client(config, eckit::net::Endpoint(uri.hostport()), uri.hostport()), config_(config) {
     // no need to set the local_ flag on the read path
     ASSERT(uri.scheme() == "fdb");
-    initReadLimiter(config);
 }
 
 RemoteStore::~RemoteStore() {
@@ -253,14 +246,13 @@ RemoteStore::~RemoteStore() {
     // If we have launched a thread with an async and we manage to get here, this is
     // an error. n.b. if we don't do something, we will block in the destructor
     // of std::future.
+
     if (!locations_.complete()) {
         Log::error() << "Attempting to destruct RemoteStore with active archival" << std::endl;
         eckit::Main::instance().terminate();
     }
 
-    if (ReadLimiter::isInitialised()) {
-        ReadLimiter::instance().evictClient(id());
-    }
+    ReadLimiter::evictClient(id());
 }
 
 eckit::URI RemoteStore::uri() const {
@@ -395,16 +387,9 @@ bool RemoteStore::handle(Message message, uint32_t requestID) {
             messageQueues_.erase(id);
             return true;
         }
-        case Message::Error: {
-
-            std::ostringstream ss;
-            ss << "RemoteStore client id: " << id() << " - received an error without error description for requestID "
-               << requestID << std::endl;
-            throw RemoteFDBException(ss.str(), controlEndpoint());
-
-            return false;
-        }
         default:
+            Log::warning() << *this << " - Received unexpected [message=" << message << ",requestID=" << requestID
+                           << "]" << std::endl;
             return false;
     }
 }
@@ -446,6 +431,8 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
             return true;
         }
         default:
+            Log::warning() << *this << " - Received unexpected [message=" << message << ",requestID=" << requestID
+                           << ",payloadSize=" << payload.size() << "]" << std::endl;
             return false;
     }
 }
@@ -551,7 +538,10 @@ bool RemoteStore::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const 
     eckit::Buffer sendBuf(1_KiB * unknownURIs.size() + 100);
     eckit::ResizableMemoryStream stream(sendBuf);
     stream << dbKey_;
-    stream << unknownURIs;
+    stream << unknownURIs.size();
+    for (const auto& uri : unknownURIs) {
+        stream << uri;
+    }
     controlWriteCheckResponse(Message::DoWipeUnknowns, generateRequestID(), true, sendBuf, stream.position());
     return true;
 }

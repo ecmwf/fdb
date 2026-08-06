@@ -16,6 +16,7 @@
 #include <utility>
 #include <vector>
 
+
 namespace {
 
 class ConnectionError : public eckit::Exception {
@@ -40,7 +41,11 @@ ConnectionError::ConnectionError(const eckit::net::Endpoint& endpoint) {
     reason(s.str());
     eckit::Log::status() << what() << std::endl;
 }
+
+std::mutex initMutex;
+std::unique_ptr<fdb5::remote::ClientConnectionRouter> instance_{nullptr};
 }  // namespace
+
 namespace fdb5::remote {
 
 size_t random(size_t const max) {
@@ -149,6 +154,8 @@ void ClientConnectionRouter::deregister(ClientConnection& connection) {
     }
 }
 
+ClientConnectionRouter::ClientConnectionRouter() {}
+
 ClientConnectionRouter& ClientConnectionRouter::instance() {
     // Leaked deliberately: avoids racing this destructor against other threads tearing
     // down connections during static/process deinitialisation.
@@ -161,7 +168,6 @@ ClientConnectionRouter::~ClientConnectionRouter() {
     std::lock_guard lock(connectionMutex_);
     for (auto& [endp, weak] : connections_) {
         if (auto conn = weak.lock()) {
-            eckit::Log::warning() << "closing connection " << endp << std::endl;
             conn->teardown();
         }
     }
