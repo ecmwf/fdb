@@ -113,14 +113,12 @@ void FDBFam::init(const eckit::option::CmdArgs& args) {
     }
 
     if (create_) {
-        try {
-            item_ = eckit::FamProperty{args.getUnsigned("size"), args.getString("perm", "0640")};
-        }
-        catch (const eckit::Exception& e) {
+        if (!args.has("size")) {
             eckit::Log::info() << "!!! missing option [size] (see usage below) !!!\n";
             usage(args.tool());
             exit(1);
         }
+        item_ = eckit::FamProperty{args.getUnsigned("size"), args.getString("perm", "0640")};
     }
 
     path_ = eckit::FamPath{args(0)};

@@ -146,7 +146,9 @@ struct WipeHelper : BaseAPIHelper<CatalogueWipeState, Message::Wipe> {
         s << unsafeWipeAll_;
     }
 
-    static CatalogueWipeState valueFromStream(Stream& s, RemoteFDB* fdb) { return CatalogueWipeState(s); }
+    static fdb5::CatalogueWipeState valueFromStream(eckit::Stream& s, fdb5::RemoteFDB* fdb) {
+        return fdb5::CatalogueWipeState(s, fdb->config());
+    }
 
 private:
 

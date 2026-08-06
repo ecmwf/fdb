@@ -142,7 +142,7 @@ bool TocCatalogue::enabled(const ControlIdentifier& controlIdentifier) const {
 
 
 CatalogueWipeState TocCatalogue::wipeInit() const {
-    return CatalogueWipeState(dbKey_);
+    return CatalogueWipeState(dbKey_, config());
 }
 
 bool TocCatalogue::markIndexForWipe(const Index& index, bool include, CatalogueWipeState& wipeState) const {
