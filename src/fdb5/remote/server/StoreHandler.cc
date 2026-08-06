@@ -10,8 +10,6 @@
 
 #include "fdb5/remote/server/StoreHandler.h"
 
-#include "eckit/exception/Exceptions.h"
-#include "eckit/serialisation/ResizableMemoryStream.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Key.h"
@@ -21,13 +19,12 @@
 #include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/remote/server/ServerConnection.h"
 
-#include "eckit/log/Log.h"
-#include "eckit/serialisation/MemoryStream.h"
-#include "eckit/types/Types.h"
-
 #include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/log/Log.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/serialisation/ResizableMemoryStream.h"
 #include "eckit/types/Types.h"
 #include "eckit/utils/Literals.h"
 
@@ -297,7 +294,7 @@ Store& StoreHandler::getStore(uint32_t clientID) {
             Log::error() << "  clientID: " << kv.first << ", store: " << *(kv.second.store) << std::endl;
         }
         write(Message::Error, true, 0, 0, what.c_str(), what.length());
-        throw;
+        throw SeriousBug(what, Here());
     }
 
     return *(it->second.store);

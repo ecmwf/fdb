@@ -526,7 +526,7 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
         if (it == catalogues_.end()) {
             std::string what("Requested unknown catalogue id: " + std::to_string(clientID));
             error(what, 0, 0);
-            throw;
+            throw SeriousBug(what, Here());
         }
     }
 
