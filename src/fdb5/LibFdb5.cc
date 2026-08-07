@@ -90,33 +90,7 @@ const std::set<std::string>& LibFdb5::auxiliaryRegistry() {
 }
 //----------------------------------------------------------------------------------------------------------------------
 
-static unsigned getUserEnvRemoteProtocol() {
-
-    static unsigned fdbRemoteProtocolVersion =
-        eckit::Resource<unsigned>("fdbRemoteProtocolVersion;$FDB5_REMOTE_PROTOCOL_VERSION", 0);
-    if (fdbRemoteProtocolVersion) {
-        LOG_DEBUG_LIB(LibFdb5) << "fdbRemoteProtocolVersion overidde to version: " << fdbRemoteProtocolVersion
-                               << std::endl;
-    }
-    return 0;  // no version override
-}
-
-RemoteProtocolVersion::RemoteProtocolVersion() {
-    static unsigned user = getUserEnvRemoteProtocol();
-
-    if (not user) {
-        used_ = defaulted();
-        return;
-    }
-
-    bool valid = check(user, false);
-    if (not valid) {
-        std::ostringstream msg;
-        msg << "Unsupported FDB5 remote protocol version " << user << " - supported: " << supportedStr() << std::endl;
-        throw eckit::BadValue(msg.str(), Here());
-    }
-    used_ = user;
-}
+RemoteProtocolVersion::RemoteProtocolVersion() : used_(defaulted()) {}
 
 unsigned int RemoteProtocolVersion::latest() const {
     return 3;

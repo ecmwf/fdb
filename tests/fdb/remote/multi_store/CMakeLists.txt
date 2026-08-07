@@ -24,4 +24,20 @@ if (HAVE_FDB_BUILD_TOOLS)
         RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
         LABELS remotefdb
     )
+
+    ecbuild_configure_file( multi_store_tools.sh.in multi_store_tools.sh @ONLY )
+
+    ecbuild_add_test(
+        TARGET         fdb_test_multi_store_tools
+        TYPE           SCRIPT
+        CONDITION      HAVE_GRIB
+        COMMAND        ${CMAKE_CURRENT_BINARY_DIR}/multi_store_tools.sh
+        ARGS           ${CMAKE_CURRENT_BINARY_DIR} client.yaml store1.yaml store2.yaml ${PROJECT_BINARY_DIR}/tests/fdb/od.oper.grib
+        TEST_DEPENDS   fdb_test_multi_store
+        ENVIRONMENT    "${test_environment}"
+        TEST_PROPERTIES
+        TIMEOUT 300
+        RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
+        LABELS remotefdb
+    )
 endif()

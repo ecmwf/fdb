@@ -81,7 +81,13 @@ bool ClientConnection::remove(uint32_t clientID) {
 
         if (it != clients_.end()) {
             if (valid()) {
-                Connection::write(Message::Stop, true, clientID, 0);
+                try {
+                    Connection::write(Message::Stop, true, clientID, 0);
+                }
+                catch (...) {
+                    Log::error() << "ClientConnection::remove() - failed to send STOP message to server for clientID "
+                                 << clientID << std::endl;
+                }
             }
 
             clients_.erase(it);
@@ -187,9 +193,14 @@ RemoteConfiguration ClientConnection::availableFunctionality(const Configuration
 
 std::future<Buffer> ClientConnection::controlWrite(const Client& client, const Message msg, const uint32_t requestID,
                                                    const bool /*dataListener*/, const PayloadList payloads) const {
+    if (!valid()) {
+        throw RemoteFDBException("Connection to " + std::string(controlEndpoint_) + " is no longer valid",
+                                 controlEndpoint_);
+    }
+
     std::future<Buffer> f;
     {
-        std::lock_guard<std::mutex> lock(promisesMutex_);
+        std::lock_guard lock(promisesMutex_);
         auto pp = promises_.emplace(requestID, std::promise<Buffer>{}).first;
         f = pp->second.get_future();
     }
@@ -214,7 +225,7 @@ void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t r
     }
 
     {
-        std::lock_guard<std::mutex> lock(dataWriteMutex_);
+        std::lock_guard lock(dataWriteMutex_);
         if (!dataWriteThread_.joinable()) {
             // Reset the queue after previous done/errors
             ASSERT(!dataWriteQueue_);
@@ -330,18 +341,35 @@ SessionID ClientConnection::verifyServerStartupResponse() {
     return serverSession;
 }
 
+void ClientConnection::failPendingRequests(const std::exception_ptr& eptr) {
+    std::lock_guard lock(promisesMutex_);
+    for (auto& [requestID, promise] : promises_) {
+        promise.set_exception(eptr);
+    }
+    promises_.clear();
+}
+
 void ClientConnection::handleConnectionError(const std::exception_ptr& eptr) {
+    std::string reason;
     try {
         if (eptr) {
             std::rethrow_exception(eptr);
         }
     }
     catch (const std::exception& e) {
-        Log::error() << "error: " << e.what() << std::endl;
+        reason = e.what();
+        Log::error() << "error: " << reason << std::endl;
     }
     catch (...) {
+        reason = "unknown exception";
         Log::error() << "error: unknown exception on connection " << controlEndpoint_ << std::endl;
     }
+
+    // nothing else will ever fulfil a promise once the listening thread has stopped
+    std::ostringstream ss;
+    ss << "Connection to " << controlEndpoint_ << " lost: " << reason;
+    failPendingRequests(std::make_exception_ptr(RemoteFDBException(ss.str(), controlEndpoint_)));
+
     teardown();
 }
 
@@ -371,11 +399,9 @@ void ClientConnection::listeningControlThreadLoop() {
                 ASSERT(hdr.control() || single_);
 
                 bool isPromise = false;
-                // messages "Blob/Complete/Store/etc" must be dispatched to the client
-                // only a Received/Error may fulfill a promise
-                if (hdr.message == Message::Received || hdr.message == Message::Error) {
+                {
                     // Hold promisesMutex_ only for the promise lookup/erase (NOT across handle(); risk a deadlock.
-                    std::lock_guard<std::mutex> lock(promisesMutex_);
+                    std::lock_guard lock(promisesMutex_);
 
                     auto pp = promises_.find(hdr.requestID);
                     if (pp != promises_.end()) {
@@ -399,23 +425,21 @@ void ClientConnection::listeningControlThreadLoop() {
                     }
                 }
                 if (!isPromise) {
-                    Client* client = nullptr;
-                    {
-                        std::lock_guard lock(clientsMutex_);
+                    // Hold clientsMutex_ across the virtual dispatch too (not just the lookup)
+                    std::lock_guard lock(clientsMutex_);
 
-                        auto it = clients_.find(hdr.clientID());
-                        if (it == clients_.end()) {
-                            std::ostringstream ss;
-                            ss << "ERROR: CONTROL connection=" << controlEndpoint_
-                               << " received [clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID
-                               << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
-                            ss << "ClientID (" << hdr.clientID() << ") not found. ABORTING";
-                            Log::status() << ss.str() << std::endl;
-                            Log::error() << "Retrieving... " << ss.str() << std::endl;
-                            throw SeriousBug(ss.str(), Here());
-                        }
-                        client = it->second;
+                    auto it = clients_.find(hdr.clientID());
+                    if (it == clients_.end()) {
+                        std::ostringstream ss;
+                        ss << "ERROR: CONTROL connection=" << controlEndpoint_
+                           << " received [clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID
+                           << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
+                        ss << "ClientID (" << hdr.clientID() << ") not found. ABORTING";
+                        Log::status() << ss.str() << std::endl;
+                        Log::error() << "Retrieving... " << ss.str() << std::endl;
+                        throw SeriousBug(ss.str(), Here());
                     }
+                    Client* client = it->second;
 
                     if (hdr.payloadSize == 0) {
                         handled = client->handle(hdr.message, hdr.requestID);
@@ -485,23 +509,21 @@ void ClientConnection::listeningDataThreadLoop() {
             }
             if (hdr.clientID()) {
                 bool handled = false;
-                Client* client = nullptr;
-                {
-                    std::lock_guard lock(clientsMutex_);
+                // Hold clientsMutex_ across the virtual dispatch too (not just the lookup)
+                std::lock_guard lock(clientsMutex_);
 
-                    auto it = clients_.find(hdr.clientID());
-                    if (it == clients_.end()) {
-                        std::ostringstream ss;
-                        ss << "ERROR: DATA connection=" << dataEndpoint_ << " received [clientID=" << hdr.clientID()
-                           << ",requestID=" << hdr.requestID << ",message=" << hdr.message
-                           << ",payload=" << hdr.payloadSize << "]" << std::endl;
-                        ss << "ClientID (" << hdr.clientID() << ") not found. ABORTING";
-                        Log::status() << ss.str() << std::endl;
-                        Log::error() << "Retrieving... " << ss.str() << std::endl;
-                        throw SeriousBug(ss.str(), Here());
-                    }
-                    client = it->second;
+                auto it = clients_.find(hdr.clientID());
+                if (it == clients_.end()) {
+                    std::ostringstream ss;
+                    ss << "ERROR: DATA connection=" << dataEndpoint_ << " received [clientID=" << hdr.clientID()
+                       << ",requestID=" << hdr.requestID << ",message=" << hdr.message << ",payload=" << hdr.payloadSize
+                       << "]" << std::endl;
+                    ss << "ClientID (" << hdr.clientID() << ") not found. ABORTING";
+                    Log::status() << ss.str() << std::endl;
+                    Log::error() << "Retrieving... " << ss.str() << std::endl;
+                    throw SeriousBug(ss.str(), Here());
                 }
+                Client* client = it->second;
 
                 ASSERT(client);
                 ASSERT(!hdr.control());

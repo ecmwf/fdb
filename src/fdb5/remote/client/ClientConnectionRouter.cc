@@ -7,10 +7,10 @@
 #include "eckit/net/Endpoint.h"
 
 #include <cstddef>
-#include <cstdlib>
 #include <memory>
 #include <mutex>
 #include <ostream>
+#include <random>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -43,6 +43,12 @@ ConnectionError::ConnectionError(const eckit::net::Endpoint& endpoint) {
 }  // namespace
 namespace fdb5::remote {
 
+size_t random(size_t const max) {
+    thread_local std::mt19937 rndGen{std::random_device{}()};
+    thread_local std::uniform_int_distribution<size_t> dist;
+    return dist(rndGen, std::uniform_int_distribution<size_t>::param_type{0, max});
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(const eckit::Configuration& config,
@@ -72,7 +78,7 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
     reap();
     while (fullEndpoints.size() > 0) {
         // select a random endpoint
-        size_t idx = std::rand() % fullEndpoints.size();
+        size_t idx = random(fullEndpoints.size() - 1);
         eckit::net::Endpoint endpoint = fullEndpoints.at(idx).first;
 
         // look for the selected endpoint (a dead connection must not be handed out; replace it)
@@ -144,7 +150,9 @@ void ClientConnectionRouter::deregister(ClientConnection& connection) {
 }
 
 ClientConnectionRouter& ClientConnectionRouter::instance() {
-    static ClientConnectionRouter router;
+    // Leaked deliberately: avoids racing this destructor against other threads tearing
+    // down connections during static/process deinitialisation.
+    static ClientConnectionRouter& router = *new ClientConnectionRouter();
     return router;
 }
 

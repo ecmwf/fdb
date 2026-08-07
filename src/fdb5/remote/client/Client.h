@@ -10,13 +10,16 @@
 
 #pragma once
 
-#include "eckit/net/Endpoint.h"
-#include "eckit/utils/Literals.h"
-
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/client/ClientConnection.h"
 
+#include "eckit/net/Endpoint.h"
+#include "eckit/utils/Literals.h"
+
+#include <atomic>
+#include <future>
+#include <memory>
 #include <mutex>
 #include <utility>  // std::pair
 #include <vector>
@@ -91,15 +94,24 @@ public:  // methods
 
 protected:
 
+    // Deregister this client from its connection. Idempotent.
+    // Derived classes accessed by handle() should call this
+    // in their destructor, before that state is destroyed.
+    void deregister();
+
     std::shared_ptr<ClientConnection> connection_;
 
 private:
 
     void setClientID();
 
+    // rethrows any exception as a RemoteFDBException.
+    eckit::Buffer waitControlResponse(std::future<eckit::Buffer>& response, Message msg, uint32_t requestID) const;
+
 private:
 
     uint32_t id_;
+    std::atomic<bool> deregistered_{false};
     mutable std::mutex blockingRequestMutex_;
 };
 
