@@ -8,74 +8,170 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/log/Bytes.h"
-#include "eckit/log/Timer.h"
-
-#include "eckit/config/Resource.h"
-#include "eckit/io/EmptyHandle.h"
-#include "eckit/io/rados/RadosWriteHandle.h"
+#include "fdb5/rados/RadosStore.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
-#include "fdb5/io/FDBFileHandle.h"
+#include "fdb5/database/Store.h"
+#include "fdb5/database/WipeState.h"
+#include "fdb5/rados/RadosCommon.h"
 #include "fdb5/rados/RadosFieldLocation.h"
-#include "fdb5/rados/RadosStore.h"
 #include "fdb5/rules/Rule.h"
 
-using namespace eckit;
+#include "eckit/config/LocalConfiguration.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/Length.h"
+#include "eckit/io/Offset.h"
+#include "eckit/io/rados/RadosNamespace.h"
+#include "eckit/io/rados/RadosObject.h"
+#include "eckit/io/rados/RadosPool.h"
+#include "eckit/log/TimeStamp.h"
+#include "eckit/runtime/Main.h"
+#include "eckit/thread/AutoLock.h"
+#include "eckit/thread/StaticMutex.h"
+#include "eckit/utils/MD5.h"
+#include "eckit/utils/Tokenizer.h"
+
+#include <unistd.h>
+
+#include <cstddef>
+#include <iostream>
+#include <memory>
+#include <ostream>
+#include <set>
+#include <sstream>
+#include <string>
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+static StoreBuilder<RadosStore> builder("rados");
+
 RadosStore::RadosStore(const Key& key, const Config& config) :
-    Store(), directory_("mars:" + key.valuesToString()), archivedFields_(0) {}
+    Store(), RadosCommon(config, "store", key), archivedFields_(0) {}
 
-RadosStore(const Key& key, const Config& config, const eckit::net::Endpoint& controlEndpoint) :
-    Store(), directory_("mars:" + key.valuesToString()), archivedFields_(0) {
-    NOTIMP;
-}
+RadosStore::RadosStore(const Schema& schema, const Key& key, const Config& config) : RadosStore(key, config) {}
 
-RadosStore::RadosStore(const eckit::URI& uri) :
-    Store(), directory_("mars:" + uri.path().dirName()), archivedFields_(0) {}
+RadosStore::RadosStore(const eckit::URI& uri, const Config& config) :
+    Store(), RadosCommon(config, "store", uri), archivedFields_(0) {}
 
 eckit::URI RadosStore::uri() const {
-    return URI("rados", directory_);
+
+    return eckit::RadosNamespace(pool_, db_namespace_).uri();
+}
+
+eckit::URI RadosStore::uri(const eckit::URI& dataURI) {
+
+    eckit::RadosObject o{dataURI};
+
+    return o.nspace().uri();
+}
+
+bool RadosStore::uriBelongs(const eckit::URI& uri) const {
+
+    const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
+    const auto n = parts.size();
+
+    ASSERT(n == 2 || n == 3);
+    return ((uri.scheme() == type()) && (parts[0] == pool_) && (parts[1] == db_namespace_));
+}
+
+bool RadosStore::uriExists(const eckit::URI& uri) const {
+
+    /// @todo: revisit the name of this method
+
+    const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
+    const auto n = parts.size();
+
+    ASSERT(uri.scheme() == type());
+
+    ASSERT(n == 2 || n == 3);
+    ASSERT(parts[0] == pool_);
+    ASSERT(parts[1] == db_namespace_);
+
+    if (n == 2) {
+        return eckit::RadosNamespace(uri).exists();
+    }
+
+    return eckit::RadosObject(uri).exists();
+}
+
+std::set<eckit::URI> RadosStore::collocatedDataURIs() const {
+
+    std::set<eckit::URI> store_unit_uris;
+
+    eckit::RadosNamespace n{pool_, db_namespace_};
+
+    if (!n.exists()) {
+        return store_unit_uris;
+    }
+
+    /// @note if a RadosCatalogue is implemented, some filtering will need to
+    ///   be done here to discriminate store objects from catalogue objects
+    for (const auto& obj : n.listObjects()) {
+
+        if (obj.name().find(";part-") != std::string::npos) {
+            continue;
+        }
+
+        store_unit_uris.insert(obj.uri());
+    }
+
+    return store_unit_uris;
+}
+
+std::set<eckit::URI> RadosStore::asCollocatedDataURIs(const std::set<eckit::URI>& uris) const {
+
+    std::set<eckit::URI> res;
+
+    /// @note: this is only uniquefying the input uris (coming from an index)
+    ///   in case theres any duplicate.
+    for (const auto& uri : uris) {
+        res.insert(uri);
+    }
+
+    return res;
 }
 
 bool RadosStore::exists() const {
-    return true;
+
+    return eckit::RadosNamespace(pool_, db_namespace_).exists();
 }
 
-eckit::DataHandle* RadosStore::retrieve(Field& field, Key& remapKey) const {
-    return remapKey.empty() ? field.dataHandle() : field.dataHandle(remapKey);
+/// @todo: never used in actual fdb-read?
+eckit::DataHandle* RadosStore::retrieve(Field& field) const {
+
+    return field.dataHandle();
 }
 
-std::unique_ptr<const FieldLocation> RadosStore::archive(const uint32_t, const Key& key, const void* data,
-                                                         eckit::Length length) {
+std::unique_ptr<const FieldLocation> RadosStore::archive(const Key& key, const void* data, eckit::Length length) {
+
     archivedFields_++;
 
-    eckit::PathName dataPath = getDataPath(key);
-    eckit::URI dataUri("rados", dataPath);
+    const eckit::RadosObject& o = getDataObject(key);
 
-    eckit::DataHandle& dh = getDataHandle(dataPath);
+    eckit::DataHandle& h = getDataHandle(key, o);
 
-    eckit::Offset position = dh.position();
+    eckit::Offset offset{h.position()};
 
-    long len = dh.write(data, length);
+    long len = h.write(data, length);
 
     ASSERT(len == length);
 
-    return std::make_unique<const RadosFieldLocation>(dataUri, position, length);
+    return std::make_unique<RadosFieldLocation>(o.uri(), offset, length, fdb5::Key{});
 }
 
 size_t RadosStore::flush() {
+
     if (archivedFields_ == 0) {
         return 0;
     }
 
-    // ensure consistent state before writing Toc entry
-
+    /// @note: the multipart handles need to persist the multipart attributes which is
+    ///   performed in the multihandle flush.
     flushDataHandles();
 
     size_t out = archivedFields_;
@@ -84,114 +180,213 @@ size_t RadosStore::flush() {
 }
 
 void RadosStore::close() {
+
     closeDataHandles();
 }
 
 void RadosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const {
+
     ASSERT(uri.scheme() == type());
 
-    eckit::PathName path = uri.path();
-    if (path.isDir()) {
-        logVerbose << "rmdir: ";
-        logAlways << path << std::endl;
+    const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
+    const auto n = parts.size();
+
+    ASSERT(n == 2 || n == 3);
+
+    ASSERT(parts[0] == pool_);
+    ASSERT(parts[1] == db_namespace_);
+
+    if (n == 2) {  // namespace
+
+        eckit::RadosNamespace ns{uri};
+
+        logVerbose << "destroy Rados namespace: ";
+        logAlways << ns.str() << std::endl;
+
         if (doit) {
-            path.rmdir(false);
+            ns.destroy();  /// @todo: ensureDestroyed?
         }
     }
-    else {
-        logVerbose << "Unlinking: ";
-        logAlways << path << std::endl;
+    else {  // object
+
+        eckit::RadosObject obj{uri};
+
+        logVerbose << "destroy Rados object: ";
+        logAlways << obj.str() << std::endl;
+
         if (doit) {
-            path.unlink(false);
+            obj.ensureAllDestroyed();
         }
     }
 }
 
-eckit::DataHandle* RadosStore::getCachedHandle(const eckit::PathName& path) const {
-    HandleStore::const_iterator j = handles_.find(path);
+void RadosStore::print(std::ostream& out) const {
+
+    out << "RadosStore(" << pool_ << "/" << db_namespace_ << ")";
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+/// @note: the database maps to a Rados namespace. Only the namespace holding this database's
+///   objects is ever touched here.
+
+void RadosStore::finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) {
+    /// @note: doit and unsafeWipeAll do not affect the preparation of a Rados store wipe.
+
+    const std::set<eckit::URI>& dataURIs = storeState.includedDataURIs();  // included according to cat
+    const std::set<eckit::URI>& safeURIs = storeState.safeURIs();          // excluded according to cat
+
+    // Objects included by the catalogue may no longer exist (e.g. due to a prior incomplete wipe).
+    std::set<eckit::URI> nonExistingURIs;
+    for (const auto& uri : dataURIs) {
+        if (!eckit::RadosObject{uri}.exists()) {
+            nonExistingURIs.insert(uri);
+        }
+    }
+    for (const auto& uri : nonExistingURIs) {
+        storeState.markAsMissing(uri);
+    }
+
+    const bool all = safeURIs.empty();
+    if (!all) {
+        return;
+    }
+
+    // Full wipe: scan the database namespace for any objects unaccounted for by the catalogue.
+    eckit::RadosNamespace db{pool_, db_namespace_};
+
+    if (!db.exists()) {
+        return;
+    }
+
+    for (const auto& obj : db.listObjects()) {
+
+        // Parts belong to a main object and are removed together with it.
+        if (obj.name().find(";part-") != std::string::npos) {
+            continue;
+        }
+
+        const eckit::URI uri = obj.uri();
+        if (dataURIs.find(uri) == dataURIs.end() && safeURIs.find(uri) == safeURIs.end()) {
+            storeState.insertUnrecognised(uri);
+        }
+    }
+}
+
+bool RadosStore::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
+    for (const auto& uri : unknownURIs) {
+        if (eckit::RadosObject{uri}.exists()) {
+            remove(uri, std::cout, std::cout, true);
+        }
+    }
+    return true;
+}
+
+bool RadosStore::doWipeURIs(const StoreWipeState& wipeState) const {
+    const bool wipeAll = wipeState.safeURIs().empty();
+
+    for (const auto& uri : wipeState.includedDataURIs()) {
+        remove(uri, std::cout, std::cout, true);
+    }
+
+    if (wipeAll) {
+        cleanupEmptyDatabase_ = true;
+    }
+
+    return true;
+}
+
+void RadosStore::doWipeEmptyDatabase() const {
+
+    if (!cleanupEmptyDatabase_) {
+        return;
+    }
+
+    eckit::RadosNamespace db{pool_, db_namespace_};
+
+    if (db.exists()) {
+        remove(db.uri(), std::cout, std::cout, true);
+    }
+}
+
+bool RadosStore::doUnsafeFullWipe() const {
+
+    /// @note: if the database namespace/pool also holds a catalogue, the wiping is skipped as the
+    ///   catalogue is in charge. The presence of a "key" entry in the database key-value is used to
+    ///   determine whether a catalogue exists here.
+    if (db_kv_ && (!db_kv_->exists() || !db_kv_->has("key"))) {
+
+        eckit::RadosNamespace db{pool_, db_namespace_};
+
+        if (db.exists()) {
+            remove(db.uri(), std::cout, std::cout, true);
+        }
+    }
+
+    return true;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+/// @note: unique name generation copied from LocalPathName::unique.
+static eckit::StaticMutex local_mutex;
+
+eckit::RadosObject RadosStore::generateDataObject(const Key& key) const {
+
+    eckit::AutoLock<eckit::StaticMutex> lock(local_mutex);
+
+    std::string hostname = eckit::Main::hostname();
+
+    static unsigned long long n = (((unsigned long long)::getpid()) << 32);
+
+    static std::string format = "%Y%m%d.%H%M%S";
+    std::ostringstream os;
+    os << eckit::TimeStamp(format) << '.' << hostname << '.' << n++;
+
+    std::string name = os.str();
+
+    eckit::MD5 md5(name);
+
+    return eckit::RadosObject{pool_, db_namespace_, key.valuesToString() + "." + md5.digest() + ".data"};
+}
+
+const eckit::RadosObject& RadosStore::getDataObject(const Key& key) const {
+
+    auto it = dataObjects_.find(key);
+    if (it == dataObjects_.end()) {
+        it = dataObjects_.emplace(key, generateDataObject(key)).first;
+    }
+    return it->second;
+}
+
+eckit::DataHandle& RadosStore::getDataHandle(const Key& key, const eckit::RadosObject& name) {
+
+    HandleStore::const_iterator j = handles_.find(key);
     if (j != handles_.end()) {
-        return j->second;
+        return *(j->second);
     }
-    else {
-        return nullptr;
-    }
+
+    eckit::DataHandle* dh = name.multipartWriteHandle(maxPartSize_);
+
+    ASSERT(dh);
+
+    handles_[key] = dh;
+
+    dh->openForWrite(0);
+
+    return *dh;
 }
 
 void RadosStore::closeDataHandles() {
+
     for (HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j) {
         eckit::DataHandle* dh = j->second;
         dh->close();
         delete dh;
     }
+
     handles_.clear();
-}
-
-eckit::DataHandle* RadosStore::createFileHandle(const eckit::PathName& path) {
-
-    //    static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbBufferSize", 64 * 1024 * 1024);
-
-    LOG_DEBUG_LIB(LibFdb5) << "Creating RadosWriteHandle to "
-                           << path
-                           //                                 << " with buffer of " << eckit::Bytes(sizeBuffer)
-                           << std::endl;
-
-    return new RadosWriteHandle(path, 0);
-}
-
-eckit::DataHandle* RadosStore::createAsyncHandle(const eckit::PathName& path) {
-    NOTIMP;
-
-    /*    static size_t nbBuffers  = eckit::Resource<unsigned long>("fdbNbAsyncBuffers", 4);
-        static size_t sizeBuffer = eckit::Resource<unsigned long>("fdbSizeAsyncBuffer", 64 * 1024 * 1024);
-
-        return new eckit::AIOHandle(path, nbBuffers, sizeBuffer);*/
-}
-
-eckit::DataHandle* RadosStore::createDataHandle(const eckit::PathName& path) {
-
-    static bool fdbWriteToNull = eckit::Resource<bool>("fdbWriteToNull;$FDB_WRITE_TO_NULL", false);
-    if (fdbWriteToNull) {
-        return new eckit::EmptyHandle();
-    }
-
-    static bool fdbAsyncWrite = eckit::Resource<bool>("fdbAsyncWrite;$FDB_ASYNC_WRITE", false);
-    if (fdbAsyncWrite) {
-        return createAsyncHandle(path);
-    }
-
-    return createFileHandle(path);
-}
-
-eckit::DataHandle& RadosStore::getDataHandle(const eckit::PathName& path) {
-    eckit::DataHandle* dh = getCachedHandle(path);
-    if (!dh) {
-        dh = createDataHandle(path);
-        ASSERT(dh);
-        handles_[path] = dh;
-        dh->openForWrite(0);
-    }
-    return *dh;
-}
-
-eckit::PathName RadosStore::generateDataPath(const Key& key) const {
-
-    eckit::PathName dpath(directory_);
-    dpath /= key.valuesToString();
-    dpath = eckit::PathName::unique(dpath) + ".data";
-    return dpath;
-}
-
-eckit::PathName RadosStore::getDataPath(const Key& key) {
-    PathStore::const_iterator j = dataPaths_.find(key);
-    if (j != dataPaths_.end()) {
-        return j->second;
-    }
-
-    eckit::PathName dataPath = generateDataPath(key);
-
-    dataPaths_[key] = dataPath;
-
-    return dataPath;
+    dataObjects_.clear();
 }
 
 void RadosStore::flushDataHandles() {
@@ -201,12 +396,6 @@ void RadosStore::flushDataHandles() {
         dh->flush();
     }
 }
-
-void RadosStore::print(std::ostream& out) const {
-    out << "RadosStore(" << directory_ << ")";
-}
-
-static StoreBuilder<RadosStore> builder("rados");
 
 //----------------------------------------------------------------------------------------------------------------------
 

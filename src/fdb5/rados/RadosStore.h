@@ -8,17 +8,17 @@
  * does it submit to any jurisdiction.
  */
 
-/// @file   RadosStore.h
 /// @author Emanuele Danovaro
-/// @date   Jan 2020
+/// @author Nicolau Manubens
+/// @date   Feb 2024
 
-#ifndef fdb5_RadosStore_H
-#define fdb5_RadosStore_H
+#pragma once
 
-#include "fdb5/database/Catalogue.h"
-#include "fdb5/database/Index.h"
 #include "fdb5/database/Store.h"
+#include "fdb5/rados/RadosCommon.h"
 #include "fdb5/rules/Schema.h"
+
+#include "eckit/io/rados/RadosObject.h"
 
 namespace fdb5 {
 
@@ -26,16 +26,22 @@ namespace fdb5 {
 
 /// Store that implements the FDB on CEPH object store
 
-class RadosStore : public Store {
+class RadosStore : public Store, public RadosCommon {
 
 public:  // methods
 
+    RadosStore(const Key& key, const Config& config);
     RadosStore(const Schema& schema, const Key& key, const Config& config);
-    RadosStore(const eckit::URI& uri);
+    RadosStore(const eckit::URI& uri, const Config& config);
 
     ~RadosStore() override {}
 
     eckit::URI uri() const override;
+    static eckit::URI uri(const eckit::URI& dataURI);
+    bool uriBelongs(const eckit::URI&) const override;
+    bool uriExists(const eckit::URI&) const override;
+    std::set<eckit::URI> collocatedDataURIs() const override;
+    std::set<eckit::URI> asCollocatedDataURIs(const std::set<eckit::URI>&) const override;
 
     bool open() override { return true; }
     size_t flush() override;
@@ -43,47 +49,50 @@ public:  // methods
 
     void checkUID() const override { /* nothing to do */ }
 
+    /// Wipe-related methods (not implemented for the Rados backend)
+    void finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override;
+    bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const override;
+    bool doWipeURIs(const StoreWipeState& wipeState) const override;
+    void doWipeEmptyDatabase() const override;
+    bool doUnsafeFullWipe() const override;
+
+    // Rados store does not currently support auxiliary objects
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override { return {}; }
+
 protected:  // methods
 
     std::string type() const override { return "rados"; }
     bool exists() const override;
 
-    eckit::DataHandle* retrieve(Field& field, Key& remapKey) const override;
-    std::unique_ptr<const FieldLocation> archive(const uint32_t, const Key& key, const void* data,
-                                                 eckit::Length length) override;
+    eckit::DataHandle* retrieve(Field& field) const override;
+    std::unique_ptr<const FieldLocation> archive(const Key& key, const void* data, eckit::Length length) override;
 
     using Store::remove;
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
-    eckit::DataHandle* getCachedHandle(const eckit::PathName& path) const;
-    void closeDataHandles();
-    eckit::DataHandle* createFileHandle(const eckit::PathName& path);
-    eckit::DataHandle* createAsyncHandle(const eckit::PathName& path);
-    eckit::DataHandle* createDataHandle(const eckit::PathName& path);
-    eckit::DataHandle& getDataHandle(const eckit::PathName& path);
-    eckit::PathName generateDataPath(const Key& key) const;
-    eckit::PathName getDataPath(const Key& key);
-    void flushDataHandles();
-
     void print(std::ostream& out) const override;
+
+    eckit::RadosObject generateDataObject(const Key& key) const;
+
+    const eckit::RadosObject& getDataObject(const Key& key) const;
+    eckit::DataHandle& getDataHandle(const Key& key, const eckit::RadosObject& name);
+    void closeDataHandles();
+    void flushDataHandles();
 
 private:  // types
 
-    typedef std::map<std::string, eckit::DataHandle*> HandleStore;
-    typedef std::map<Key, std::string> PathStore;
+    typedef std::map<Key, eckit::DataHandle*> HandleStore;
+    typedef std::map<Key, eckit::RadosObject> ObjectStore;
 
 private:  // members
 
-    HandleStore handles_;  ///< stores the DataHandles being used by the Session
+    // mutable bool dirty_;
+    size_t archivedFields_{0};
 
-    PathStore dataPaths_;
-    eckit::PathName directory_;
-
-    size_t archivedFields_;
+    HandleStore handles_;
+    mutable ObjectStore dataObjects_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif  // fdb5_RadosStore_H

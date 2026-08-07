@@ -1,0 +1,209 @@
+name: ci-rados
+
+on:
+  push:
+    branches:
+      - "master"
+      - "develop"
+    tags-ignore:
+      - "**"
+
+  # Trigger the workflow on pull request
+  pull_request: ~
+
+  # Trigger on public pull request approval
+  pull_request_target:
+    types: [labeled]
+
+  # Trigger the workflow manually
+  workflow_dispatch: ~
+
+# avoid duplicate runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rados:
+    name: Test Ceph/RADOS Backend
+    runs-on: ubuntu-latest
+
+    env:
+      CEPH_ETC: /etc/ceph
+      ECKIT_RADOS_CLUSTER_NAME: ceph
+      ECKIT_RADOS_CLUSTER_USER: client.admin
+      FDB_RADOS_TEST_POOL: fdb_test
+      # Install prefix shared by all bundle projects (eckit, eccodes, metkit, fdb).
+      INSTALL_PREFIX: ${{ github.workspace }}/install
+      # Local dirs used to cache apt archives and the Ceph docker image.
+      APT_CACHE: ${{ github.workspace }}/.apt-cache
+      CEPH_IMAGE: quay.io/ceph/demo:latest-squid
+      CEPH_IMAGE_CACHE: ${{ github.workspace }}/.docker-ceph
+      CMAKE_FLAGS: -DENABLE_AEC=OFF -DENABLE_EXAMPLES=OFF -DENABLE_EXPERIMENTAL=OFF -DENABLE_NETCDF=OFF
+
+    steps:
+      - name: Checkout ecbuild
+        uses: actions/checkout@v4
+        with:
+          repository: ecmwf/ecbuild
+          path: ecbuild
+
+      - name: Checkout eckit
+        uses: actions/checkout@v4
+        with:
+          repository: ecmwf/eckit
+          ref: feature/ECKIT-684-ceph-backend
+          path: eckit
+
+      - name: Checkout eccodes
+        uses: actions/checkout@v4
+        with:
+          repository: ecmwf/eccodes
+          path: eccodes
+
+      - name: Checkout metkit
+        uses: actions/checkout@v4
+        with:
+          repository: ecmwf/metkit
+          path: metkit
+
+      - name: Checkout fdb
+        uses: actions/checkout@v4
+        with:
+          path: fdb
+
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.apt-cache
+          # Bump the suffix to invalidate when the package list changes.
+          key: apt-rados-${{ runner.os }}-v1
+
+      - name: Install build dependencies
+        run: |
+          mkdir -p "${APT_CACHE}/archives/partial"
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            -o Dir::Cache::archives="${APT_CACHE}/archives" \
+            -o APT::Keep-Downloaded-Packages=true \
+            build-essential \
+            cmake \
+            ninja-build \
+            gfortran \
+            libopenmpi-dev \
+            libssl-dev \
+            uuid-dev \
+            libbz2-dev \
+            libcurl4-openssl-dev \
+            libaec-dev \
+            librados-dev
+          # Make the cached .deb archives readable/writable by the runner user.
+          sudo chown -R "$(id -u):$(id -g)" "${APT_CACHE}"
+
+      - name: Cache Ceph image
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.docker-ceph
+          # Bump the suffix to refresh the pinned image snapshot.
+          key: ceph-image-latest-squid-v1
+
+      - name: Load or pull Ceph image
+        run: |
+          if [ -f "${CEPH_IMAGE_CACHE}/ceph-demo.tar" ]; then
+            docker load -i "${CEPH_IMAGE_CACHE}/ceph-demo.tar"
+          else
+            docker pull "${CEPH_IMAGE}"
+            mkdir -p "${CEPH_IMAGE_CACHE}"
+            docker save "${CEPH_IMAGE}" -o "${CEPH_IMAGE_CACHE}/ceph-demo.tar"
+          fi
+
+      - name: Start Ceph cluster
+        run: |
+          sudo mkdir -p "${CEPH_ETC}"
+          docker run -d --name ceph-demo \
+            --network host \
+            -e MON_IP=127.0.0.1 \
+            -e CEPH_PUBLIC_NETWORK=0.0.0.0/0 \
+            -e CEPH_DEMO_UID=ci \
+            -v "${CEPH_ETC}:/etc/ceph" \
+            "${CEPH_IMAGE}" demo
+
+      - name: Wait for Ceph and create test pool
+        run: |
+          echo "Waiting for Ceph to become ready..."
+          for i in $(seq 1 60); do
+            if docker exec ceph-demo ceph osd pool ls >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 5
+          done
+          if [ "${ready:-0}" != "1" ]; then
+            echo "Ceph did not become ready in time" >&2
+            docker logs ceph-demo || true
+            exit 1
+          fi
+          docker exec ceph-demo ceph osd pool create "${FDB_RADOS_TEST_POOL}" 8 8
+          docker exec ceph-demo ceph osd pool application enable "${FDB_RADOS_TEST_POOL}" rados
+          docker exec ceph-demo ceph osd pool ls
+          sudo chmod 0644 "${CEPH_ETC}/ceph.client.admin.keyring"
+
+      - name: Build eckit
+        run: |
+          # eckit locates ecbuild via find_package(ecbuild ... HINTS .../../ecbuild),
+          # which resolves to the sibling ecbuild checkout above.
+          cmake -S eckit -B build/eckit -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
+            ${CMAKE_FLAGS} \
+            -DENABLE_MPI=ON \
+            -DENABLE_RADOS=ON \
+            -DENABLE_RADOS_TESTS_MANAGE_POOLS=OFF
+          cmake --build build/eckit --parallel
+          cmake --install build/eckit
+
+      - name: Build eccodes
+        run: |
+          cmake -S eccodes -B build/eccodes -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
+            -DCMAKE_PREFIX_PATH="${INSTALL_PREFIX}" \
+            ${CMAKE_FLAGS} \
+            -DENABLE_JPG=OFF \
+            -DENABLE_FORTRAN=ON \
+            -DENABLE_MEMFS=ON \
+            -DENABLE_ECCODES_THREADS=ON
+          cmake --build build/eccodes --parallel
+          cmake --install build/eccodes
+
+      - name: Build metkit
+        run: |
+          cmake -S metkit -B build/metkit -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
+            -DCMAKE_PREFIX_PATH="${INSTALL_PREFIX}" \
+            ${CMAKE_FLAGS}
+          cmake --build build/metkit --parallel
+          cmake --install build/metkit
+
+      - name: Build fdb
+        run: |
+          cmake -S fdb -B build/fdb -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
+            -DCMAKE_PREFIX_PATH="${INSTALL_PREFIX}" \
+            ${CMAKE_FLAGS} \
+            -DENABLE_RADOSFDB=ON \
+            -DENABLE_RADOS_TESTS_MANAGE_POOLS=OFF \
+            -DFDB_RADOS_TEST_POOL="${FDB_RADOS_TEST_POOL}"
+          cmake --build build/fdb --parallel
+
+      - name: Run RADOS FDB tests
+        env:
+          ECKIT_RADOS_CLUSTER_CONF: /etc/ceph/ceph.conf
+        run: |
+          ctest --test-dir build/fdb -L rados --output-on-failure
+
+      - name: Dump Ceph logs on failure
+        if: failure()
+        run: docker logs ceph-demo || true
