@@ -37,12 +37,15 @@ static FDBBuilder<SelectFDB> selectFdbBuilder("select");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-SelectFDB::FDBLane::FDBLane(const eckit::LocalConfiguration& config) :
-    matcher_{config}, config_(config), fdb_(nullptr) {}
+SelectFDB::FDBLane::FDBLane(const eckit::LocalConfiguration& config) : config_(config), fdb_(nullptr) {
+    auto matcher = std::make_unique<SelectMatcher>(config);
+    config_.setMatcher(std::move(matcher));
+}
 
 template <typename T>  // T is either a MarsRequest or Key
 bool SelectFDB::FDBLane::matches(const T& vals, Matcher::MatchMissingPolicy matchOnMissing) const {
-    return matcher_.match(vals, matchOnMissing);
+    ASSERT(config_.matcher());
+    return config_.matcher()->match(vals, matchOnMissing);
 }
 
 FDBBase& SelectFDB::FDBLane::get() {

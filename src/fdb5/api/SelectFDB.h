@@ -36,7 +36,6 @@ class SelectFDB : public FDBBase {
 private:  // types
 
     class FDBLane {
-        SelectMatcher matcher_;
         Config config_;
         std::shared_ptr<FDBBase> fdb_;
 
