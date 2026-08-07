@@ -488,7 +488,6 @@ void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t req
 
     // keep state for doWipeURIs
     if (doit) {
-        ASSERT(!unsafeAll);  // Until Im explicitly told otherwise, we dont support unsafeAll on remote fdb.
         wipesInProgress_.emplace(dbkey, WipeInProgress{unsafeAll, std::move(storeState)});
     }
 }
