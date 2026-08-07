@@ -399,7 +399,7 @@ void ClientConnection::listeningControlThreadLoop() {
                 ASSERT(hdr.control() || single_);
 
                 bool isPromise = false;
-                {
+                if (hdr.control()) {
                     // Hold promisesMutex_ only for the promise lookup/erase (NOT across handle(); risk a deadlock.
                     std::lock_guard lock(promisesMutex_);
 
