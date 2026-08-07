@@ -68,15 +68,26 @@ the filesystem TOC backend, and remote FDB client support.
 ## Running
 
 Binaries and `cargo run` work out of the box on both macOS and Linux —
-no `LD_LIBRARY_PATH` / `DYLD_LIBRARY_PATH` setup required. The build
-script stamps RPATH entries onto the final binary so the dynamic linker
-finds the libraries at runtime automatically.
+no `LD_LIBRARY_PATH` / `DYLD_LIBRARY_PATH` setup required.
+
+All C++ shared libraries use `@rpath` install names. Binary crates that
+depend on `fdb` should add a one-line `build.rs`:
+
+```rust
+fn main() {
+    bindman_utils::emit_rpaths();
+}
+```
+
+This stamps absolute RPATH entries onto the final binary pointing at each
+dependency's build output, so the dynamic linker finds them automatically.
 
 ### System / FHS-packaged installs (e.g. RPM, deb)
 
 When the target system already provides FDB and its dependencies —
 typically via separate distro packages installed under `/usr/lib{,64}`
-— build against them with:
+with headers under `/usr/include` — you don't need the colocated
+layout at all. Build against the system libraries with:
 
 ```bash
 cargo build --release --no-default-features --features system
@@ -84,23 +95,23 @@ cargo build --release --no-default-features --features system
 
 The build script calls `find_package(fdb5)` (and the same for eckit /
 metkit / eccodes), links the Rust binary against those system
-libraries, and stamps absolute RPATH entries pointing at the resolved
-lib directories. Install the binary to `/usr/bin` (or any standard
-location) and rely on the distro's own packages for the shared
-libraries — no need to copy anything extra.
+libraries, and stamps absolute RPATH entries pointing at the lib
+directories the CMake search resolved. A downstream package can then
+install the binary to a standard location such as `/usr/bin` and rely
+on the distro's own `libfdb5` / `libeckit` / `libmetkit` / `libeccodes`
+packages for the shared libraries — no need to copy any directories
+around or set environment variables.
 
-### Vendored / self-contained builds
+Typical packaging setups:
 
-With the default `vendored` feature the build compiles FDB and all its
-dependencies from source and copies the resulting shared libraries next
-to the binary. The RPATH is set to find them there, so the binary is
-portable as-is.
-
-The eccodes definition/sample tables are baked into `libeccodes` via
-the default `memfs` feature, so there are no extra resource directories
-to ship. (If you opt out of `memfs`, you also need to ship
-`eccodes_resources/{definitions,samples}/` and point
-`ECCODES_DEFINITION_PATH`/`ECCODES_SAMPLES_PATH` at them.)
+- **RPM / deb**: depend on the distro's FDB `-devel` packages at build
+  time, depend on the runtime packages at install time, and build with
+  `--features system`. Binary goes to `/usr/bin`, libs stay where the
+  distro packages put them.
+- **Custom prefix**: point `CMAKE_PREFIX_PATH` at your install tree
+  before running cargo (e.g.
+  `CMAKE_PREFIX_PATH=/opt/ecmwf cargo build --features system`).
+  Everything else is automatic.
 
 ## License
 

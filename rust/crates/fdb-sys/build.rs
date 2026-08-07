@@ -6,16 +6,33 @@
 //!
 //! Both modes build the CXX bridge for C++ to Rust bindings.
 
-use std::env;
-use std::path::PathBuf;
-
-const FDB_VERSION: &str = "5.19.1";
-
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src/lib.rs");
-    println!("cargo:rerun-if-changed=cpp/fdb_bridge.h");
-    println!("cargo:rerun-if-changed=cpp/fdb_bridge.cpp");
+    println!("cargo:rerun-if-changed=cpp/FdbBridge.h");
+    println!("cargo:rerun-if-changed=cpp/Types.h");
+    println!("cargo:rerun-if-changed=cpp/Key.h");
+    println!("cargo:rerun-if-changed=cpp/Key.cc");
+    println!("cargo:rerun-if-changed=cpp/Library.h");
+    println!("cargo:rerun-if-changed=cpp/Library.cc");
+    println!("cargo:rerun-if-changed=cpp/FdbHandle.h");
+    println!("cargo:rerun-if-changed=cpp/FdbHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/ListIteratorHandle.h");
+    println!("cargo:rerun-if-changed=cpp/ListIteratorHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/DumpIteratorHandle.h");
+    println!("cargo:rerun-if-changed=cpp/DumpIteratorHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/StatusIteratorHandle.h");
+    println!("cargo:rerun-if-changed=cpp/StatusIteratorHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/WipeIteratorHandle.h");
+    println!("cargo:rerun-if-changed=cpp/WipeIteratorHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/PurgeIteratorHandle.h");
+    println!("cargo:rerun-if-changed=cpp/PurgeIteratorHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/StatsIteratorHandle.h");
+    println!("cargo:rerun-if-changed=cpp/StatsIteratorHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/ControlIteratorHandle.h");
+    println!("cargo:rerun-if-changed=cpp/ControlIteratorHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/MessageArchiverWrapper.h");
+    println!("cargo:rerun-if-changed=cpp/MessageArchiverWrapper.cc");
     println!("cargo:rerun-if-env-changed=FDB_DIR");
     println!("cargo:rerun-if-env-changed=CMAKE_PREFIX_PATH");
     println!("cargo:rerun-if-env-changed=DOCS_RS");
@@ -26,6 +43,8 @@ fn main() {
 
     bindman_utils::validate_build_mode(cfg!(feature = "system"), cfg!(feature = "vendored"));
 
+    generate_exceptions();
+
     if cfg!(feature = "system") {
         build_system();
     } else {
@@ -33,44 +52,82 @@ fn main() {
     }
 }
 
+/// Generate `fdb_exceptions.{h,rs}` for fdb-sys's cxx bridge.
+///
+/// fdb-sys does not introduce its own exception subclasses (the higher-level
+/// `fdb` crate maps `cxx::Exception` directly), so the `own` list is empty
+/// and we inherit C++ catch blocks from upstream `-sys` crates (eckit-sys,
+/// metkit-sys) via [`bindman_build::collect_dep_exception_sources`].
+fn generate_exceptions() {
+    let out_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR not set"));
+    let inherited = bindman_build::collect_dep_exception_sources();
+
+    bindman_build::generate_exception_bridge(&bindman_build::ExceptionBridgeConfig {
+        primary_namespace: "fdb",
+        out_dir: &out_dir,
+        own: &[],
+        inherited: &inherited,
+    });
+}
+
 /// Build using system-installed fdb5 via `CMake` `find_package`
 #[cfg(feature = "system")]
 fn build_system() {
+    use std::env;
+    use std::path::PathBuf;
+
     let crate_dir =
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"));
 
     // Get dependency paths from -sys crates
-    let eckit_include = env::var("DEP_ECKIT_INCLUDE")
-        .expect("DEP_ECKIT_INCLUDE not set - eckit-sys must be a dependency");
-    let metkit_include = env::var("DEP_METKIT_INCLUDE")
-        .expect("DEP_METKIT_INCLUDE not set - metkit-sys must be a dependency");
-    let eccodes_include = env::var("DEP_ECCODES_INCLUDE")
-        .expect("DEP_ECCODES_INCLUDE not set - eccodes-sys must be a dependency");
+    let eckit_include = env::var("DEP_ECKIT_SYS_INCLUDE")
+        .expect("DEP_ECKIT_SYS_INCLUDE not set - eckit-sys must be a dependency");
+    let eckit_cpp_dir = env::var("DEP_ECKIT_SYS_CPP_DIR")
+        .expect("DEP_ECKIT_SYS_CPP_DIR not set - eckit-sys must be a dependency");
+    let metkit_include = env::var("DEP_METKIT_SYS_INCLUDE")
+        .expect("DEP_METKIT_SYS_INCLUDE not set - metkit-sys must be a dependency");
+    let metkit_cpp_dir = env::var("DEP_METKIT_SYS_CPP_DIR")
+        .expect("DEP_METKIT_SYS_CPP_DIR not set - metkit-sys must be a dependency");
+    let eccodes_include = env::var("DEP_ECCODES_SYS_INCLUDE")
+        .expect("DEP_ECCODES_SYS_INCLUDE not set - eccodes-sys must be a dependency");
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
 
-    let (root, fdb_include, lib_dir) =
-        bindman_utils::cmake_find_package("fdb5", FDB_VERSION, Some("FDB_DIR"));
+    let (root, fdb_include, lib_dir) = bindman_utils::cmake_find_package("fdb5", "5.10.0");
 
     println!("cargo:rustc-link-search=native={}", lib_dir.display());
     println!("cargo:rustc-link-lib=dylib=fdb5");
 
     // Build the CXX bridge
     cxx_build::bridge("src/lib.rs")
-        .file(crate_dir.join("cpp/fdb_bridge.cpp"))
+        .file(crate_dir.join("cpp/Key.cc"))
+        .file(crate_dir.join("cpp/Library.cc"))
+        .file(crate_dir.join("cpp/FdbHandle.cc"))
+        .file(crate_dir.join("cpp/ListIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/DumpIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/StatusIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/WipeIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/PurgeIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/StatsIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/ControlIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/MessageArchiverWrapper.cc"))
         .include(&fdb_include)
         .include(&eckit_include)
+        .include(&eckit_cpp_dir) // for EckitBridge.h
         .include(&metkit_include)
+        .include(&metkit_cpp_dir) // for MetkitBridge.h
         .include(&eccodes_include)
         .include(crate_dir.join("cpp"))
+        .include(&out_dir) // for fdb_exceptions.h (generated)
         .flag_if_supported("-std=c++17")
         .compile("fdb_sys_bridge");
 
     // Link to eckit and metkit (bridge uses their symbols)
-    let eckit_root = env::var("DEP_ECKIT_ROOT")
-        .expect("DEP_ECKIT_ROOT not set - eckit-sys must be a dependency");
-    let metkit_root = env::var("DEP_METKIT_ROOT")
-        .expect("DEP_METKIT_ROOT not set - metkit-sys must be a dependency");
-    let eccodes_root = env::var("DEP_ECCODES_ROOT")
-        .expect("DEP_ECCODES_ROOT not set - eccodes-sys must be a dependency");
+    let eckit_root = env::var("DEP_ECKIT_SYS_ROOT")
+        .expect("DEP_ECKIT_SYS_ROOT not set - eckit-sys must be a dependency");
+    let metkit_root = env::var("DEP_METKIT_SYS_ROOT")
+        .expect("DEP_METKIT_SYS_ROOT not set - metkit-sys must be a dependency");
+    let eccodes_root = env::var("DEP_ECCODES_SYS_ROOT")
+        .expect("DEP_ECCODES_SYS_ROOT not set - eccodes-sys must be a dependency");
 
     println!("cargo:rustc-link-search=native={eckit_root}/lib");
     println!("cargo:rustc-link-lib=dylib=eckit");
@@ -105,13 +162,16 @@ fn build_system() {
 #[cfg(feature = "vendored")]
 #[allow(clippy::too_many_lines)]
 fn build_vendored() {
+    use std::env;
     use std::fs;
+    use std::path::PathBuf;
     use std::process::Command;
 
     const ECBUILD_REPO: &str = "https://github.com/ecmwf/ecbuild.git";
     const ECBUILD_TAG: &str = "3.13.1";
 
     const FDB_REPO: &str = "https://github.com/ecmwf/fdb.git";
+    const FDB_TAG: &str = "5.19.1";
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
     let src_dir = out_dir.join("src");
@@ -122,16 +182,16 @@ fn build_vendored() {
     fs::create_dir_all(&build_dir).expect("Failed to create build directory");
 
     // Get dependency paths from -sys crates
-    let eckit_root = env::var("DEP_ECKIT_ROOT")
-        .expect("DEP_ECKIT_ROOT not set - eckit-sys must be a dependency");
-    let metkit_root = env::var("DEP_METKIT_ROOT")
-        .expect("DEP_METKIT_ROOT not set - metkit-sys must be a dependency");
-    let eccodes_root = env::var("DEP_ECCODES_ROOT")
-        .expect("DEP_ECCODES_ROOT not set - eccodes-sys must be a dependency");
+    let eckit_root = env::var("DEP_ECKIT_SYS_ROOT")
+        .expect("DEP_ECKIT_SYS_ROOT not set - eckit-sys must be a dependency");
+    let metkit_root = env::var("DEP_METKIT_SYS_ROOT")
+        .expect("DEP_METKIT_SYS_ROOT not set - metkit-sys must be a dependency");
+    let eccodes_root = env::var("DEP_ECCODES_SYS_ROOT")
+        .expect("DEP_ECCODES_SYS_ROOT not set - eccodes-sys must be a dependency");
 
     // Clone sources
     let ecbuild_src = bindman_utils::git_clone(ECBUILD_REPO, ECBUILD_TAG, &src_dir.join("ecbuild"));
-    let fdb_src = bindman_utils::git_clone(FDB_REPO, FDB_VERSION, &src_dir.join("fdb"));
+    let fdb_src = bindman_utils::git_clone(FDB_REPO, FDB_TAG, &src_dir.join("fdb"));
 
     // Patch CMakeLists.txt to remove tests subdirectory (buggy when ENABLE_TESTS=OFF)
     let cmakelists = fdb_src.join("CMakeLists.txt");
@@ -211,15 +271,9 @@ fn build_vendored() {
         bindman_utils::on_off(cfg!(feature = "sandbox"))
     ));
 
-    // Portable install names for dynamic libraries
+    // Use @rpath install names — the leaf binary sets rpaths via bindman_utils::emit_rpaths()
     #[cfg(target_os = "macos")]
-    cmd.arg("-DCMAKE_INSTALL_NAME_DIR=@executable_path/fdb_libs");
-
-    #[cfg(target_os = "linux")]
-    {
-        cmd.arg("-DCMAKE_INSTALL_RPATH=$ORIGIN:$ORIGIN/../fdb_libs");
-        cmd.arg("-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON");
-    }
+    cmd.arg("-DCMAKE_INSTALL_NAME_DIR=@rpath");
 
     bindman_utils::run_command(&mut cmd, "ecbuild configure fdb");
 
@@ -244,34 +298,45 @@ fn build_vendored() {
     // FDB source directory contains private headers that may be needed
     let fdb_src_include = fdb_src.join("src");
 
-    // IMPORTANT: Copy resources FIRST, then link against the copied location.
-    let libs_dest = copy_resources_to_output(&install_dir, &eckit_root, &metkit_root);
+    let eckit_cpp_dir = env::var("DEP_ECKIT_SYS_CPP_DIR")
+        .expect("DEP_ECKIT_SYS_CPP_DIR not set - eckit-sys must be a dependency");
+    let metkit_cpp_dir = env::var("DEP_METKIT_SYS_CPP_DIR")
+        .expect("DEP_METKIT_SYS_CPP_DIR not set - metkit-sys must be a dependency");
 
     // Build the CXX bridge
     cxx_build::bridge("src/lib.rs")
-        .file(crate_dir.join("cpp/fdb_bridge.cpp"))
+        .file(crate_dir.join("cpp/Key.cc"))
+        .file(crate_dir.join("cpp/Library.cc"))
+        .file(crate_dir.join("cpp/FdbHandle.cc"))
+        .file(crate_dir.join("cpp/ListIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/DumpIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/StatusIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/WipeIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/PurgeIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/StatsIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/ControlIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/MessageArchiverWrapper.cc"))
         .include(&include_dir)
         .include(&fdb_src_include)
         .include(format!("{eckit_root}/include"))
+        .include(&eckit_cpp_dir) // for EckitBridge.h
         .include(format!("{metkit_root}/include"))
+        .include(&metkit_cpp_dir) // for MetkitBridge.h
         .include(format!("{eccodes_root}/include"))
         .include(crate_dir.join("cpp"))
+        .include(&out_dir) // for fdb_exceptions.h (generated)
         .flag_if_supported("-std=c++17")
         .compile("fdb_sys_bridge");
 
-    // Link against the copied location in target directory
-    println!("cargo:rustc-link-search=native={}", libs_dest.display());
+    // Link against the install directory
+    let fdb_lib_dir = bindman_utils::resolve_lib_dir(&install_dir);
+    println!("cargo:rustc-link-search=native={}", fdb_lib_dir.display());
     println!("cargo:rustc-link-lib=dylib=fdb5");
-    println!("cargo:rustc-link-lib=dylib=eckit");
-    println!("cargo:rustc-link-lib=dylib=metkit");
     bindman_utils::link_cpp_stdlib();
 
     // Export for downstream crates (still point to install dir for headers)
     println!("cargo:root={}", install_dir.display());
     println!("cargo:include={}", include_dir.display());
-
-    // Emit RPATH flags for runtime library discovery
-    bindman_utils::emit_rpath_flags(&["fdb_libs"]);
 
     // Check C++ API
     bindman_build::check_cpp_api(&fdb_src_include, &crate_dir.join("src/lib.rs"));
@@ -280,31 +345,4 @@ fn build_vendored() {
 #[cfg(not(feature = "vendored"))]
 fn build_vendored() {
     unreachable!("build_vendored called without vendored feature");
-}
-
-/// Copy libraries to target directory for portable binaries.
-/// Returns the path to the libs directory where libraries were copied.
-#[cfg(feature = "vendored")]
-fn copy_resources_to_output(
-    fdb_install_dir: &std::path::Path,
-    eckit_root: &str,
-    metkit_root: &str,
-) -> PathBuf {
-    use std::path::Path;
-
-    let target_dir = bindman_utils::target_profile_dir();
-    let libs_dest = target_dir.join("fdb_libs");
-
-    let fdb_lib_dir = bindman_utils::resolve_lib_dir(fdb_install_dir);
-    let eckit_lib_dir = Path::new(eckit_root).join("lib");
-    let metkit_lib_dir = Path::new(metkit_root).join("lib");
-
-    bindman_utils::copy_shared_libs(&fdb_lib_dir, &libs_dest, "fdb5");
-    bindman_utils::copy_shared_libs(&eckit_lib_dir, &libs_dest, "eckit");
-    bindman_utils::copy_shared_libs(&metkit_lib_dir, &libs_dest, "metkit");
-
-    // Export resource directory name for runtime discovery
-    println!("cargo:rustc-env=FDB_LIBS_DIR=fdb_libs");
-
-    libs_dest
 }

@@ -42,8 +42,9 @@ pub struct ArchiveCallbackBox(Box<dyn ArchiveCallback>);
 /// Opaque wrapper for an arbitrary Rust [`std::io::Read`] source.
 ///
 /// Exposed to the C++ side as an `eckit::DataHandle` by
-/// [`archive_reader`] to stream GRIB data from a Rust source into FDB
-/// without buffering the entire payload in memory first.
+/// [`FdbHandle::archive_reader`](ffi::FdbHandle::archive_reader) to stream
+/// GRIB data from a Rust source into FDB without buffering the entire
+/// payload in memory first.
 pub struct ReaderBox(Box<dyn std::io::Read + Send>);
 
 // Methods intentionally not exposed:
@@ -64,7 +65,7 @@ pub struct ReaderBox(Box<dyn std::io::Read + Send>);
     class = "FDB",
     ignore = ["inspect", "reindex", "axesIterator", "config", "move"]
 )]
-#[cxx::bridge(namespace = "fdb::ffi")]
+#[cxx::bridge(namespace = "fdb_bridge")]
 mod ffi {
     // =========================================================================
     // Shared structs (POD-like types that can cross the FFI boundary)
@@ -81,21 +82,6 @@ mod ffi {
     #[derive(Debug, Clone, Default)]
     pub struct KeyData {
         pub entries: Vec<KeyValue>,
-    }
-
-    /// A single key in a parsed MARS request, paired with all of its values.
-    #[derive(Debug, Clone, Default)]
-    pub struct RequestParam {
-        pub key: String,
-        pub values: Vec<String>,
-    }
-
-    /// A fully-expanded MARS request, as produced by `parse_mars_request`.
-    /// `to`/`by` ranges, type expansions, etc. have already been applied by
-    /// `metkit::mars::MarsExpansion`.
-    #[derive(Debug, Clone, Default)]
-    pub struct RequestData {
-        pub params: Vec<RequestParam>,
     }
 
     /// Data returned from list iteration.
@@ -258,7 +244,25 @@ mod ffi {
     // =========================================================================
 
     unsafe extern "C++" {
-        include!("fdb_bridge.h");
+        include!("FdbBridge.h");
+
+        // =====================================================================
+        // Library — runtime initialisation and metadata
+        // =====================================================================
+
+        type Library;
+
+        /// Initialise the FDB library (sets up `eckit::Main`). Idempotent.
+        #[Self = "Library"]
+        fn initialise();
+
+        /// Get the FDB library version string.
+        #[Self = "Library"]
+        fn version() -> String;
+
+        /// Get the FDB git SHA1 hash.
+        #[Self = "Library"]
+        fn git_sha1() -> String;
 
         // =====================================================================
         // FdbHandle - Main FDB handle
@@ -286,127 +290,14 @@ mod ffi {
         fn name(self: &FdbHandle) -> String;
 
         // =====================================================================
-        // FdbHandle operations
+        // eckit::DataHandleWrapper (from eckit-sys, cross-crate ExternType)
         // =====================================================================
 
-        /// Archive data with an explicit key.
-        fn archive(self: Pin<&mut FdbHandle>, key: &KeyData, data: &[u8]) -> Result<()>;
+        #[namespace = "eckit_bridge"]
+        type DataHandleWrapper = eckit_sys::DataHandleWrapper;
 
-        /// Archive raw GRIB data (key is extracted from the message).
-        fn archive_raw(self: Pin<&mut FdbHandle>, data: &[u8]) -> Result<()>;
-
-        /// Archive raw GRIB data streamed from a Rust `std::io::Read`.
-        fn archive_reader(self: Pin<&mut FdbHandle>, reader: Box<ReaderBox>) -> Result<()>;
-
-        /// Retrieve data matching a request.
-        fn retrieve(self: Pin<&mut FdbHandle>, request: &str) -> Result<UniquePtr<DataHandle>>;
-
-        /// Read data from a single URI.
-        fn read_uri(self: Pin<&mut FdbHandle>, uri: &str) -> Result<UniquePtr<DataHandle>>;
-
-        /// Read data from a list of URIs.
-        fn read_uris(
-            self: Pin<&mut FdbHandle>,
-            uris: &Vec<String>,
-            in_storage_order: bool,
-        ) -> Result<UniquePtr<DataHandle>>;
-
-        /// Read data from a list iterator (most efficient).
-        fn read_list_iterator(
-            self: Pin<&mut FdbHandle>,
-            iterator: Pin<&mut ListIteratorHandle>,
-            in_storage_order: bool,
-        ) -> Result<UniquePtr<DataHandle>>;
-
-        /// List data matching a request.
-        fn list(
-            self: Pin<&mut FdbHandle>,
-            request: &str,
-            deduplicate: bool,
-            level: i32,
-        ) -> Result<UniquePtr<ListIteratorHandle>>;
-
-        /// Get axes for a request.
-        fn axes(self: Pin<&mut FdbHandle>, request: &str, level: i32) -> Result<Vec<AxisEntry>>;
-
-        /// Dump database structure.
-        fn dump(
-            self: Pin<&mut FdbHandle>,
-            request: &str,
-            simple: bool,
-        ) -> Result<UniquePtr<DumpIteratorHandle>>;
-
-        /// Get database status.
-        fn status(
-            self: Pin<&mut FdbHandle>,
-            request: &str,
-        ) -> Result<UniquePtr<StatusIteratorHandle>>;
-
-        /// Wipe data matching a request.
-        fn wipe(
-            self: Pin<&mut FdbHandle>,
-            request: &str,
-            doit: bool,
-            porcelain: bool,
-            unsafe_wipe_all: bool,
-        ) -> Result<UniquePtr<WipeIteratorHandle>>;
-
-        /// Purge duplicate data.
-        fn purge(
-            self: Pin<&mut FdbHandle>,
-            request: &str,
-            doit: bool,
-            porcelain: bool,
-        ) -> Result<UniquePtr<PurgeIteratorHandle>>;
-
-        /// Get statistics iterator.
-        fn stats_iterator(
-            self: Pin<&mut FdbHandle>,
-            request: &str,
-        ) -> Result<UniquePtr<StatsIteratorHandle>>;
-
-        /// Control database features.
-        fn control(
-            self: Pin<&mut FdbHandle>,
-            request: &str,
-            action: ControlAction,
-            identifiers: &[ControlIdentifier],
-        ) -> Result<UniquePtr<ControlIteratorHandle>>;
-
-        /// Register a flush callback.
-        fn register_flush_callback(self: Pin<&mut FdbHandle>, callback: Box<FlushCallbackBox>);
-
-        /// Register an archive callback.
-        fn register_archive_callback(self: Pin<&mut FdbHandle>, callback: Box<ArchiveCallbackBox>);
-
-        // =====================================================================
-        // eckit::DataHandle - For reading retrieved data
-        // =====================================================================
-
-        /// Opaque handle to an `eckit::DataHandle` (the upstream abstract
-        /// base for byte streams). Owned via `UniquePtr<DataHandle>`;
-        /// `eckit::DataHandle` has a virtual destructor so cxx's
-        /// generated `delete` is correct for any concrete subclass.
-        #[namespace = "eckit"]
-        type DataHandle;
-
-        /// Open the handle for reading. Returns the estimated length.
-        fn data_handle_open(handle: Pin<&mut DataHandle>) -> Result<u64>;
-
-        /// Close the handle.
-        fn data_handle_close(handle: Pin<&mut DataHandle>) -> Result<()>;
-
-        /// Read up to `buffer.len()` bytes into `buffer`.
-        fn data_handle_read(handle: Pin<&mut DataHandle>, buffer: &mut [u8]) -> Result<usize>;
-
-        /// Seek to an absolute byte position.
-        fn data_handle_seek(handle: Pin<&mut DataHandle>, position: u64) -> Result<()>;
-
-        /// Current read position.
-        fn data_handle_tell(handle: Pin<&mut DataHandle>) -> u64;
-
-        /// Total size of the underlying data, in bytes.
-        fn data_handle_size(handle: Pin<&mut DataHandle>) -> u64;
+        #[namespace = "eckit_bridge"]
+        type ConfigWrapper = eckit_sys::ConfigWrapper;
 
         // =====================================================================
         // ListIteratorHandle
@@ -424,9 +315,7 @@ mod ffi {
         /// Drain the iterator via `fdb5::ListIterator::dumpCompact`,
         /// returning the aggregated MARS-request text and the two
         /// counters. Mirrors `fdb-list --compact`.
-        fn list_iterator_dump_compact(
-            iterator: Pin<&mut ListIteratorHandle>,
-        ) -> Result<CompactListingData>;
+        fn dump_compact(self: Pin<&mut ListIteratorHandle>) -> Result<CompactListingData>;
 
         // =====================================================================
         // DumpIteratorHandle
@@ -507,84 +396,154 @@ mod ffi {
         fn next(self: Pin<&mut ControlIteratorHandle>) -> Result<ControlElementData>;
 
         // =====================================================================
-        // Initialization (free functions)
+        // Cross-crate ExternType for MARS request
         // =====================================================================
 
-        /// Initialize the FDB library.
-        /// Must be called before any other FDB operations.
-        fn fdb_init();
+        #[namespace = "metkit_bridge"]
+        type MarsRequestWrapper = metkit_sys::ffi::MarsRequestWrapper;
 
         // =====================================================================
-        // Library metadata (free functions)
+        // FdbHandle — archive / retrieve / read / query / callbacks / factories
         // =====================================================================
 
-        /// Get the FDB library version string.
-        fn fdb_version() -> String;
+        /// Archive data with an explicit key.
+        fn archive(self: Pin<&mut FdbHandle>, key: &KeyData, data: &[u8]) -> Result<()>;
 
-        /// Get the FDB git SHA1 hash.
-        fn fdb_git_sha1() -> String;
+        /// Archive raw GRIB data (key is extracted from the message).
+        fn archive_raw(self: Pin<&mut FdbHandle>, data: &[u8]) -> Result<()>;
 
-        // =====================================================================
-        // MARS request parsing (free functions)
-        // =====================================================================
+        /// Archive raw GRIB data streamed from a Rust `std::io::Read` source.
+        fn archive_reader(self: Pin<&mut FdbHandle>, reader: Box<ReaderBox>) -> Result<()>;
 
-        /// Parse a MARS request string using metkit's parser and expansion
-        /// machinery. Handles `to`/`by` ranges, type expansion, optional
-        /// fields, and any other syntax the upstream MARS language supports.
-        ///
-        /// On success, returns the fully-expanded request as a sequence of
-        /// `(key, [values])` pairs. On parse failure, returns an `Err` whose
-        /// message comes from the underlying eckit/metkit exception.
-        fn parse_mars_request(request: &str) -> Result<RequestData>;
+        /// Retrieve data matching a MarsRequest.
+        fn retrieve(
+            self: Pin<&mut FdbHandle>,
+            request: &MarsRequestWrapper,
+        ) -> Result<UniquePtr<DataHandleWrapper>>;
 
-        // =====================================================================
-        // Handle lifecycle (free functions)
-        // =====================================================================
+        /// Read data from a single URI.
+        fn read_uri(self: Pin<&mut FdbHandle>, uri: &str) -> Result<UniquePtr<DataHandleWrapper>>;
+
+        /// Read data from a list of URIs.
+        fn read_uris(
+            self: Pin<&mut FdbHandle>,
+            uris: &Vec<String>,
+            in_storage_order: bool,
+        ) -> Result<UniquePtr<DataHandleWrapper>>;
+
+        /// Read data from a list iterator (most efficient).
+        fn read_list_iterator(
+            self: Pin<&mut FdbHandle>,
+            iterator: Pin<&mut ListIteratorHandle>,
+            in_storage_order: bool,
+        ) -> Result<UniquePtr<DataHandleWrapper>>;
+
+        /// List data matching a request.
+        fn list(
+            self: Pin<&mut FdbHandle>,
+            request: &MarsRequestWrapper,
+            deduplicate: bool,
+            level: i32,
+        ) -> Result<UniquePtr<ListIteratorHandle>>;
+
+        /// Get axes (available metadata dimensions) for a request.
+        fn axes(
+            self: Pin<&mut FdbHandle>,
+            request: &MarsRequestWrapper,
+            level: i32,
+        ) -> Result<Vec<AxisEntry>>;
+
+        /// Dump database structure.
+        fn dump(
+            self: Pin<&mut FdbHandle>,
+            request: &MarsRequestWrapper,
+            simple: bool,
+        ) -> Result<UniquePtr<DumpIteratorHandle>>;
+
+        /// Get database status.
+        fn status(
+            self: Pin<&mut FdbHandle>,
+            request: &MarsRequestWrapper,
+        ) -> Result<UniquePtr<StatusIteratorHandle>>;
+
+        /// Wipe (delete) data matching a request.
+        fn wipe(
+            self: Pin<&mut FdbHandle>,
+            request: &MarsRequestWrapper,
+            doit: bool,
+            porcelain: bool,
+            unsafe_wipe_all: bool,
+        ) -> Result<UniquePtr<WipeIteratorHandle>>;
+
+        /// Purge duplicate data.
+        fn purge(
+            self: Pin<&mut FdbHandle>,
+            request: &MarsRequestWrapper,
+            doit: bool,
+            porcelain: bool,
+        ) -> Result<UniquePtr<PurgeIteratorHandle>>;
+
+        /// Get statistics iterator.
+        fn stats_iterator(
+            self: Pin<&mut FdbHandle>,
+            request: &MarsRequestWrapper,
+        ) -> Result<UniquePtr<StatsIteratorHandle>>;
+
+        /// Control database features.
+        fn control(
+            self: Pin<&mut FdbHandle>,
+            request: &MarsRequestWrapper,
+            action: ControlAction,
+            identifiers: &[ControlIdentifier],
+        ) -> Result<UniquePtr<ControlIteratorHandle>>;
+
+        /// Register a flush callback. Invoked when `flush()` is called.
+        fn register_flush_callback(self: Pin<&mut FdbHandle>, callback: Box<FlushCallbackBox>);
+
+        /// Register an archive callback. Invoked for each field archived.
+        fn register_archive_callback(self: Pin<&mut FdbHandle>, callback: Box<ArchiveCallbackBox>);
 
         /// Create a new FDB handle with default configuration.
-        fn new_fdb() -> Result<UniquePtr<FdbHandle>>;
+        #[Self = "FdbHandle"]
+        fn create() -> Result<UniquePtr<FdbHandle>>;
 
-        /// Create a new FDB handle from YAML configuration.
-        fn new_fdb_from_yaml(config: &str) -> Result<UniquePtr<FdbHandle>>;
+        /// Create a new FDB handle from an `eckit::Config`.
+        #[Self = "FdbHandle"]
+        fn from_config(config: &ConfigWrapper) -> Result<UniquePtr<FdbHandle>>;
 
-        /// Create a new FDB handle from YAML configuration plus a YAML
-        /// per-instance "user config" (e.g. `useSubToc`, `preloadTocBTree`).
-        fn new_fdb_from_yaml_with_user_config(
-            config: &str,
-            user_config: &str,
-        ) -> Result<UniquePtr<FdbHandle>>;
-
-        /// Create a new FDB handle by loading the configuration file at
-        /// `path`. Delegates to `fdb5::Config::make`, which loads YAML or
-        /// JSON, expands `~fdb` and `fdb_home` references, and resolves
-        /// transitive sub-configurations.
-        fn new_fdb_from_path(path: &str) -> Result<UniquePtr<FdbHandle>>;
-
-        /// Same as `new_fdb_from_path` but additionally applies a YAML
-        /// per-instance "user config" (e.g. `useSubToc`).
-        fn new_fdb_from_path_with_user_config(
-            path: &str,
-            user_config: &str,
+        /// Create a new FDB handle from an `eckit::Config` with a user-config
+        /// overlay.
+        #[Self = "FdbHandle"]
+        fn from_config_with_user(
+            config: &ConfigWrapper,
+            user_config: &ConfigWrapper,
         ) -> Result<UniquePtr<FdbHandle>>;
 
         // =====================================================================
-        // Test functions (for verifying exception handling)
+        // MessageArchiver — direct wrapper of `fdb5::MessageArchiver`
         // =====================================================================
 
-        /// Test function that throws eckit::Exception
-        fn test_throw_eckit_exception() -> Result<()>;
+        type MessageArchiverWrapper;
 
-        /// Test function that throws eckit::SeriousBug
-        fn test_throw_eckit_serious_bug() -> Result<()>;
+        /// `fdb5::MessageArchiver::archive(eckit::DataHandle&)` — returns
+        /// total bytes archived.
+        fn archive(
+            self: Pin<&mut MessageArchiverWrapper>,
+            source: Pin<&mut DataHandleWrapper>,
+        ) -> Result<i64>;
 
-        /// Test function that throws eckit::UserError
-        fn test_throw_eckit_user_error() -> Result<()>;
+        /// `fdb5::MessageArchiver::flush()`.
+        fn flush(self: Pin<&mut MessageArchiverWrapper>) -> Result<()>;
 
-        /// Test function that throws std::runtime_error
-        fn test_throw_std_exception() -> Result<()>;
-
-        /// Test function that throws an int (non-std::exception type)
-        fn test_throw_int() -> Result<()>;
+        /// Construct an `fdb5::MessageArchiver` with the given key modifier,
+        /// flags, and configuration.
+        #[Self = "MessageArchiverWrapper"]
+        fn create(
+            key: &KeyData,
+            complete_transfers: bool,
+            verbose: bool,
+            config: &ConfigWrapper,
+        ) -> Result<UniquePtr<MessageArchiverWrapper>>;
     }
 
     // =========================================================================
@@ -732,93 +691,3 @@ pub use ffi::*;
 
 // Re-export cxx types needed by downstream crates
 pub use cxx::{Exception, UniquePtr};
-
-#[cfg(test)]
-mod tests {
-    use super::ffi;
-
-    #[test]
-    fn test_eckit_exception_caught_by_trycatch() {
-        let result = ffi::test_throw_eckit_exception();
-        assert!(result.is_err());
-        let err = result.expect_err("expected error");
-        // Generic eckit::Exception gets ECKIT: prefix
-        assert!(
-            err.what().starts_with("ECKIT: "),
-            "Expected ECKIT: prefix, got: {}",
-            err.what()
-        );
-        assert!(
-            err.what().contains("test eckit exception"),
-            "Expected eckit exception message, got: {}",
-            err.what()
-        );
-    }
-
-    #[test]
-    fn test_eckit_serious_bug_caught_by_trycatch() {
-        let result = ffi::test_throw_eckit_serious_bug();
-        assert!(result.is_err());
-        let err = result.expect_err("expected error");
-        // SeriousBug gets specific prefix
-        assert!(
-            err.what().starts_with("ECKIT_SERIOUS_BUG: "),
-            "Expected ECKIT_SERIOUS_BUG: prefix, got: {}",
-            err.what()
-        );
-        assert!(
-            err.what().contains("test serious bug"),
-            "Expected serious bug message, got: {}",
-            err.what()
-        );
-    }
-
-    #[test]
-    fn test_eckit_user_error_caught_by_trycatch() {
-        let result = ffi::test_throw_eckit_user_error();
-        assert!(result.is_err());
-        let err = result.expect_err("expected error");
-        // UserError gets specific prefix
-        assert!(
-            err.what().starts_with("ECKIT_USER_ERROR: "),
-            "Expected ECKIT_USER_ERROR: prefix, got: {}",
-            err.what()
-        );
-        assert!(
-            err.what().contains("test user error"),
-            "Expected user error message, got: {}",
-            err.what()
-        );
-    }
-
-    #[test]
-    fn test_std_exception_caught_by_trycatch() {
-        let result = ffi::test_throw_std_exception();
-        assert!(result.is_err());
-        let err = result.expect_err("expected error");
-        // std::exception should NOT have any ECKIT prefix
-        assert!(
-            !err.what().starts_with("ECKIT"),
-            "std::exception should not have ECKIT prefix, got: {}",
-            err.what()
-        );
-        assert!(
-            err.what().contains("test std exception"),
-            "Expected std exception message, got: {}",
-            err.what()
-        );
-    }
-
-    #[test]
-    fn test_non_std_exception_caught_by_trycatch() {
-        let result = ffi::test_throw_int();
-        assert!(result.is_err());
-        let err = result.expect_err("expected error");
-        // Non-std exceptions get a generic message
-        assert!(
-            err.what().contains("non-std::exception"),
-            "Expected non-std::exception message, got: {}",
-            err.what()
-        );
-    }
-}
