@@ -41,9 +41,6 @@ ConnectionError::ConnectionError(const eckit::net::Endpoint& endpoint) {
     reason(s.str());
     eckit::Log::status() << what() << std::endl;
 }
-
-std::mutex initMutex;
-std::unique_ptr<fdb5::remote::ClientConnectionRouter> instance_{nullptr};
 }  // namespace
 
 namespace fdb5::remote {
