@@ -1,7 +1,7 @@
 import datetime
 
 import pytest
-from util import run_script, generate_test_files_key_value
+from tests.fdb_e2e.tool_tests.util import run_script, generate_test_files_key_value
 
 no_subtoc_combinations = [
     pytest.param(
