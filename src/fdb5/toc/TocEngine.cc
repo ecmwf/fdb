@@ -125,7 +125,7 @@ static void matchKeyToDB(const Key& key, std::map<Key, const Rule*>& keys, const
 static void matchRequestToDB(const metkit::mars::MarsRequest& rq, std::map<Key, const Rule*>& keys, const char* missing,
                              const Config& config) {
     const Schema& schema = config.schema();
-    schema.matchDatabase(rq, keys, missing);
+    schema.matchDatabase(rq, keys, missing, config.matcher());
 }
 
 static constexpr const char* regexForMissingValues = "[^:/]*";
