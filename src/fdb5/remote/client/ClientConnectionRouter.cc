@@ -44,9 +44,9 @@ ConnectionError::ConnectionError(const eckit::net::Endpoint& endpoint) {
 namespace fdb5::remote {
 
 size_t random(size_t const max) {
-    thread_local std::mt19937 rndGen{ std::random_device{}() };
+    thread_local std::mt19937 rndGen{std::random_device{}()};
     thread_local std::uniform_int_distribution<size_t> dist;
-    return dist(rndGen, std::uniform_int_distribution<size_t>::param_type{ 0, max });
+    return dist(rndGen, std::uniform_int_distribution<size_t>::param_type{0, max});
 }
 
 //----------------------------------------------------------------------------------------------------------------------
