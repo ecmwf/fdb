@@ -167,14 +167,16 @@ void Schema::matchDatabase(const metkit::mars::MarsRequest& request, std::map<Ke
     for (const auto& rule : rules_) {
         const auto keys = rule->findMatchingKeys(request, missing);
         for (const auto& k : keys) {
-            metkit::mars::MarsRequest req(request);
-            for (const auto& [keyword, value] : k) {
-                if (!value.empty() && !request.has(keyword)) {
-                    req.setValue(keyword, value);
+            if (matcher) {
+                metkit::mars::MarsRequest req(request);
+                for (const auto& [keyword, value] : k) {
+                    if (!value.empty() && !request.has(keyword)) {
+                        req.setValue(keyword, value);
+                    }
                 }
-            }
-            if (matcher && !matcher->match(req, metkit::mars::Matcher::MatchOnMissing)) {
-                continue;
+                if (!matcher->match(req, metkit::mars::Matcher::MatchOnMissing)) {
+                    continue;
+                }
             }
             result[k] = rule.get();
         }
