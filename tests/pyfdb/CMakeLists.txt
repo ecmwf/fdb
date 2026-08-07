@@ -46,6 +46,7 @@ set(test_files
     integration/test_status.py
     integration/test_types.py
     integration/test_uri.py
+    integration/test_version_compat.py
     integration/test_wildcard_selection.py
     integration/test_wipe.py
 )
