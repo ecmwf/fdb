@@ -48,7 +48,14 @@ import pytest
 from zarr.core.buffer import default_buffer_prototype
 from zarr.core.sync import _collect_aiterator, sync
 
-from _mocks import ARR_A1, ARR_AI1, ARR_AI2, ARR_BBD, ARR_ROOT, MockChunkedDataView
+from tests.z3fdb.zarr_interface_conformity._mocks import (
+    ARR_A1,
+    ARR_AI1,
+    ARR_AI2,
+    ARR_BBD,
+    ARR_ROOT,
+    MockChunkedDataView,
+)
 from z3fdb._internal.zarr import FdbZarrGroup, FdbZarrStore
 
 log = logging.getLogger(__name__)
@@ -123,8 +130,8 @@ def test_zarr_json_accessible_via_all_apis(
     """store.get(), store[], and group[] all return valid metadata for every zarr.json path."""
     for label, buf in [
         ("store.get()", sync(deep_store.get(key, prototype=default_buffer_prototype()))),
-        ("store[]",     sync(deep_store[key])),
-        ("group[]",     root_group[key]),
+        ("store[]", sync(deep_store[key])),
+        ("group[]", root_group[key]),
     ]:
         assert buf is not None, f"{label}: {key!r} returned None"
         meta = json.loads(buf.to_bytes())
@@ -139,10 +146,7 @@ def test_zarr_json_accessible_via_all_apis(
 
 
 def _expected_flat_index(chunks_per_axis: tuple, chunk_index: tuple) -> int:
-    return int(sum(
-        idx * math.prod(chunks_per_axis[i + 1:])
-        for i, idx in enumerate(chunk_index)
-    ))
+    return int(sum(idx * math.prod(chunks_per_axis[i + 1 :]) for i, idx in enumerate(chunk_index)))
 
 
 @pytest.mark.parametrize(
@@ -180,8 +184,8 @@ def test_chunk_accessible_via_all_apis(
 
     for label, buf in [
         ("store.get()", sync(deep_store.get(key, prototype=default_buffer_prototype()))),
-        ("store[]",     sync(deep_store[key])),
-        ("group[]",     root_group[key]),
+        ("store[]", sync(deep_store[key])),
+        ("group[]", root_group[key]),
     ]:
         assert buf is not None, f"{label}: {key!r} returned None"
         raw = buf.to_bytes()
@@ -204,9 +208,9 @@ def test_chunk_accessible_via_all_apis(
         "nonexistent.json",
         "grp_a/nonexistent/zarr.json",
         "grp_b/arr_bbd/zarr.json",  # arr_bbd is deeper than grp_b
-        "arr_root/c/99",             # chunk index out of range
-        "grp_b/grp_bb/grp_bbd/c/0", # grp_bbd is a group, not an array
-        "c/0",                       # chunk without array prefix
+        "arr_root/c/99",  # chunk index out of range
+        "grp_b/grp_bb/grp_bbd/c/0",  # grp_bbd is a group, not an array
+        "c/0",  # chunk without array prefix
     ],
 )
 def test_get_nonexistent_returns_none(deep_store: FdbZarrStore, key: str) -> None:
@@ -320,9 +324,7 @@ def test_list_prefix_empty_returns_all(deep_store: FdbZarrStore) -> None:
         ("grp_b/grp_bb/grp_bbd/arr_bbd/", 5),
     ],
 )
-def test_list_prefix_subtree_count(
-    deep_store: FdbZarrStore, prefix: str, expected_count: int
-) -> None:
+def test_list_prefix_subtree_count(deep_store: FdbZarrStore, prefix: str, expected_count: int) -> None:
     keys = sync(_collect_aiterator(deep_store.list_prefix(prefix)))
     log.debug("list_prefix(%r) -> %d keys: %s", prefix, len(keys), sorted(keys))
     assert all(k.startswith(prefix) for k in keys)
@@ -374,22 +376,22 @@ def test_suffix_access_chunk_dimensionality(deep_store: FdbZarrStore) -> None:
     chunk_keys = [k for k in all_keys if "/c/" in k]
 
     def chunk_dims(key: str) -> int:
-        c_part = key[key.index("/c/") + 1:]  # e.g. "c/0/1"
-        return len(c_part.split("/")) - 1     # subtract the leading "c"
+        c_part = key[key.index("/c/") + 1 :]  # e.g. "c/0/1"
+        return len(c_part.split("/")) - 1  # subtract the leading "c"
 
     dims = {k: chunk_dims(k) for k in chunk_keys}
     log.debug("chunk dimensionalities: %s", dict(sorted(dims.items())))
 
-    one_d   = [k for k, d in dims.items() if d == 1]
-    two_d   = [k for k, d in dims.items() if d == 2]
+    one_d = [k for k, d in dims.items() if d == 1]
+    two_d = [k for k, d in dims.items() if d == 2]
     three_d = [k for k, d in dims.items() if d == 3]
 
     log.debug("1-D chunks (%d): %s", len(one_d), sorted(one_d))
     log.debug("2-D chunks (%d): %s", len(two_d), sorted(two_d))
     log.debug("3-D chunks (%d): %s", len(three_d), sorted(three_d))
 
-    assert len(one_d) == 6    # arr_root(4) + arr_ai2(2)
-    assert len(two_d) == 10   # arr_a1(6) + arr_bbd(4)
+    assert len(one_d) == 6  # arr_root(4) + arr_ai2(2)
+    assert len(two_d) == 10  # arr_a1(6) + arr_bbd(4)
     assert len(three_d) == 4  # arr_ai1(4)
 
 
@@ -423,16 +425,16 @@ def test_suffix_access_groups_only_branch_has_no_chunks(deep_store: FdbZarrStore
 @pytest.mark.parametrize(
     "prefix, expected_entries",
     [
-        ("",                              {"zarr.json", "arr_root", "grp_a", "grp_b"}),
-        ("arr_root",                      {"zarr.json", "c"}),
-        ("grp_a",                         {"zarr.json", "arr_a1", "grp_a_inner"}),
-        ("grp_a/arr_a1",                  {"zarr.json", "c"}),
-        ("grp_a/grp_a_inner",             {"zarr.json", "arr_ai1", "arr_ai2"}),
-        ("grp_a/grp_a_inner/arr_ai1",     {"zarr.json", "c"}),
-        ("grp_b",                         {"zarr.json", "grp_bb"}),
-        ("grp_b/grp_bb",                  {"zarr.json", "grp_bbd"}),
-        ("grp_b/grp_bb/grp_bbd",          {"zarr.json", "arr_bbd"}),
-        ("grp_b/grp_bb/grp_bbd/arr_bbd",  {"zarr.json", "c"}),
+        ("", {"zarr.json", "arr_root", "grp_a", "grp_b"}),
+        ("arr_root", {"zarr.json", "c"}),
+        ("grp_a", {"zarr.json", "arr_a1", "grp_a_inner"}),
+        ("grp_a/arr_a1", {"zarr.json", "c"}),
+        ("grp_a/grp_a_inner", {"zarr.json", "arr_ai1", "arr_ai2"}),
+        ("grp_a/grp_a_inner/arr_ai1", {"zarr.json", "c"}),
+        ("grp_b", {"zarr.json", "grp_bb"}),
+        ("grp_b/grp_bb", {"zarr.json", "grp_bbd"}),
+        ("grp_b/grp_bb/grp_bbd", {"zarr.json", "arr_bbd"}),
+        ("grp_b/grp_bb/grp_bbd/arr_bbd", {"zarr.json", "c"}),
     ],
 )
 def test_list_dir(deep_store: FdbZarrStore, prefix: str, expected_entries: set) -> None:
@@ -442,8 +444,7 @@ def test_list_dir(deep_store: FdbZarrStore, prefix: str, expected_entries: set) 
         f"list_dir({prefix!r}): expected {sorted(expected_entries)}, got {sorted(entries)}"
     )
     assert all("/" not in e for e in entries), (
-        f"list_dir({prefix!r}) returned entries with '/': "
-        f"{[e for e in entries if '/' in e]}"
+        f"list_dir({prefix!r}) returned entries with '/': {[e for e in entries if '/' in e]}"
     )
 
 

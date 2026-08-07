@@ -19,7 +19,7 @@ import zarr
 from zarr.core.buffer import default_buffer_prototype
 from zarr.core.sync import sync
 
-from _mocks import MockChunkedDataView, make_array
+from tests.z3fdb.zarr_interface_conformity._mocks import MockChunkedDataView, make_array
 from z3fdb._internal.zarr import FdbSource, FdbZarrArray, FdbZarrGroup, FdbZarrStore
 
 pytestmark = pytest.mark.offline
@@ -78,9 +78,9 @@ def test_consolidated_metadata_sort_order():
 def test_consolidated_metadata_array_root_has_no_consolidated_metadata():
     """Array-rooted store has no consolidated_metadata in zarr.json."""
     shape, chunk_shape, chunks_per_axis = (4,), (1,), (4,)
-    store = FdbZarrStore(FdbZarrArray(
-        name="", datasource=FdbSource(MockChunkedDataView(shape, chunk_shape, chunks_per_axis))
-    ))
+    store = FdbZarrStore(
+        FdbZarrArray(name="", datasource=FdbSource(MockChunkedDataView(shape, chunk_shape, chunks_per_axis)))
+    )
     buf = sync(store.get("zarr.json", prototype=default_buffer_prototype()))
     assert buf
     root = json.loads(buf.to_bytes())
@@ -107,10 +107,10 @@ _DEEP_ARRAYS = {
     "grp_b/grp_bb/grp_bbd/arr_bbd",
 }
 _DEEP_GROUPS = {
-    "grp_a":                {"arr_a1", "grp_a_inner", "grp_a_inner/arr_ai1", "grp_a_inner/arr_ai2"},
-    "grp_b":                {"grp_bb", "grp_bb/grp_bbd", "grp_bb/grp_bbd/arr_bbd"},
-    "grp_a/grp_a_inner":    {"arr_ai1", "arr_ai2"},
-    "grp_b/grp_bb":         {"grp_bbd", "grp_bbd/arr_bbd"},
+    "grp_a": {"arr_a1", "grp_a_inner", "grp_a_inner/arr_ai1", "grp_a_inner/arr_ai2"},
+    "grp_b": {"grp_bb", "grp_bb/grp_bbd", "grp_bb/grp_bbd/arr_bbd"},
+    "grp_a/grp_a_inner": {"arr_ai1", "arr_ai2"},
+    "grp_b/grp_bb": {"grp_bbd", "grp_bbd/arr_bbd"},
     "grp_b/grp_bb/grp_bbd": {"arr_bbd"},
 }
 

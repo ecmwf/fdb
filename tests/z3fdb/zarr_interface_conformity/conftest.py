@@ -8,7 +8,7 @@
 
 import pytest
 
-from _mocks import build_deep_store
+from tests.z3fdb.zarr_interface_conformity._mocks import build_deep_store
 
 
 def pytest_configure(config):
