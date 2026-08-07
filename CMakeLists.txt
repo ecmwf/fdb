@@ -151,7 +151,7 @@ if(HAVE_PYTHON_ZARR_INTERFACE OR HAVE_PYTHON_FDB_INTERFACE)
 endif()
 
 ecbuild_add_option( FEATURE PYTHON_EXTENDED_FDB_TOOL_TESTS
-                    DESCRIPTION "Build extendend fdb tool tests"
+                    DESCRIPTION "Build extended fdb tool tests"
                     CONDITION HAVE_PYTHON_FDB_INTERFACE
                     DEFAULT OFF)
 
