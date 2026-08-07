@@ -12,8 +12,7 @@
 /// @author Tiago Quintino
 /// @date   Mar 2018
 
-#ifndef fdb5_config_Config_H
-#define fdb5_config_Config_H
+#pragma once
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/filesystem/PathName.h"
@@ -23,11 +22,12 @@
 #include <memory>
 #include <mutex>
 #include <string>
-
+#include <vector>
 
 namespace fdb5 {
 
 class Schema;
+class SelectMatcher;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -69,6 +69,9 @@ public:  // methods
     std::vector<Config> getSubConfigs(const std::string& name) const;
     std::vector<Config> getSubConfigs() const;
 
+    void setMatcher(std::unique_ptr<SelectMatcher> matcher);
+    const SelectMatcher* matcher() const;
+
 private:  // methods
 
     /// @pre schemaMutex_ must be held by the caller.
@@ -80,10 +83,9 @@ private:  // members
     mutable bool schemaPathInitialised_;
     mutable std::mutex schemaMutex_;
     std::shared_ptr<eckit::LocalConfiguration> userConfig_;
+    std::shared_ptr<SelectMatcher> matcher_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif  // fdb5_config_Config_H
