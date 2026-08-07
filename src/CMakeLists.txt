@@ -40,15 +40,47 @@ if (HAVE_PYTHON_ZARR_INTERFACE)
         "pychunked_data_view/__init__.py"
         "pychunked_data_view/chunked_data_view.py"
         "pychunked_data_view/exceptions.py"
+        "chunked_data_view_bindings/__init__.py"
     )
+    # chunked_data_view_bindings/__init__.py calls findlibs.load("fdb5") before
+    # the extension module is imported, and findlibs to locate the library.
+    # FDB5_HOME points findlibs directly at the fdb5 build output directory so
+    # it can find fdb5lib there.
+    #
+    # Stubgen writes into a temporary directory; only chunked_data_view_bindings.pyi
+    # is copied next to the *.so. The temp dir (including any __init__.pyi) is
+    # removed afterwards.
+    add_custom_command(
+        OUTPUT ${CMAKE_BINARY_DIR}/stubs.stamp
+        COMMAND ${CMAKE_COMMAND} -E env
+                "PYTHONPATH=${Z3FDB_STAGING}"
+                "FDB5_HOME=${CMAKE_BINARY_DIR}"
+                ${Python_EXECUTABLE} -m pybind11_stubgen
+                    chunked_data_view_bindings.chunked_data_view_bindings
+                    -o ${CMAKE_BINARY_DIR}/stubs_tmp
+        COMMAND ${CMAKE_COMMAND} -E copy
+                ${CMAKE_BINARY_DIR}/stubs_tmp/chunked_data_view_bindings/chunked_data_view_bindings.pyi
+                ${Z3FDB_STAGING}/chunked_data_view_bindings/chunked_data_view_bindings.pyi
+        COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_BINARY_DIR}/stubs_tmp
+        COMMAND ${CMAKE_COMMAND} -E touch
+                ${Z3FDB_STAGING}/chunked_data_view_bindings/py.typed
+        COMMAND ${CMAKE_COMMAND} -E touch stubs.stamp
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        DEPENDS
+            "chunked_data_view_bindings/__init__.py"
+            chunked_data_view_bindings
+            fdb5
+        COMMENT "Generating stubs and py.typed for chunked_data_view_bindings..."
+    )
+
     add_custom_command(
         OUTPUT ${CMAKE_BINARY_DIR}/wheel.stamp
         COMMAND ${Python_EXECUTABLE} -m build --wheel ${Z3FDB_STAGING} -o .
         COMMAND ${CMAKE_COMMAND} -E touch wheel.stamp
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        DEPENDS 
+        DEPENDS
             ${_z3fdb_package_files}
-            chunked_data_view_bindings
+            ${CMAKE_BINARY_DIR}/stubs.stamp
         COMMENT "Building Python wheel for z3fdb..."
     )
     add_custom_target(z3fdb-wheel ALL DEPENDS ${CMAKE_BINARY_DIR}/wheel.stamp)

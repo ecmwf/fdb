@@ -114,4 +114,21 @@ void RequestManipulation::updateRequest(metkit::mars::MarsRequest& request, cons
     }
 }
 
+metkit::mars::MarsRequest RequestManipulation::allParamRequest(const metkit::mars::MarsRequest& request) {
+
+    metkit::mars::MarsRequest base = request;
+
+    for (const auto& p : request.parameters()) {
+        if (p.name() == "param") {
+            continue;
+        }
+        const auto& vals = p.values();
+        if (vals.size() > 1) {
+            base.values(p.name(), {vals.front()});
+        }
+    }
+
+    return base;
+}
+
 }  // namespace chunked_data_view

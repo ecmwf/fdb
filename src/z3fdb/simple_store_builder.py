@@ -90,7 +90,7 @@ class SimpleStoreBuilder:
         """
         self._builder.extend_on_axis(axis)
 
-    def build(self) -> Store:
+    def build(self) -> FdbZarrStore:
         """Build the store from the inputs.
 
         Raises:

@@ -7,5 +7,6 @@ build
 setuptools
 GitPython
 sphinx
+pybind11-stubgen
 
 Sybil[pytest]

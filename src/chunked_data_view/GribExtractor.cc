@@ -13,6 +13,7 @@
 #include "chunked_data_view/Extractor.h"
 #include "chunked_data_view/Fdb.h"
 #include "chunked_data_view/ListIterator.h"
+#include "chunked_data_view/RequestManipulation.h"
 #include "chunked_data_view/ViewPart.h"
 #include "chunked_data_view/exception/GribExtractorException.h"
 #include "chunked_data_view/mapping/IndexMapper.h"
@@ -33,7 +34,13 @@ GribExtractor::GribExtractor(const std::shared_ptr<FdbInterface> fdb) : fdb_(fdb
 
 DataLayout GribExtractor::layout(const metkit::mars::MarsRequest& mars_request) const {
 
-    const auto& handle = fdb_->retrieve(mars_request);
+    // Use a minimal sample request: all requested params but only the first value of every
+    // other key. This lets us verify every param the user asked for without retrieving the
+    // full data volume.
+    const metkit::mars::MarsRequest sampleRequest =
+        mars_request.has("param") ? RequestManipulation::allParamRequest(mars_request) : mars_request;
+
+    const auto& handle = fdb_->retrieve(sampleRequest);
     eckit::message::Reader reader(*handle);
     eckit::message::Message msg = reader.next();
 
@@ -41,7 +48,40 @@ DataLayout GribExtractor::layout(const metkit::mars::MarsRequest& mars_request) 
         throw eckit::Exception("GribExtractor::layout: Couldn't read GRIB message.");
     }
 
-    size_t countValues = msg.getSize("values");
+    const size_t countValues = msg.getSize("values");
+
+    // Sanity check: every field returned by FDB must carry a paramId that the user
+    // actually requested. FDB can silently substitute a different parameter when it
+    // performs on-the-fly wind derivation (e.g. returning vo/d when u/v is requested).
+    // That case is not supported: the axis mapping relies on the returned keys matching
+    // the request exactly. Checking all messages (not just the first) catches cases where
+    // the mismatch only appears for certain parameters.
+    //
+    // Note: mars_request was produced by FDBToolRequest::requestsFromString() which runs
+    // metkit's TypeParam expansion pass. Short param names (e.g. "v", "vo") are resolved
+    // to numeric paramId strings (e.g. "132", "138") before this point, so the comparison
+    // against std::to_string(msg.getLong("paramId")) is always numeric-vs-numeric.
+    if (mars_request.has("param")) {
+        const auto& requestedParams = mars_request.values("param");
+        do {
+            const std::string returnedParam = std::to_string(msg.getLong("paramId"));
+            if (std::find(requestedParams.begin(), requestedParams.end(), returnedParam) == requestedParams.end()) {
+                std::ostringstream buf;
+                buf << "GribExtractor::layout: FDB returned paramId=" << returnedParam
+                    << " which is not among the requested params [";
+                for (size_t i = 0; i < requestedParams.size(); ++i) {
+                    if (i > 0) {
+                        buf << ", ";
+                    }
+                    buf << requestedParams[i];
+                }
+                buf << "]. On-the-fly field derivation (e.g. u/v from vo/d) is not supported.";
+                throw GribExtractorException(buf.str());
+            }
+        } while ((msg = reader.next()));
+    }
+
+
     return {countValues, 4};
 }
 

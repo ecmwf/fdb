@@ -62,14 +62,29 @@ size_t Axis::index(const fdb5::Key& key) const {
         auto [it, success] = key.find(param.name());
 
         if (!success) {
-            throw eckit::Exception("Couldn't find the parameter name in the keys of the request.");
+            std::stringstream buf;
+            buf << "Couldn't find the parameter name (";
+            buf << param.name();
+            buf << ") in the keys of the request.";
+            throw eckit::Exception(buf.str());
         }
 
         // Find the index of the key value in the axis
         auto res = std::find(std::begin(param.values()), std::end(param.values()), it->second);
 
         if (res == param.values().end()) {
-            throw eckit::Exception("Couldn't find request's key value in the axis.");
+            std::stringstream buf;
+            buf << "Couldn't find request's key value (";
+            buf << it->second;
+            buf << ") in the axis (";
+            bool first = true;
+            for (const auto& v : param.values()) {
+                if (!first) buf << ", ";
+                buf << v;
+                first = false;
+            }
+            buf << ").";
+            throw eckit::Exception(buf.str());
         }
 
         size_t value_index = std::distance(param.values().begin(), res);

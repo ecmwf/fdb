@@ -54,20 +54,15 @@ def swh_grib_download(tmp_path_factory):
     tmp = tmp_path_factory.mktemp("swh_online")
     grib = tmp / "swh_opendata.grib2"
 
-    try:
-        opendata.Client(source="ecmwf", model="ifs", resol="0p25").retrieve(
-            date=date.isoformat(),
-            time=0,
-            type="fc",
-            stream="wave",
-            step=0,
-            param="swh",
-            target=str(grib),
-        )
-    except Exception as e:
-        if getattr(getattr(e, "response", None), "status_code", None) == 429:
-            pytest.skip("ECMWF Open Data rate limit exceeded (HTTP 429)")
-        raise
+    opendata.Client(source="ecmwf", model="ifs", resol="0p25").retrieve(
+        date=date.isoformat(),
+        time=0,
+        type="fc",
+        stream="wave",
+        step=0,
+        param="swh",
+        target=str(grib),
+    )
 
     with open(grib, "rb") as f:
         gid = ec.codes_grib_new_from_file(f)

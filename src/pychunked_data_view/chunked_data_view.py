@@ -16,13 +16,7 @@ import chunked_data_view_bindings.chunked_data_view_bindings as pdv
 
 from pychunked_data_view.exceptions import MarsRequestFormattingError, InternalError
 
-# Init the bindings (eckit initialization)
-pdv.init_bindings()
-
-
-MarsSelection: TypeAlias = Mapping[
-    str, str | int | float | Collection[str | int | float]
-]
+MarsSelection: TypeAlias = Mapping[str, str | int | float | Collection[str | int | float]]
 
 
 # Mapping functionality for MarsSelection
@@ -71,7 +65,10 @@ class AxisDefinition:
         elif chunking is Chunking.SINGLE_VALUE:
             return pdv.AxisDefinition.SingleValueChunking()
         else:
-            raise InternalError()
+            raise TypeError(
+                f"chunking must be Chunking.WHOLE_AXIS, Chunking.SINGLE_VALUE, or an instance of "
+                f"Chunking.FixedSizeChunk, got {type(chunking).__qualname__!r}"
+            )
 
     def __init__(self, keys: list[str], chunking: Chunking | Chunking.FixedSizeChunk):
         """Defines which axis from a MARS Request form an axis in the Zarr array.
@@ -82,9 +79,7 @@ class AxisDefinition:
             keys(list of str): mars keys that for this axis.
             chunking ( Chunking): Define how this axis shall be chunked
         """
-        self._obj = pdv.AxisDefinition(
-            keys=keys, chunking=self._translate_chunking(chunking)
-        )
+        self._obj = pdv.AxisDefinition(keys=keys, chunking=self._translate_chunking(chunking))
 
     @property
     def keys(self) -> list[str]:
@@ -169,16 +164,10 @@ class ChunkedDataViewBuilder:
         except RuntimeError as re:
             exception_msg = str(re)
             if "StreamParser::next" in exception_msg:
-                raise MarsRequestFormattingError(
-                    exception_msg + "\n Did the MARS request end in a comma?"
-                )
+                raise MarsRequestFormattingError(exception_msg + "\n Did the MARS request end in a comma?")
             elif "MarsParser::parseVerb" in exception_msg:
-                raise MarsRequestFormattingError(
-                    exception_msg + "\n Did you miss a comma between keys?"
-                )
+                raise MarsRequestFormattingError(exception_msg + "\n Did you miss a comma between keys?")
             elif "Cannot match" in exception_msg:
-                raise MarsRequestFormattingError(
-                    exception_msg + "\n Did you misspell a MARS key?"
-                )
+                raise MarsRequestFormattingError(exception_msg + "\n Did you misspell a MARS key?")
             else:
                 raise re
