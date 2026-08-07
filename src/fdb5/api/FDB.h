@@ -85,14 +85,14 @@ public:  // methods
     ///
     /// Due to the message being self describing no key needs to be supplied.
     /// Any callback set with registerArchiveCallback will be invoked.
-    /// @param handle eckit::message::Message to data to archive
+    /// @param msg eckit::message::Message to archive
     void archive(eckit::message::Message msg);
 
     /// Archives a stream of one or more messages.
     ///
-    /// Reads messages from the eckit::DatAaHandle and calls archive() on the corresponding messages.
+    /// Reads messages from the eckit::DataHandle and calls archive() on the corresponding messages.
     /// Any callback set with registerArchiveCallback will be invoked on each message.
-    /// @param handle eckit::DataHandle reference data to archive
+    /// @param handle eckit::DataHandle reference to the data to archive
     void archive(eckit::DataHandle& handle);
 
     /// Archive binary data to a FDB.
@@ -100,29 +100,29 @@ public:  // methods
     /// Internally creates a DataHandle and calls archive().
     /// Any callback set with registerArchiveCallback will be invoked on each message.
     /// @param data Pointer to the binary data to archive
-    /// @param length Size of the data to archive with the given
+    /// @param length Size in bytes of the data to archive
     void archive(const void* data, size_t length);
 
-    /// Archives data from Datahandle and ensures all keys exactly match the provided MarsRequest.
+    /// Archives data from a DataHandle and ensures all keys exactly match the provided MarsRequest.
     ///
     /// Any callback set with registerArchiveCallback will be invoked on each message.
     /// @param request a mars request
     /// @param handle a data handle pointing to the data
-    /// @throws eckit::UserError if there are more keys in the MarsRequest then in the messages.
+    /// @throws eckit::UserError if there are more keys in the MarsRequest than in the messages.
     /// @throws eckit::UserError if message key not present in MarsRequest.
     void archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& handle);
 
     /// Archive a binary blob into FDB.
     ///
     /// Any callback set with registerArchiveCallback will be invoked.
-    /// @note No constistency checks are applied. The caller needs to ensure the provided key matches metadata present
+    /// @note No consistency checks are applied. The caller needs to ensure the provided key matches metadata present
     /// in data.
     /// @param key Key used for indexing and archiving the data
     /// @param data Pointer to the binary blob to archive
     /// @param length Size in bytes of the binary blob to archive
     void archive(const Key& key, const void* data, size_t length);
 
-    /// Generate an new index entry for an existing field location.
+    /// Generate a new index entry for an existing field location.
     ///
     /// Can be used to reindex existing data into a new catalogue (see fdb-reindex tool).
     /// @param key Key used to index the data.
@@ -140,15 +140,15 @@ public:  // methods
     /// @return DataHandle for reading the requested data from
     eckit::DataHandle* read(const eckit::URI& uri);
 
-    /// Read binary data from an list of URI.
-    /// @param vector of uris eckit uris to the data source
+    /// Read binary data from a list of URIs.
+    /// @param uris eckit uris to the data sources
     /// @param inStorageOrder if set data will be returned in the order it is stored. If unset data will be returned in
     /// the order it was requested.
     /// @return DataHandle for reading the requested data
     eckit::DataHandle* read(const std::vector<eckit::URI>& uris, bool inStorageOrder = false);
 
     /// Read binary from a ListIterator.
-    /// @param uris a list iterator which resembles a set of fields which should be read
+    /// @param it a list iterator which resembles a set of fields which should be read
     /// @param inStorageOrder if set data will be returned in the order it is stored. If unset data will be returned in
     /// the order it was requested.
     /// @return DataHandle for reading the requested data from
@@ -177,7 +177,11 @@ public:  // methods
     /// @return ListIterator for iterating over the set of found items
     ListIterator list(const FDBToolRequest& request, ListMode mode, int level = 3);
 
-    /// Backwards-compatible overload using the previous deduplicate flag.
+    /// Backwards-compatible overload of list() using the previous deduplicate flag.
+    /// @param request FDBToolRequest stating which data should be queried
+    /// @param deduplicate if true duplicates are removed (ListMode::Deduplicate), otherwise all entries are returned
+    /// @param level maximum level the visitor should respect
+    /// @return ListIterator for iterating over the set of found items
     ListIterator list(const FDBToolRequest& request, bool deduplicate = false, int level = 3);
 
     /// Dump the structural content of the FDB
@@ -187,8 +191,8 @@ public:  // methods
     /// The dump will include information identifying the data files that are
     /// referenced, and the "Axes" which describe the maximum possible extent of
     /// the data that is contained in the database.
-    /// @param request
-    /// @param simple
+    /// @param request FDBToolRequest stating which databases should be dumped
+    /// @param simple if true produces a more compact dump, omitting the per-record detail
     /// @return DumpIterator for iterating over the set of found items
     DumpIterator dump(const FDBToolRequest& request, bool simple = false);
 
@@ -290,7 +294,7 @@ public:  // methods
     void registerArchiveCallback(ArchiveCallback callback);
 
     /// Register a flush callback.
-    /// @param callback an flush callback which should be triggered during flushing
+    /// @param callback a flush callback which should be triggered during flushing
     void registerFlushCallback(FlushCallback callback);
 
     // -------------- API management -----------------------------------------------------------------------------------
