@@ -90,6 +90,9 @@ private:  // methods
     // Tears down *only this* connection
     void handleConnectionError(const std::exception_ptr& eptr);
 
+    // do not hang forever once the connection is known to be dead.
+    void failPendingRequests(const std::exception_ptr& eptr);
+
     void dataWriteThreadLoop();
     void closeConnection();
 

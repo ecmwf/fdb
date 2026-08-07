@@ -25,6 +25,7 @@ class Configuration;
 namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
+size_t random(size_t const max);
 
 class ClientConnectionRouter {
 public:
