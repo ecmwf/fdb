@@ -1,5 +1,9 @@
 [pytest]
-addopts = ["-p no:doctest"]
+
+# This is needed to resolve the correct paths in test module for pytest
+# Otherwise the test folder (which carry the same names as the modules) clash
+# due to the prepending nature of pytests import
+addopts = ["-p no:doctest", "--import-mode=importlib"]
 
 markers = [
     "files: Test the files setup of FDB tool.",
