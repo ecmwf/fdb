@@ -14,7 +14,6 @@
 #include <memory>
 #include <mutex>
 #include <optional>
-#include <set>
 #include <sstream>
 #include <string>
 #include <tuple>
@@ -197,7 +196,14 @@ void Schema::load(const eckit::PathName& path, const bool replace) {
         throw ex;
     }
 
-    load(in, replace);
+    try {
+        load(in, replace);
+    }
+    catch (SchemaParser::Error& spe) {
+        std::stringstream buf;
+        buf << "Error loading FDB schema file: " << path << ". Underlying issue: " << spe.what();
+        throw SchemaParser::Error(buf.str());
+    }
 }
 
 void Schema::load(std::istream& s, const bool replace) {

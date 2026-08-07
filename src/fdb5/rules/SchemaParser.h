@@ -14,6 +14,7 @@
 #ifndef fdb5_SchemaParser_h
 #define fdb5_SchemaParser_h
 
+#include <cstddef>
 #include <iosfwd>
 #include <memory>
 #include <string>
@@ -27,15 +28,25 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class SchemaParser : public eckit::StreamParser {
+class SchemaParser {
 
 public:  // methods
 
-    SchemaParser(std::istream& in) : StreamParser(in, true) {}
+    class Error : public eckit::StreamParser::Error {
+    public:
+
+        Error(const std::string& what, size_t line = 0);
+    };
+
+    SchemaParser(std::istream& in) : parser_(eckit::StreamParser(in, true)) {}
 
     void parse(RuleList& result, TypesRegistry& registry);
 
 private:  // methods
+
+    bool isAscii(char c);
+
+    char peek(bool spaces = false);
 
     std::string parseIdent(bool value, bool emptyOK);
 
@@ -48,6 +59,10 @@ private:  // methods
     std::unique_ptr<Predicate> parsePredicate(eckit::StringDict& types);
 
     void parseTypes(eckit::StringDict& types);
+
+private:  // members
+
+    eckit::StreamParser parser_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
