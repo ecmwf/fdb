@@ -19,8 +19,8 @@ fdb = { path = "crates/fdb" }
 # Foundation crates
 eckit-sys = { git = "ssh://git@github.com/ecmwf/eckit.git", branch = "develop", default-features = false }
 eckit = { git = "ssh://git@github.com/ecmwf/eckit.git", branch = "develop" }
-metkit-sys = { git = "ssh://git@github.com/ecmwf/metkit.git", branch = "rust-bindings-high-level-crate", default-features = false }
-metkit = { git = "ssh://git@github.com/ecmwf/metkit.git", branch = "rust-bindings-high-level-crate" }
+metkit-sys = { git = "ssh://git@github.com/ecmwf/metkit.git", branch = "develop", default-features = false }
+metkit = { git = "ssh://git@github.com/ecmwf/metkit.git", branch = "develop" }
 eccodes-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", default-features = false, features = ["vendored", "eccodes-threads"] }
 
 # Build tools
