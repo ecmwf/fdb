@@ -12,6 +12,7 @@
 #include <pwd.h>
 #include <sys/types.h>
 #include <cstddef>
+#include <optional>
 #include <utility>
 
 #include "eckit/config/Resource.h"
@@ -1013,6 +1014,17 @@ static eckit::StaticMutex local_mutex;
 
 void TocHandler::writeInitRecord(const Key& key) {
 
+    // Compute the unique temp schema path BEFORE taking local_mutex. PathName::unique()
+    // acquires eckit::LocalPathName's own StaticMutex; holding TocHandler::local_mutex
+    // while doing so nests two StaticMutexes, which deadlocks against eckit's
+    // pthread_atfork prepare handler (get_locks() locks every registered static mutex in
+    // address order). unique() only generates a name (mutex-guarded static counter) and
+    // mkdir's the parent dir — it does not create the temp file — so it is safe here.
+    std::optional<eckit::LocalPathName> tmpSchema;
+    if (!isSubToc_) {
+        tmpSchema.emplace(eckit::PathName::unique(schemaPath_));
+    }
+
     eckit::AutoLock<eckit::StaticMutex> lock(local_mutex);
 
     if (!directory_.exists()) {
@@ -1046,7 +1058,7 @@ void TocHandler::writeInitRecord(const Key& key) {
             LOG_DEBUG_LIB(LibFdb5) << "Copy schema from " << dbConfig_.schemaPath() << " to " << schemaPath_
                                    << std::endl;
 
-            eckit::LocalPathName tmp{eckit::PathName::unique(schemaPath_)};
+            eckit::LocalPathName tmp{*tmpSchema};
 
             eckit::FileHandle in(dbConfig_.schemaPath());
 

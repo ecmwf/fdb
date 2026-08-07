@@ -19,6 +19,13 @@ PyFDB
    api
    development
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Advanced Topics:
+   :hidden:
+
+   multithreading
+
 `PyFDB` is the Python interface to the `FDB <https://github.com/ecmwf/fdb>`__, a
 domain‑specific object store designed to efficiently archive, index, list, and
 retrieve GRIB fields produced by numerical weather prediction workflows. It

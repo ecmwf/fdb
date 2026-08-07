@@ -25,6 +25,7 @@
 #include <exception>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -87,7 +88,14 @@ class PyDataHandle : public eckit::DataHandle, public py::trampoline_self_life_s
     }
 };
 
-metkit::mars::MarsRequest mars_requestfrom_map(const std::map<std::string, std::vector<std::string>>& map) {
+metkit::mars::MarsRequest mars_request_from_map(const std::map<std::string, std::vector<std::string>>& map) {
+    // metkit's MARS language expansion is not thread-safe: MarsExpansion/MarsLanguage read (and, via
+    // eckit::Value's non-const std::map::operator[], mutate) process-global static state, and the
+    // eckit::Value copy-on-write refcount check is unsynchronised. Serialise all expansion here so
+    // concurrent list/retrieve/inspect calls that reach this helper cannot race inside metkit/eckit.
+    static std::mutex mars_expansion_mutex;
+    std::lock_guard<std::mutex> lock(mars_expansion_mutex);
+
     eckit::ValueMap value_map;
 
     for (const auto& pair : map) {
@@ -174,15 +182,30 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
             return buf.str();
         });
 
-    py::class_<eckit::DataHandle, PyDataHandle, py::smart_holder>(m, "DataHandle")
-        .def(py::init())
-        .def("open", [](eckit::DataHandle& data_handle) { data_handle.openForRead(); })
-        .def("close", [](eckit::DataHandle& data_handle) { data_handle.close(); })
-        .def("size", [](eckit::DataHandle& data_handle) { return static_cast<long long>(data_handle.size()); })
+    py::class_<eckit::DataHandle, PyDataHandle, py::smart_holder>(m, "DataHandle",
+                                                                  py::release_gil_before_calling_cpp_dtor())
+        .def(py::init(), py::call_guard<py::gil_scoped_release>())
+        .def(
+            "open", [](eckit::DataHandle& data_handle) { data_handle.openForRead(); },
+            py::call_guard<py::gil_scoped_release>())
+        .def(
+            "close", [](eckit::DataHandle& data_handle) { data_handle.close(); },
+            py::call_guard<py::gil_scoped_release>())
+        .def(
+            "size", [](eckit::DataHandle& data_handle) { return static_cast<long long>(data_handle.size()); },
+            py::call_guard<py::gil_scoped_release>())
         .def("read",
              [](eckit::DataHandle& data_handle, py::buffer& buffer) {
+                 // buffer.request() interrogates a Python object and must run with the GIL held.
+                 // The actual read into the buffer may block on I/O (e.g. remote FDB), so the
+                 // GIL is released around that call so other Python threads can continue.
                  py::buffer_info info = buffer.request();
-                 return data_handle.read(info.ptr, info.size);
+                 long result;
+                 {
+                     py::gil_scoped_release release;
+                     result = data_handle.read(info.ptr, info.size * info.itemsize);
+                 }
+                 return result;
              })
         .def("__repr__", [](eckit::DataHandle& data_handle) {
             std::stringstream buf;
@@ -193,15 +216,13 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
     py::class_<fdb5::FDBToolRequest>(m, "FDBToolRequest")
         .def(py::init([](const std::map<std::string, std::vector<std::string>>& selection, bool all,
                          std::vector<std::string>& minimum_key_set) {
-            return fdb5::FDBToolRequest(mars_requestfrom_map(selection), all, minimum_key_set);
+            return fdb5::FDBToolRequest(mars_request_from_map(selection), all, minimum_key_set);
         }))
-        .def("__repr__",
-             [](const fdb5::FDBToolRequest& tool_request) {
-                 std::stringstream buf;
-                 tool_request.print(buf);
-                 return buf.str();
-             })
-        .def("mars_request", [](const fdb5::FDBToolRequest& tool_request) { return tool_request.request(); });
+        .def("__repr__", [](const fdb5::FDBToolRequest& tool_request) {
+            std::stringstream buf;
+            tool_request.print(buf);
+            return buf.str();
+        });
 
     py::class_<fdb5::IndexAxis>(m, "IndexAxis")
         .def(py::init())
@@ -369,7 +390,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
                     return std::nullopt;
                 };
             },
-            py::return_value_policy::reference_internal)
+            py::call_guard<py::gil_scoped_release>())
         .def("__repr__", [](const fdb5::ListElement& list_element) {
             std::stringstream buf;
             list_element.print(buf, true, true, true, ",");
@@ -450,108 +471,145 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
 
     py::class_<fdb5::ListIterator>(m, "ListIterator")
         .def("__iter__", [](fdb5::ListIterator& self) -> fdb5::ListIterator& { return self; })
-        .def("__next__", [](fdb5::ListIterator& list_iterator) -> fdb5::ListElement {
-            fdb5::ListElement result{};
-            bool has_next = list_iterator.next(result);
-            if (has_next) {
-                return result;
-            }
-            throw py::stop_iteration();
-        });
+        .def(
+            "__next__",
+            [](fdb5::ListIterator& list_iterator) -> fdb5::ListElement {
+                fdb5::ListElement result{};
+                bool has_next = list_iterator.next(result);
+                if (has_next) {
+                    return result;
+                }
+                py::gil_scoped_acquire gil;
+                throw py::stop_iteration();
+            },
+            py::call_guard<py::gil_scoped_release>());
 
     py::class_<fdb5::WipeIterator>(m, "WipeIterator")
         .def("__iter__", [](fdb5::WipeIterator& self) -> fdb5::WipeIterator& { return self; })
-        .def("__next__", [](fdb5::WipeIterator& wipe_iterator) -> fdb5::WipeElement {
-            fdb5::WipeElement result{};
-            bool has_next = wipe_iterator.next(result);
-            if (has_next) {
-                return result;
-            }
-            throw py::stop_iteration();
-        });
+        .def(
+            "__next__",
+            [](fdb5::WipeIterator& wipe_iterator) -> fdb5::WipeElement {
+                fdb5::WipeElement result{};
+                bool has_next = wipe_iterator.next(result);
+                if (has_next) {
+                    return result;
+                }
+                py::gil_scoped_acquire gil;
+                throw py::stop_iteration();
+            },
+            py::call_guard<py::gil_scoped_release>());
 
     py::class_<fdb5::PurgeIterator>(m, "PurgeIterator")
         .def("__iter__", [](fdb5::PurgeIterator& self) -> fdb5::PurgeIterator& { return self; })
-        .def("__next__", [](fdb5::PurgeIterator& purgeiterator) -> fdb5::PurgeElement {
-            fdb5::PurgeElement result{};
-            bool has_next = purgeiterator.next(result);
-            if (has_next) {
-                return result;
-            }
-            throw py::stop_iteration();
-        });
+        .def(
+            "__next__",
+            [](fdb5::PurgeIterator& purgeiterator) -> fdb5::PurgeElement {
+                fdb5::PurgeElement result{};
+                bool has_next = purgeiterator.next(result);
+                if (has_next) {
+                    return result;
+                }
+                py::gil_scoped_acquire gil;
+                throw py::stop_iteration();
+            },
+            py::call_guard<py::gil_scoped_release>());
 
     py::class_<fdb5::ControlIterator>(m, "ControlIterator")
         .def("__iter__", [](fdb5::ControlIterator& self) -> fdb5::ControlIterator& { return self; })
-        .def("__next__", [](fdb5::ControlIterator& status_iterator) -> fdb5::ControlElement {
-            fdb5::ControlElement result{};
-            bool has_next = status_iterator.next(result);
-            if (has_next) {
-                return result;
-            }
-            throw py::stop_iteration();
-        });
+        .def(
+            "__next__",
+            [](fdb5::ControlIterator& status_iterator) -> fdb5::ControlElement {
+                fdb5::ControlElement result{};
+                bool has_next = status_iterator.next(result);
+                if (has_next) {
+                    return result;
+                }
+                py::gil_scoped_acquire gil;
+                throw py::stop_iteration();
+            },
+            py::call_guard<py::gil_scoped_release>());
 
     py::class_<fdb5::StatsIterator>(m, "StatsIterator")
         .def("__iter__", [](fdb5::StatsIterator& self) -> fdb5::StatsIterator& { return self; })
-        .def("__next__", [](fdb5::StatsIterator& status_iterator) -> fdb5::StatsElement {
-            fdb5::StatsElement result{};
-            bool has_next = status_iterator.next(result);
-            if (has_next) {
-                return result;
-            }
-            throw py::stop_iteration();
-        });
+        .def(
+            "__next__",
+            [](fdb5::StatsIterator& status_iterator) -> fdb5::StatsElement {
+                fdb5::StatsElement result{};
+                bool has_next = status_iterator.next(result);
+                if (has_next) {
+                    return result;
+                }
+                py::gil_scoped_acquire gil;
+                throw py::stop_iteration();
+            },
+            py::call_guard<py::gil_scoped_release>());
 
     //--------------------------------------------------
     // @brief FDB class
     //--------------------------------------------------
 
-    py::class_<fdb5::FDB, py::smart_holder>(m, "FDB")
-        .def(py::init())
-        .def(py::init<const fdb5::Config&>())
-
-        .def("archive", [](fdb5::FDB& fdb, const char* data, const size_t length) { return fdb.archive(data, length); })
-        .def("archive",
-             [](fdb5::FDB& fdb, const std::vector<std::tuple<std::string, std::string>>& key, const char* data,
-                const size_t length) {
-                 fdb5::Key mapped_key{};
-                 for (const auto& [k, v] : key) {
-                     mapped_key.push(k, v);
-                 }
-                 return fdb.archive(mapped_key, data, length);
-             })
-        .def("flush", &fdb5::FDB::flush)
+    py::class_<fdb5::FDB, py::smart_holder>(m, "FDB", py::release_gil_before_calling_cpp_dtor())
+        .def(py::init(), py::call_guard<py::gil_scoped_release>())
+        .def(py::init<const fdb5::Config&>(), py::call_guard<py::gil_scoped_release>())
+        .def(
+            "archive", [](fdb5::FDB& fdb, const char* data, const size_t length) { return fdb.archive(data, length); },
+            py::call_guard<py::gil_scoped_release>())
+        .def(
+            "archive",
+            [](fdb5::FDB& fdb, const std::vector<std::tuple<std::string, std::string>>& key, const char* data,
+               const size_t length) {
+                fdb5::Key mapped_key{};
+                for (const auto& [k, v] : key) {
+                    mapped_key.push(k, v);
+                }
+                return fdb.archive(mapped_key, data, length);
+            },
+            py::call_guard<py::gil_scoped_release>())
+        .def("flush", &fdb5::FDB::flush, py::call_guard<py::gil_scoped_release>())
         .def("retrieve",
              [](fdb5::FDB& fdb, const std::map<std::string, std::vector<std::string>>& selection) {
-                 return fdb.retrieve(mars_requestfrom_map(selection));
+                 const auto mars_request = mars_request_from_map(selection);
+                 py::gil_scoped_release gil;
+                 return fdb.retrieve(mars_request);
              })
         .def("inspect",
              [](fdb5::FDB& fdb, const std::map<std::string, std::vector<std::string>>& selection) {
-                 return fdb.inspect(mars_requestfrom_map(selection));
+                 const auto mars_request = mars_request_from_map(selection);
+                 py::gil_scoped_release gil;
+                 return fdb.inspect(mars_request);
              })
-        .def("list", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request, bool deduplicate,
-                        int level) { return fdb.list(tool_request, deduplicate, level); })
-        .def("inspect", &fdb5::FDB::inspect)
-        .def("dump", &fdb5::FDB::dump)
-        .def("status", &fdb5::FDB::status)
-        .def("wipe", &fdb5::FDB::wipe)
-        .def("purge", &fdb5::FDB::purge)
-        .def("stats", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request) { return fdb.stats(tool_request); })
-        .def("control",
-             [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request, const fdb5::ControlAction& control_action,
-                const std::vector<fdb5::ControlIdentifier>& control_identifiers) {
-                 auto interal_control_identifiers = fdb5::ControlIdentifiers();
+        .def(
+            "list",
+            [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request, bool deduplicate, int level) {
+                return fdb.list(tool_request, deduplicate, level);
+            },
+            py::call_guard<py::gil_scoped_release>())
+        .def("inspect", &fdb5::FDB::inspect, py::call_guard<py::gil_scoped_release>())
+        .def("dump", &fdb5::FDB::dump, py::call_guard<py::gil_scoped_release>())
+        .def("status", &fdb5::FDB::status, py::call_guard<py::gil_scoped_release>())
+        .def("wipe", &fdb5::FDB::wipe, py::call_guard<py::gil_scoped_release>())
+        .def("purge", &fdb5::FDB::purge, py::call_guard<py::gil_scoped_release>())
+        .def(
+            "stats", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request) { return fdb.stats(tool_request); },
+            py::call_guard<py::gil_scoped_release>())
+        .def(
+            "control",
+            [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request, const fdb5::ControlAction& control_action,
+               const std::vector<fdb5::ControlIdentifier>& control_identifiers) {
+                auto internal_control_identifiers = fdb5::ControlIdentifiers();
 
-                 for (const auto& control_identifier : control_identifiers) {
-                     interal_control_identifiers |= control_identifier;
-                 }
-                 return fdb.control(tool_request, control_action, interal_control_identifiers);
-             })
-        .def("axes", &fdb5::FDB::axes)
-        .def("enabled", &fdb5::FDB::enabled)
-        .def("dirty", &fdb5::FDB::dirty)
-        .def("config", [](const fdb5::FDB& fdb) { return fdb.config(); })
+                for (const auto& control_identifier : control_identifiers) {
+                    internal_control_identifiers |= control_identifier;
+                }
+                return fdb.control(tool_request, control_action, internal_control_identifiers);
+            },
+            py::call_guard<py::gil_scoped_release>())
+        .def("axes", &fdb5::FDB::axes, py::call_guard<py::gil_scoped_release>())
+        .def("enabled", &fdb5::FDB::enabled, py::call_guard<py::gil_scoped_release>())
+        .def("dirty", &fdb5::FDB::dirty, py::call_guard<py::gil_scoped_release>())
+        .def(
+            "config", [](const fdb5::FDB& fdb) { return fdb.config(); },
+            pybind11::return_value_policy::reference_internal, py::call_guard<py::gil_scoped_release>())
         .def("__repr__", [](const fdb5::FDB& fdb) {
             std::stringstream buf;
             buf << fdb;

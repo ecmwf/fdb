@@ -99,7 +99,7 @@ jobs:
       - name: Archive with permissions preserved
         run: tar --zstd -cpf files.tar.zst dependencies/ ecbuild/
       - name: Upload dependencies
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: deps
           path: files.tar.zst
@@ -119,7 +119,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Download dependencies
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: deps
       - name: Extract with zstd
@@ -135,7 +135,7 @@ jobs:
         run: pip install -r fdb-src/requirements.txt
       - name: Build fdb
         run: |
-          export PATH=$(pwd)/dependencies/bin:$PATH
+          export PATH=$(pwd)/dependencies/bin:$(pwd)/fdb-build/bin:$PATH
           export ECCODES_HOME=$(pwd)/dependencies
           export FINDLIBS_DISABLE_PACKAGE=yes
           export FINDLIBS_DISABLE_PYTHON=yes
@@ -155,7 +155,7 @@ jobs:
           cd fdb-build
           ctest -j $(nproc) --output-on-failure
       - name: Upload wheel
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: z3fdb-wheel-py${{ matrix.python-version }}
           path: "fdb-build/z3fdb-*.whl"
