@@ -104,13 +104,11 @@ eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
         eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
     }
 
-    RemoteStore& store = RemoteStore::get(uri_);
-
     eckit::URI remote = RemoteFieldLocation::internalURI(uri_);
     std::unique_ptr<FieldLocation> loc(
         FieldLocationFactory::instance().build(remote.scheme(), remote, offset_, length_, remapKey_));
 
-    return store.dataHandle(*loc);
+    return RemoteStore::get(uri_).dataHandle(*loc);
 }
 
 void RemoteFieldLocation::visit(FieldLocationVisitor& visitor) const {

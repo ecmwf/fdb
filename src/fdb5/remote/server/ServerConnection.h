@@ -139,6 +139,8 @@ protected:
     virtual bool remove(bool control, uint32_t clientID) = 0;
 
     Config config_;
+    Config innerConfig_;
+
     std::string dataListenHostname_;
 
     eckit::Queue<readLocationElem> readLocationQueue_;
