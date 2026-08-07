@@ -4,45 +4,27 @@ from pathlib import Path
 import git
 import pytest
 
+from fdb_e2e.conftest import ALL_LOCAL_SPECS
 
-def get_git_root(path) -> Path:
+
+def _get_git_root(path) -> Path:
     git_repo = git.Repo(path, search_parent_directories=True)
-    git_root = git_repo.git.rev_parse("--show-toplevel")
-    return Path(git_root)
+    return Path(git_repo.git.rev_parse("--show-toplevel"))
 
 
-def search_no_subtoc_test_sh_files(case: str):
-    return sorted(
-        (
-            get_git_root(__file__)
-            / "tests"
-            / "fdb_e2e"
-            / "tool_tests"
-            / "no_subtocs"
-            / case
-        ).glob("*.sh")
-    )
+def _tool_tests_dir() -> Path:
+    return _get_git_root(__file__) / "tests" / "fdb_e2e" / "tool_tests"
 
 
-def search_subtoc_test_sh_files(case: str):
-    return sorted(
-        (
-            get_git_root(__file__)
-            / "tests"
-            / "fdb_e2e"
-            / "tool_tests"
-            / "subtocs"
-            / case
-        ).glob("*.sh")
-    )
+def search_scripts(case: str, subtocs: bool) -> list[Path]:
+    """Return sorted shell scripts for *case* in the no_subtocs or subtocs directory."""
+    subdir = "subtocs" if subtocs else "no_subtocs"
+    return sorted((_tool_tests_dir() / subdir / case).glob("*.sh"))
 
 
 @pytest.fixture(scope="function")
 def test_data_path() -> pathlib.Path:
-    """
-    Provides path to test data
-    """
-
+    """Provides path to test data (resolved via git root)."""
     git_repo = git.Repo(__file__, search_parent_directories=True)
     git_root = pathlib.Path(git_repo.git.rev_parse("--show-toplevel"))
     path = git_root / "tests" / "fdb_e2e" / "data"
@@ -50,64 +32,58 @@ def test_data_path() -> pathlib.Path:
     return path
 
 
+# Cases whose scripts live under no_subtocs/<case>/ and subtocs/<case>/.
+_CASES = ["info", "hide", "grib2fdb5", "list", "purge", "read", "root", "wipe", "write"]
+
+
+def _make_script_params(case: str) -> list:
+    """
+    Build pytest.param entries pairing each FdbEnvSpec with the scripts that
+    match its subtoc mode.  Only valid (spec, script) combinations are
+    generated — no cartesian product, no runtime skips.
+
+    ID format: ``{spec.id}::{script.name}``  e.g. ``simple::simple.sh``.
+    The ``::`` separator makes the FDB-env portion visually distinct from the
+    shell script name in pytest -v output and --collect-only listings.
+    """
+    params = []
+    for spec in ALL_LOCAL_SPECS:
+        for script in search_scripts(case, subtocs=spec.subtocs):
+            params.append(
+                pytest.param(
+                    spec,
+                    script,
+                    id=f"{spec.id}::{script.name}",
+                    marks=spec.marks,
+                )
+            )
+    return params
+
+
 def pytest_generate_tests(metafunc):
-    for case in [
-        "info",
-        "hide",
-        "grib2fdb5",
-        "list",
-        "purge",
-        "read",
-        "root",
-        "wipe",
-        "write",
-    ]:
-        if f"{case}_no_subtoc_script" in metafunc.fixturenames:
-            # Collect your elements here
-            elements = search_no_subtoc_test_sh_files(case)
-            metafunc.parametrize(
-                f"{case}_no_subtoc_script",
-                elements,
-                ids=[str(e.name) for e in elements],
-            )
+    for case in _CASES:
+        script_param = f"{case}_script"
+        if script_param not in metafunc.fixturenames:
+            continue
 
-        if f"{case}_subtoc_script" in metafunc.fixturenames:
-            elements = search_subtoc_test_sh_files(case)
-            metafunc.parametrize(
-                f"{case}_subtoc_script", elements, ids=[str(e.name) for e in elements]
-            )
+        params = _make_script_params(case)
+        # fdb_env is indirect: pytest passes the FdbEnvSpec as request.param
+        metafunc.parametrize(["fdb_env", script_param], params, indirect=["fdb_env"])
 
-    # TODO(TKR): Handle overlay/wipe.sh separately due to FDB-652
-    # Once the issue is fixed the lines below can be delete and "overlay" can be added to the case list
-    # above
-    if "overlay_no_subtoc_script" in metafunc.fixturenames:
-        # Collect your elements here
-        elements = search_no_subtoc_test_sh_files("overlay")
-
-        marked_elements = []
-        for el in elements:
-            if "wipe.sh" in str(el):
-                marked_elements.append(pytest.param(el, marks=[pytest.mark.xfail]))
-            else:
-                marked_elements.append(el)
-
-        metafunc.parametrize(
-            "overlay_no_subtoc_script",
-            marked_elements,
-            ids=[str(e.name) for e in elements],
-        )
-
-    if "overlay_subtoc_script" in metafunc.fixturenames:
-        elements = search_subtoc_test_sh_files("overlay")
-        marked_elements = []
-        for el in elements:
-            if "wipe.sh" in str(el):
-                marked_elements.append(pytest.param(el, marks=[pytest.mark.xfail]))
-            else:
-                marked_elements.append(el)
-
-        metafunc.parametrize(
-            "overlay_subtoc_script",
-            marked_elements,
-            ids=[str(e.name) for e in elements],
-        )
+    # Overlay is handled separately: wipe.sh is xfail pending FDB-652.
+    if "overlay_script" in metafunc.fixturenames:
+        params = []
+        for spec in ALL_LOCAL_SPECS:
+            for script in search_scripts("overlay", subtocs=spec.subtocs):
+                marks = list(spec.marks)
+                if script.name == "wipe.sh":
+                    marks.append(pytest.mark.xfail)  # TODO(TKR): FDB-652
+                params.append(
+                    pytest.param(
+                        spec,
+                        script,
+                        id=f"{spec.id}::{script.name}",
+                        marks=marks,
+                    )
+                )
+        metafunc.parametrize(["fdb_env", "overlay_script"], params, indirect=["fdb_env"])
