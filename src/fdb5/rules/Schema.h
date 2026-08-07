@@ -40,6 +40,7 @@ namespace fdb5 {
 
 class Key;
 class ReadVisitor;
+class SelectMatcher;
 class WriteVisitor;
 class TypesRegistry;
 
@@ -67,7 +68,7 @@ public:  // methods
     // match
 
     void matchDatabase(const metkit::mars::MarsRequest& request, std::map<Key, const Rule*>& result,
-                       const char* missing) const;
+                       const char* missing, const SelectMatcher* matcher = nullptr) const;
 
     void matchDatabase(const Key& dbKey, std::map<Key, const Rule*>& result, const char* missing) const;
 
