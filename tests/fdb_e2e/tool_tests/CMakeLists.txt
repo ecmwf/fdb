@@ -27,22 +27,18 @@ endfunction()
 
 set(operation_markers info hide grib2fdb list purge read root wipe write overlay)
 
+# config_markers selects the set of FdbEnvSpec IDs to exercise.
+# All configs (subtoc and no-subtoc) are covered by a single run of
+# test_fdb_tools.py — pytest_generate_tests in tool_tests/conftest.py
+# generates only valid (spec, script) pairs so no combinations are skipped.
 if(HAVE_PYTHON_EXTENDED_FDB_TOOL_TESTS)
-    set(no_subtoc_config_markers simple yaml files json yaml_mars_disks yaml_tools json_tools)
-    set(subtoc_config_markers simple files)
+    set(config_markers simple yaml files json yaml_mars_disks yaml_tools json_tools)
 else()
-    set(no_subtoc_config_markers simple yaml)
-    set(subtoc_config_markers simple)
+    set(config_markers simple yaml)
 endif()
 
-foreach(config_marker ${no_subtoc_config_markers})
+foreach(config_marker ${config_markers})
     foreach(op_marker ${operation_markers})
-        add_py_test_marker_combo(test_fdb_no_subtocs.py ${config_marker} ${op_marker})
-    endforeach()
-endforeach()
-
-foreach(config_marker ${subtoc_config_markers})
-    foreach(op_marker ${operation_markers})
-        add_py_test_marker_combo(test_fdb_subtocs.py ${config_marker} ${op_marker})
+        add_py_test_marker_combo(test_fdb_tools.py ${config_marker} ${op_marker})
     endforeach()
 endforeach()

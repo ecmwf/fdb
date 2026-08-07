@@ -35,6 +35,7 @@ def run_script(script: Path, args: Optional[list[str]], cwd: str, env: dict[str,
     process.wait()
 
     if process.returncode != 0:
+        logging.debug(f"{stdout}")
         raise subprocess.CalledProcessError(
             returncode=process.returncode, cmd=command, output=stdout
         )
