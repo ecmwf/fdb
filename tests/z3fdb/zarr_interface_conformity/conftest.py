@@ -8,7 +8,7 @@
 
 import pytest
 
-from _mocks import build_deep_store
+from ._mocks import build_deep_store
 
 
 def pytest_configure(config):
