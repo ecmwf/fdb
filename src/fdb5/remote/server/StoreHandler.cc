@@ -148,6 +148,9 @@ void StoreHandler::read(uint32_t clientID, uint32_t requestID, const eckit::Buff
     std::unique_ptr<eckit::DataHandle> dh;
     dh.reset(location->dataHandle());
 
+    // send acknowledgement before Blob/Complete
+    write(Message::Received, true, clientID, requestID);
+
     readLocationQueue_.emplace(readLocationElem(clientID, requestID, std::move(dh)));
 }
 
