@@ -27,6 +27,12 @@ the MARS Archive.
    content/license
    genindex
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Development
+
+   e2e_tests/index
+
 .. |Licence| image:: https://img.shields.io/badge/License-Apache%202.0-blue.svg
    :target: https://github.com/ecmwf/fdb/blob/develop/LICENSE
    :alt: Apache Licence
