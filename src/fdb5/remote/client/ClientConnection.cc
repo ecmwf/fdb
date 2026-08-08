@@ -39,6 +39,15 @@ using namespace eckit::literals;
 
 namespace fdb5::remote {
 
+namespace {
+std::string msgHeader(MessageHeader& hdr, net::Endpoint& endpoint) {
+    std::ostringstream ss;
+    ss << (hdr.control() ? "CONTROL" : "DATA") << " connection=" << endpoint << " [message=" << hdr.message
+       << ",clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]";
+    return ss.str();
+}
+}  // namespace
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class DataWriteRequest {
@@ -56,6 +65,7 @@ public:
     Buffer data_;
 };
 
+//----------------------------------------------------------------------------------------------------------------------
 
 ClientConnection::ClientConnection(const net::Endpoint& controlEndpoint, const std::string& defaultEndpoint) :
     controlEndpoint_(controlEndpoint),
@@ -383,10 +393,8 @@ void ClientConnection::listeningControlThreadLoop() {
 
             Buffer payload = Connection::readControl(hdr);
 
-            LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningControlThreadLoop - got [message=" << hdr.message
-                                   << ",clientID=" << hdr.clientID() << ",control=" << hdr.control()
-                                   << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]"
-                                   << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningControlThreadLoop - "
+                                   << msgHeader(hdr, controlEndpoint_) << std::endl;
 
             if (hdr.message == Message::Exit) {
                 LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningControlThreadLoop() -- Control thread stopping"
@@ -394,12 +402,11 @@ void ClientConnection::listeningControlThreadLoop() {
                 return;
             }
             if (hdr.clientID()) {
-                bool handled = false;
 
                 ASSERT(hdr.control() || single_);
 
-                bool isPromise = false;
-                {
+                bool handled = false;
+                if (hdr.control() && (hdr.message == Message::Received || hdr.message == Message::Error)) {
                     // Hold promisesMutex_ only for the promise lookup/erase (NOT across handle(); risk a deadlock.
                     std::lock_guard lock(promisesMutex_);
 
@@ -421,20 +428,16 @@ void ClientConnection::listeningControlThreadLoop() {
                         }
                         promises_.erase(pp);
                         handled = true;
-                        isPromise = true;
                     }
                 }
-                if (!isPromise) {
+                if (!handled) {  // not the answer to a blocking request (a promise), so dispatch to the client
                     // Hold clientsMutex_ across the virtual dispatch too (not just the lookup)
                     std::lock_guard lock(clientsMutex_);
 
                     auto it = clients_.find(hdr.clientID());
                     if (it == clients_.end()) {
                         std::ostringstream ss;
-                        ss << "ERROR: CONTROL connection=" << controlEndpoint_
-                           << " received [clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID
-                           << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
-                        ss << "ClientID (" << hdr.clientID() << ") not found. ABORTING";
+                        ss << "ERROR: " << msgHeader(hdr, controlEndpoint_) << " - ClientID not found. ABORTING";
                         Log::status() << ss.str() << std::endl;
                         Log::error() << "Retrieving... " << ss.str() << std::endl;
                         throw SeriousBug(ss.str(), Here());
@@ -451,9 +454,9 @@ void ClientConnection::listeningControlThreadLoop() {
 
                 if (!handled) {
                     std::ostringstream ss;
+                    ss << "ERROR: " << msgHeader(hdr, controlEndpoint_);
                     if (hdr.message == Message::Error) {
-                        ss << "RemoteFDB received an unhandled error on CONTROL connection. [clientID="
-                           << hdr.clientID() << ",requestID=" << hdr.requestID << "]";
+                        ss << " - received an unhandled error";
                         if (hdr.payloadSize) {
                             std::string msg;
                             msg.resize(payload.size(), ' ');
@@ -462,9 +465,7 @@ void ClientConnection::listeningControlThreadLoop() {
                         }
                         throw RemoteFDBException(ss.str(), controlEndpoint_);
                     }
-                    ss << "ERROR: CONTROL connection=" << controlEndpoint_
-                       << "Unexpected message recieved [message=" << hdr.message << ",clientID=" << hdr.clientID()
-                       << ",requestID=" << hdr.requestID << "]. ABORTING";
+                    ss << " - received unexpected message. ABORTING";
                     Log::status() << ss.str() << std::endl;
                     Log::error() << "Client Retrieving... " << ss.str() << std::endl;
                     throw SeriousBug(ss.str(), Here());
@@ -499,8 +500,7 @@ void ClientConnection::listeningDataThreadLoop() {
 
             Buffer payload = Connection::readData(hdr);
 
-            LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningDataThreadLoop - got [message=" << hdr.message
-                                   << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]"
+            LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningDataThreadLoop - " << msgHeader(hdr, dataEndpoint_)
                                    << std::endl;
 
             if (hdr.message == Message::Exit) {
@@ -515,10 +515,7 @@ void ClientConnection::listeningDataThreadLoop() {
                 auto it = clients_.find(hdr.clientID());
                 if (it == clients_.end()) {
                     std::ostringstream ss;
-                    ss << "ERROR: DATA connection=" << dataEndpoint_ << " received [clientID=" << hdr.clientID()
-                       << ",requestID=" << hdr.requestID << ",message=" << hdr.message << ",payload=" << hdr.payloadSize
-                       << "]" << std::endl;
-                    ss << "ClientID (" << hdr.clientID() << ") not found. ABORTING";
+                    ss << "ERROR: " << msgHeader(hdr, dataEndpoint_) << " - ClientID not found. ABORTING";
                     Log::status() << ss.str() << std::endl;
                     Log::error() << "Retrieving... " << ss.str() << std::endl;
                     throw SeriousBug(ss.str(), Here());
@@ -536,9 +533,9 @@ void ClientConnection::listeningDataThreadLoop() {
 
                 if (!handled) {
                     std::ostringstream ss;
+                    ss << "ERROR: " << msgHeader(hdr, dataEndpoint_);
                     if (hdr.message == Message::Error) {
-                        ss << "RemoteFDB received an unhandled error on DATA connection. [clientID=" << hdr.clientID()
-                           << ",requestID=" << hdr.requestID << "]";
+                        ss << " - received an unhandled error";
                         if (hdr.payloadSize) {
                             std::string msg;
                             msg.resize(payload.size(), ' ');
@@ -547,8 +544,7 @@ void ClientConnection::listeningDataThreadLoop() {
                         }
                         throw RemoteFDBException(ss.str(), dataEndpoint_);
                     }
-                    ss << "ERROR: DATA connection=" << dataEndpoint_ << " Unexpected message recieved (" << hdr.message
-                       << "). ABORTING";
+                    ss << " - received unexpected message. ABORTING";
                     Log::status() << ss.str() << std::endl;
                     Log::error() << "Client Retrieving... " << ss.str() << std::endl;
                     throw SeriousBug(ss.str(), Here());

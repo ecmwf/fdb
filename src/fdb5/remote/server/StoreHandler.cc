@@ -148,6 +148,9 @@ void StoreHandler::read(uint32_t clientID, uint32_t requestID, const eckit::Buff
     std::unique_ptr<eckit::DataHandle> dh;
     dh.reset(location->dataHandle());
 
+    // send acknowledgement before Blob/Complete
+    write(Message::Received, true, clientID, requestID);
+
     readLocationQueue_.emplace(readLocationElem(clientID, requestID, std::move(dh)));
 }
 
@@ -471,7 +474,7 @@ void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t req
     outStream << storeState->unrecognisedURIs();
     outStream << storeState->missingURIs();
 
-    write(Message::Wipe, true, clientID, requestID, outBuffer.data(), outStream.position());
+    write(Message::Received, true, clientID, requestID, outBuffer.data(), outStream.position());
 
     // keep state for doWipeURIs
     if (doit) {
