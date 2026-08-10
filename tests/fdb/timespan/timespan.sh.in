@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
-set -eux
+set -euxo pipefail
 
 export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
 export FDB_HOME=@PROJECT_BINARY_DIR@
 
 function post_process {
   num=0
-  while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+  while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; true; done | sort
 }
 
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
@@ -37,7 +37,7 @@ class=e6,expver=5659,stream=oper,date=20161230,type=fc,levtype=sfc,time=1800,ste
 EOF
 
 cat > content.inst <<EOF
-{ "messages" : [ 
+{ "messages" : [
   {
     "domain": "g",
     "date": 20161230,
@@ -81,7 +81,7 @@ cat > content.inst <<EOF
 EOF
 
 cat > content.1h <<EOF
-{ "messages" : [ 
+{ "messages" : [
   {
     "domain": "g",
     "date": 20161230,
@@ -283,4 +283,3 @@ fdb-read 1h.req out.grib
 grib_ls -jm out.grib           | post_process | tee out
 cat content.1h                 | post_process | tee 1h
 diff out 1h
-
