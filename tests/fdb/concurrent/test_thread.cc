@@ -77,7 +77,7 @@ std::vector<int> run_threads(const size_t count, const ThreadWorker& worker) {
 /// Assert (on the main thread) that every worker thread succeeded.
 void expect_workers_ok(const std::vector<int>& results) {
     for (auto result : results) {
-        EXPECT(result == 0);
+        EXPECT_EQUAL(result, 0);
     }
 }
 
@@ -94,7 +94,7 @@ CASE("Multi-thread: archive (one FDB per thread)") {
     expect_workers_ok(run_threads(count, [](auto wid) { return worker_archive(wid); }));
 
     fdb5::FDB fdb;
-    EXPECT(list_steps(fdb) == expected_steps(count));
+    EXPECT_EQUAL(list_steps(fdb), expected_steps(count));
     for (int worker = 0; worker < count; ++worker) {
         for (int seq = 0; seq < k_seq_per_worker; ++seq) {
             EXPECT(retrieve_equals(fdb, make_key(worker, seq), make_data(worker, seq)));
@@ -123,7 +123,7 @@ CASE("Multi-thread: archive (shared FDB)") {
     shared.flush();
 
     fdb5::FDB fdb;
-    EXPECT(list_steps(fdb) == expected_steps(count));
+    EXPECT_EQUAL(list_steps(fdb), expected_steps(count));
     for (int worker = 0; worker < count; ++worker) {
         for (int seq = 0; seq < k_seq_per_worker; ++seq) {
             EXPECT(retrieve_equals(fdb, make_key(worker, seq), make_data(worker, seq)));
@@ -164,7 +164,7 @@ CASE("Multi-thread: list") {
     expect_workers_ok(run_threads(count, [](auto wid) { return worker_list(wid); }));
 
     fdb5::FDB fdb;
-    EXPECT(list_steps(fdb) == expected_steps(count));
+    EXPECT_EQUAL(list_steps(fdb), expected_steps(count));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -178,7 +178,7 @@ CASE("Multi-thread: axes") {
     expect_workers_ok(run_threads(count, [count](auto) { return worker_axes(count); }));
 
     fdb5::FDB fdb;
-    EXPECT(axes_steps(fdb) == expected_steps(count));
+    EXPECT_EQUAL(axes_steps(fdb), expected_steps(count));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -264,7 +264,7 @@ CASE("Multi-thread: concurrent archive + flush (shared FDB)") {
     EXPECT(flush_count.load(std::memory_order_relaxed) > 0);
 
     fdb5::FDB fdb;
-    EXPECT(list_steps(fdb) == expected_steps(count));
+    EXPECT_EQUAL(list_steps(fdb), expected_steps(count));
     for (int worker = 0; worker < count; ++worker) {
         for (int seq = 0; seq < k_seq_per_worker; ++seq) {
             EXPECT(retrieve_equals(fdb, make_key(worker, seq), make_data(worker, seq)));

@@ -38,7 +38,7 @@ CASE("Multi-process: archive") {
 
     // The union of all slices must be present and retrievable exactly.
     fdb5::FDB fdb;
-    EXPECT(list_steps(fdb) == expected_steps(count));
+    EXPECT_EQUAL(list_steps(fdb), expected_steps(count));
     for (int worker = 0; worker < count; ++worker) {
         for (int seq = 0; seq < k_seq_per_worker; ++seq) {
             EXPECT(retrieve_equals(fdb, make_key(worker, seq), make_data(worker, seq)));
@@ -83,7 +83,7 @@ CASE("Multi-process: list") {
 
     // The parent sees the complete set of steps.
     fdb5::FDB fdb;
-    EXPECT(list_steps(fdb) == expected_steps(count));
+    EXPECT_EQUAL(list_steps(fdb), expected_steps(count));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -98,7 +98,7 @@ CASE("Multi-process: axes") {
     EXPECT(fork_and_exec(count, {"--fn=axes"}));
 
     fdb5::FDB fdb;
-    EXPECT(axes_steps(fdb) == expected_steps(count));
+    EXPECT_EQUAL(axes_steps(fdb), expected_steps(count));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
