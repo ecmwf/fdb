@@ -665,7 +665,7 @@ std::vector<eckit::PathName> RootManager::visitableRoots(const metkit::mars::Mar
 
     std::map<Key, const Rule*> results;
     std::set<Key> keys;
-    config_.schema().matchDatabase(request, results, "");
+    config_.schema().matchDatabase(request, results, "", config_.matcher());
     for (const auto& [key, rule] : results) {
         keys.insert(key);
     }
