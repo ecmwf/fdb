@@ -44,8 +44,7 @@ static FDBBuilder<SelectFDB> selectFdbBuilder("select");
 //----------------------------------------------------------------------------------------------------------------------
 
 SelectFDB::FDBLane::FDBLane(const eckit::LocalConfiguration& config) : config_(config), fdb_(nullptr) {
-    auto matcher = std::make_unique<SelectMatcher>(config);
-    config_.setMatcher(std::move(matcher));
+    config_.setMatcher(std::make_unique<SelectMatcher>(config));
 }
 
 template <typename T>  // T is either a MarsRequest or Key
