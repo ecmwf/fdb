@@ -26,15 +26,12 @@
 #include "eckit/log/Log.h"
 #include "eckit/utils/Tokenizer.h"
 
-#include "metkit/mars/Matcher.h"
-
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/WriteVisitor.h"
 #include "fdb5/rules/Predicate.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/rules/SchemaParser.h"
-#include "fdb5/rules/SelectMatcher.h"
 #include "fdb5/types/Type.h"
 #include "fdb5/types/TypesRegistry.h"
 
@@ -163,21 +160,10 @@ void Schema::matchDatabase(const Key& dbKey, std::map<Key, const Rule*>& result,
 }
 
 void Schema::matchDatabase(const metkit::mars::MarsRequest& request, std::map<Key, const Rule*>& result,
-                           const char* missing, const SelectMatcher* matcher) const {
+                           const char* missing) const {
     for (const auto& rule : rules_) {
         const auto keys = rule->findMatchingKeys(request, missing);
         for (const auto& k : keys) {
-            if (matcher) {
-                metkit::mars::MarsRequest req(request);
-                for (const auto& [keyword, value] : k) {
-                    if (!value.empty() && !request.has(keyword)) {
-                        req.setValue(keyword, value);
-                    }
-                }
-                if (!matcher->match(req, metkit::mars::Matcher::MatchOnMissing)) {
-                    continue;
-                }
-            }
             result[k] = rule.get();
         }
     }
