@@ -8,7 +8,7 @@ if [[ $# -lt 5 ]]; then
     exit 1
 fi
 
-set -eux
+set -euxo pipefail
 
 testdir=$1
 client_config="$testdir/$2"
