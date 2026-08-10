@@ -1,0 +1,26 @@
+---
+type: select
+schema: ./schema
+fdbs:
+- select: stream=oper
+  type: local
+  engine: toc
+  spaces:
+  - handler: Default
+    roots:
+    - path: ./root
+      list: true
+      retrieve: true
+      archive: true
+      wipe: true
+- select: stream=dcda
+  type: local
+  engine: toc
+  spaces:
+  - handler: Default
+    roots:
+    - path: ./root
+      list: true
+      retrieve: true
+      archive: true
+      wipe: true
