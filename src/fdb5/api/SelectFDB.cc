@@ -14,19 +14,25 @@
  */
 
 #include "fdb5/api/SelectFDB.h"
-#include <sstream>
-#include <vector>
-#include "eckit/log/CodeLocation.h"
-#include "eckit/log/Log.h"
+
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListIterator.h"
-#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/WipeState.h"
 #include "fdb5/rules/SelectMatcher.h"
+
+#include "metkit/mars/Matcher.h"
+
+#include "eckit/log/CodeLocation.h"
+#include "eckit/log/Log.h"
+
+#include <memory>
+#include <sstream>
+#include <utility>
+#include <vector>
 
 using namespace eckit;
 using namespace metkit::mars;
