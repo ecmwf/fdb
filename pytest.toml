@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
+
 # This is needed to resolve the correct paths in test module for pytest
 # Otherwise the test folder (which carry the same names as the modules) clash
 # due to the prepending nature of pytests import

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
+
 # libfdb5.so and ependencies have to be loaded prior to importing
 # pychunked_data_view
 import findlibs
