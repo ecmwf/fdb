@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2025 European Centre for Medium-Range Weather Forecasts (ECMWF)
 # SPDX-License-Identifier: Apache-2.0
-zarr>=3,<4
+zarr==3.1.6
 numpy
 pytest
 pytest-asyncio
