@@ -129,7 +129,9 @@ private:  // methods
 
             // If we are in the DataHandle, then there MUST be data to read
             RemoteStore::StoredMessage msg = std::make_pair(remote::Message{}, eckit::Buffer{0});
+            // eckit::Log::info() << "RemoteDataHandle::read() -- popping next" << std::endl;
             ASSERT(queue_->pop(msg) != -1);
+            // eckit::Log::info() << "RemoteDataHandle::read() -- popped next" << std::endl;
 
             // Handle any remote errors communicated from the server
             if (msg.first == Message::Error) {
@@ -139,14 +141,15 @@ private:  // methods
 
             // Are we now complete?
             if (msg.first == Message::Complete) {
+                // eckit::Log::info() << "RemoteDataHandle::read() -- Got Message::Complete" << std::endl;
                 complete_ = true;
                 ReadLimiter::instance().finishRequest(clientID_, requestID_);
                 return total;
             }
 
-            // Otherwise return the data!
             ASSERT(msg.first == Message::Blob);
 
+            // Otherwise return the data!
             std::swap(currentBuffer_, msg.second);
 
             n = bufferRead(p, sz);
@@ -162,6 +165,7 @@ private:  // methods
 
     long bufferRead(void* pos, long sz) {
 
+
         ASSERT(currentBuffer_.size() != 0);
         ASSERT(pos_ < currentBuffer_.size());
 
@@ -172,6 +176,7 @@ private:  // methods
         overallPosition_ += read;
 
         // If we have exhausted this buffer, free it up.
+
         if (pos_ >= currentBuffer_.size()) {
             Buffer nullBuffer(0);
             std::swap(currentBuffer_, nullBuffer);
