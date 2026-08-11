@@ -474,7 +474,7 @@ void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t req
     outStream << storeState->unrecognisedURIs();
     outStream << storeState->missingURIs();
 
-    write(Message::Wipe, true, clientID, requestID, outBuffer.data(), outStream.position());
+    write(Message::Received, true, clientID, requestID, outBuffer.data(), outStream.position());
 
     // keep state for doWipeURIs
     if (doit) {

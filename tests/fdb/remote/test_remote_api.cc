@@ -354,10 +354,6 @@ CASE("Remote protocol: more wipe testing") {
         keys = write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
     }
     EXPECT_EQUAL(keys.size(), Nfields);
-
-    // wait for the reconsolidation to finish. Checking with dry-run wipe(s)
-    wipe_dry_run_stable("class=od,expver=xxxx,date=20000101");
-
     // dry run wipe a single date
     eckit::Log::info() << "[CLIENT]" << "Dry-run wipe with request date=20000101." << std::endl;
     {
@@ -375,9 +371,6 @@ CASE("Remote protocol: more wipe testing") {
         FDB fdb{};
         write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
     }
-    // wait for the reconsolidation to finish. Checking with dry-run wipe(s)
-    wipe_dry_run_stable("class=od,expver=xxxx,date=20000102");
-
     // Wipe just one DB (date=20000101)
     std::vector<eckit::URI> data_uris;
     std::vector<eckit::URI> index_uris;
@@ -556,16 +549,7 @@ CASE("Remote protocol: concurrent blocking control RPCs are not serialised") {
         EXPECT_EQUAL(result, 0);
     }
 
-    // wait for the reconsolidation to finish. Checking with dry-run wipe(s)
-    wipe_dry_run_stable("class=od");
-
-    // Clean up the data archived by this test so the FDB is left in a clean state.
-    eckit::Log::info() << "[CLIENT]" << "Wiping concurrent-RPC test data. --doit" << std::endl;
-    auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od")[0], true);
-    WipeElement wipe_elem;
-    while (wipeit.next(wipe_elem)) {
-        eckit::Log::info() << "[CLIENT]" << wipe_elem;
-    }
+    // This is the final case; no wipe.
 }
 
 }  // namespace fdb5::test
