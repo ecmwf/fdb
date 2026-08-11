@@ -274,6 +274,9 @@ CASE("Remote protocol: the basics") {
         EXPECT_EQUAL(count, Nfields);
     }
 
+    // wait for the reconsolidation to finish. Checking with dry-run wipe(s)
+    wipe_dry_run_stable("date=20000101");
+
     // Wipe, with doit=true
     eckit::Log::info() << "[CLIENT]" << "Wiping with request date=20000101. --doit" << std::endl;
     {
@@ -351,6 +354,10 @@ CASE("Remote protocol: more wipe testing") {
         keys = write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
     }
     EXPECT_EQUAL(keys.size(), Nfields);
+
+    // wait for the reconsolidation to finish. Checking with dry-run wipe(s)
+    wipe_dry_run_stable("class=od,expver=xxxx,date=20000101");
+
     // dry run wipe a single date
     eckit::Log::info() << "[CLIENT]" << "Dry-run wipe with request date=20000101." << std::endl;
     {
@@ -368,6 +375,9 @@ CASE("Remote protocol: more wipe testing") {
         FDB fdb{};
         write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
     }
+    // wait for the reconsolidation to finish. Checking with dry-run wipe(s)
+    wipe_dry_run_stable("class=od,expver=xxxx,date=20000102");
+
     // Wipe just one DB (date=20000101)
     std::vector<eckit::URI> data_uris;
     std::vector<eckit::URI> index_uris;
@@ -502,7 +512,6 @@ CASE("Remote protocol: concurrent blocking control RPCs are not serialised") {
         keys = write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
     }
     EXPECT_EQUAL(keys.size(), nfields);
-    std::this_thread::sleep_for(std::chrono::seconds(2));  // Ensure server has flushed consolidated indexes.
 
     const size_t nthreads = 8;
     const size_t niterations = 20;
@@ -547,33 +556,11 @@ CASE("Remote protocol: concurrent blocking control RPCs are not serialised") {
         EXPECT_EQUAL(result, 0);
     }
 
+    // wait for the reconsolidation to finish. Checking with dry-run wipe(s)
+    wipe_dry_run_stable("class=od");
+
     // Clean up the data archived by this test so the FDB is left in a clean state.
     eckit::Log::info() << "[CLIENT]" << "Wiping concurrent-RPC test data. --doit" << std::endl;
-    const auto wait = std::chrono::milliseconds(250);
-
-    std::map<WipeElementType, size_t> element_counts;
-    for (size_t attempt = 0; attempt < 80; ++attempt) {
-        element_counts.clear();
-
-        std::this_thread::sleep_for(wait);
-
-        auto wipe = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od")[0], false);
-        WipeElement wipe_elem;
-        while (wipe.next(wipe_elem)) {
-            eckit::Log::info() << "[CLIENT]" << wipe_elem;
-            element_counts[wipe_elem.type()] += wipe_elem.uris().size();
-        }
-
-        if (element_counts[WipeElementType::UNKNOWN] == 0) {
-            break;
-        }
-    }
-
-    if (element_counts[WipeElementType::UNKNOWN] != 0) {
-        eckit::Log::error() << "[CLIENT]" << "FDB not reconsolidated after " << 80 * wait.count() << "ms" << std::endl;
-        EXPECT(false);
-    }
-
     auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od")[0], true);
     WipeElement wipe_elem;
     while (wipeit.next(wipe_elem)) {

@@ -134,24 +134,6 @@ bool check_non_empty(size_t count, size_t thread_index, const char* operation) {
     return true;
 }
 
-bool wait_for_write_finished(const FDBToolRequest& request, size_t expected, size_t max_attempts) {
-    constexpr auto retry_interval = std::chrono::milliseconds(100);
-    size_t count = 0;
-    for (size_t attempt = 0; attempt < max_attempts; ++attempt) {
-        auto list = FDB{}.list(request, true);
-        count = count_elements<ListElement>(list);
-        if (count == expected) {
-            return true;
-        }
-        if (attempt + 1 < max_attempts) {
-            std::this_thread::sleep_for(retry_interval);
-        }
-    }
-    eckit::Log::error() << "[CLIENT] Failed to find " << expected << " archived fields after " << max_attempts
-                        << " attempts; got " << count << '\n';
-    return false;
-}
-
 /// Read an integer environment variable, falling back to @p fallback if unset/invalid.
 int env_int(const char* name, int fallback) {
     if (const char* value = ::getenv(name)) {
@@ -173,6 +155,34 @@ int iteration_count() {
     return std::max(1, env_int("TEST_FDB_STRESS_ITERATIONS", 20));
 }
 
+
+// Server-side subtoc consolidation happens when a writer's DB session closes, which is triggered by a
+// fire-and-forget "Stop" message, so it can race with a subsequent dry-run wipe.
+// retry while the catalogue still reports un-consolidated ("unexpected"/UNKNOWN) entries, up to a bounded timeout.
+std::map<WipeElementType, size_t> wipe_dry_run_stable(const std::string& request) {
+
+    const auto wait = std::chrono::milliseconds(250);
+
+    std::map<WipeElementType, size_t> element_counts;
+    for (size_t attempt = 0; attempt < 80; ++attempt) {
+        element_counts.clear();
+
+        auto wipe = FDB{}.wipe(FDBToolRequest::requestsFromString(request)[0], false);
+        WipeElement wipe_elem;
+        while (wipe.next(wipe_elem)) {
+            eckit::Log::info() << "[CLIENT]" << wipe_elem;
+            element_counts[wipe_elem.type()] += wipe_elem.uris().size();
+        }
+
+        if (element_counts[WipeElementType::UNKNOWN] == 0) {
+            return element_counts;
+        }
+        std::this_thread::sleep_for(wait);
+    }
+    eckit::Log::error() << "[CLIENT] Failed to reach stable state after 80 attempts.\n";
+    return element_counts;
+}
+
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -191,7 +201,6 @@ CASE("Remote protocol (single connection): concurrent List/Inspect/Stats/Axes/Wi
     const auto request = make_request(keys);
     const auto tool_request = FDBToolRequest{request};
     const size_t n_iterations = iteration_count();
-    EXPECT(wait_for_write_finished(tool_request, n_fields, n_iterations));
 
     const size_t n_threads = thread_count();
     constexpr int axes_depth = 3;
@@ -248,6 +257,9 @@ CASE("Remote protocol (single connection): concurrent List/Inspect/Stats/Axes/Wi
     for (auto result : results) {
         EXPECT_EQUAL(result, 0);
     }
+
+    // wait for the reconsolidation to finish. Checking with dry-run wipe(s)
+    wipe_dry_run_stable("class=od");
 
     // Clean up
     eckit::Log::info() << "[CLIENT]" << "Wiping single-connection stress test data. --doit" << std::endl;
