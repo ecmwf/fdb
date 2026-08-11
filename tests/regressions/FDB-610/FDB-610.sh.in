@@ -6,7 +6,7 @@
 # and retrieved field is done to check for correct retrieval. Retrieved data
 # needs to be 2x the bytes of the data available.
 
-set -ex
+set -exo pipefail
 
 export FDB_HOME=@CMAKE_CURRENT_BINARY_DIR@
 export FDB_DEBUG=1
