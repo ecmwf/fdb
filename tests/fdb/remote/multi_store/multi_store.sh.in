@@ -19,7 +19,7 @@ server_pidfile=$testdir/servers.pid
 server="$<TARGET_FILE:fdb-server>"
 test="$<TARGET_FILE:fdb_test_multi_store>"
 
-SERVER_LIFETIME=300
+SERVER_LIFETIME=600
 
 cleanup() {
     if [[ -f $server_pidfile ]]; then

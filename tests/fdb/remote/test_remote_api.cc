@@ -274,6 +274,9 @@ CASE("Remote protocol: the basics") {
         EXPECT_EQUAL(count, Nfields);
     }
 
+    // wait for the reconsolidation to finish. Checking with dry-run wipe(s)
+    wipe_dry_run_stable("date=20000101");
+
     // Wipe, with doit=true
     eckit::Log::info() << "[CLIENT]" << "Wiping with request date=20000101. --doit" << std::endl;
     {
@@ -502,7 +505,6 @@ CASE("Remote protocol: concurrent blocking control RPCs are not serialised") {
         keys = write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
     }
     EXPECT_EQUAL(keys.size(), nfields);
-    std::this_thread::sleep_for(std::chrono::seconds(2));  // Ensure server has flushed consolidated indexes.
 
     const size_t nthreads = 8;
     const size_t niterations = 20;
@@ -546,6 +548,9 @@ CASE("Remote protocol: concurrent blocking control RPCs are not serialised") {
     for (auto result : results) {
         EXPECT_EQUAL(result, 0);
     }
+
+    // wait for the reconsolidation to finish. Checking with dry-run wipe(s)
+    wipe_dry_run_stable("class=od");
 
     // Clean up the data archived by this test so the FDB is left in a clean state.
     eckit::Log::info() << "[CLIENT]" << "Wiping concurrent-RPC test data. --doit" << std::endl;
