@@ -134,6 +134,24 @@ bool check_non_empty(size_t count, size_t thread_index, const char* operation) {
     return true;
 }
 
+bool wait_for_write_finished(const FDBToolRequest& request, size_t expected, size_t max_attempts) {
+    constexpr auto retry_interval = std::chrono::milliseconds(100);
+    size_t count = 0;
+    for (size_t attempt = 0; attempt < max_attempts; ++attempt) {
+        auto list = FDB{}.list(request, true);
+        count = count_elements<ListElement>(list);
+        if (count == expected) {
+            return true;
+        }
+        if (attempt + 1 < max_attempts) {
+            std::this_thread::sleep_for(retry_interval);
+        }
+    }
+    eckit::Log::error() << "[CLIENT] Failed to find " << expected << " archived fields after " << max_attempts
+                        << " attempts; got " << count << '\n';
+    return false;
+}
+
 /// Read an integer environment variable, falling back to @p fallback if unset/invalid.
 int env_int(const char* name, int fallback) {
     if (const char* value = ::getenv(name)) {
@@ -170,14 +188,12 @@ CASE("Remote protocol (single connection): concurrent List/Inspect/Stats/Axes/Wi
     }
     EXPECT_EQUAL(keys.size(), n_fields);
 
-    constexpr auto flush_delay = std::chrono::seconds(2);
-    std::this_thread::sleep_for(flush_delay);  // Ensure server has flushed consolidated indexes.
-
     const auto request = make_request(keys);
     const auto tool_request = FDBToolRequest{request};
+    const size_t n_iterations = iteration_count();
+    EXPECT(wait_for_write_finished(tool_request, n_fields, n_iterations));
 
     const size_t n_threads = thread_count();
-    const size_t n_iterations = iteration_count();
     constexpr int axes_depth = 3;
 
     std::vector<int> results(n_threads, -1);
