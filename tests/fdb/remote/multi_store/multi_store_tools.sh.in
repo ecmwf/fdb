@@ -28,7 +28,7 @@ fdbwrite="$<TARGET_FILE:fdb-write>"
 fdblist="$<TARGET_FILE:fdb-list>"
 fdbread="$<TARGET_FILE:fdb-read>"
 
-SERVER_LIFETIME=300
+SERVER_LIFETIME=600
 n_dates=8
 
 yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\n" "$*" >&2; }

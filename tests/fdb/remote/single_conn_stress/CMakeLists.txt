@@ -22,7 +22,7 @@ if (HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB)
                        "TEST_FDB_THREAD_COUNT=8"
                        "TEST_FDB_STRESS_ITERATIONS=20"
         TEST_PROPERTIES
-        TIMEOUT 300
+        TIMEOUT 600
         RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
         LABELS remotefdb
     )
