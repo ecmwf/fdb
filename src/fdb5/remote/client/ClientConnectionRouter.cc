@@ -6,7 +6,10 @@
 #include "eckit/log/Log.h"
 #include "eckit/net/Endpoint.h"
 
+#include <unistd.h>
+
 #include <cstddef>
+#include <cstdlib>
 #include <memory>
 #include <mutex>
 #include <ostream>
@@ -41,6 +44,7 @@ ConnectionError::ConnectionError(const eckit::net::Endpoint& endpoint) {
     eckit::Log::status() << what() << std::endl;
 }
 }  // namespace
+
 namespace fdb5::remote {
 
 size_t random(size_t const max) {
@@ -149,6 +153,8 @@ void ClientConnectionRouter::deregister(ClientConnection& connection) {
     }
 }
 
+ClientConnectionRouter::ClientConnectionRouter() {}
+
 ClientConnectionRouter& ClientConnectionRouter::instance() {
     // Leaked deliberately: avoids racing this destructor against other threads tearing
     // down connections during static/process deinitialisation.
@@ -161,7 +167,6 @@ ClientConnectionRouter::~ClientConnectionRouter() {
     std::lock_guard lock(connectionMutex_);
     for (auto& [endp, weak] : connections_) {
         if (auto conn = weak.lock()) {
-            eckit::Log::warning() << "closing connection " << endp << std::endl;
             conn->teardown();
         }
     }

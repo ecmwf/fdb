@@ -55,7 +55,7 @@ public:  // methods
     eckit::PathName expandPath(const std::string& path) const;
 
 
-    void overrideSchema(const eckit::PathName& schemaPath, Schema* schema);
+    void overrideSchema(const eckit::PathName& schemaPath, std::unique_ptr<Schema> schema);
     /// @note Return copy; a reference would race with overrideSchema().
     eckit::PathName schemaPath() const;
     eckit::PathName configPath() const;

@@ -365,7 +365,7 @@ CASE("YearMonth - string ctor - expansion") {
             "       [ type, levtype\n"
             "               [ date: YearMonth, time, step?, param ]]\n"
             "]\n");
-        yearMonthConfig.overrideSchema("test_toKey_YearMonth_schema", new fdb5::Schema(schemaStream));
+        yearMonthConfig.overrideSchema("test_toKey_YearMonth_schema", std::make_unique<fdb5::Schema>(schemaStream));
     }
 
 
