@@ -406,7 +406,7 @@ void ClientConnection::listeningControlThreadLoop() {
                 ASSERT(hdr.control() || single_);
 
                 bool handled = false;
-                if (hdr.control() && (hdr.message == Message::Received || hdr.message == Message::Error)) {
+                if (hdr.control()) {
                     // Hold promisesMutex_ only for the promise lookup/erase (NOT across handle(); risk a deadlock.
                     std::lock_guard lock(promisesMutex_);
 
