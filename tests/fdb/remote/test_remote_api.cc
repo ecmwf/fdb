@@ -554,10 +554,10 @@ CASE("Remote protocol: concurrent blocking control RPCs are not serialised") {
 
     // Clean up the data archived by this test so the FDB is left in a clean state.
     eckit::Log::info() << "[CLIENT]" << "Wiping concurrent-RPC test data. --doit" << std::endl;
-    auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od")[0], true);
-    WipeElement wipe_elem;
-    while (wipeit.next(wipe_elem)) {
-        eckit::Log::info() << "[CLIENT]" << wipe_elem;
+    auto wipe = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od")[0], true, false, true);
+    WipeElement elem;
+    while (wipe.next(elem)) {
+        eckit::Log::info() << "[CLIENT]" << elem;
     }
 }
 
