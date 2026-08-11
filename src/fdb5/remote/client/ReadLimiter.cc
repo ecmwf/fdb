@@ -44,7 +44,11 @@ size_t ReadLimiter::defaultReadLimit() {
 }
 
 void ReadLimiter::setMemoryLimit(size_t memoryLimit) {
-    memoryLimit_ = memoryLimit;
+    {
+        std::lock_guard lock(mutex_);
+        memoryLimit_ = memoryLimit;
+    }
+    tryNextRequest();
 }
 
 ReadLimiter::ReadLimiter(size_t memoryLimit) : memoryUsed_{0}, memoryLimit_{memoryLimit} {}

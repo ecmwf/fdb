@@ -25,6 +25,7 @@
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/rules/Rule.h"
 
+#include <mutex>
 #include <tuple>
 #include <unordered_map>
 

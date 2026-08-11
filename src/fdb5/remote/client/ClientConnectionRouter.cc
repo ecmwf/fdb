@@ -6,7 +6,10 @@
 #include "eckit/log/Log.h"
 #include "eckit/net/Endpoint.h"
 
+#include <unistd.h>
+
 #include <cstddef>
+#include <cstdlib>
 #include <memory>
 #include <mutex>
 #include <ostream>
@@ -15,7 +18,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-
 
 namespace {
 
