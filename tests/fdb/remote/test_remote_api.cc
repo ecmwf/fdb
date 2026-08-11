@@ -135,6 +135,46 @@ metkit::mars::MarsRequest make_request(const std::vector<Key>& keys) {
     return req;
 }
 
+// Server-side subtoc consolidation happens when a writer's DB session closes, which is triggered by a
+// fire-and-forget "Stop" message, so it can race with a subsequent dry-run wipe.
+// retry while the catalogue still reports un-consolidated ("unexpected"/UNKNOWN) entries, up to a bounded timeout.
+std::map<WipeElementType, size_t> wipe_dry_run_stable(const std::string& request,
+                                                      std::vector<eckit::URI>* dataUris = nullptr,
+                                                      std::vector<eckit::URI>* indexUris = nullptr) {
+
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(20);
+    const auto wait = std::chrono::milliseconds(250);
+
+    std::map<WipeElementType, size_t> element_counts;
+    for (;;) {
+        element_counts.clear();
+        if (dataUris) {
+            dataUris->clear();
+        }
+        if (indexUris) {
+            indexUris->clear();
+        }
+
+        auto wipe = FDB{}.wipe(FDBToolRequest::requestsFromString(request)[0], false);
+        WipeElement wipe_elem;
+        while (wipe.next(wipe_elem)) {
+            eckit::Log::info() << "[CLIENT]" << wipe_elem;
+            element_counts[wipe_elem.type()] += wipe_elem.uris().size();
+            if (dataUris && wipe_elem.type() == WipeElementType::STORE) {
+                dataUris->insert(dataUris->end(), wipe_elem.uris().begin(), wipe_elem.uris().end());
+            }
+            else if (indexUris && wipe_elem.type() == WipeElementType::CATALOGUE_INDEX) {
+                indexUris->insert(indexUris->end(), wipe_elem.uris().begin(), wipe_elem.uris().end());
+            }
+        }
+
+        if (element_counts[WipeElementType::UNKNOWN] == 0 || std::chrono::steady_clock::now() >= deadline) {
+            return element_counts;
+        }
+        std::this_thread::sleep_for(wait);
+    }
+}
+
 // Note: The catalogue server is configured to use subtocs. This means there will be cleared indexes and subtocs.
 // This means we also must be sure to disconnect between calls inorder to see the consolidated .index file.
 
@@ -198,13 +238,8 @@ CASE("Remote protocol: the basics") {
     // -- wipe (doit=false) --
     eckit::Log::info() << "[CLIENT]" << "Dry-run wipe with request date=20000101." << std::endl;
     {
-        auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("date=20000101")[0]);
-        WipeElement wipeElem;
-        std::map<WipeElementType, size_t> element_counts;
-        while (wipeit.next(wipeElem)) {
-            eckit::Log::info() << "[CLIENT]" << wipeElem;
-            element_counts[wipeElem.type()] += wipeElem.uris().size();
-        }
+        auto element_counts = wipe_dry_run_stable("date=20000101");
+
         // Expect: 2 store .data, 4 catalogue .index, 3 catalogue files (schema, toc, subtoc)
         EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
         EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
@@ -316,18 +351,10 @@ CASE("Remote protocol: more wipe testing") {
         keys = write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
     }
     EXPECT_EQUAL(keys.size(), Nfields);
-    std::this_thread::sleep_for(std::chrono::seconds(2));  // Ensure server has time to flush consolidated indexes.
-
     // dry run wipe a single date
     eckit::Log::info() << "[CLIENT]" << "Dry-run wipe with request date=20000101." << std::endl;
     {
-        auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,date=20000101")[0]);
-        WipeElement wipeElem;
-        std::map<WipeElementType, size_t> element_counts;
-        while (wipeit.next(wipeElem)) {
-            eckit::Log::info() << "[CLIENT]" << wipeElem;
-            element_counts[wipeElem.type()] += wipeElem.uris().size();
-        }
+        auto element_counts = wipe_dry_run_stable("class=od,expver=xxxx,date=20000101");
 
         // Expect: 2 store .data, 2 catalogue .index, 2 catalogue files (schema, toc)
         EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
@@ -341,29 +368,12 @@ CASE("Remote protocol: more wipe testing") {
         FDB fdb{};
         write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
     }
-    std::this_thread::sleep_for(std::chrono::seconds(2));  // Ensure server has time to flush consolidated indexes.
-
     // Wipe just one DB (date=20000101)
     std::vector<eckit::URI> data_uris;
     std::vector<eckit::URI> index_uris;
     eckit::Log::info() << "[CLIENT]" << "Dry-run wipe with request date=20000101 (first level)" << std::endl;
     {
-        auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,date=20000101")[0],
-                                 false);  // dont actually delete anything
-
-        WipeElement wipeElem;
-        std::map<WipeElementType, size_t> element_counts;
-
-        while (wipeit.next(wipeElem)) {
-            eckit::Log::info() << "[CLIENT]" << wipeElem;
-            element_counts[wipeElem.type()] += wipeElem.uris().size();
-            if (wipeElem.type() == WipeElementType::STORE) {
-                data_uris.insert(data_uris.end(), wipeElem.uris().begin(), wipeElem.uris().end());
-            }
-            else if (wipeElem.type() == WipeElementType::CATALOGUE_INDEX) {
-                index_uris.insert(index_uris.end(), wipeElem.uris().begin(), wipeElem.uris().end());
-            }
-        }
+        auto element_counts = wipe_dry_run_stable("class=od,expver=xxxx,date=20000101", &data_uris, &index_uris);
 
         // Expect: 4 .data files, 4 .index files and 4 catalogue files (2 schema, 2 toc)
         EXPECT_EQUAL(element_counts[WipeElementType::STORE], 4);
