@@ -118,7 +118,7 @@ fn build_system() {
         .include(&eccodes_include)
         .include(crate_dir.join("cpp"))
         .include(&out_dir) // for fdb_exceptions.h (generated)
-        .flag_if_supported("-std=c++17")
+        .std("c++17")
         .compile("fdb_sys_bridge");
 
     // Link to eckit and metkit (bridge uses their symbols)
@@ -325,7 +325,7 @@ fn build_vendored() {
         .include(format!("{eccodes_root}/include"))
         .include(crate_dir.join("cpp"))
         .include(&out_dir) // for fdb_exceptions.h (generated)
-        .flag_if_supported("-std=c++17")
+        .std("c++17")
         .compile("fdb_sys_bridge");
 
     // Link against the install directory
