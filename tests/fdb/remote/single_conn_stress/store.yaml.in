@@ -1,0 +1,9 @@
+---
+type: store
+supportedConnections: [1]
+serverPort: 10021
+serverThreaded: true
+spaces:
+- handler: Default
+  roots:
+  - path: @CMAKE_CURRENT_BINARY_DIR@/store_root

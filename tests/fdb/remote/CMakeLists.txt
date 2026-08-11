@@ -31,3 +31,4 @@ if (HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB)
 endif()
 
 add_subdirectory( multi_store )
+add_subdirectory( single_conn_stress )

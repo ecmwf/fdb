@@ -1,0 +1,12 @@
+---
+type: catalogue
+supportedConnections: [1]
+serverPort: 10020
+serverThreaded: true
+stores:
+- default: "localhost:10021"
+schema: @CMAKE_CURRENT_SOURCE_DIR@/../schema
+spaces:
+- handler: Default
+  roots:
+    - path: @CMAKE_CURRENT_BINARY_DIR@/catalogue_root
