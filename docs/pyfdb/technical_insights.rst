@@ -58,7 +58,7 @@ Create a ``stack`` directory and place the following file in it:
 
    To work against a local checkout of any dependency instead of having ecbuild
    clone it, replace the ``GIT`` / ``BRANCH`` arguments with
-   ``SOURCE_DIR <path-to-checkout>``. This is the typical workflow when you are
+   ``SOURCE <path-to-checkout>``. This is the typical workflow when you are
    modifying ``fdb`` or one of its dependencies alongside ``PyFDB``.
 
 Python Environment
