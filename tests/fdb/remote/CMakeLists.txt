@@ -28,6 +28,28 @@ if (HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB)
         RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
         LABELS remotefdb
     )
+
+    # Regression test for the control/data connection message-ordering race in RemoteStore::handle()
+    ecbuild_add_executable(
+        TARGET    fdb_test_remote_store_race_bin
+        SOURCES   test_remote_store_race.cc
+        INCLUDES  ${ECKIT_INCLUDE_DIRS}
+        LIBS      fdb5
+        NOINSTALL
+    )
+
+    ecbuild_add_test(
+        TARGET         fdb_test_remote_store_race
+        TYPE           SCRIPT
+        COMMAND        ${FDB_TEST_SERVER_SCRIPT}
+        ARGS           ${CMAKE_CURRENT_BINARY_DIR} client.yaml catalogue.yaml store.yaml "$<TARGET_FILE:fdb_test_remote_store_race_bin>"
+        TEST_DEPENDS   fdb_test_remote_store_race_bin
+        ENVIRONMENT    "${test_environment}"
+        TEST_PROPERTIES
+        TIMEOUT 120
+        RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
+        LABELS remotefdb
+    )
 endif()
 
 add_subdirectory( multi_store )
