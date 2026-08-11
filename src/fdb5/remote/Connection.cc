@@ -134,7 +134,7 @@ void Connection::write(const Message msg, const bool control, const uint32_t cli
 
 void Connection::error(std::string_view msg, uint32_t clientID, uint32_t requestID) const {
     eckit::Log::error() << "[clientID=" << clientID << ",requestID=" << requestID << "]  " << msg << std::endl;
-    write(Message::Error, true, clientID, requestID, msg.data(), msg.length());
+    write(Message::Error, false, clientID, requestID, msg.data(), msg.length());
 }
 
 eckit::Buffer Connection::readControl(MessageHeader& hdr) const {
