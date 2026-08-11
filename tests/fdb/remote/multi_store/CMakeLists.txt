@@ -17,10 +17,10 @@ if (HAVE_FDB_BUILD_TOOLS)
         TYPE           SCRIPT
         COMMAND        ${CMAKE_CURRENT_BINARY_DIR}/multi_store.sh
         ARGS           ${CMAKE_CURRENT_BINARY_DIR} client.yaml store1.yaml store2.yaml
-        TEST_DEPENDS   fdb_test_multi_store
+        TEST_DEPENDS   fdb_test_multi_store fdb_test_get_data
         ENVIRONMENT    "${test_environment}"
         TEST_PROPERTIES
-        TIMEOUT 300
+        TIMEOUT 600
         RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
         LABELS remotefdb
     )
@@ -33,10 +33,10 @@ if (HAVE_FDB_BUILD_TOOLS)
         CONDITION      HAVE_GRIB
         COMMAND        ${CMAKE_CURRENT_BINARY_DIR}/multi_store_tools.sh
         ARGS           ${CMAKE_CURRENT_BINARY_DIR} client.yaml store1.yaml store2.yaml ${PROJECT_BINARY_DIR}/tests/fdb/od.oper.grib
-        TEST_DEPENDS   fdb_test_multi_store
+        TEST_DEPENDS   fdb_test_multi_store fdb_test_get_data
         ENVIRONMENT    "${test_environment}"
         TEST_PROPERTIES
-        TIMEOUT 300
+        TIMEOUT 600
         RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
         LABELS remotefdb
     )
