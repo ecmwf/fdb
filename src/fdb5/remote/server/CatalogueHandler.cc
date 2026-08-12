@@ -268,8 +268,6 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
     }
 
     WipeStateIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        // XXX: I'm inclined to say that in a multi-server scenario, unsafe wipe all is a bad idea.
-        ASSERT(!unsafeWipeAll_);
         return fdb.internal_->wipe(request, doit_, false, unsafeWipeAll_);
     }
 
