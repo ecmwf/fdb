@@ -15,7 +15,6 @@
 
 #include "fdb5/remote/server/ServerConnection.h"
 
-#include "eckit/config/Resource.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/fdb5_version.h"
@@ -24,6 +23,7 @@
 #include "fdb5/remote/server/AvailablePortList.h"
 
 #include "eckit/config/LocalConfiguration.h"
+#include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/CodeLocation.h"
 #include "eckit/log/Log.h"
@@ -71,6 +71,8 @@ ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& 
     readLocationQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", defaultRetrieveQueueSize)),
     archiveQueue_(eckit::Resource<size_t>("fdbServerMaxQueueSize", defaultArchiveQueueSize)),
     controlSocket_(socket) {
+
+    innerConfig_ = config_.has("fdb") ? Config{config_.getSubConfiguration("fdb"), config_.userConfig()} : config_;
 
     LOG_DEBUG_LIB(LibFdb5) << "ServerConnection::ServerConnection initialized" << std::endl;
 }
@@ -434,6 +436,9 @@ void ServerConnection::handle() {
                         numDataListener_++;
                         if (numDataListener_ == 1 && !single_) {
                             listeningThreadData = std::thread([this] { listeningThreadLoopData(); });
+                        }
+                        if (handled == Handled::YesAddReadListener) {
+                            break;  // StoreHandler::read() already sent the acknowledgement
                         }
                     }
                         [[fallthrough]];

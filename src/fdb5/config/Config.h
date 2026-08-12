@@ -15,12 +15,14 @@
 #ifndef fdb5_config_Config_H
 #define fdb5_config_Config_H
 
-#include <sys/stat.h>  // for mode_t
-
-#include <string>
-
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/filesystem/PathName.h"
+
+#include <sys/stat.h>  // for mode_t
+
+#include <memory>
+#include <mutex>
+#include <string>
 
 
 namespace fdb5 {
@@ -41,19 +43,21 @@ public:  // methods
     Config();
     Config(const eckit::Configuration& config, const eckit::Configuration& userConfig = eckit::LocalConfiguration());
 
+    Config(const Config& other);
+    Config& operator=(const Config& other);
+
     /// Given a (potentially skeleton) configuration, expand it fully. This
     /// may involve loading a specific config.json
     Config expandConfig() const;
-
-    ~Config() override;
 
     /// Given paths of the form ~fdb, if FDB_HOME has been expanded in the configuration
     /// then do the expansion in here.
     eckit::PathName expandPath(const std::string& path) const;
 
 
-    void overrideSchema(const eckit::PathName& schemaPath, Schema* schema);
-    const eckit::PathName& schemaPath() const;
+    void overrideSchema(const eckit::PathName& schemaPath, std::unique_ptr<Schema> schema);
+    /// @note Return copy; a reference would race with overrideSchema().
+    eckit::PathName schemaPath() const;
     eckit::PathName configPath() const;
 
     const Schema& schema() const;
@@ -67,12 +71,14 @@ public:  // methods
 
 private:  // methods
 
+    /// @pre schemaMutex_ must be held by the caller.
     void initializeSchemaPath() const;
 
 private:  // members
 
     mutable eckit::PathName schemaPath_;
     mutable bool schemaPathInitialised_;
+    mutable std::mutex schemaMutex_;
     std::shared_ptr<eckit::LocalConfiguration> userConfig_;
 };
 

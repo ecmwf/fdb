@@ -8,13 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-#include <sstream>
-
-#include "eckit/log/Log.h"
-#include "eckit/thread/AutoLock.h"
-
-#include "fdb5/LibFdb5.h"
 #include "fdb5/database/AxisRegistry.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/thread/AutoLock.h"
+#include "eckit/thread/Mutex.h"
+
+#include <memory>
 
 namespace fdb5 {
 
@@ -27,11 +27,17 @@ AxisRegistry& AxisRegistry::instance() {
 
 void AxisRegistry::release(const keyword_t& keyword, std::shared_ptr<axis_t>& ptr) {
 
-    if (ptr.use_count() != 2) {
+    // use_count() can change concurrently, so it must be re-checked under the lock
+    // this is only an optimisation to avoid locking
+    if (ptr.use_count() > 2) {
         return;
     }
 
-    eckit::AutoLock<eckit::Mutex> lock(mutex_);
+    eckit::AutoLock lock(mutex_);
+
+    if (ptr.use_count() != 2) {
+        return;
+    }
 
     axis_map_t::iterator it = axes_.find(keyword);
     ASSERT(it != axes_.end());

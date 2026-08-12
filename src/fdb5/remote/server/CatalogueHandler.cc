@@ -57,7 +57,7 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 std::lock_guard<std::mutex> lock(handlerMutex_);
                 auto it = fdbs_.find(clientID);
                 if (it == fdbs_.end()) {
-                    fdbs_[clientID];
+                    fdbs_.emplace(clientID, innerConfig_);
                     fdbControlConnection_ = true;
                     fdbDataConnection_ = !single_;
                     numControlConnection_++;
@@ -307,7 +307,7 @@ void CatalogueHandler::handleApiCall(uint32_t clientID, uint32_t requestID, ecki
         std::lock_guard<std::mutex> lock(fdbMutex_);
         auto it = fdbs_.find(clientID);
         if (it == fdbs_.end()) {
-            fdbs_[clientID];
+            fdbs_.emplace(clientID, innerConfig_);
         }
     }
 
@@ -367,7 +367,7 @@ void CatalogueHandler::schema(uint32_t clientID, uint32_t requestID, eckit::Buff
     eckit::MemoryStream stream(schemaBuffer);
 
     if (payload.size() == 0) {  // client requesting the top-level schema
-        stream << config_.schema();
+        stream << innerConfig_.schema();
     }
     else {
         // 1. Read dbkey to select catalogue
@@ -457,7 +457,7 @@ void CatalogueHandler::exists(uint32_t clientID, uint32_t requestID, eckit::Buff
     {
         eckit::MemoryStream stream(payload);
         const Key dbKey(stream);
-        exists = CatalogueReaderFactory::instance().build(dbKey, config_)->exists();
+        exists = CatalogueReaderFactory::instance().build(dbKey, innerConfig_)->exists();
     }
 
     eckit::Buffer existBuf(5);
@@ -526,7 +526,7 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
         if (it == catalogues_.end()) {
             std::string what("Requested unknown catalogue id: " + std::to_string(clientID));
             error(what, 0, 0);
-            throw;
+            throw SeriousBug(what, Here());
         }
     }
 
@@ -586,7 +586,7 @@ CatalogueWriter& CatalogueHandler::catalogue(uint32_t id, const Key& dbKey) {
     if (!single_) {
         numDataConnection_++;
     }
-    return *((catalogues_.emplace(id, CatalogueArchiver(!single_, dbKey, config_)).first)->second.catalogue);
+    return *((catalogues_.emplace(id, CatalogueArchiver(!single_, dbKey, innerConfig_)).first)->second.catalogue);
 }
 
 const CatalogueHandler::WipeInProgress& CatalogueHandler::cachedWipeState(Key dbKey) const {

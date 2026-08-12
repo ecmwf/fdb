@@ -1,12 +1,14 @@
+#include "fdb5/remote/Connection.h"
+
+#include "fdb5/LibFdb5.h"
+#include "fdb5/remote/Messages.h"
+
 #include "eckit/io/Buffer.h"
 #include "eckit/log/Log.h"
 
 #include <cstdint>
 #include <mutex>
 #include <string_view>
-#include "fdb5/LibFdb5.h"
-#include "fdb5/remote/Connection.h"
-#include "fdb5/remote/Messages.h"
 
 namespace fdb5::remote {
 
@@ -15,7 +17,9 @@ namespace fdb5::remote {
 Connection::Connection() : single_(false) {}
 
 void Connection::teardown() {
-    closingSocket_ = true;
+    if (closingSocket_.exchange(true)) {
+        return;
+    }
 
     if (!valid()) {
         return;

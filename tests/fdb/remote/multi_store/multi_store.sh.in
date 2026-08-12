@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+
+if [[ $# -lt 4 ]]; then
+    echo "Usage: $0 <test_directory> <client_config> <store1_config> <store2_config>" >&2
+    exit 1
+fi
+
+set -ux
+
+testdir=$1
+client_config="$testdir/$2"
+store1_config="$testdir/$3"
+store2_config="$testdir/$4"
+catalogue_rootdir=$testdir/catalogue_root
+store1_rootdir=$testdir/store1_root
+store2_rootdir=$testdir/store2_root
+server_pidfile=$testdir/servers.pid
+
+server="$<TARGET_FILE:fdb-server>"
+test="$<TARGET_FILE:fdb_test_remote_multi_store>"
+
+SERVER_LIFETIME=600
+
+cleanup() {
+    if [[ -f $server_pidfile ]]; then
+        while read -r SERVER_PID; do
+            kill -TERM "$SERVER_PID" || true
+            sleep 0.2
+            kill -KILL "$SERVER_PID" || true
+        done < "$server_pidfile"
+        rm "$server_pidfile"
+    fi
+
+    rm -rf "$catalogue_rootdir"
+    rm -rf "$store1_rootdir"
+    rm -rf "$store2_rootdir"
+}
+
+run_server() {
+  local label="$1"; shift
+  local config="$1"; shift
+  (
+    FDB5_CONFIG_FILE="$config" \
+    FDB_DEBUG=1 \
+    timeout "$SERVER_LIFETIME" "$@" 2>&1 \
+    | awk -v label="$label" -v pidfile="$server_pidfile" '
+        BEGIN { found=0 }
+        {
+          print "[" label "] " $0
+          fflush()
+          if (!found && $0 ~ /pid is [0-9]+/) {
+            pid = $0
+            sub(/.*pid is /, "", pid)
+            sub(/\..*/, "", pid)
+            print pid >> pidfile
+            close(pidfile)
+            found=1
+          }
+        }
+      '
+  ) &
+}
+
+# calls cleanup at exit
+trap cleanup EXIT
+
+cleanup
+mkdir -p "$catalogue_rootdir" "$store1_rootdir" "$store2_rootdir"
+
+run_server "STORE1" "$store1_config" "$server"
+run_server "STORE2" "$store2_config" "$server"
+
+sleep 0.5
+
+FDB5_CONFIG_FILE=$client_config $test
+
+exit $?

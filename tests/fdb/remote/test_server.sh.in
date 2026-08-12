@@ -21,10 +21,12 @@ server_pidfile=$testdir/servers.pid
 
 fdbwrite="$<TARGET_FILE:fdb-write>"
 server="$<TARGET_FILE:fdb-server>"
-test="$<TARGET_FILE:fdb_test_remote_api_bin>"
+# Optional 5th arg: path to the client test binary to run. Defaults to fdb_test_remote_api_bin
+# for backward compatibility with callers that only pass 4 args.
+test="${5:-$<TARGET_FILE:fdb_test_remote_api_bin>}"
 
 # If test exceeds this time, the servers will be killed. Required to ensure servers are eventually killed when ctest is SIGKILL'd
-SERVER_LIFETIME=300
+SERVER_LIFETIME=600
 
 # --- Cleanup and setup
 cleanup() {

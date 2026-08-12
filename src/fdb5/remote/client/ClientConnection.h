@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include <future>
-#include <thread>
+#include "fdb5/remote/Connection.h"
+#include "fdb5/remote/Messages.h"
 
 #include "eckit/container/Queue.h"
 #include "eckit/io/Buffer.h"
@@ -20,8 +20,14 @@
 #include "eckit/net/TCPSocket.h"
 #include "eckit/runtime/SessionID.h"
 
-#include "fdb5/remote/Connection.h"
-#include "fdb5/remote/Messages.h"
+#include <cstdint>
+#include <exception>
+#include <future>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <thread>
 
 namespace eckit {
 
@@ -80,6 +86,13 @@ private:  // methods
 
     void listeningControlThreadLoop();
     void listeningDataThreadLoop();
+
+    // Tears down *only this* connection
+    void handleConnectionError(const std::exception_ptr& eptr);
+
+    // do not hang forever once the connection is known to be dead.
+    void failPendingRequests(const std::exception_ptr& eptr);
+
     void dataWriteThreadLoop();
     void closeConnection();
 
@@ -104,8 +117,6 @@ private:  // members
 
     std::thread listeningControlThread_;
     std::thread listeningDataThread_;
-
-    std::mutex requestMutex_;
 
     // requestID
     std::mutex idMutex_;

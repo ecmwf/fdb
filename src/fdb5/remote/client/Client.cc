@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <future>
 #include <mutex>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -59,7 +60,7 @@ Client::Client(const eckit::Configuration& config,
 }
 
 void Client::refreshConnection() {
-    if (connection_->valid()) {
+    if (connection_->valid()) {  // Connection is still valid, no need to refresh
         return;
     }
     eckit::Log::warning() << "Connection to " << connection_->controlEndpoint()
@@ -69,8 +70,28 @@ void Client::refreshConnection() {
     connection_->add(*this);
 }
 
+void Client::deregister() {
+    if (!deregistered_.exchange(true)) {
+        connection_->remove(id_);
+    }
+}
+
 Client::~Client() {
-    connection_->remove(id_);
+    deregister();
+}
+
+eckit::Buffer Client::waitControlResponse(std::future<eckit::Buffer>& response, const Message msg,
+                                          const uint32_t requestID) const {
+    try {
+        response.wait();
+        return response.get();
+    }
+    catch (const std::exception& e) {
+        std::ostringstream ss;
+        ss << "Error while waiting for response to control message " << msg << " with requestID " << requestID << ": "
+           << e.what();
+        throw RemoteFDBException(ss.str(), connection_->controlEndpoint());
+    }
 }
 
 void Client::controlWriteCheckResponse(const Message msg, const uint32_t requestID, const bool dataListener,
@@ -85,9 +106,8 @@ void Client::controlWriteCheckResponse(const Message msg, const uint32_t request
         payloads.emplace_back(payloadLength, payload);
     }
 
-    auto f = connection_->controlWrite(*this, msg, requestID, dataListener, payloads);
-    f.wait();
-    ASSERT(f.get().size() == 0);
+    auto response = connection_->controlWrite(*this, msg, requestID, dataListener, payloads);
+    ASSERT(waitControlResponse(response, msg, requestID).size() == 0);
 }
 
 eckit::Buffer Client::controlWriteReadResponse(const Message msg, const uint32_t requestID, const void* const payload,
@@ -102,9 +122,8 @@ eckit::Buffer Client::controlWriteReadResponse(const Message msg, const uint32_t
         payloads.emplace_back(payloadLength, payload);
     }
 
-    auto f = connection_->controlWrite(*this, msg, requestID, false, payloads);
-    f.wait();
-    return eckit::Buffer{f.get()};
+    auto response = connection_->controlWrite(*this, msg, requestID, false, payloads);
+    return waitControlResponse(response, msg, requestID);
 }
 
 void Client::dataWrite(Message msg, uint32_t requestID, PayloadList payloads) {

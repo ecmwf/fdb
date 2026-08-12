@@ -265,9 +265,10 @@ SchemaRegistry& SchemaRegistry::instance() {
     return me;
 }
 
-const Schema& SchemaRegistry::add(const eckit::PathName& path, Schema* schema) {
+const Schema& SchemaRegistry::add(const eckit::PathName& path, std::unique_ptr<Schema> schema) {
     ASSERT(schema);
-    schemas_[path] = std::unique_ptr<Schema>(schema);
+    std::lock_guard lock(m_);
+    schemas_[path] = std::move(schema);
     return *schemas_[path];
 }
 
