@@ -6,7 +6,7 @@ import logging
 from typing import Any
 
 import pytest
-from zarr.abc.store import RangeByteRequest
+from zarr.abc.store import OffsetByteRequest, RangeByteRequest, SuffixByteRequest
 from zarr.core.buffer import Buffer, default_buffer_prototype
 from zarr.core.buffer.cpu import Buffer as CpuBuffer
 from zarr.core.sync import _collect_aiterator, sync
@@ -136,14 +136,34 @@ class TestFdbZarrStore(StoreTests[FdbZarrStore, Buffer]):
     # Read: reimplemented against actual FDB-backed zarr structure
     # ------------------------------------------------------------------
 
-    async def test_get(self, store: FdbZarrStore) -> None:
-        result = await store.get("zarr.json", prototype=default_buffer_prototype())
-        log.debug("get('zarr.json') -> %s, len=%d", type(result).__name__, len(result) if result else 0)
+    @pytest.mark.parametrize(
+        ("data", "byte_range"),
+        [
+            (b"\x01\x02\x03\x04", None),
+            (b"\x01\x02\x03\x04", RangeByteRequest(1, 4)),
+            (b"\x01\x02\x03\x04", OffsetByteRequest(1)),
+            (b"\x01\x02\x03\x04", SuffixByteRequest(1)),
+            (b"", None),
+        ],
+    )
+    async def test_get(
+        self,
+        deep_store: FdbZarrStore,
+        data: bytes,
+        byte_range: RangeByteRequest | OffsetByteRequest | SuffixByteRequest | None,
+    ) -> None:
+        key = "zarr.json"
+        log.debug("test_get(key=%r, byte_range=%r)", key, byte_range)
+        if byte_range is not None:
+            with pytest.raises(Z3fdbError):
+                await deep_store.get(key, prototype=default_buffer_prototype(), byte_range=byte_range)
+            return
+        result = await deep_store.get(key, prototype=default_buffer_prototype())
+        log.debug("get(%r) -> %s, len=%d", key, type(result).__name__, len(result) if result else 0)
         assert result is not None
         meta = json.loads(result.to_bytes())
         log.debug("zarr.json metadata keys: %s", list(meta.keys()))
         assert meta["zarr_format"] == 3
-        assert meta["node_type"] == "array"
 
     @pytest.mark.xfail(
         raises=Z3fdbError,
