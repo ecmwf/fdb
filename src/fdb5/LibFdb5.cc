@@ -129,7 +129,7 @@ bool RemoteProtocolVersion::check(unsigned int version, bool throwOnFail) {
     }
     if (throwOnFail) {
         std::ostringstream msg;
-        msg << "Remote protocol version mismaatch, software supports versions " << supportedStr() << " got " << version;
+        msg << "Remote protocol version mismatch, software supports versions " << supportedStr() << " got " << version;
         throw eckit::SeriousBug(msg.str());
     }
     return false;

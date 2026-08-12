@@ -16,18 +16,18 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_local_QueryVisitor_H
-#define fdb5_api_local_QueryVisitor_H
-
-#include <tuple>
-#include <unordered_map>
-
-#include "fdb5/database/EntryVisitMechanism.h"
-#include "fdb5/rules/Rule.h"
+#pragma once
 
 #include "eckit/container/Queue.h"
 
 #include "metkit/mars/MarsRequest.h"
+
+#include "fdb5/database/EntryVisitMechanism.h"
+#include "fdb5/rules/Rule.h"
+
+#include <mutex>
+#include <tuple>
+#include <unordered_map>
 
 namespace fdb5::api::local {
 
@@ -49,6 +49,7 @@ protected:  // methods
 
     const metkit::mars::MarsRequest& canonicalise(const Rule& rule) const {
         bool success;
+        std::lock_guard<std::mutex> lock(canonicalisedMutex_);
         auto it = canonicalised_.find(&rule.registry());
         if (it == canonicalised_.end()) {
             std::tie(it, success) = canonicalised_.emplace(&rule.registry(), rule.registry().canonicalise(request_));
@@ -67,11 +68,10 @@ private:  // members
 
     /// Cache of canonicalised requests
     mutable std::unordered_map<const TypesRegistry*, metkit::mars::MarsRequest> canonicalised_;
+    mutable std::mutex canonicalisedMutex_;  ///< Protects canonicalised_ map
 };
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5::api::local
-
-#endif

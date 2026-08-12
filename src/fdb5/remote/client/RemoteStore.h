@@ -205,6 +205,9 @@ private:  // methods
 
 private:  // members
 
+    // used by tests for direct access to messageQueues_/messageMutex_
+    friend class RemoteStoreTestHarness;
+
     Key dbKey_;
 
     const Config& config_;
