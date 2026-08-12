@@ -60,7 +60,7 @@ Client::Client(const eckit::Configuration& config,
 }
 
 void Client::refreshConnection() {
-    if (connection_->valid()) {
+    if (connection_->valid()) {  // Connection is still valid, no need to refresh
         return;
     }
     eckit::Log::warning() << "Connection to " << connection_->controlEndpoint()
