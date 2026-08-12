@@ -17,7 +17,7 @@ store2_rootdir=$testdir/store2_root
 server_pidfile=$testdir/servers.pid
 
 server="$<TARGET_FILE:fdb-server>"
-test="$<TARGET_FILE:fdb_test_multi_store>"
+test="$<TARGET_FILE:fdb_test_remote_multi_store>"
 
 SERVER_LIFETIME=600
 
