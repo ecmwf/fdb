@@ -175,6 +175,29 @@ std::map<WipeElementType, size_t> wipe_dry_run_stable(const std::string& request
     }
 }
 
+
+CASE("FdbURI comparison") {
+    std::set<eckit::URI> uris;
+
+    uris.insert(eckit::URI("fdb://volfdb-store-000:10000/data/root/rd:ixvb:lwda:20230530:1800:g"));
+    EXPECT_EQUAL(uris.size(), 1);
+
+    uris.insert(eckit::URI("fdb://volfdb-store-001:10000/data/root/rd:ixvb:lwda:20230530:1800:g"));
+    EXPECT_EQUAL(uris.size(), 2);
+
+    uris.insert(eckit::URI("fdb://volfdb-store-000:10000/data/root/rd:ixvb:lwda:20230530:1800:g"));
+    EXPECT_EQUAL(uris.size(), 2);
+
+    uris.insert(eckit::URI("fdb://volfdb-store-000:10000/data/root/rd:ixvb:lwda:20230530:1800:e"));
+    EXPECT_EQUAL(uris.size(), 3);
+
+    uris.insert(eckit::URI("fdb://volfdb-store-000:10000"));
+    EXPECT_EQUAL(uris.size(), 4);
+
+    uris.insert(eckit::URI("fdb://volfdb-store-000:10000/"));
+    EXPECT_EQUAL(uris.size(), 4);
+}
+
 // Note: The catalogue server is configured to use subtocs. This means there will be cleared indexes and subtocs.
 // This means we also must be sure to disconnect between calls inorder to see the consolidated .index file.
 
