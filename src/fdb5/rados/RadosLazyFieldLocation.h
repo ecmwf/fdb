@@ -13,10 +13,13 @@
 
 #pragma once
 
-#include <memory>
 #include "fdb5/database/FieldLocation.h"
 
 #include "eckit/io/rados/RadosKeyValue.h"
+
+#include <memory>
+#include <ostream>
+#include <string>
 
 namespace fdb5 {
 

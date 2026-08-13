@@ -10,18 +10,17 @@
 
 #include "fdb5/rados/RadosLazyFieldLocation.h"
 
+#include "fdb5/database/FieldLocation.h"
+
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/rados/RadosKeyValue.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/serialisation/Reanimator.h"
 
-#include "fdb5/database/FieldLocation.h"
-
 #include <ctime>
 #include <memory>
 #include <ostream>
 #include <string>
-#include <utility>
 #include <vector>
 
 namespace fdb5 {
@@ -29,13 +28,13 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 RadosLazyFieldLocation::RadosLazyFieldLocation(const fdb5::RadosLazyFieldLocation& rhs) :
-    FieldLocation(), index_(rhs.index_), key_(rhs.key_) {}
+    index_(rhs.index_), key_(rhs.key_) {}
 
 RadosLazyFieldLocation::RadosLazyFieldLocation(const eckit::RadosKeyValue& index, const std::string& key) :
-    FieldLocation(), index_(index), key_(key) {}
+    index_(index), key_(key) {}
 
 std::shared_ptr<const FieldLocation> RadosLazyFieldLocation::make_shared() const {
-    return std::make_shared<RadosLazyFieldLocation>(std::move(*this));
+    return std::make_shared<RadosLazyFieldLocation>(*this);
 }
 
 eckit::DataHandle* RadosLazyFieldLocation::dataHandle() const {
@@ -61,12 +60,10 @@ std::unique_ptr<fdb5::FieldLocation>& RadosLazyFieldLocation::realise() const {
         return fl_;
     }
 
-    /// @note: performed RPCs:
-    /// - index kv get (daos_kv_get)
     std::vector<char> data;
     eckit::MemoryStream ms = index_.getMemoryStream(data, key_, "index kv");
 
-    /// @note: timestamp read for informational purpoes. See note in DaosIndex::add.
+    /// @note: timestamp read for informational purposes. See note in DaosIndex::add.
     time_t ts;
     ms >> ts;
 
@@ -74,5 +71,7 @@ std::unique_ptr<fdb5::FieldLocation>& RadosLazyFieldLocation::realise() const {
 
     return fl_;
 }
+
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5

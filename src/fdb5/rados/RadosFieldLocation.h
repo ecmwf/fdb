@@ -14,14 +14,16 @@
 
 #pragma once
 
-// #include "eckit/filesystem/PathName.h"
+#include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/Key.h"
+
+#include "eckit/filesystem/URI.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
+#include "eckit/serialisation/Reanimator.h"
 
-#include "fdb5/database/FieldLocation.h"
-#include "fdb5/fdb5_config.h"
-// #include "fdb5/database/FileStore.h"
-// #include "fdb5/toc/FieldRef.h"
+#include <memory>
+#include <ostream>
 
 namespace fdb5 {
 
@@ -31,18 +33,15 @@ class RadosFieldLocation : public FieldLocation {
 public:
 
     RadosFieldLocation(const RadosFieldLocation& rhs);
-    // RadosFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length);
     RadosFieldLocation(const eckit::URI& uri);
     RadosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
-    // RadosFieldLocation(const FileStore& store, const FieldRef& ref);
     RadosFieldLocation(eckit::Stream&);
 
     eckit::DataHandle* dataHandle() const override;
-    // eckit::DataHandle* dataHandle(const Key& remapKey) const override;
 
-    virtual std::shared_ptr<const FieldLocation> make_shared() const override;
+    std::shared_ptr<const FieldLocation> make_shared() const override;
 
-    virtual void visit(FieldLocationVisitor& visitor) const override;
+    void visit(FieldLocationVisitor& visitor) const override;
 
 public:  // For Streamable
 
@@ -50,7 +49,7 @@ public:  // For Streamable
 
 protected:  // For Streamable
 
-    virtual const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
     static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<RadosFieldLocation> reanimator_;
@@ -58,8 +57,6 @@ protected:  // For Streamable
 private:  // methods
 
     void print(std::ostream& out) const override;
-
-    // eckit::URI uri(const eckit::PathName &path);
 };
 
 
