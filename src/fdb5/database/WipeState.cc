@@ -268,12 +268,12 @@ WipeElements StoreWipeState::extractWipeElements() {
             return;
         }
 
-        wipeElements.emplace_back(type, msg, std::move(it->second));
+        wipeElements.emplace_back(type, std::string(msg) + " (" + storeURI_.hostport() + "):", std::move(it->second));
         deleteURIs_.erase(it);
     };
 
-    addWipeElement(WipeElementType::STORE, "Data URIs to delete:");
-    addWipeElement(WipeElementType::STORE_AUX, "Auxiliary URIs to delete:");
+    addWipeElement(WipeElementType::STORE, "Data URIs to delete");
+    addWipeElement(WipeElementType::STORE_AUX, "Auxiliary URIs to delete");
 
     if (!safeURIs_.empty()) {
         wipeElements.emplace_back(WipeElementType::STORE_SAFE,
