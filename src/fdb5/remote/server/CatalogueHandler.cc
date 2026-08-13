@@ -9,7 +9,7 @@
  */
 
 #include "fdb5/remote/server/CatalogueHandler.h"
-#include "eckit/serialisation/ResizableMemoryStream.h"
+
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -24,6 +24,7 @@
 #include "eckit/net/NetMask.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/serialisation/ResizableMemoryStream.h"
 #include "eckit/utils/Literals.h"
 
 #include <future>
@@ -243,6 +244,7 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
         s << state;
 
         const Key& dbKey = state.dbKey();
+        std::lock_guard lock(handler.wipesMutex_);
 
         if (doit_) {
             // Keep a local copy of the catalogue wipe state, awaiting an explicit doWipeURIs command from the client
@@ -599,6 +601,7 @@ void CatalogueHandler::doMaskIndexEntries(uint32_t clientID, uint32_t requestID,
     ASSERT(payload.size() > 0);
     MemoryStream s(payload);
     Key dbKey(s);
+    std::lock_guard lock(wipesMutex_);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
     currentWipe.catalogue->maskIndexEntries(currentWipe.state.indexesToMask());
 }
@@ -607,6 +610,7 @@ void CatalogueHandler::doWipeURIs(uint32_t clientID, uint32_t requestID, eckit::
     ASSERT(payload.size() > 0);
     MemoryStream s(payload);
     Key dbKey(s);
+    std::lock_guard lock(wipesMutex_);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
     currentWipe.catalogue->doWipeURIs(currentWipe.state);
 }
@@ -615,6 +619,7 @@ void CatalogueHandler::doWipeUnknowns(uint32_t clientID, uint32_t requestID, eck
     ASSERT(payload.size() > 0);
     MemoryStream s(payload);
     Key dbKey(s);
+    std::lock_guard lock(wipesMutex_);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
 
     std::set<eckit::URI> rec_unknownURIs{s};
@@ -645,6 +650,7 @@ void CatalogueHandler::doWipeEmptyDatabase(uint32_t clientID, uint32_t requestID
     ASSERT(payload.size() > 0);
     MemoryStream s(payload);
     Key dbKey(s);
+    std::lock_guard lock(wipesMutex_);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
 
     // Cleanup empty DBs and reset wipe state
@@ -656,6 +662,7 @@ void CatalogueHandler::doUnsafeFullWipe(uint32_t clientID, uint32_t requestID, e
     ASSERT(payload.size() > 0);
     MemoryStream s(payload);
     Key dbKey(s);
+    std::lock_guard lock(wipesMutex_);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
 
     bool fullWipeSupported = currentWipe.catalogue->doUnsafeFullWipe();
