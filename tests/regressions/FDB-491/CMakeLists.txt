@@ -17,6 +17,6 @@ ecbuild_add_test(
     ENVIRONMENT    "${test_environment}"
     TEST_PROPERTIES
     TIMEOUT 600
-    RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
+    RESOURCE_LOCK fdb_remote_fdb491
     LABELS remotefdb
 )
