@@ -85,8 +85,8 @@ CASE("FamCatalogue: static naming helpers") {
     const auto idx_name = fdb5::FamCatalogue::indexName(cat_name, idx_key);
 
     // Names must start with the expected prefix
-    EXPECT(cat_name.find(fdb5::FamCommon::catalogue_prefix) == 0);
-    EXPECT(idx_name.find(fdb5::FamCommon::index_prefix) == 0);
+    EXPECT_EQUAL(cat_name.find(fdb5::FamCommon::catalogue_prefix), 0);
+    EXPECT_EQUAL(idx_name.find(fdb5::FamCommon::index_prefix), 0);
 
     // Different keys produce different names
     EXPECT(cat_name != idx_name);
@@ -171,8 +171,8 @@ CASE("FamCatalogueWriter/Reader: direct OpenFAM metadata roundtrip") {
         EXPECT(dump_str.find("{fam1a=a,fam1b=b,fam1c=c}") != std::string::npos);
         EXPECT(dump_str.find("Key: {fam1a=a,fam1b=b,fam1c=c,fam2a=d,fam2b=e,fam2c=f}") != std::string::npos);
         // Simple mode: no axes or field contents
-        EXPECT(dump_str.find("Axes:") == std::string::npos);
-        EXPECT(dump_str.find("Contents of index:") == std::string::npos);
+        EXPECT_EQUAL(dump_str.find("Axes:"), std::string::npos);
+        EXPECT_EQUAL(dump_str.find("Contents of index:"), std::string::npos);
     }
 
     // dump — verbose mode: header + index key + axes + field entries

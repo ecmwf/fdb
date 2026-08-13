@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+# A 'type: select' FDB whose lanes share the same physical root can, for a
+# partial (ambiguous) list/wipe request that omits the keyword used to
+# discriminate between lanes, have every matching lane independently
+# rediscover the *same* on-disk catalogue and process it more than once.
+#
+# Two lanes ("stream=oper" and "stream=dcda") share the same root.
+# A request that omits "stream" entirely legitimately matches both lanes
+# (SelectFDB's MatchOnMissing policy), so both are queried -- but each lane
+# then scans the *shared* root and finds *both* catalogues (the per-lane
+# selector is not used to filter which catalogues are relevant), so every
+# catalogue is reported/wiped once per lane instead of once overall.
+
+set -euxo pipefail
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+fdbwipe="$<TARGET_FILE:fdb-wipe>"
+gribset="$<TARGET_FILE:grib_set>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+wdir=$bindir/FDB-714
+
+### cleanup and prepare test
+
+rm -rf "$wdir"
+mkdir -p "$wdir"
+
+for f in config.yaml schema x.grib
+do
+    cp "$srcdir/$f" "$wdir"
+done
+
+cd "$wdir"
+
+mkdir -p root
+
+export FDB_HOME="$wdir"
+export FDB5_CONFIG_FILE=config.yaml
+
+# Second lane's data: identical key fingerprint except for "stream".
+$gribset -s stream=dcda x.grib y.grib
+
+### populate both lanes; they share the same physical root
+$fdbwrite x.grib
+$fdbwrite y.grib
+
+request="class=od,expver=xxxx,date=20250614,time=1200,domain=g"
+minkeys="class,expver,date,time"
+
+### a partial request omitting "stream" matches both lanes, and each lane
+### independently rediscovers both catalogues on the shared root.
+$fdblist "$request" --minimum-keys="$minkeys" --porcelain --full --location | tee out.list
+n=$(wc -l < out.list)
+[[ "$n" -eq 6 ]] || die "expected 6 entries (2 catalogues x 3 params) listed exactly once each, found $n"
+
+### wiping the same partial request should succeed cleanly; instead the
+### second lane's redundant pass over the already-wiped catalogue throws.
+set +e
+$fdbwipe "$request" --minimum-keys="$minkeys" --doit | tee out.wipe
+wipe_rc=${PIPESTATUS[0]}
+set -e
+[[ $wipe_rc -eq 0 ]] || die "fdb-wipe failed (rc=$wipe_rc): each lane processed the shared catalogues more than once"
+
+### all data should now be gone
+$fdblist --all --minimum-keys="" --porcelain --location | tee out.after
+[[ ! -s out.after ]] || die "expected all data to be wiped"

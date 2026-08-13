@@ -12,6 +12,7 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Schema.h"
+#include "fdb5/rules/SelectMatcher.h"
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/config/Resource.h"
@@ -31,7 +32,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Config::Config() : schemaPath_(""), schemaPathInitialised_(false) {
+Config::Config() : schemaPath_(""), schemaPathInitialised_(false), matcher_(nullptr) {
     userConfig_ = std::make_shared<eckit::LocalConfiguration>(eckit::LocalConfiguration());
 }
 
@@ -43,18 +44,19 @@ Config Config::make(const eckit::PathName& path, const eckit::Configuration& use
     if (!fdb_home.empty()) {
         cfg.set("fdb_home", fdb_home);
     }
+    cfg.matcher_ = nullptr;
     cfg.userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
 
     return cfg;
 }
 
 Config::Config(const Configuration& config, const eckit::Configuration& userConfig) :
-    LocalConfiguration(config), schemaPathInitialised_(false) {
+    LocalConfiguration(config), schemaPathInitialised_(false), matcher_(nullptr) {
     userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
 }
 
 Config::Config(const Config& other) :
-    LocalConfiguration(other), schemaPathInitialised_(false), userConfig_(other.userConfig_) {
+    LocalConfiguration(other), schemaPathInitialised_(false), matcher_(other.matcher_), userConfig_(other.userConfig_) {
     std::lock_guard lock(other.schemaMutex_);
     schemaPath_ = other.schemaPath_;
     schemaPathInitialised_ = other.schemaPathInitialised_;
@@ -70,6 +72,7 @@ Config& Config::operator=(const Config& other) {
     std::scoped_lock lock(schemaMutex_, other.schemaMutex_);
     schemaPath_ = other.schemaPath_;
     schemaPathInitialised_ = other.schemaPathInitialised_;
+    matcher_ = other.matcher_;
     userConfig_ = other.userConfig_;
     return *this;
 }
@@ -254,6 +257,13 @@ std::vector<Config> Config::getSubConfigs() const {
     return out;
 }
 
+void Config::setMatcher(std::unique_ptr<SelectMatcher> matcher) {
+    matcher_ = std::move(matcher);
+}
+
+const SelectMatcher* Config::matcher() const {
+    return matcher_.get();
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
