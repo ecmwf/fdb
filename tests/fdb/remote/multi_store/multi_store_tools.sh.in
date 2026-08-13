@@ -15,10 +15,11 @@ client_config="$testdir/$2"
 store1_config="$testdir/$3"
 store2_config="$testdir/$4"
 src_data=$5
-catalogue_rootdir=$testdir/catalogue_root
-store1_rootdir=$testdir/store1_root
-store2_rootdir=$testdir/store2_root
-server_pidfile=$testdir/servers.pid
+catalogue_rootdir=$testdir/catalogue_tools_root
+store1_rootdir=$testdir/store1_tools_root
+store2_rootdir=$testdir/store2_tools_root
+server_pidfile=$testdir/tools_servers.pid
+server_readyfile=$testdir/tools_servers.ready
 workdir=$testdir/tools_work
 
 export PATH="@CMAKE_BINARY_DIR@/bin:$PATH"
@@ -30,6 +31,7 @@ fdbread="$<TARGET_FILE:fdb-read>"
 
 SERVER_LIFETIME=600
 n_dates=8
+server_group_pids=()
 
 yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\n" "$*" >&2; }
 die() { yell "$*"; exit 1; }
@@ -41,14 +43,29 @@ line_count() {
 }
 
 cleanup() {
+    local server_pid
+    local server_pgid
+
+    for server_pgid in "${server_group_pids[@]}"; do
+        kill -TERM -- "-$server_pgid" 2>/dev/null || true
+    done
+    if ((${#server_group_pids[@]})); then
+        sleep 0.2
+        for server_pgid in "${server_group_pids[@]}"; do
+            kill -KILL -- "-$server_pgid" 2>/dev/null || true
+        done
+    fi
+
     if [[ -f $server_pidfile ]]; then
-        while read -r SERVER_PID; do
-            kill -TERM "$SERVER_PID" || true
+        while read -r _ server_pid; do
+            server_pid=${server_pid:-$_}
+            kill -TERM "$server_pid" 2>/dev/null || true
             sleep 0.2
-            kill -KILL "$SERVER_PID" || true
+            kill -KILL "$server_pid" 2>/dev/null || true
         done < "$server_pidfile"
         rm "$server_pidfile"
     fi
+    rm -f "$server_readyfile"
 
     rm -rf "$catalogue_rootdir" "$store1_rootdir" "$store2_rootdir" "$workdir"
 }
@@ -56,11 +73,12 @@ cleanup() {
 run_server() {
   local label="$1"; shift
   local config="$1"; shift
-  (
-    FDB5_CONFIG_FILE="$config" \
-    FDB_DEBUG=1 \
-    timeout "$SERVER_LIFETIME" "$@" 2>&1 \
-    | awk -v label="$label" -v pidfile="$server_pidfile" '
+    local port
+    port=$(awk '/^[[:space:]]*serverPort:/{print $2; exit}' "$config")
+    [[ "$port" =~ ^[0-9]+$ ]] || { echo "Unable to determine server port from $config" >&2; exit 1; }
+
+    setsid env FDB5_CONFIG_FILE="$config" FDB_DEBUG=1 timeout "$SERVER_LIFETIME" "$@" > >(
+        awk -v label="$label" -v pidfile="$server_pidfile" -v readyfile="$server_readyfile" -v port="$port" '
         BEGIN { found=0 }
         {
           print "[" label "] " $0
@@ -69,17 +87,62 @@ run_server() {
             pid = $0
             sub(/.*pid is /, "", pid)
             sub(/\..*/, "", pid)
-            print pid >> pidfile
+                        print label " " pid >> pidfile
             close(pidfile)
             found=1
           }
+                    if ($0 ~ ("Listening on socket [0-9]+ port: " port " ")) {
+                        print label >> readyfile
+                        close(readyfile)
+                    }
         }
-      '
-  ) &
+            '
+    ) 2>&1 &
 }
 
-# calls cleanup at exit
+wait_for_servers() {
+        local label
+        local server_pid
+        local server_pgid
+        local deadline=$((SECONDS + 10))
+
+        while ((SECONDS < deadline)); do
+                local ready=true
+                for label in "$@"; do
+                    server_pid=$(awk -v label="$label" '$1 == label {print $2; exit}' "$server_pidfile" 2>/dev/null || true)
+                        if [[ -z "$server_pid" ]]; then
+                                ready=false
+                                break
+                        fi
+                        if ! kill -0 "$server_pid" 2>/dev/null; then
+                                echo "$label fdb-server exited before becoming ready" >&2
+                                exit 1
+                        fi
+                        if ! grep -qx "$label" "$server_readyfile" 2>/dev/null; then
+                                ready=false
+                                break
+                        fi
+                done
+
+                if [[ "$ready" == true ]]; then
+                        server_group_pids=()
+                        for label in "$@"; do
+                                server_pid=$(awk -v label="$label" '$1 == label {print $2; exit}' "$server_pidfile")
+                                server_pgid=$(ps -o pgid= -p "$server_pid" | tr -d '[:space:]')
+                                [[ "$server_pgid" =~ ^[0-9]+$ ]] || { echo "Unable to determine process group for $label" >&2; exit 1; }
+                                server_group_pids+=("$server_pgid")
+                        done
+                        return
+                fi
+                sleep 0.1
+        done
+
+        echo "Timed out waiting for remote test servers: $*" >&2
+        exit 1
+}
+
 trap cleanup EXIT
+trap 'exit 1' INT TERM
 
 cleanup
 mkdir -p "$catalogue_rootdir" "$store1_rootdir" "$store2_rootdir" "$workdir"
@@ -88,7 +151,7 @@ cd "$workdir"
 run_server "STORE1" "$store1_config" "$server"
 run_server "STORE2" "$store2_config" "$server"
 
-sleep 0.5
+wait_for_servers STORE1 STORE2
 
 export FDB5_CONFIG_FILE=$client_config
 

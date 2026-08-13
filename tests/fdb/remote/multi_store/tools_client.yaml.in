@@ -1,0 +1,15 @@
+---
+type: local
+store: remote
+engine: toc
+stores:
+    - "localhost:10013"
+    - "localhost:10014"
+fieldLocationEndpoints:
+    - "localhost:10013"
+    - "localhost:10014"
+schema: @CMAKE_CURRENT_SOURCE_DIR@/../schema
+spaces:
+    - handler: Default
+      roots:
+          - path: @CMAKE_CURRENT_BINARY_DIR@/catalogue_tools_root
