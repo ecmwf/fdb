@@ -30,6 +30,7 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/rules/Schema.h"
+#include "fdb5/rules/SelectMatcher.h"
 #include "fdb5/toc/RootManager.h"
 #include "fdb5/toc/TocEngine.h"
 #include "fdb5/toc/TocHandler.h"
@@ -201,7 +202,9 @@ std::vector<eckit::URI> TocEngine::databases(const Key& key, const std::vector<e
     for (const auto& [path, rule] : databasesMatchRegex) {
         try {
             TocHandler toc(path, config);
-            if (toc.databaseKey().match(key)) {
+            if ((!config.matcher() ||
+                 config.matcher()->match(toc.databaseKey(), metkit::mars::Matcher::MatchOnMissing)) &&
+                toc.databaseKey().match(key)) {
                 LOG_DEBUG_LIB(LibFdb5) << " found match with " << path << std::endl;
                 result.push_back(eckit::URI(TocEngine::typeName(), path));
             }
@@ -214,6 +217,22 @@ std::vector<eckit::URI> TocEngine::databases(const Key& key, const std::vector<e
 
     return result;
 }
+
+namespace {
+bool selectMatcher(const metkit::mars::MarsRequest& request, const Key& dbKey, const SelectMatcher* matcher) {
+    if (!matcher) {
+        return true;
+    }
+    metkit::mars::MarsRequest req(request);
+    for (const auto& [keyword, value] : dbKey) {
+        if (!value.empty() && !request.has(keyword)) {
+            req.setValue(keyword, value);
+        }
+    }
+
+    return matcher->match(req, metkit::mars::Matcher::MatchOnMissing);
+}
+}  // namespace
 
 std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& request,
                                              const std::vector<eckit::PathName>& roots, const Config& config) const {
@@ -242,7 +261,8 @@ std::vector<eckit::URI> TocEngine::databases(const metkit::mars::MarsRequest& re
 
                 TocHandler toc(path, config);
                 auto canonical = rule->registry().canonicalise(request);
-                if (toc.databaseKey().partialMatch(canonical)) {
+                if (selectMatcher(canonical, toc.databaseKey(), config.matcher()) &&
+                    toc.databaseKey().partialMatch(canonical)) {
                     LOG_DEBUG_LIB(LibFdb5) << " found match with " << path << std::endl;
                     result.push_back(eckit::URI(TocEngine::typeName(), path));
                 }

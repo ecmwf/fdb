@@ -144,13 +144,17 @@ WipeElements CatalogueWipeState::extractWipeElements() {
             return;
         }
 
-        wipeElements.emplace_back(type, msg, std::move(it->second));
+        std::string message(msg);
+        if (const auto endpoint = catalogue().uri().hostport(); !endpoint.empty()) {
+            message += " (" + endpoint + ")";
+        }
+        wipeElements.emplace_back(type, message + ":", std::move(it->second));
         deleteURIs_.erase(it);
     };
 
-    addWipeElement(WipeElementType::CATALOGUE, "Catalogue URIs to delete:");
-    addWipeElement(WipeElementType::CATALOGUE_CONTROL, "Control URIs to delete:");
-    addWipeElement(WipeElementType::CATALOGUE_INDEX, "Index URIs to delete:");
+    addWipeElement(WipeElementType::CATALOGUE, "Catalogue URIs to delete");
+    addWipeElement(WipeElementType::CATALOGUE_CONTROL, "Control URIs to delete");
+    addWipeElement(WipeElementType::CATALOGUE_INDEX, "Index URIs to delete");
 
     if (!safeURIs_.empty()) {
         wipeElements.emplace_back(WipeElementType::CATALOGUE_SAFE,
@@ -261,12 +265,16 @@ WipeElements StoreWipeState::extractWipeElements() {
             return;
         }
 
-        wipeElements.emplace_back(type, msg, std::move(it->second));
+        std::string message(msg);
+        if (const auto endpoint = storeURI_.hostport(); !endpoint.empty()) {
+            message += " (" + endpoint + ")";
+        }
+        wipeElements.emplace_back(type, message + ":", std::move(it->second));
         deleteURIs_.erase(it);
     };
 
-    addWipeElement(WipeElementType::STORE, "Data URIs to delete:");
-    addWipeElement(WipeElementType::STORE_AUX, "Auxiliary URIs to delete:");
+    addWipeElement(WipeElementType::STORE, "Data URIs to delete");
+    addWipeElement(WipeElementType::STORE_AUX, "Auxiliary URIs to delete");
 
     if (!safeURIs_.empty()) {
         wipeElements.emplace_back(WipeElementType::STORE_SAFE,
