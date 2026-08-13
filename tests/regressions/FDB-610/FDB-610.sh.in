@@ -15,8 +15,18 @@ server_group_pids=()
 
 cleanup() {
     local exit_code=$?
+    local server_pid
     local server_pgid
     echo "Shutting down..."
+
+    if ((${#server_group_pids[@]} == 0)); then
+        for server_pid in "${PID_STORE:-}" "${PID_CATALOGUE:-}"; do
+            [[ -n "$server_pid" ]] || continue
+            server_pgid=$(ps -o pgid= -p "$server_pid" 2>/dev/null | tr -d '[:space:]')
+            [[ "$server_pgid" =~ ^[0-9]+$ ]] && server_group_pids+=("$server_pgid")
+        done
+    fi
+
     for server_pgid in "${server_group_pids[@]}"; do
         kill -TERM -- "-$server_pgid" 2>/dev/null || true
     done

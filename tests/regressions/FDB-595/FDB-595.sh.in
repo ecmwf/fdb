@@ -16,6 +16,7 @@ export ECKIT_DEBUG=0
 
 SERVER_LIFETIME=600
 server_group_pids=()
+server_pids=()
 
 rm -f out.*
 rm -rf ${bindir}/catalogue_root
@@ -37,7 +38,16 @@ EOF
 
 cleanup() {
     local exit_code=$?
+    local server_pid
     local server_pgid
+
+    if ((${#server_group_pids[@]} == 0)); then
+        for server_pid in "${server_pids[@]}"; do
+            server_pgid=$(ps -o pgid= -p "$server_pid" 2>/dev/null | tr -d '[:space:]')
+            [[ "$server_pgid" =~ ^[0-9]+$ ]] && server_group_pids+=("$server_pgid")
+        done
+    fi
+
     for server_pgid in "${server_group_pids[@]}"; do
         kill -TERM -- "-$server_pgid" 2>/dev/null || true
     done
@@ -97,7 +107,6 @@ wait_for_servers() {
     exit 1
 }
 
-server_pids=()
 run_server catalogue "$bindir/catalogue.yaml" 11000
 run_server store "$bindir/store.yaml" 11001
 wait_for_servers
