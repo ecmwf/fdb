@@ -14,6 +14,9 @@ export FDB_HOME=$bindir
 export FDB_DEBUG=0
 export ECKIT_DEBUG=0
 
+SERVER_LIFETIME=600
+server_group_pids=()
+
 rm -f out.*
 rm -rf ${bindir}/catalogue_root
 rm -rf ${bindir}/store_root
@@ -34,17 +37,71 @@ EOF
 
 cleanup() {
     local exit_code=$?
-    [[ -n ${catal_pid-} ]] && kill -9 "$catal_pid" 2>/dev/null || true
-    [[ -n ${store_pid-} ]] && kill -9 "$store_pid" 2>/dev/null || true
+    local server_pgid
+    for server_pgid in "${server_group_pids[@]}"; do
+        kill -TERM -- "-$server_pgid" 2>/dev/null || true
+    done
+    if ((${#server_group_pids[@]})); then
+        sleep 0.2
+        for server_pgid in "${server_group_pids[@]}"; do
+            kill -KILL -- "-$server_pgid" 2>/dev/null || true
+        done
+    fi
     exit $exit_code
 }
-trap cleanup SIGINT SIGTERM EXIT
+trap cleanup EXIT
+trap 'exit 1' INT TERM
 
-FDB5_CONFIG_FILE=$bindir/catalogue.yaml $fdbserver &
-catal_pid=$!
+run_server() {
+    local label="$1"
+    local config="$2"
+    local port="$3"
+    local log="$bindir/$label.log"
 
-FDB5_CONFIG_FILE=$bindir/store.yaml $fdbserver &
-store_pid=$!
+    setsid env FDB5_CONFIG_FILE="$config" timeout "$SERVER_LIFETIME" "$fdbserver" > "$log" 2>&1 &
+    server_pids+=("$!")
+}
+
+wait_for_servers() {
+    local server_pid
+    local server_pgid
+    local port
+    local deadline=$((SECONDS + 10))
+
+    while ((SECONDS < deadline)); do
+        local ready=true
+        for port in 11000 11001; do
+            server_pid=${server_pids[$((port - 11000))]}
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+                echo "fdb-server on port $port exited before becoming ready" >&2
+                exit 1
+            fi
+            if ! grep -q "Listening on socket .* port: $port " "$bindir/$([[ $port -eq 11000 ]] && echo catalogue || echo store).log"; then
+                ready=false
+                break
+            fi
+        done
+
+        if [[ "$ready" == true ]]; then
+            for server_pid in "${server_pids[@]}"; do
+                server_pgid=$(ps -o pgid= -p "$server_pid" | tr -d '[:space:]')
+                [[ "$server_pgid" =~ ^[0-9]+$ ]] || { echo "Unable to determine fdb-server process group" >&2; exit 1; }
+                server_group_pids+=("$server_pgid")
+            done
+            return
+        fi
+        sleep 0.1
+    done
+
+    echo "Timed out waiting for FDB-595 remote servers" >&2
+    exit 1
+}
+
+server_pids=()
+run_server catalogue "$bindir/catalogue.yaml" 11000
+run_server store "$bindir/store.yaml" 11001
+wait_for_servers
+
 
 FDB5_CONFIG_FILE=$bindir/client.yaml $fdbwrite levtypes.grib
 

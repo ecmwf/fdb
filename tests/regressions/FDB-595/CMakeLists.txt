@@ -8,6 +8,6 @@ ecbuild_add_test(
     COMMAND        ${CMAKE_CURRENT_BINARY_DIR}/FDB-595.sh
     ENVIRONMENT    "${test_environment}"
     TEST_PROPERTIES
-    RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
+    RESOURCE_LOCK fdb_remote_fdb595
     LABELS remotefdb
 )
