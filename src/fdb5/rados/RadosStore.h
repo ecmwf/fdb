@@ -14,11 +14,24 @@
 
 #pragma once
 
+#include "fdb5/config/Config.h"
+#include "fdb5/database/Field.h"
+#include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/rados/RadosCommon.h"
 #include "fdb5/rules/Schema.h"
 
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/Length.h"
 #include "eckit/io/rados/RadosObject.h"
+
+#include <cstddef>
+#include <map>
+#include <memory>
+#include <ostream>
+#include <set>
+#include <string>
+#include <vector>
 
 namespace fdb5 {
 
@@ -33,8 +46,6 @@ public:  // methods
     RadosStore(const Key& key, const Config& config);
     RadosStore(const Schema& schema, const Key& key, const Config& config);
     RadosStore(const eckit::URI& uri, const Config& config);
-
-    ~RadosStore() override {}
 
     eckit::URI uri() const override;
     static eckit::URI uri(const eckit::URI& dataURI);
@@ -56,8 +67,7 @@ public:  // methods
     void doWipeEmptyDatabase() const override;
     bool doUnsafeFullWipe() const override;
 
-    // Rados store does not currently support auxiliary objects
-    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override { return {}; }
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI& uri, bool onlyExisting) const override;
 
 protected:  // methods
 
@@ -81,12 +91,11 @@ protected:  // methods
 
 private:  // types
 
-    typedef std::map<Key, eckit::DataHandle*> HandleStore;
-    typedef std::map<Key, eckit::RadosObject> ObjectStore;
+    using HandleStore = std::map<Key, eckit::DataHandle*>;
+    using ObjectStore = std::map<Key, eckit::RadosObject>;
 
 private:  // members
 
-    // mutable bool dirty_;
     size_t archivedFields_{0};
 
     HandleStore handles_;

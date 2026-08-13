@@ -19,7 +19,6 @@
 #include "fdb5/rados/RadosFieldLocation.h"
 #include "fdb5/rules/Rule.h"
 
-#include "eckit/config/LocalConfiguration.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/Length.h"
@@ -43,6 +42,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace fdb5 {
 
@@ -50,23 +50,19 @@ namespace fdb5 {
 
 static StoreBuilder<RadosStore> builder("rados");
 
-RadosStore::RadosStore(const Key& key, const Config& config) :
-    Store(), RadosCommon(config, "store", key), archivedFields_(0) {}
+RadosStore::RadosStore(const Key& key, const Config& config) : RadosCommon(config, "store", key), archivedFields_(0) {}
 
 RadosStore::RadosStore(const Schema& schema, const Key& key, const Config& config) : RadosStore(key, config) {}
 
 RadosStore::RadosStore(const eckit::URI& uri, const Config& config) :
-    Store(), RadosCommon(config, "store", uri), archivedFields_(0) {}
+    RadosCommon(config, "store", uri), archivedFields_(0) {}
 
 eckit::URI RadosStore::uri() const {
-
     return eckit::RadosNamespace(pool_, db_namespace_).uri();
 }
 
 eckit::URI RadosStore::uri(const eckit::URI& dataURI) {
-
     eckit::RadosObject o{dataURI};
-
     return o.nspace().uri();
 }
 
@@ -80,8 +76,6 @@ bool RadosStore::uriBelongs(const eckit::URI& uri) const {
 }
 
 bool RadosStore::uriExists(const eckit::URI& uri) const {
-
-    /// @todo: revisit the name of this method
 
     const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
     const auto n = parts.size();
@@ -137,13 +131,11 @@ std::set<eckit::URI> RadosStore::asCollocatedDataURIs(const std::set<eckit::URI>
 }
 
 bool RadosStore::exists() const {
-
     return eckit::RadosNamespace(pool_, db_namespace_).exists();
 }
 
 /// @todo: never used in actual fdb-read?
 eckit::DataHandle* RadosStore::retrieve(Field& field) const {
-
     return field.dataHandle();
 }
 
@@ -180,7 +172,6 @@ size_t RadosStore::flush() {
 }
 
 void RadosStore::close() {
-
     closeDataHandles();
 }
 
@@ -326,6 +317,11 @@ bool RadosStore::doUnsafeFullWipe() const {
     return true;
 }
 
+std::vector<eckit::URI> RadosStore::getAuxiliaryURIs(const eckit::URI& /*uri*/, bool /*onlyExisting*/) const {
+    return {};
+}
+
+
 //----------------------------------------------------------------------------------------------------------------------
 
 /// @note: unique name generation copied from LocalPathName::unique.
@@ -361,12 +357,12 @@ const eckit::RadosObject& RadosStore::getDataObject(const Key& key) const {
 
 eckit::DataHandle& RadosStore::getDataHandle(const Key& key, const eckit::RadosObject& name) {
 
-    HandleStore::const_iterator j = handles_.find(key);
-    if (j != handles_.end()) {
-        return *(j->second);
+    auto iter = handles_.find(key);
+    if (iter != handles_.end()) {
+        return *(iter->second);
     }
 
-    eckit::DataHandle* dh = name.multipartWriteHandle(maxPartSize_);
+    auto* dh = name.multipartWriteHandle(maxPartSize_);
 
     ASSERT(dh);
 
@@ -379,8 +375,8 @@ eckit::DataHandle& RadosStore::getDataHandle(const Key& key, const eckit::RadosO
 
 void RadosStore::closeDataHandles() {
 
-    for (HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j) {
-        eckit::DataHandle* dh = j->second;
+    for (auto& handle : handles_) {
+        auto* dh = handle.second;
         dh->close();
         delete dh;
     }
@@ -391,8 +387,8 @@ void RadosStore::closeDataHandles() {
 
 void RadosStore::flushDataHandles() {
 
-    for (HandleStore::iterator j = handles_.begin(); j != handles_.end(); ++j) {
-        eckit::DataHandle* dh = j->second;
+    for (auto& handle : handles_) {
+        auto* dh = handle.second;
         dh->flush();
     }
 }
