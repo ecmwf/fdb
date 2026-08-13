@@ -21,7 +21,9 @@ eckit-sys = { git = "ssh://git@github.com/ecmwf/eckit.git", branch = "develop", 
 eckit = { git = "ssh://git@github.com/ecmwf/eckit.git", branch = "develop" }
 metkit-sys = { git = "ssh://git@github.com/ecmwf/metkit.git", branch = "develop", default-features = false }
 metkit = { git = "ssh://git@github.com/ecmwf/metkit.git", branch = "develop" }
-eccodes-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", default-features = false, features = ["vendored", "eccodes-threads"] }
+# Pinned: playground HEAD (e46c4d3b) moved eckit-sys back to the rust-bindings
+# branch, which conflicts with our eckit-sys develop dependency (links collision)
+eccodes-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", rev = "d6b582fd", default-features = false, features = ["vendored", "eccodes-threads"] }
 
 # Build tools
 bindman = { git = "ssh://git@github.com/ecmwf/bindman.git", rev = "47edf68" }
