@@ -268,7 +268,7 @@ WipeElements StoreWipeState::extractWipeElements() {
             return;
         }
 
-        wipeElements.emplace_back(type, std::string(msg) + " ("+storeURI_.hostport()+"):", std::move(it->second));
+        wipeElements.emplace_back(type, std::string(msg) + " (" + storeURI_.hostport() + "):", std::move(it->second));
         deleteURIs_.erase(it);
     };
 

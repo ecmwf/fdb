@@ -447,7 +447,8 @@ bool TocStore::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
     for (const auto& uri : unknownURIs) {
         if (uri.path().exists()) {
             remove(uri, eckit::Log::info(), eckit::Log::info(), true);
-        } else {
+        }
+        else {
             eckit::Log::warning() << "TocStore::doWipeUnknowns - path not found: " << uri.path() << std::endl;
         }
     }
@@ -483,7 +484,8 @@ void TocStore::doWipeEmptyDatabase() const {
 
         if (uri.path().exists()) {
             remove(uri, eckit::Log::info(), eckit::Log::info(), true);
-        } else {
+        }
+        else {
             eckit::Log::warning() << "TocStore::doWipeEmptyDatabase - path not found: " << uri.path() << std::endl;
         }
         cleanupEmptyDatabase_ = false;
