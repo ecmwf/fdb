@@ -19,6 +19,6 @@ ecbuild_add_test(
     ENVIRONMENT FDB_SERVER_EXECUTABLE=$<TARGET_FILE:fdb-server>
     ENVIRONMENT "${test_environment}"
     TEST_PROPERTIES
-    RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
+    RESOURCE_LOCK fdb_remote_fdb419
     LABELS remotefdb
 )
