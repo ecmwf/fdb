@@ -18,7 +18,6 @@ store_config="$testdir/$4"
 catalogue_rootdir=$testdir/catalogue_root
 store_rootdir=$testdir/store_root
 server_pidfile=$testdir/servers.pid
-server_readyfile=$testdir/servers.ready
 
 server="$<TARGET_FILE:fdb-server>"
 test="$<TARGET_FILE:fdb_test_remote_single_conn_stress_bin>"
@@ -26,11 +25,19 @@ test="$<TARGET_FILE:fdb_test_remote_single_conn_stress_bin>"
 # If test exceeds this time, the servers will be killed. Required to ensure servers are eventually killed when ctest is SIGKILL'd
 SERVER_LIFETIME=600
 server_group_pids=()
+server_pids=()
 
 # --- Cleanup and setup
 cleanup() {
   local server_pid
   local server_pgid
+
+  if ((${#server_group_pids[@]} == 0)); then
+    for server_pid in "${server_pids[@]}"; do
+      server_pgid=$(ps -o pgid= -p "$server_pid" 2>/dev/null | tr -d '[:space:]')
+      [[ "$server_pgid" =~ ^[0-9]+$ ]] && server_group_pids+=("$server_pgid")
+    done
+  fi
 
   for server_pgid in "${server_group_pids[@]}"; do
     kill -TERM -- "-$server_pgid" 2>/dev/null || true
@@ -43,15 +50,13 @@ cleanup() {
   fi
 
     if [[ -f $server_pidfile ]]; then
-    while read -r _ server_pid; do
-      server_pid=${server_pid:-$_}
+    while read -r _ _ server_pid; do
       kill -TERM "$server_pid" 2>/dev/null || true
             sleep 0.2
       kill -KILL "$server_pid" 2>/dev/null || true
         done < $server_pidfile
         rm $server_pidfile
     fi
-  rm -f $server_readyfile
 
     rm -rf $catalogue_rootdir
     rm -rf $store_rootdir
@@ -70,47 +75,51 @@ run_server() {
 
   setsid env FDB5_CONFIG_FILE="$config" FDB5_SUB_TOCS=1 FDB_DEBUG=1 FDB_WIPE_SECRET="123" \
       timeout "$SERVER_LIFETIME" "$@" > >(
-    awk -v label="$label" -v pidfile="$server_pidfile" -v readyfile="$server_readyfile" -v port="$port" '
-        BEGIN { found=0 }
+    awk -v label="$label" '
         {
           print "[" label "] " $0
           fflush()
-          if (!found && $0 ~ /pid is [0-9]+/) {
-            pid = $0
-            sub(/.*pid is /, "", pid)
-            sub(/\..*/, "", pid)
-            print label " " pid >> pidfile
-            close(pidfile)
-            found=1
-          }
-          if ($0 ~ ("Listening on socket [0-9]+ port: " port " ")) {
-            print label >> readyfile
-            close(readyfile)
-          }
         }
       '
   ) 2>&1 &
+  local server_pid=$!
+  server_pids+=("$server_pid")
+  printf '%s %s %s\n' "$label" "$port" "$server_pid" >> "$server_pidfile"
+}
+
+port_is_listening() {
+    local port_hex
+    local proc_files=(/proc/net/tcp)
+    [[ -r /proc/net/tcp6 ]] && proc_files+=(/proc/net/tcp6)
+    [[ -r /proc/net/tcp ]] || return 0
+
+    printf -v port_hex '%04X' "$1"
+    awk -v port="$port_hex" '$4 == "0A" { split($2, address, ":"); if (toupper(address[2]) == port) found=1 }
+                             END { exit !found }' "${proc_files[@]}"
 }
 
 wait_for_servers() {
     local label
+    local port
     local server_pid
     local server_pgid
+    local server_info
     local deadline=$((SECONDS + 10))
 
     while ((SECONDS < deadline)); do
         local ready=true
         for label in "$@"; do
-          server_pid=$(awk -v label="$label" '$1 == label {print $2; exit}' "$server_pidfile" 2>/dev/null || true)
-            if [[ -z "$server_pid" ]]; then
+          server_info=$(awk -v label="$label" '$1 == label {print $2, $3; exit}' "$server_pidfile" 2>/dev/null || true)
+            if [[ -z "$server_info" ]]; then
                 ready=false
                 break
             fi
+            read -r port server_pid <<< "$server_info"
             if ! kill -0 "$server_pid" 2>/dev/null; then
                 echo "$label fdb-server exited before becoming ready" >&2
                 exit 1
             fi
-            if ! grep -qx "$label" "$server_readyfile" 2>/dev/null; then
+            if ! port_is_listening "$port"; then
                 ready=false
                 break
             fi
@@ -119,7 +128,7 @@ wait_for_servers() {
         if [[ "$ready" == true ]]; then
             server_group_pids=()
             for label in "$@"; do
-                server_pid=$(awk -v label="$label" '$1 == label {print $2; exit}' "$server_pidfile")
+              server_pid=$(awk -v label="$label" '$1 == label {print $3; exit}' "$server_pidfile")
                 server_pgid=$(ps -o pgid= -p "$server_pid" | tr -d '[:space:]')
                 [[ "$server_pgid" =~ ^[0-9]+$ ]] || { echo "Unable to determine process group for $label" >&2; exit 1; }
                 server_group_pids+=("$server_pgid")
