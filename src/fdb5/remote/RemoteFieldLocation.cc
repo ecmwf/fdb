@@ -146,6 +146,11 @@ class FdbURIManager : public eckit::URIManager {
     eckit::PathName path(const eckit::URI& u) const override { return eckit::PathName{u.name()}; }
 
     std::string asString(const eckit::URI& uri) const override {
+        std::string h = uri.hostport();
+        std::string n = uri.name();
+        if (!h.empty() && !n.empty() && n[0] != '/') {
+            n = "/" + n;
+        }
         std::string q = uri.query();
         if (!q.empty()) {
             q = "?" + q;
@@ -155,7 +160,7 @@ class FdbURIManager : public eckit::URIManager {
             f = "#" + f;
         }
 
-        return uri.name() + q + f;
+        return h + n + q + f;
     }
 
 public:
