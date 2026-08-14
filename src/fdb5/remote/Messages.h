@@ -78,6 +78,7 @@ enum class Message : uint16_t {
     // Responses
     Received = 200,
     Complete,
+    Unauthorised,
 
     // Data communication
     Blob = 300,
@@ -93,7 +94,7 @@ class MessageHeader {
 
 public:  // types
 
-    constexpr static uint16_t currentVersion = 12;
+    constexpr static uint16_t currentVersion = 13;
 
     constexpr static const auto hashBytes = 16;
 
