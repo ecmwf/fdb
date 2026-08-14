@@ -64,12 +64,12 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        error(e.what(), clientID, requestID);
+        error(true, e.what(), clientID, requestID);
     }
     catch (...) {
-        error("Caught unexpected and unknown error", clientID, requestID);
+        error(true, "Caught unexpected and unknown error", clientID, requestID);
     }
-    return Handled::No;
+    return Handled::Replied;
 }
 
 Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
@@ -142,12 +142,12 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        error(e.what(), clientID, requestID);
+        error(true, e.what(), clientID, requestID);
     }
     catch (...) {
-        error("Caught unexpected and unknown error", clientID, requestID);
+        error(true, "Caught unexpected and unknown error", clientID, requestID);
     }
-    return Handled::No;
+    return Handled::Replied;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -216,11 +216,11 @@ void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t request
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        error(e.what(), clientID, requestID);
+        error(false, e.what(), clientID, requestID);
     }
     catch (...) {
         // We really don't want to std::terminate the thread
-        error("Caught unexpected , unknown exception in retrieve worker", clientID, requestID);
+        error(false, "Caught unexpected , unknown exception in retrieve worker", clientID, requestID);
     }
 }
 
@@ -492,7 +492,7 @@ void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t req
 
     if (storeState->includedDataURIs().empty()) {
         // Client should not communicate with the store if there are no data URIs to wipe.
-        error("Wipe request has no data URIs", clientID, requestID);
+        error(true, "Wipe request has no data URIs", clientID, requestID);
         return;
     }
 

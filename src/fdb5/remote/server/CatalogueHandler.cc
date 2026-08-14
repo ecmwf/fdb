@@ -89,12 +89,12 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        error(e.what(), clientID, requestID);
+        error(true, e.what(), clientID, requestID);
     }
     catch (...) {
-        error("Caught unexpected and unknown error", clientID, requestID);
+        error(true, "Caught unexpected and unknown error", clientID, requestID);
     }
-    return Handled::No;
+    return Handled::Replied;
 }
 
 Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint32_t requestID,
@@ -193,12 +193,12 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        error(e.what(), clientID, requestID);
+        error(true, e.what(), clientID, requestID);
     }
     catch (...) {
-        error("Caught unexpected and unknown error", clientID, requestID);
+        error(true, "Caught unexpected and unknown error", clientID, requestID);
     }
-    return Handled::No;
+    return Handled::Replied;
 }
 
 
@@ -356,11 +356,11 @@ void CatalogueHandler::handleApiCall(uint32_t clientID, uint32_t requestID, ecki
                                }
                                catch (std::exception& e) {
                                    // n.b. more general than eckit::Exception
-                                   error(e.what(), clientID, requestID);
+                                   error(false, e.what(), clientID, requestID);
                                }
                                catch (...) {
                                    // We really don't want to std::terminate the thread
-                                   error("Caught unexpected, unknown exception in worker", clientID, requestID);
+                                   error(false, "Caught unexpected, unknown exception in worker", clientID, requestID);
                                }
                            }));
 }
@@ -549,7 +549,7 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
         it = catalogues_.find(clientID);
         if (it == catalogues_.end()) {
             std::string what("Requested unknown catalogue id: " + std::to_string(clientID));
-            error(what, 0, 0);
+            error(false, what, 0, 0);
             throw SeriousBug(what, Here());
         }
     }
