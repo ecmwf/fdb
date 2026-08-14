@@ -52,7 +52,7 @@ foreach( _test ${fdb_tools_fam_tests} )
     configure_file( fdb_${_test}_fam.sh.in fdb_${_test}_fam.sh @ONLY )
 
     ecbuild_add_test(
-        TARGET fdb_test_tools_list_${_test}_fam
+        TARGET fdb_test_tools_${_test}_fam
         TYPE SCRIPT
         LABELS fam tools
         CONDITION HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB AND HAVE_FAMFDB

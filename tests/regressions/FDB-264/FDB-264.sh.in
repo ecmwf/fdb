@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -eux
+set -euxo pipefail
 
 fdbread="$<TARGET_FILE:fdb-read>"
 fdbwrite="$<TARGET_FILE:fdb-write>"
@@ -11,7 +11,7 @@ gribset="$<TARGET_FILE:grib_set>"
 
 function post_process {
   num=0
-  while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+  while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; true; done | sort
 }
 
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
@@ -61,5 +61,3 @@ EOF
 $gribls -jm out.grib           | post_process | tee out
 cat listjson                   | post_process | tee list
 diff out list
-
-

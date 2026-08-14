@@ -6,7 +6,7 @@
 # and retrieved field is done to check for correct retrieval. Retrieved data
 # needs to be 2x the bytes of the data available.
 
-set -ex
+set -exo pipefail
 
 export FDB_HOME=@CMAKE_CURRENT_BINARY_DIR@
 export FDB_DEBUG=1
@@ -14,7 +14,7 @@ export FDB_DEBUG=1
 cleanup() {
     local exit_code=$?
     echo "Shutting down..."
-    kill $PID_STORE $PID_CATALOGUE 2>/dev/null || true
+    kill -9 $PID_STORE $PID_CATALOGUE 2>/dev/null || true
     exit $exit_code
 }
 trap cleanup SIGINT SIGTERM EXIT

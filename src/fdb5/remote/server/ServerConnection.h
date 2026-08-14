@@ -54,8 +54,6 @@ public:
     virtual Handled handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) = 0;
     virtual Handled handleData(Message message, uint32_t clientID, uint32_t requestID) = 0;
     virtual Handled handleData(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) = 0;
-
-    virtual void handleException(std::exception_ptr e) = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -121,8 +119,6 @@ protected:
     void archiver();
     void queue(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
 
-    void handleException(std::exception_ptr e) override;
-
 private:
 
     void listeningThreadLoopData();
@@ -139,6 +135,8 @@ protected:
     virtual bool remove(bool control, uint32_t clientID) = 0;
 
     Config config_;
+    Config innerConfig_;
+
     std::string dataListenHostname_;
 
     eckit::Queue<readLocationElem> readLocationQueue_;

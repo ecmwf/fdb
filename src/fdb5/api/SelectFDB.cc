@@ -14,19 +14,25 @@
  */
 
 #include "fdb5/api/SelectFDB.h"
-#include <sstream>
-#include <vector>
-#include "eckit/log/CodeLocation.h"
-#include "eckit/log/Log.h"
+
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListIterator.h"
-#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/WipeState.h"
 #include "fdb5/rules/SelectMatcher.h"
+
+#include "metkit/mars/Matcher.h"
+
+#include "eckit/log/CodeLocation.h"
+#include "eckit/log/Log.h"
+
+#include <memory>
+#include <sstream>
+#include <utility>
+#include <vector>
 
 using namespace eckit;
 using namespace metkit::mars;
@@ -37,12 +43,14 @@ static FDBBuilder<SelectFDB> selectFdbBuilder("select");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-SelectFDB::FDBLane::FDBLane(const eckit::LocalConfiguration& config) :
-    matcher_{config}, config_(config), fdb_(nullptr) {}
+SelectFDB::FDBLane::FDBLane(const eckit::LocalConfiguration& config) : config_(config), fdb_(nullptr) {
+    config_.setMatcher(std::make_unique<SelectMatcher>(config));
+}
 
 template <typename T>  // T is either a MarsRequest or Key
 bool SelectFDB::FDBLane::matches(const T& vals, Matcher::MatchMissingPolicy matchOnMissing) const {
-    return matcher_.match(vals, matchOnMissing);
+    ASSERT(config_.matcher());
+    return config_.matcher()->match(vals, matchOnMissing);
 }
 
 FDBBase& SelectFDB::FDBLane::get() {

@@ -20,6 +20,7 @@
 #include "test_common.h"
 
 #include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/Key.h"
 
@@ -27,9 +28,11 @@
 
 #include <atomic>
 #include <cstddef>
+#include <cstdlib>
 #include <exception>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <thread>
 #include <vector>
@@ -74,7 +77,7 @@ std::vector<int> run_threads(const size_t count, const ThreadWorker& worker) {
 /// Assert (on the main thread) that every worker thread succeeded.
 void expect_workers_ok(const std::vector<int>& results) {
     for (auto result : results) {
-        EXPECT(result == 0);
+        EXPECT_EQUAL(result, 0);
     }
 }
 
@@ -91,7 +94,7 @@ CASE("Multi-thread: archive (one FDB per thread)") {
     expect_workers_ok(run_threads(count, [](auto wid) { return worker_archive(wid); }));
 
     fdb5::FDB fdb;
-    EXPECT(list_steps(fdb) == expected_steps(count));
+    EXPECT_EQUAL(list_steps(fdb), expected_steps(count));
     for (int worker = 0; worker < count; ++worker) {
         for (int seq = 0; seq < k_seq_per_worker; ++seq) {
             EXPECT(retrieve_equals(fdb, make_key(worker, seq), make_data(worker, seq)));
@@ -120,7 +123,7 @@ CASE("Multi-thread: archive (shared FDB)") {
     shared.flush();
 
     fdb5::FDB fdb;
-    EXPECT(list_steps(fdb) == expected_steps(count));
+    EXPECT_EQUAL(list_steps(fdb), expected_steps(count));
     for (int worker = 0; worker < count; ++worker) {
         for (int seq = 0; seq < k_seq_per_worker; ++seq) {
             EXPECT(retrieve_equals(fdb, make_key(worker, seq), make_data(worker, seq)));
@@ -161,7 +164,7 @@ CASE("Multi-thread: list") {
     expect_workers_ok(run_threads(count, [](auto wid) { return worker_list(wid); }));
 
     fdb5::FDB fdb;
-    EXPECT(list_steps(fdb) == expected_steps(count));
+    EXPECT_EQUAL(list_steps(fdb), expected_steps(count));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -175,7 +178,7 @@ CASE("Multi-thread: axes") {
     expect_workers_ok(run_threads(count, [count](auto) { return worker_axes(count); }));
 
     fdb5::FDB fdb;
-    EXPECT(axes_steps(fdb) == expected_steps(count));
+    EXPECT_EQUAL(axes_steps(fdb), expected_steps(count));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -261,7 +264,7 @@ CASE("Multi-thread: concurrent archive + flush (shared FDB)") {
     EXPECT(flush_count.load(std::memory_order_relaxed) > 0);
 
     fdb5::FDB fdb;
-    EXPECT(list_steps(fdb) == expected_steps(count));
+    EXPECT_EQUAL(list_steps(fdb), expected_steps(count));
     for (int worker = 0; worker < count; ++worker) {
         for (int seq = 0; seq < k_seq_per_worker; ++seq) {
             EXPECT(retrieve_equals(fdb, make_key(worker, seq), make_data(worker, seq)));
@@ -295,6 +298,53 @@ CASE("Multi-thread: concurrent reads (shared FDB)") {
                 // RootManager::fileSpaces() -> Config::getSubConfigurations() copies eckit::Value /
                 // LocalConfiguration objects sharing a non-atomically reference-counted eckit::Counted.
                 if (list_count(shared, key.request("list"), fdb5::ListMode::Deduplicate) != 1) {
+                    return 1;
+                }
+            }
+        }
+        return 0;
+    }));
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+CASE("Multi-thread: concurrent retrieve (shared FDB, shared ClientConnection)") {
+    const auto threads = static_cast<size_t>(thread_count());
+    const int iterations = env_int("TEST_FDB_RETRIEVE_ITERATIONS", 4);
+    const bool config = (::getenv("FDB5_CONFIG_FILE") != nullptr) || (::getenv("FDB5_CONFIG") != nullptr);
+
+    std::unique_ptr<TestFixture> fixture;
+    if (!config) {
+        fixture = std::make_unique<TestFixture>(static_cast<int>(threads));
+        archive_all(static_cast<int>(threads));
+    }
+
+    struct Field {
+        metkit::mars::MarsRequest request;
+        std::string bytes;
+    };
+
+    // single-threaded, this is reference to test against
+    std::vector<Field> fields;
+    {
+        fdb5::FDB fdb;
+        auto iter = fdb.list(fdb5::FDBToolRequest({}, true, {}), /* deduplicate */ true);
+        fdb5::ListElement elem;
+        while (iter.next(elem)) {
+            const auto request = elem.combinedKey().request("retrieve");
+            std::unique_ptr<eckit::DataHandle> handle(fdb.retrieve(request));
+            EXPECT(handle != nullptr);
+            fields.push_back({request, read_handle(*handle)});
+        }
+    }
+    EXPECT(!fields.empty());
+
+    expect_workers_ok(run_threads(threads, [&fields, iterations](size_t) {
+        fdb5::FDB fdb;
+        for (int round = 0; round < iterations; ++round) {
+            for (const auto& field : fields) {
+                std::unique_ptr<eckit::DataHandle> handle(fdb.retrieve(field.request));
+                if (!handle || read_handle(*handle) != field.bytes) {
                     return 1;
                 }
             }

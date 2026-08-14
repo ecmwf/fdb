@@ -10,8 +10,6 @@
 
 #include "fdb5/remote/server/StoreHandler.h"
 
-#include "eckit/exception/Exceptions.h"
-#include "eckit/serialisation/ResizableMemoryStream.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Key.h"
@@ -21,13 +19,12 @@
 #include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/remote/server/ServerConnection.h"
 
-#include "eckit/log/Log.h"
-#include "eckit/serialisation/MemoryStream.h"
-#include "eckit/types/Types.h"
-
 #include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/log/Log.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/serialisation/ResizableMemoryStream.h"
 #include "eckit/types/Types.h"
 #include "eckit/utils/Literals.h"
 
@@ -67,15 +64,17 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        error(e.what(), clientID, requestID);
+        error(true, e.what(), clientID, requestID);
     }
     catch (...) {
-        error("Caught unexpected and unknown error", clientID, requestID);
+        error(true, "Caught unexpected and unknown error", clientID, requestID);
     }
-    return Handled::No;
+    return Handled::Replied;
 }
 
 Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+
+    static bool wipeEnabled = Resource<bool>("fdbWipeEnabled;$FDB_WIPE_ENABLED", false);
 
     try {
         switch (message) {
@@ -93,22 +92,42 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 return Handled::Replied;
 
             case Message::Wipe:  // Initial wipe request
+                if (!wipeEnabled) {
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
+                }
                 finaliseWipeState(clientID, requestID, payload);
                 return Handled::Replied;
 
             case Message::DoWipeURIs:  // request to delete data marked for wipe
+                if (!wipeEnabled) {
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
+                }
                 doWipeURIs(clientID, requestID, payload);
                 return Handled::Yes;
 
             case Message::DoWipeFinish:  // request to delete empty databases and finish the wipe.
+                if (!wipeEnabled) {
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
+                }
                 doWipeFinish(clientID, requestID, payload);
                 return Handled::Yes;
 
             case Message::DoWipeUnknowns:  // request to delete unknown URIs as part of a wipe
+                if (!wipeEnabled) {
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
+                }
                 doWipeUnknowns(clientID, requestID, payload);
                 return Handled::Yes;
 
             case Message::DoUnsafeFullWipe:  // request to delete full database and content
+                if (!wipeEnabled) {
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
+                }
                 doUnsafeFullWipe(clientID, requestID, payload);
                 return Handled::Replied;
 
@@ -123,12 +142,12 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        error(e.what(), clientID, requestID);
+        error(true, e.what(), clientID, requestID);
     }
     catch (...) {
-        error("Caught unexpected and unknown error", clientID, requestID);
+        error(true, "Caught unexpected and unknown error", clientID, requestID);
     }
-    return Handled::No;
+    return Handled::Replied;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -150,6 +169,9 @@ void StoreHandler::read(uint32_t clientID, uint32_t requestID, const eckit::Buff
 
     std::unique_ptr<eckit::DataHandle> dh;
     dh.reset(location->dataHandle());
+
+    // send acknowledgement before Blob/Complete
+    write(Message::Received, true, clientID, requestID);
 
     readLocationQueue_.emplace(readLocationElem(clientID, requestID, std::move(dh)));
 }
@@ -194,11 +216,11 @@ void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t request
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        error(e.what(), clientID, requestID);
+        error(false, e.what(), clientID, requestID);
     }
     catch (...) {
         // We really don't want to std::terminate the thread
-        error("Caught unexpected , unknown exception in retrieve worker", clientID, requestID);
+        error(false, "Caught unexpected , unknown exception in retrieve worker", clientID, requestID);
     }
 }
 
@@ -297,7 +319,7 @@ Store& StoreHandler::getStore(uint32_t clientID) {
             Log::error() << "  clientID: " << kv.first << ", store: " << *(kv.second.store) << std::endl;
         }
         write(Message::Error, true, 0, 0, what.c_str(), what.length());
-        throw;
+        throw SeriousBug(what, Here());
     }
 
     return *(it->second.store);
@@ -315,7 +337,7 @@ Store& StoreHandler::store(uint32_t clientID, const Key& dbKey) {
     if (!single_) {
         numDataConnection_++;
     }
-    return *((stores_.emplace(clientID, StoreHelper(!single_, dbKey, config_)).first)->second.store);
+    return *((stores_.emplace(clientID, StoreHelper(!single_, dbKey, innerConfig_)).first)->second.store);
 }
 
 Store& StoreHandler::getStore(uint32_t clientID, const eckit::URI& uri) {
@@ -330,7 +352,7 @@ Store& StoreHandler::getStore(uint32_t clientID, const eckit::URI& uri) {
     if (!single_) {
         numDataConnection_++;
     }
-    return *((stores_.emplace(clientID, StoreHelper(!single_, uri, config_)).first)->second.store);
+    return *((stores_.emplace(clientID, StoreHelper(!single_, uri, innerConfig_)).first)->second.store);
 }
 
 void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) const {
@@ -342,7 +364,7 @@ void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, con
     {
         eckit::MemoryStream stream(payload);
         const Key dbKey(stream);
-        exists = StoreFactory::instance().build(dbKey, config_)->exists();
+        exists = StoreFactory::instance().build(dbKey, innerConfig_)->exists();
     }
 
     eckit::Buffer existBuf(5);
@@ -358,7 +380,12 @@ void StoreHandler::doWipeUnknowns(const uint32_t clientID, const uint32_t reques
 
     const WipeInProgress& currentWipe = cachedWipeState(key);
 
-    std::set<eckit::URI> uris{s};
+    size_t numUnknowns = 0;
+    s >> numUnknowns;
+    std::set<eckit::URI> uris;
+    for (size_t i = 0; i < numUnknowns; ++i) {
+        uris.emplace(s);
+    }
 
     // Only proceed if unsafeWipeAll is set.
     ASSERT(currentWipe.unsafeWipeAll);
@@ -430,6 +457,9 @@ const StoreHandler::WipeInProgress& StoreHandler::cachedWipeState(const Key& uri
 
 void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
 
+    static bool acceptUnsigned =
+        eckit::Resource<bool>("$FDB_ACCEPT_UNSIGNED_WIPE_STATE;fdbAcceptUnsignedWipeState", false);
+
     bool unsafeAll = false;
     bool doit = false;
     eckit::MemoryStream inStream(payload);
@@ -441,10 +471,12 @@ void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t req
 
     // XXX Validate signature.
     const std::string dummy_secret = eckit::Resource<std::string>("$FDB_WIPE_SECRET;fdbWipeSecret", "");
-    ASSERT(!dummy_secret.empty());
+    if (!acceptUnsigned) {
+        ASSERT(!dummy_secret.empty());
 
-    uint64_t expected_hash = inState.hash(dummy_secret);
-    ASSERT(inState.signature().validSignature(expected_hash));
+        uint64_t expected_hash = inState.hash(dummy_secret);
+        ASSERT(inState.signature().validSignature(expected_hash));
+    }
 
     // -- From here on, we can trust the state came from the catalogue. --
 
@@ -460,7 +492,7 @@ void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t req
 
     if (storeState->includedDataURIs().empty()) {
         // Client should not communicate with the store if there are no data URIs to wipe.
-        error("Wipe request has no data URIs", clientID, requestID);
+        error(true, "Wipe request has no data URIs", clientID, requestID);
         return;
     }
 
@@ -474,11 +506,10 @@ void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t req
     outStream << storeState->unrecognisedURIs();
     outStream << storeState->missingURIs();
 
-    write(Message::Wipe, true, clientID, requestID, outBuffer.data(), outStream.position());
+    write(Message::Received, true, clientID, requestID, outBuffer.data(), outStream.position());
 
     // keep state for doWipeURIs
     if (doit) {
-        ASSERT(!unsafeAll);  // Until Im explicitly told otherwise, we dont support unsafeAll on remote fdb.
         wipesInProgress_.emplace(dbkey, WipeInProgress{unsafeAll, std::move(storeState)});
     }
 }

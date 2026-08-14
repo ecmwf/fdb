@@ -1,8 +1,12 @@
 #include "fdb5/database/WipeState.h"
+
 #include <memory>
+
+#include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/log/Log.h"
+
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Store.h"
@@ -144,13 +148,17 @@ WipeElements CatalogueWipeState::extractWipeElements() {
             return;
         }
 
-        wipeElements.emplace_back(type, msg, std::move(it->second));
+        std::string message(msg);
+        if (const auto endpoint = catalogue().uri().hostport(); !endpoint.empty()) {
+            message += " (" + endpoint + ")";
+        }
+        wipeElements.emplace_back(type, message + ":", std::move(it->second));
         deleteURIs_.erase(it);
     };
 
-    addWipeElement(WipeElementType::CATALOGUE, "Catalogue URIs to delete:");
-    addWipeElement(WipeElementType::CATALOGUE_CONTROL, "Control URIs to delete:");
-    addWipeElement(WipeElementType::CATALOGUE_INDEX, "Index URIs to delete:");
+    addWipeElement(WipeElementType::CATALOGUE, "Catalogue URIs to delete");
+    addWipeElement(WipeElementType::CATALOGUE_CONTROL, "Control URIs to delete");
+    addWipeElement(WipeElementType::CATALOGUE_INDEX, "Index URIs to delete");
 
     if (!safeURIs_.empty()) {
         wipeElements.emplace_back(WipeElementType::CATALOGUE_SAFE,
@@ -242,7 +250,10 @@ Store& StoreWipeState::store(const Config& config) const {
 
 void StoreWipeState::encode(eckit::Stream& s) const {
 
-    if (!signature_.isSigned()) {
+    static bool acceptUnsigned =
+        eckit::Resource<bool>("$FDB_ACCEPT_UNSIGNED_WIPE_STATE;fdbAcceptUnsignedWipeState", false);
+
+    if (!signature_.isSigned() && !acceptUnsigned) {
         throw eckit::SeriousBug("StoreWipeState must be signed before encoding");
     }
 
@@ -261,12 +272,16 @@ WipeElements StoreWipeState::extractWipeElements() {
             return;
         }
 
-        wipeElements.emplace_back(type, msg, std::move(it->second));
+        std::string message(msg);
+        if (const auto endpoint = storeURI_.hostport(); !endpoint.empty()) {
+            message += " (" + endpoint + ")";
+        }
+        wipeElements.emplace_back(type, message + ":", std::move(it->second));
         deleteURIs_.erase(it);
     };
 
-    addWipeElement(WipeElementType::STORE, "Data URIs to delete:");
-    addWipeElement(WipeElementType::STORE_AUX, "Auxiliary URIs to delete:");
+    addWipeElement(WipeElementType::STORE, "Data URIs to delete");
+    addWipeElement(WipeElementType::STORE_AUX, "Auxiliary URIs to delete");
 
     if (!safeURIs_.empty()) {
         wipeElements.emplace_back(WipeElementType::STORE_SAFE,

@@ -8,15 +8,32 @@
  * nor does it submit to any jurisdiction.
  */
 
-#include <string>
-#include "eckit/exception/Exceptions.h"
-#include "eckit/log/Log.h"
-#include "eckit/testing/Test.h"
-#include "eckit/types/Date.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/WipeIterator.h"
+
+#include "metkit/mars/MarsRequest.h"
+
+#include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/Buffer.h"
+#include "eckit/io/DataHandle.h"
+#include "eckit/io/FileHandle.h"
+#include "eckit/log/Log.h"
+#include "eckit/testing/Test.h"
+#include "eckit/types/Date.h"
+
+#include <chrono>
+#include <cstddef>
+#include <exception>
+#include <map>
+#include <memory>
+#include <ostream>
+#include <set>
+#include <string>
+#include <thread>
+#include <vector>
 
 using namespace eckit::testing;
 
@@ -118,6 +135,69 @@ metkit::mars::MarsRequest make_request(const std::vector<Key>& keys) {
     return req;
 }
 
+// Server-side subtoc consolidation happens when a writer's DB session closes, which is triggered by a
+// fire-and-forget "Stop" message, so it can race with a subsequent dry-run wipe.
+// retry while the catalogue still reports un-consolidated ("unexpected"/UNKNOWN) entries, up to a bounded timeout.
+std::map<WipeElementType, size_t> wipe_dry_run_stable(const std::string& request,
+                                                      std::vector<eckit::URI>* dataUris = nullptr,
+                                                      std::vector<eckit::URI>* indexUris = nullptr) {
+
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(20);
+    const auto wait = std::chrono::milliseconds(250);
+
+    std::map<WipeElementType, size_t> element_counts;
+    for (;;) {
+        element_counts.clear();
+        if (dataUris) {
+            dataUris->clear();
+        }
+        if (indexUris) {
+            indexUris->clear();
+        }
+
+        auto wipe = FDB{}.wipe(FDBToolRequest::requestsFromString(request)[0], false);
+        WipeElement wipe_elem;
+        while (wipe.next(wipe_elem)) {
+            eckit::Log::info() << "[CLIENT]" << wipe_elem;
+            element_counts[wipe_elem.type()] += wipe_elem.uris().size();
+            if (dataUris && wipe_elem.type() == WipeElementType::STORE) {
+                dataUris->insert(dataUris->end(), wipe_elem.uris().begin(), wipe_elem.uris().end());
+            }
+            else if (indexUris && wipe_elem.type() == WipeElementType::CATALOGUE_INDEX) {
+                indexUris->insert(indexUris->end(), wipe_elem.uris().begin(), wipe_elem.uris().end());
+            }
+        }
+
+        if (element_counts[WipeElementType::UNKNOWN] == 0 || std::chrono::steady_clock::now() >= deadline) {
+            return element_counts;
+        }
+        std::this_thread::sleep_for(wait);
+    }
+}
+
+
+CASE("FdbURI comparison") {
+    std::set<eckit::URI> uris;
+
+    uris.insert(eckit::URI("fdb://volfdb-store-000:10000/data/root/rd:ixvb:lwda:20230530:1800:g"));
+    EXPECT_EQUAL(uris.size(), 1);
+
+    uris.insert(eckit::URI("fdb://volfdb-store-001:10000/data/root/rd:ixvb:lwda:20230530:1800:g"));
+    EXPECT_EQUAL(uris.size(), 2);
+
+    uris.insert(eckit::URI("fdb://volfdb-store-000:10000/data/root/rd:ixvb:lwda:20230530:1800:g"));
+    EXPECT_EQUAL(uris.size(), 2);
+
+    uris.insert(eckit::URI("fdb://volfdb-store-000:10000/data/root/rd:ixvb:lwda:20230530:1800:e"));
+    EXPECT_EQUAL(uris.size(), 3);
+
+    uris.insert(eckit::URI("fdb://volfdb-store-000:10000"));
+    EXPECT_EQUAL(uris.size(), 4);
+
+    uris.insert(eckit::URI("fdb://volfdb-store-000:10000/"));
+    EXPECT_EQUAL(uris.size(), 4);
+}
+
 // Note: The catalogue server is configured to use subtocs. This means there will be cleared indexes and subtocs.
 // This means we also must be sure to disconnect between calls inorder to see the consolidated .index file.
 
@@ -181,13 +261,8 @@ CASE("Remote protocol: the basics") {
     // -- wipe (doit=false) --
     eckit::Log::info() << "[CLIENT]" << "Dry-run wipe with request date=20000101." << std::endl;
     {
-        auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("date=20000101")[0]);
-        WipeElement wipeElem;
-        std::map<WipeElementType, size_t> element_counts;
-        while (wipeit.next(wipeElem)) {
-            eckit::Log::info() << "[CLIENT]" << wipeElem;
-            element_counts[wipeElem.type()] += wipeElem.uris().size();
-        }
+        auto element_counts = wipe_dry_run_stable("date=20000101");
+
         // Expect: 2 store .data, 4 catalogue .index, 3 catalogue files (schema, toc, subtoc)
         EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
         EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
@@ -221,6 +296,9 @@ CASE("Remote protocol: the basics") {
         }
         EXPECT_EQUAL(count, Nfields);
     }
+
+    // wait for the reconsolidation to finish. Checking with dry-run wipe(s)
+    wipe_dry_run_stable("date=20000101");
 
     // Wipe, with doit=true
     eckit::Log::info() << "[CLIENT]" << "Wiping with request date=20000101. --doit" << std::endl;
@@ -299,18 +377,10 @@ CASE("Remote protocol: more wipe testing") {
         keys = write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
     }
     EXPECT_EQUAL(keys.size(), Nfields);
-    std::this_thread::sleep_for(std::chrono::seconds(2));  // Ensure server has time to flush consolidated indexes.
-
     // dry run wipe a single date
     eckit::Log::info() << "[CLIENT]" << "Dry-run wipe with request date=20000101." << std::endl;
     {
-        auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,date=20000101")[0]);
-        WipeElement wipeElem;
-        std::map<WipeElementType, size_t> element_counts;
-        while (wipeit.next(wipeElem)) {
-            eckit::Log::info() << "[CLIENT]" << wipeElem;
-            element_counts[wipeElem.type()] += wipeElem.uris().size();
-        }
+        auto element_counts = wipe_dry_run_stable("class=od,expver=xxxx,date=20000101");
 
         // Expect: 2 store .data, 2 catalogue .index, 2 catalogue files (schema, toc)
         EXPECT_EQUAL(element_counts[WipeElementType::STORE], 2);
@@ -324,29 +394,12 @@ CASE("Remote protocol: more wipe testing") {
         FDB fdb{};
         write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
     }
-    std::this_thread::sleep_for(std::chrono::seconds(2));  // Ensure server has time to flush consolidated indexes.
-
     // Wipe just one DB (date=20000101)
     std::vector<eckit::URI> data_uris;
     std::vector<eckit::URI> index_uris;
     eckit::Log::info() << "[CLIENT]" << "Dry-run wipe with request date=20000101 (first level)" << std::endl;
     {
-        auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od,expver=xxxx,date=20000101")[0],
-                                 false);  // dont actually delete anything
-
-        WipeElement wipeElem;
-        std::map<WipeElementType, size_t> element_counts;
-
-        while (wipeit.next(wipeElem)) {
-            eckit::Log::info() << "[CLIENT]" << wipeElem;
-            element_counts[wipeElem.type()] += wipeElem.uris().size();
-            if (wipeElem.type() == WipeElementType::STORE) {
-                data_uris.insert(data_uris.end(), wipeElem.uris().begin(), wipeElem.uris().end());
-            }
-            else if (wipeElem.type() == WipeElementType::CATALOGUE_INDEX) {
-                index_uris.insert(index_uris.end(), wipeElem.uris().begin(), wipeElem.uris().end());
-            }
-        }
+        auto element_counts = wipe_dry_run_stable("class=od,expver=xxxx,date=20000101", &data_uris, &index_uris);
 
         // Expect: 4 .data files, 4 .index files and 4 catalogue files (2 schema, 2 toc)
         EXPECT_EQUAL(element_counts[WipeElementType::STORE], 4);
@@ -461,6 +514,65 @@ CASE("Remote protocol: more wipe testing") {
         eckit::PathName p = index_uri.path().dirName();
         EXPECT(!p.exists());
     }
+}
+
+// This test drives many blocking control RPCs (list) concurrently through a single shared ClientConnection and
+// asserts they all complete correctly, without deadlock, interleaved socket writes, or corrupted responses.
+CASE("Remote protocol: concurrent blocking control RPCs are not serialised") {
+
+    const size_t nfields = 8;
+    const std::string data_string = "Concurrent blocking RPCs should not serialise.";
+    std::vector<Key> keys;
+    {
+        FDB fdb{};  // Expects the config to be set in the environment
+        keys = write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
+    }
+    EXPECT_EQUAL(keys.size(), nfields);
+
+    const size_t nthreads = 8;
+    const size_t niterations = 20;
+
+    // Note: all assertions run on the main thread after join()
+    std::vector<int> results(nthreads, -1);
+    std::vector<std::thread> threads;
+    threads.reserve(nthreads);
+
+    for (size_t t = 0; t < nthreads; ++t) {
+        threads.emplace_back([t, &keys, &results]() {
+            try {
+                int result = 0;
+                for (size_t i = 0; i < niterations && result == 0; ++i) {
+                    // every Client shares the same ClientConnection via the ClientConnectionRouter
+                    auto iter = FDB{}.list(FDBToolRequest{make_request(keys)}, true);
+                    ListElement elem;
+                    size_t count = 0;
+                    while (iter.next(elem)) {
+                        ++count;
+                    }
+                    if (count != nfields) {
+                        eckit::Log::error() << "[CLIENT][thread " << t << "] expected " << nfields << " fields, listed "
+                                            << count << std::endl;
+                        result = 1;
+                    }
+                }
+                results[t] = result;
+            }
+            catch (const std::exception& e) {
+                eckit::Log::error() << "[CLIENT][thread " << t << "] " << e.what() << std::endl;
+                results[t] = 1;
+            }
+        });
+    }
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    for (auto result : results) {
+        EXPECT_EQUAL(result, 0);
+    }
+
+    // This is the final case; no wipe.
 }
 
 }  // namespace fdb5::test

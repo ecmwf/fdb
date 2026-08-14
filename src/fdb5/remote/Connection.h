@@ -10,6 +10,13 @@
 
 #pragma once
 
+#include "fdb5/remote/Messages.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/net/TCPSocket.h"
+#include "eckit/os/BackTrace.h"
+#include "eckit/serialisation/MemoryStream.h"
+
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
@@ -17,13 +24,6 @@
 #include <mutex>
 #include <string_view>
 #include <vector>
-
-#include "eckit/exception/Exceptions.h"
-#include "eckit/net/TCPSocket.h"
-#include "eckit/os/BackTrace.h"
-#include "eckit/serialisation/MemoryStream.h"
-
-#include "fdb5/remote/Messages.h"
 
 namespace eckit {
 
@@ -74,7 +74,8 @@ public:  // methods
         write(msg, control, clientID, requestID, {{length, data}});
     }
 
-    void error(std::string_view msg, uint32_t clientID, uint32_t requestID) const;
+    void error(bool control, std::string_view msg, uint32_t clientID, uint32_t requestID) const;
+    void unauthorised(std::string_view msg, uint32_t clientID, uint32_t requestID) const;
 
     eckit::Buffer readControl(MessageHeader& hdr) const;
 
@@ -106,7 +107,7 @@ protected:  // members
 
 private:  // members
 
-    bool closingSocket_ = false;
+    std::atomic<bool> closingSocket_{false};
 
     mutable std::mutex controlMutex_;
     mutable std::mutex dataMutex_;

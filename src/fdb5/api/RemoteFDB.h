@@ -20,10 +20,11 @@
 
 #pragma once
 
-#include <unordered_map>
-
 #include "fdb5/api/LocalFDB.h"
 #include "fdb5/remote/client/Client.h"
+
+#include <mutex>
+#include <unordered_map>
 
 namespace fdb5 {
 
@@ -41,7 +42,7 @@ public:  // types
 public:  // method
 
     RemoteFDB(const eckit::Configuration& config, const std::string& name);
-    ~RemoteFDB() override {}
+    ~RemoteFDB() override;
 
     ListIterator inspect(const metkit::mars::MarsRequest& request) override;
 
@@ -94,6 +95,8 @@ private:  // members
     // The shared_ptr allows this removal to be asynchronous with the actual task
     // cleaning up and returning to the client.
     std::unordered_map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
+
+    mutable std::mutex messageQueueMutex_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

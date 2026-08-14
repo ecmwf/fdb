@@ -45,7 +45,7 @@ private:  // methods
     void run() override;
 
     eckit::net::TCPSocket socket_;
-    eckit::LocalConfiguration config_;
+    Config config_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

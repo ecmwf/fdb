@@ -54,6 +54,7 @@
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/IndexStats.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/fdb5_version.h"
 #include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsRequest.h"
 
@@ -123,6 +124,9 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
 
         return dependencyInformation;
     });
+
+    // Compile-time fdb5 version
+    m.attr("__fdb5_build_version__") = fdb5_VERSION_STR;
 
     //--------------------------------------------------
     // @brief Enums

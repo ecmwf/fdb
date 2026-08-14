@@ -104,13 +104,11 @@ eckit::DataHandle* RemoteFieldLocation::dataHandle() const {
         eckit::Log::debug<fdb5::LibFdb5>() << std::endl;
     }
 
-    RemoteStore& store = RemoteStore::get(uri_);
-
     eckit::URI remote = RemoteFieldLocation::internalURI(uri_);
     std::unique_ptr<FieldLocation> loc(
         FieldLocationFactory::instance().build(remote.scheme(), remote, offset_, length_, remapKey_));
 
-    return store.dataHandle(*loc);
+    return RemoteStore::get(uri_).dataHandle(*loc);
 }
 
 void RemoteFieldLocation::visit(FieldLocationVisitor& visitor) const {
@@ -148,16 +146,21 @@ class FdbURIManager : public eckit::URIManager {
     eckit::PathName path(const eckit::URI& u) const override { return eckit::PathName{u.name()}; }
 
     std::string asString(const eckit::URI& uri) const override {
-        std::string q = uri.query();
-        if (!q.empty()) {
-            q = "?" + q;
+        std::string hostPort = uri.hostport();
+        std::string path = uri.name();
+        if (!hostPort.empty() && (path.empty() || path[0] != '/')) {
+            hostPort = hostPort + "/";
         }
-        std::string f = uri.fragment();
-        if (!f.empty()) {
-            f = "#" + f;
+        std::string queryString = uri.query();
+        if (!queryString.empty()) {
+            queryString = "?" + queryString;
+        }
+        std::string fragment = uri.fragment();
+        if (!fragment.empty()) {
+            fragment = "#" + fragment;
         }
 
-        return uri.name() + q + f;
+        return hostPort + path + queryString + fragment;
     }
 
 public:

@@ -1,12 +1,14 @@
+#include "fdb5/remote/Connection.h"
+
+#include "fdb5/LibFdb5.h"
+#include "fdb5/remote/Messages.h"
+
 #include "eckit/io/Buffer.h"
 #include "eckit/log/Log.h"
 
 #include <cstdint>
 #include <mutex>
 #include <string_view>
-#include "fdb5/LibFdb5.h"
-#include "fdb5/remote/Connection.h"
-#include "fdb5/remote/Messages.h"
 
 namespace fdb5::remote {
 
@@ -15,7 +17,9 @@ namespace fdb5::remote {
 Connection::Connection() : single_(false) {}
 
 void Connection::teardown() {
-    closingSocket_ = true;
+    if (closingSocket_.exchange(true)) {
+        return;
+    }
 
     if (!valid()) {
         return;
@@ -128,10 +132,16 @@ void Connection::write(const Message msg, const bool control, const uint32_t cli
     writeUnsafe(socket, &MessageHeader::EndMarker, MessageHeader::markerBytes);
 }
 
-void Connection::error(std::string_view msg, uint32_t clientID, uint32_t requestID) const {
+void Connection::error(bool control, std::string_view msg, uint32_t clientID, uint32_t requestID) const {
     eckit::Log::error() << "[clientID=" << clientID << ",requestID=" << requestID << "]  " << msg << std::endl;
-    write(Message::Error, false, clientID, requestID, msg.data(), msg.length());
+    write(Message::Error, control, clientID, requestID, msg.data(), msg.length());
 }
+
+void Connection::unauthorised(std::string_view msg, uint32_t clientID, uint32_t requestID) const {
+    eckit::Log::warning() << "[clientID=" << clientID << ",requestID=" << requestID << "]  " << msg << std::endl;
+    write(Message::Unauthorised, true, clientID, requestID, msg.data(), msg.length());
+}
+
 
 eckit::Buffer Connection::readControl(MessageHeader& hdr) const {
     return read(true, hdr);

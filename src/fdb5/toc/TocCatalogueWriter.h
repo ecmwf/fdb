@@ -16,18 +16,26 @@
 #ifndef fdb5_TocCatalogueWriter_H
 #define fdb5_TocCatalogueWriter_H
 
-#include "eckit/os/AutoUmask.h"
-
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Index.h"
-#include "fdb5/toc/TocRecord.h"
-
 #include "fdb5/toc/TocCatalogue.h"
 #include "fdb5/toc/TocSerialisationVersion.h"
+
+#include "eckit/filesystem/PathName.h"
+#include "eckit/os/AutoUmask.h"
+
+#include <cstddef>
+#include <iosfwd>
+#include <mutex>
+#include <set>
+#include <string>
 
 namespace fdb5 {
 
 class Key;
 class TocAddIndex;
+class Catalogue;
+class Config;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -37,8 +45,8 @@ class TocCatalogueWriter : public TocCatalogue, public CatalogueWriter {
 
 public:  // methods
 
-    TocCatalogueWriter(const Key& dbKey, const fdb5::Config& config);
-    TocCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config);
+    TocCatalogueWriter(const Key& dbKey, const Config& config);
+    TocCatalogueWriter(const eckit::URI& uri, const Config& config);
 
     ~TocCatalogueWriter() override;
 
@@ -81,6 +89,13 @@ protected:  // methods
 
 private:  // methods
 
+    /// @note non-locking; callers must hold mutex_
+
+    bool selectIndexUnlocked(const Key& idxKey);
+    bool createIndexUnlocked(const Key& idxKey, size_t datumKeySize);
+    void deselectIndexUnlocked();
+    const Index& currentIndexUnlocked();
+
     void closeIndexes();
     void flushIndexes();
     void compactSubTocIndexes();
@@ -110,6 +125,8 @@ private:  // members
 
     eckit::AutoUmask umask_;
     size_t archivedLocations_;
+
+    std::mutex mutex_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -89,7 +89,7 @@ CASE("Bounding Box | Subtract/Translate") {
     chunked_data_view::BoundingBox expected_translated{{0, 0, 0}, {2, 1, 1}};
 
     EXPECT(bb.subtract({3, 2, 1}) == expected_translated);
-    EXPECT(bb.entries() == expected_translated.entries());
+    EXPECT_EQUAL(bb.entries(), expected_translated.entries());
 };
 
 CASE("Bounding Box | Equals pperator") {

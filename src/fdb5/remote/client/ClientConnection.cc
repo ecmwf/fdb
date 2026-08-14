@@ -1,18 +1,12 @@
 
 #include "fdb5/remote/client/ClientConnection.h"
 
-#include <unistd.h>
-#include <cstddef>
-#include <cstdint>
-#include <exception>
-#include <future>
-#include <iostream>
-#include <memory>
-#include <mutex>
-#include <string>
-#include <thread>
-#include <utility>
-#include <vector>
+#include "fdb5/LibFdb5.h"
+#include "fdb5/remote/Connection.h"
+#include "fdb5/remote/Messages.h"
+#include "fdb5/remote/RemoteConfiguration.h"
+#include "fdb5/remote/client/Client.h"
+#include "fdb5/remote/client/ClientConnectionRouter.h"
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/config/Resource.h"
@@ -27,17 +21,32 @@
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/Literals.h"
 
-#include "fdb5/LibFdb5.h"
-#include "fdb5/remote/Connection.h"
-#include "fdb5/remote/Messages.h"
-#include "fdb5/remote/RemoteConfiguration.h"
-#include "fdb5/remote/client/Client.h"
-#include "fdb5/remote/client/ClientConnectionRouter.h"
+#include <unistd.h>
+
+#include <cstddef>
+#include <cstdint>
+#include <exception>
+#include <future>
+#include <iostream>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <utility>
 
 using namespace eckit;
 using namespace eckit::literals;
 
 namespace fdb5::remote {
+
+namespace {
+std::string msgHeader(MessageHeader& hdr, net::Endpoint& endpoint) {
+    std::ostringstream ss;
+    ss << (hdr.control() ? "CONTROL" : "DATA") << " connection=" << endpoint << " [message=" << hdr.message
+       << ",clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]";
+    return ss.str();
+}
+}  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -56,6 +65,7 @@ public:
     Buffer data_;
 };
 
+//----------------------------------------------------------------------------------------------------------------------
 
 ClientConnection::ClientConnection(const net::Endpoint& controlEndpoint, const std::string& defaultEndpoint) :
     controlEndpoint_(controlEndpoint),
@@ -81,7 +91,13 @@ bool ClientConnection::remove(uint32_t clientID) {
 
         if (it != clients_.end()) {
             if (valid()) {
-                Connection::write(Message::Stop, true, clientID, 0);
+                try {
+                    Connection::write(Message::Stop, true, clientID, 0);
+                }
+                catch (...) {
+                    Log::error() << "ClientConnection::remove() - failed to send STOP message to server for clientID "
+                                 << clientID << std::endl;
+                }
             }
 
             clients_.erase(it);
@@ -187,9 +203,14 @@ RemoteConfiguration ClientConnection::availableFunctionality(const Configuration
 
 std::future<Buffer> ClientConnection::controlWrite(const Client& client, const Message msg, const uint32_t requestID,
                                                    const bool /*dataListener*/, const PayloadList payloads) const {
+    if (!valid()) {
+        throw RemoteFDBException("Connection to " + std::string(controlEndpoint_) + " is no longer valid",
+                                 controlEndpoint_);
+    }
+
     std::future<Buffer> f;
     {
-        std::lock_guard<std::mutex> lock(promisesMutex_);
+        std::lock_guard lock(promisesMutex_);
         auto pp = promises_.emplace(requestID, std::promise<Buffer>{}).first;
         f = pp->second.get_future();
     }
@@ -214,7 +235,7 @@ void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t r
     }
 
     {
-        std::lock_guard<std::mutex> lock(dataWriteMutex_);
+        std::lock_guard lock(dataWriteMutex_);
         if (!dataWriteThread_.joinable()) {
             // Reset the queue after previous done/errors
             ASSERT(!dataWriteQueue_);
@@ -330,6 +351,38 @@ SessionID ClientConnection::verifyServerStartupResponse() {
     return serverSession;
 }
 
+void ClientConnection::failPendingRequests(const std::exception_ptr& eptr) {
+    std::lock_guard lock(promisesMutex_);
+    for (auto& [requestID, promise] : promises_) {
+        promise.set_exception(eptr);
+    }
+    promises_.clear();
+}
+
+void ClientConnection::handleConnectionError(const std::exception_ptr& eptr) {
+    std::string reason;
+    try {
+        if (eptr) {
+            std::rethrow_exception(eptr);
+        }
+    }
+    catch (const std::exception& e) {
+        reason = e.what();
+        Log::error() << "error: " << reason << std::endl;
+    }
+    catch (...) {
+        reason = "unknown exception";
+        Log::error() << "error: unknown exception on connection " << controlEndpoint_ << std::endl;
+    }
+
+    // nothing else will ever fulfil a promise once the listening thread has stopped
+    std::ostringstream ss;
+    ss << "Connection to " << controlEndpoint_ << " lost: " << reason;
+    failPendingRequests(std::make_exception_ptr(RemoteFDBException(ss.str(), controlEndpoint_)));
+
+    teardown();
+}
+
 void ClientConnection::listeningControlThreadLoop() {
 
     try {
@@ -340,96 +393,112 @@ void ClientConnection::listeningControlThreadLoop() {
 
             Buffer payload = Connection::readControl(hdr);
 
-            LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningControlThreadLoop - got [message=" << hdr.message
-                                   << ",clientID=" << hdr.clientID() << ",control=" << hdr.control()
-                                   << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]"
-                                   << std::endl;
+            LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningControlThreadLoop - "
+                                   << msgHeader(hdr, controlEndpoint_) << std::endl;
 
             if (hdr.message == Message::Exit) {
                 LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningControlThreadLoop() -- Control thread stopping"
                                        << std::endl;
                 return;
             }
-            else {
-                if (hdr.clientID()) {
-                    bool handled = false;
+            if (hdr.clientID()) {
 
-                    ASSERT(hdr.control() || single_);
+                ASSERT(hdr.control() || single_);
 
-                    std::lock_guard<std::mutex> lock(promisesMutex_);
+                bool handled = false;
+                if (hdr.control()) {
+                    // Hold promisesMutex_ only for the promise lookup/erase (NOT across handle(); risk a deadlock.
+                    std::lock_guard lock(promisesMutex_);
 
                     auto pp = promises_.find(hdr.requestID);
                     if (pp != promises_.end()) {
-                        if (hdr.payloadSize == 0) {
-                            ASSERT(hdr.message == Message::Received);
-                            pp->second.set_value(Buffer(0));
+                        if (hdr.message == Message::Received) {
+                            if (hdr.payloadSize == 0) {
+                                pp->second.set_value(Buffer(0));
+                            }
+                            else {
+                                pp->second.set_value(std::move(payload));
+                            }
                         }
-                        else {
-                            pp->second.set_value(std::move(payload));
+                        else {  // Message::Error or Message::Unauthorised - must contain a payload with the error
+                                // message
+                            if (hdr.payloadSize == 0) {
+                                std::ostringstream ss;
+                                ss << "Received " << hdr.message << " message with no payload from server";
+                                pp->second.set_exception(
+                                    std::make_exception_ptr(RemoteFDBException(ss.str(), controlEndpoint_)));
+                            }
+                            else {
+                                std::string msg(hdr.payloadSize, ' ');
+                                payload.copy(msg.data(), payload.size());
+
+                                if (hdr.message == Message::Error) {
+                                    pp->second.set_exception(
+                                        std::make_exception_ptr(RemoteFDBException(msg, controlEndpoint_)));
+                                }
+                                else if (hdr.message == Message::Unauthorised) {
+                                    pp->second.set_exception(
+                                        std::make_exception_ptr(RemoteFDBUnauthorised(msg, controlEndpoint_)));
+                                }
+                                else {
+                                    std::ostringstream ss;
+                                    ss << "Received unexpected message " << hdr.message << " from server";
+                                    pp->second.set_exception(
+                                        std::make_exception_ptr(RemoteFDBException(ss.str(), controlEndpoint_)));
+                                }
+                            }
                         }
                         promises_.erase(pp);
                         handled = true;
                     }
-                    else {
-                        Client* client = nullptr;
-                        {
-                            std::lock_guard lock(clientsMutex_);
+                }
+                if (!handled) {  // not the answer to a blocking request (a promise), so dispatch to the client
+                    // Hold clientsMutex_ across the virtual dispatch too (not just the lookup)
+                    std::lock_guard lock(clientsMutex_);
 
-                            auto it = clients_.find(hdr.clientID());
-                            if (it == clients_.end()) {
-                                std::ostringstream ss;
-                                ss << "ERROR: CONTROL connection=" << controlEndpoint_
-                                   << " received [clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID
-                                   << ",message=" << hdr.message << ",payload=" << hdr.payloadSize << "]" << std::endl;
-                                ss << "ClientID (" << hdr.clientID() << ") not found. ABORTING";
-                                Log::status() << ss.str() << std::endl;
-                                Log::error() << "Retrieving... " << ss.str() << std::endl;
-                                throw SeriousBug(ss.str(), Here());
-                            }
-                            client = it->second;
-                        }
-
-                        if (hdr.payloadSize == 0) {
-                            handled = client->handle(hdr.message, hdr.requestID);
-                        }
-                        else {
-                            handled = client->handle(hdr.message, hdr.requestID, std::move(payload));
-                        }
-                    }
-
-                    if (!handled) {
+                    auto it = clients_.find(hdr.clientID());
+                    if (it == clients_.end()) {
                         std::ostringstream ss;
-                        if (hdr.message == Message::Error) {
-                            ss << "RemoteFDB received an unhandled error on CONTROL connection. [clientID="
-                               << hdr.clientID() << ",requestID=" << hdr.requestID << "]";
-                            if (hdr.payloadSize) {
-                                std::string msg;
-                                msg.resize(payload.size(), ' ');
-                                payload.copy(msg.data(), payload.size());
-                                ss << ": " << msg;
-                            }
-                            throw RemoteFDBException(ss.str(), controlEndpoint_);
-                        }
-                        else {
-                            ss << "ERROR: CONTROL connection=" << controlEndpoint_
-                               << "Unexpected message recieved [message=" << hdr.message
-                               << ",clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID << "]. ABORTING";
-                            Log::status() << ss.str() << std::endl;
-                            Log::error() << "Client Retrieving... " << ss.str() << std::endl;
-                            throw SeriousBug(ss.str(), Here());
-                        }
+                        ss << "ERROR: " << msgHeader(hdr, controlEndpoint_) << " - ClientID not found. ABORTING";
+                        Log::status() << ss.str() << std::endl;
+                        Log::error() << "Retrieving... " << ss.str() << std::endl;
+                        throw SeriousBug(ss.str(), Here());
                     }
+                    Client* client = it->second;
+
+                    if (hdr.payloadSize == 0) {
+                        handled = client->handle(hdr.message, hdr.requestID);
+                    }
+                    else {
+                        handled = client->handle(hdr.message, hdr.requestID, std::move(payload));
+                    }
+                }
+
+                if (!handled) {
+                    std::ostringstream ss;
+                    ss << "ERROR: " << msgHeader(hdr, controlEndpoint_);
+                    if (hdr.message == Message::Error) {
+                        ss << " - received an unhandled error";
+                        if (hdr.payloadSize) {
+                            std::string msg;
+                            msg.resize(payload.size(), ' ');
+                            payload.copy(msg.data(), payload.size());
+                            ss << ": " << msg;
+                        }
+                        throw RemoteFDBException(ss.str(), controlEndpoint_);
+                    }
+                    ss << " - received unexpected message. ABORTING";
+                    Log::status() << ss.str() << std::endl;
+                    Log::error() << "Client Retrieving... " << ss.str() << std::endl;
+                    throw SeriousBug(ss.str(), Here());
                 }
             }
         }
 
         // We don't want to let exceptions escape inside a worker thread.
     }
-    catch (const std::exception& e) {
-        ClientConnectionRouter::instance().teardown(std::make_exception_ptr(e));
-    }
     catch (...) {
-        ClientConnectionRouter::instance().teardown(std::current_exception());
+        handleConnectionError(std::current_exception());
     }
 }
 
@@ -453,76 +522,62 @@ void ClientConnection::listeningDataThreadLoop() {
 
             Buffer payload = Connection::readData(hdr);
 
-            LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningDataThreadLoop - got [message=" << hdr.message
-                                   << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]"
+            LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningDataThreadLoop - " << msgHeader(hdr, dataEndpoint_)
                                    << std::endl;
 
             if (hdr.message == Message::Exit) {
                 closeConnection();
                 return;
             }
-            else {
-                if (hdr.clientID()) {
-                    bool handled = false;
-                    Client* client = nullptr;
-                    {
-                        std::lock_guard lock(clientsMutex_);
+            if (hdr.clientID()) {
+                bool handled = false;
+                // Hold clientsMutex_ across the virtual dispatch too (not just the lookup)
+                std::lock_guard lock(clientsMutex_);
 
-                        auto it = clients_.find(hdr.clientID());
-                        if (it == clients_.end()) {
-                            std::ostringstream ss;
-                            ss << "ERROR: DATA connection=" << dataEndpoint_ << " received [clientID=" << hdr.clientID()
-                               << ",requestID=" << hdr.requestID << ",message=" << hdr.message
-                               << ",payload=" << hdr.payloadSize << "]" << std::endl;
-                            ss << "ClientID (" << hdr.clientID() << ") not found. ABORTING";
-                            Log::status() << ss.str() << std::endl;
-                            Log::error() << "Retrieving... " << ss.str() << std::endl;
-                            throw SeriousBug(ss.str(), Here());
-                        }
-                        client = it->second;
-                    }
+                auto it = clients_.find(hdr.clientID());
+                if (it == clients_.end()) {
+                    std::ostringstream ss;
+                    ss << "ERROR: " << msgHeader(hdr, dataEndpoint_) << " - ClientID not found. ABORTING";
+                    Log::status() << ss.str() << std::endl;
+                    Log::error() << "Retrieving... " << ss.str() << std::endl;
+                    throw SeriousBug(ss.str(), Here());
+                }
+                Client* client = it->second;
 
-                    ASSERT(client);
-                    ASSERT(!hdr.control());
-                    if (hdr.payloadSize == 0) {
-                        handled = client->handle(hdr.message, hdr.requestID);
-                    }
-                    else {
-                        handled = client->handle(hdr.message, hdr.requestID, std::move(payload));
-                    }
+                ASSERT(client);
+                ASSERT(!hdr.control());
+                if (hdr.payloadSize == 0) {
+                    handled = client->handle(hdr.message, hdr.requestID);
+                }
+                else {
+                    handled = client->handle(hdr.message, hdr.requestID, std::move(payload));
+                }
 
-                    if (!handled) {
-                        std::ostringstream ss;
-                        if (hdr.message == Message::Error) {
-                            ss << "RemoteFDB received an unhandled error on DATA connection. [clientID="
-                               << hdr.clientID() << ",requestID=" << hdr.requestID << "]";
-                            if (hdr.payloadSize) {
-                                std::string msg;
-                                msg.resize(payload.size(), ' ');
-                                payload.copy(msg.data(), payload.size());
-                                ss << ": " << msg;
-                            }
-                            throw RemoteFDBException(ss.str(), dataEndpoint_);
+                if (!handled) {
+                    std::ostringstream ss;
+                    ss << "ERROR: " << msgHeader(hdr, dataEndpoint_);
+                    if (hdr.message == Message::Error) {
+                        ss << " - received an unhandled error";
+                        if (hdr.payloadSize) {
+                            std::string msg;
+                            msg.resize(payload.size(), ' ');
+                            payload.copy(msg.data(), payload.size());
+                            ss << ": " << msg;
                         }
-                        else {
-                            ss << "ERROR: DATA connection=" << dataEndpoint_ << " Unexpected message recieved ("
-                               << hdr.message << "). ABORTING";
-                            Log::status() << ss.str() << std::endl;
-                            Log::error() << "Client Retrieving... " << ss.str() << std::endl;
-                            throw SeriousBug(ss.str(), Here());
-                        }
+                        throw RemoteFDBException(ss.str(), dataEndpoint_);
                     }
+                    ss << " - received unexpected message. ABORTING";
+                    Log::status() << ss.str() << std::endl;
+                    Log::error() << "Client Retrieving... " << ss.str() << std::endl;
+                    throw SeriousBug(ss.str(), Here());
                 }
             }
         }
 
         // We don't want to let exceptions escape inside a worker thread.
     }
-    catch (const std::exception& e) {
-        ClientConnectionRouter::instance().teardown(std::make_exception_ptr(e));
-    }
     catch (...) {
-        ClientConnectionRouter::instance().teardown(std::current_exception());
+        handleConnectionError(std::current_exception());
     }
 }
 

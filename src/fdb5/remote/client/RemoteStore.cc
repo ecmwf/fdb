@@ -10,7 +10,6 @@
 
 #include "fdb5/remote/client/RemoteStore.h"
 
-#include "eckit/serialisation/ResizableMemoryStream.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Field.h"
@@ -24,8 +23,10 @@
 #include "fdb5/remote/client/ReadLimiter.h"
 #include "fdb5/rules/Rule.h"
 
+#include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
+#include "eckit/io/Buffer.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
 #include "eckit/log/Log.h"
@@ -33,9 +34,12 @@
 #include "eckit/runtime/Main.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/serialisation/Reanimator.h"
+#include "eckit/serialisation/ResizableMemoryStream.h"
+#include "eckit/utils/Literals.h"
 
 #include <dirent.h>
 #include <fcntl.h>
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -88,7 +92,7 @@ public:  // methods
         currentBuffer_(0),
         complete_(false) {}
 
-    virtual bool canSeek() const override { return false; }
+    bool canSeek() const override { return false; }
 
     ~FDBRemoteDataHandle() override {
         if (!complete_) {
@@ -127,9 +131,7 @@ private:  // methods
 
             // If we are in the DataHandle, then there MUST be data to read
             RemoteStore::StoredMessage msg = std::make_pair(remote::Message{}, eckit::Buffer{0});
-            // eckit::Log::info() << "RemoteDataHandle::read() -- popping next" << std::endl;
             ASSERT(queue_->pop(msg) != -1);
-            // eckit::Log::info() << "RemoteDataHandle::read() -- popped next" << std::endl;
 
             // Handle any remote errors communicated from the server
             if (msg.first == Message::Error) {
@@ -205,9 +207,12 @@ private:  // members
 Client::EndpointList storeEndpoints(const Config& config) {
 
     ASSERT(config.has("stores"));
-    ASSERT(config.has("fieldLocationEndpoints"));
     const auto stores = config.getStringVector("stores");
-    const auto fieldLocationEndpoints = config.getStringVector("fieldLocationEndpoints");
+    // endpoints used in RemoteFieldLocations can differ from the store endpoints (e.g. different networks; canonical
+    // store names) if so, the canonical names must be provided in the fieldLocationEndpoints config, otherwise the
+    // store endpoints are used.
+    const auto fieldLocationEndpoints =
+        config.has("fieldLocationEndpoints") ? config.getStringVector("fieldLocationEndpoints") : stores;
 
     ASSERT(stores.size() == fieldLocationEndpoints.size());
 
@@ -218,7 +223,6 @@ Client::EndpointList storeEndpoints(const Config& config) {
     }
     return out;
 }
-
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -234,17 +238,21 @@ RemoteStore::RemoteStore(const eckit::URI& uri, const Config& config) :
 }
 
 RemoteStore::~RemoteStore() {
+    // stop listening otherwise it may invoke a virtual call - e.g. closeConnection()
+    deregister();
+
+    std::lock_guard lock(messageMutex_);
+
     // If we have launched a thread with an async and we manage to get here, this is
     // an error. n.b. if we don't do something, we will block in the destructor
     // of std::future.
+
     if (!locations_.complete()) {
         Log::error() << "Attempting to destruct RemoteStore with active archival" << std::endl;
         eckit::Main::instance().terminate();
     }
 
-    if (ReadLimiter::isInitialised()) {
-        ReadLimiter::instance().evictClient(id());
-    }
+    ReadLimiter::evictClient(id());
 }
 
 eckit::URI RemoteStore::uri() const {
@@ -286,11 +294,10 @@ void RemoteStore::archiveCb(
     ASSERT(static_cast<long long>(length) != 0ll);
 
     uint32_t id = generateRequestID();
-    {  // send the archival request
-        std::lock_guard<std::mutex> lock(locations_.mutex());
-        if (locations_.archived() == 0) {  // if this is the first archival request, notify the server
-            controlWriteCheckResponse(Message::Store, id, true);
-        }
+    // If this is the first archival request of this flush cycle, notify the server.
+    // Note: this must NOT be done while holding locations_.mutex(), a potential deadlock.
+    if (locations_.markStoreRequested()) {
+        controlWriteCheckResponse(Message::Store, id, true);
     }
     // store the callback, associated with the request id - to be done BEFORE sending the data
     locations_.archive(id, catalogue_archive);
@@ -351,12 +358,8 @@ void RemoteStore::print(std::ostream& out) const {
 }
 
 void RemoteStore::closeConnection() {
+    std::lock_guard lock(messageMutex_);
     for (auto& kv : messageQueues_) {
-        if (!kv.second->closed()) {
-            kv.second->interrupt(std::make_exception_ptr(eckit::Exception("Unexpected closure of store", Here())));
-        }
-    }
-    for (auto& kv : retrieveMessageQueues_) {
         if (!kv.second->closed()) {
             kv.second->interrupt(std::make_exception_ptr(eckit::Exception("Unexpected closure of store", Here())));
         }
@@ -371,38 +374,22 @@ bool RemoteStore::handle(Message message, uint32_t requestID) {
 
     switch (message) {
         case Message::Complete: {
-            // eckit::Log::info() << "RemoteStore::handle COMPLETE" << std::endl;
-            auto it = messageQueues_.find(requestID);
-            if (it != messageQueues_.end()) {
-                // eckit::Log::info() << "RemoteStore::handle COMPLETE close and erase queue" << std::endl;
-                it->second->close();
-
-                // Remove entry (shared_ptr --> message queue will be destroyed when it
-                // goes out of scope in the worker thread).
-                messageQueues_.erase(it);
-                // eckit::Log::info() << "RemoteStore::handle COMPLETE closed and erased queue" << std::endl;
+            std::lock_guard lock(messageMutex_);
+            auto id = messageQueues_.find(requestID);
+            if (id == messageQueues_.end()) {
+                return false;
             }
-            else {
-                std::lock_guard<std::mutex> lock(retrieveMessageMutex_);
-                auto id = retrieveMessageQueues_.find(requestID);
-                ASSERT(id != retrieveMessageQueues_.end());
 
-                id->second->emplace(std::make_pair(message, Buffer(0)));
+            id->second->emplace(std::make_pair(message, Buffer(0)));
 
-                retrieveMessageQueues_.erase(id);
-            }
+            // Remove entry (shared_ptr --> message queue will be destroyed when it
+            // goes out of scope in the worker thread).
+            messageQueues_.erase(id);
             return true;
         }
-        case Message::Error: {
-
-            std::ostringstream ss;
-            ss << "RemoteStore client id: " << id() << " - received an error without error description for requestID "
-               << requestID << std::endl;
-            throw RemoteFDBException(ss.str(), controlEndpoint());
-
-            return false;
-        }
         default:
+            Log::warning() << *this << " - Received unexpected [message=" << message << ",requestID=" << requestID
+                           << "]" << std::endl;
             return false;
     }
 }
@@ -417,41 +404,35 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
             if (defaultEndpoint().empty()) {
                 return locations_.location(requestID, std::move(location));
             }
-            else {
-                std::unique_ptr<RemoteFieldLocation> remoteLocation = std::unique_ptr<RemoteFieldLocation>(
-                    new RemoteFieldLocation(eckit::net::Endpoint{defaultEndpoint()}, *location));
-                return locations_.location(requestID, std::move(remoteLocation));
-            }
+            auto remoteLocation =
+                std::make_unique<RemoteFieldLocation>(eckit::net::Endpoint{defaultEndpoint()}, *location);
+            return locations_.location(requestID, std::move(remoteLocation));
         }
         case Message::Blob: {
-            auto it = messageQueues_.find(requestID);
-            if (it != messageQueues_.end()) {
-                it->second->emplace(message, std::move(payload));
-            }
-            else {
-                std::lock_guard<std::mutex> lock(retrieveMessageMutex_);
-                auto id = retrieveMessageQueues_.find(requestID);
-                ASSERT(id != retrieveMessageQueues_.end());
-                id->second->emplace(std::make_pair(message, std::move(payload)));
-            }
+            std::lock_guard lock(messageMutex_);
+            auto iter = messageQueues_.find(requestID);
+            ASSERT(iter != messageQueues_.end());
+            iter->second->emplace(std::make_pair(message, std::move(payload)));
             return true;
         }
         case Message::Error: {
-
-            auto it = messageQueues_.find(requestID);
-            if (it != messageQueues_.end()) {
+            std::lock_guard lock(messageMutex_);
+            auto iter = messageQueues_.find(requestID);
+            if (iter != messageQueues_.end()) {
                 std::string msg;
                 msg.resize(payload.size(), ' ');
                 payload.copy(&msg[0], payload.size());
-                it->second->interrupt(std::make_exception_ptr(RemoteFDBException(msg, controlEndpoint())));
+                iter->second->interrupt(std::make_exception_ptr(RemoteFDBException(msg, controlEndpoint())));
 
                 // Remove entry (shared_ptr --> message queue will be destroyed when it
                 // goes out of scope in the worker thread).
-                messageQueues_.erase(it);
+                messageQueues_.erase(iter);
             }
             return true;
         }
         default:
+            Log::warning() << *this << " - Received unexpected [message=" << message << ",requestID=" << requestID
+                           << ",payloadSize=" << payload.size() << "]" << std::endl;
             return false;
     }
 }
@@ -467,9 +448,9 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
     static size_t queueSize = 320;
     std::shared_ptr<MessageQueue> queue = nullptr;
     {
-        std::lock_guard<std::mutex> lock(retrieveMessageMutex_);
+        std::lock_guard lock(messageMutex_);
 
-        auto entry = retrieveMessageQueues_.emplace(id, std::make_shared<MessageQueue>(queueSize));
+        auto entry = messageQueues_.emplace(id, std::make_shared<MessageQueue>(queueSize));
         ASSERT(entry.second);
 
         queue = entry.first->second;
@@ -484,7 +465,7 @@ RemoteStore& RemoteStore::get(const eckit::URI& uri) {
     // we memoise one read store for each endpoint. Do not need to have one for each key
     static std::map<std::string, std::unique_ptr<RemoteStore>> readStores_;
 
-    std::lock_guard<std::mutex> lock(storeMutex_);
+    std::lock_guard lock(storeMutex_);
     const std::string& endpoint = uri.hostport();
     auto it = readStores_.find(endpoint);
     if (it != readStores_.end()) {
@@ -557,7 +538,10 @@ bool RemoteStore::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const 
     eckit::Buffer sendBuf(1_KiB * unknownURIs.size() + 100);
     eckit::ResizableMemoryStream stream(sendBuf);
     stream << dbKey_;
-    stream << unknownURIs;
+    stream << unknownURIs.size();
+    for (const auto& uri : unknownURIs) {
+        stream << uri;
+    }
     controlWriteCheckResponse(Message::DoWipeUnknowns, generateRequestID(), true, sendBuf, stream.position());
     return true;
 }

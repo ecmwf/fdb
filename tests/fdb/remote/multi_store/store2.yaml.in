@@ -1,0 +1,8 @@
+---
+type: store
+serverPort: 10012
+serverThreaded: true
+spaces:
+- handler: Default
+  roots:
+  - path: @CMAKE_CURRENT_BINARY_DIR@/store2_root

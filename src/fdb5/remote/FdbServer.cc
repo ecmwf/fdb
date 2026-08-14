@@ -44,10 +44,6 @@ void FDBForker::run() {
 
     eckit::Monitor::instance().reset();  // needed to the monitor to work on forked (but not execed process)
 
-    // Ensure random state is reset after fork
-    ::srand(::getpid() + ::time(nullptr));
-    ::srandom(::getpid() + ::time(nullptr));
-
     eckit::Log::info() << "FDB forked pid " << ::getpid() << "  --  connection: " << socket_.localHost() << ":"
                        << socket_.localPort() << "-->" << socket_.remoteHost() << ":" << socket_.remotePort()
                        << std::endl;
@@ -86,7 +82,7 @@ private:  // methods
 private:  // members
 
     eckit::net::TCPSocket socket_;
-    eckit::LocalConfiguration config_;
+    Config config_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

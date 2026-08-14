@@ -8,7 +8,7 @@
 # We also test that fdb-wipe works correctly after reindexing.
 
 # -- Environment -------------------------------------------------------------
-set -eux
+set -euxo pipefail
 
 fdbwrite="$<TARGET_FILE:fdb-write>"
 fdblist="$<TARGET_FILE:fdb-list>"
