@@ -2,3 +2,4 @@
 race:eckit::TaskInfo::touch
 race:eckit::TaskInfo::name
 race:eckit::TaskInfo::status
+race:eckit::Monitor::show

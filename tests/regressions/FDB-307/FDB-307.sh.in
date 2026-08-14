@@ -26,6 +26,10 @@ export FDB_HOME=$bindir
 export FDB_DEBUG=0
 export ECKIT_DEBUG=0
 
+# remove me when eckit::TaskInfo races are fixed
+tsan_suppressions=$bindir/tsan_suppressions.txt
+export TSAN_OPTIONS="${TSAN_OPTIONS:-} suppressions=$tsan_suppressions"
+
 ### cleanup and prepare test
 
 rm -f out.*
