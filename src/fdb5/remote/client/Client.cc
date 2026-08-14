@@ -86,6 +86,12 @@ eckit::Buffer Client::waitControlResponse(std::future<eckit::Buffer>& response, 
         response.wait();
         return response.get();
     }
+    catch (const RemoteFDBUnauthorised& e) {
+        std::ostringstream ss;
+        ss << "Unauthorised " << msg << " request - " << e.what();
+        eckit::Log::error() << ss.str() << std::endl;
+        throw eckit::UserError(ss.str(), Here());
+    }
     catch (const std::exception& e) {
         std::ostringstream ss;
         ss << "Error while waiting for response to control message " << msg << " with requestID " << requestID << ": "

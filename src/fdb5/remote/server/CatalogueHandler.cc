@@ -90,16 +90,18 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        error(e.what(), clientID, requestID);
+        error(true, e.what(), clientID, requestID);
     }
     catch (...) {
-        error("Caught unexpected and unknown error", clientID, requestID);
+        error(true, "Caught unexpected and unknown error", clientID, requestID);
     }
-    return Handled::No;
+    return Handled::Replied;
 }
 
 Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint32_t requestID,
                                         eckit::Buffer&& payload) {
+
+    static bool wipeEnabled = Resource<bool>("fdbWipeEnabled;$FDB_WIPE_ENABLED", false);
 
     try {
         switch (message) {
@@ -133,27 +135,51 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 return Handled::Replied;
 
             case Message::Wipe:  // Initial wipe request
+                if (!wipeEnabled) {
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
+                }
                 wipe(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoMaskIndexEntries:
+                if (!wipeEnabled) {
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
+                }
                 // doit! We expect DoMaskIndexEntries, doWipeURIs, DoWipeUnknowns and doWipeEmptyDatabase in succession
                 doMaskIndexEntries(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoWipeURIs:  // Do the wipe on our currentWipeState
+                if (!wipeEnabled) {
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
+                }
                 doWipeURIs(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoWipeFinish:  // Finish wipe by deleting empty DBs
+                if (!wipeEnabled) {
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
+                }
                 doWipeEmptyDatabase(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoWipeUnknowns:  // Wipe a set of unknown URIs
+                if (!wipeEnabled) {
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
+                }
                 doWipeUnknowns(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoUnsafeFullWipe:  // wipe a full database including its content
+                if (!wipeEnabled) {
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
+                }
                 doUnsafeFullWipe(clientID, requestID, std::move(payload));
                 return Handled::Replied;
 
@@ -168,12 +194,12 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        error(e.what(), clientID, requestID);
+        error(true, e.what(), clientID, requestID);
     }
     catch (...) {
-        error("Caught unexpected and unknown error", clientID, requestID);
+        error(true, "Caught unexpected and unknown error", clientID, requestID);
     }
-    return Handled::No;
+    return Handled::Replied;
 }
 
 
@@ -270,8 +296,6 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
     }
 
     WipeStateIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
-        // XXX: I'm inclined to say that in a multi-server scenario, unsafe wipe all is a bad idea.
-        ASSERT(!unsafeWipeAll_);
         return fdb.internal_->wipe(request, doit_, false, unsafeWipeAll_);
     }
 
@@ -334,11 +358,11 @@ void CatalogueHandler::handleApiCall(uint32_t clientID, uint32_t requestID, ecki
                                }
                                catch (std::exception& e) {
                                    // n.b. more general than eckit::Exception
-                                   error(e.what(), clientID, requestID);
+                                   error(false, e.what(), clientID, requestID);
                                }
                                catch (...) {
                                    // We really don't want to std::terminate the thread
-                                   error("Caught unexpected, unknown exception in worker", clientID, requestID);
+                                   error(false, "Caught unexpected, unknown exception in worker", clientID, requestID);
                                }
                            }));
 }
@@ -527,7 +551,7 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
         it = catalogues_.find(clientID);
         if (it == catalogues_.end()) {
             std::string what("Requested unknown catalogue id: " + std::to_string(clientID));
-            error(what, 0, 0);
+            error(false, what, 0, 0);
             throw SeriousBug(what, Here());
         }
     }

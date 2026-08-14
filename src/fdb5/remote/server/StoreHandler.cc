@@ -64,15 +64,17 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        error(e.what(), clientID, requestID);
+        error(true, e.what(), clientID, requestID);
     }
     catch (...) {
-        error("Caught unexpected and unknown error", clientID, requestID);
+        error(true, "Caught unexpected and unknown error", clientID, requestID);
     }
-    return Handled::No;
+    return Handled::Replied;
 }
 
 Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+
+    static bool wipeEnabled = Resource<bool>("fdbWipeEnabled;$FDB_WIPE_ENABLED", false);
 
     try {
         switch (message) {
@@ -90,22 +92,42 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 return Handled::Replied;
 
             case Message::Wipe:  // Initial wipe request
+                if (!wipeEnabled) {
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
+                }
                 finaliseWipeState(clientID, requestID, payload);
                 return Handled::Replied;
 
             case Message::DoWipeURIs:  // request to delete data marked for wipe
+                if (!wipeEnabled) {
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
+                }
                 doWipeURIs(clientID, requestID, payload);
                 return Handled::Yes;
 
             case Message::DoWipeFinish:  // request to delete empty databases and finish the wipe.
+                if (!wipeEnabled) {
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
+                }
                 doWipeFinish(clientID, requestID, payload);
                 return Handled::Yes;
 
             case Message::DoWipeUnknowns:  // request to delete unknown URIs as part of a wipe
+                if (!wipeEnabled) {
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
+                }
                 doWipeUnknowns(clientID, requestID, payload);
                 return Handled::Yes;
 
             case Message::DoUnsafeFullWipe:  // request to delete full database and content
+                if (!wipeEnabled) {
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
+                }
                 doUnsafeFullWipe(clientID, requestID, payload);
                 return Handled::Replied;
 
@@ -120,12 +142,12 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        error(e.what(), clientID, requestID);
+        error(true, e.what(), clientID, requestID);
     }
     catch (...) {
-        error("Caught unexpected and unknown error", clientID, requestID);
+        error(true, "Caught unexpected and unknown error", clientID, requestID);
     }
-    return Handled::No;
+    return Handled::Replied;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -194,11 +216,11 @@ void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t request
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        error(e.what(), clientID, requestID);
+        error(false, e.what(), clientID, requestID);
     }
     catch (...) {
         // We really don't want to std::terminate the thread
-        error("Caught unexpected , unknown exception in retrieve worker", clientID, requestID);
+        error(false, "Caught unexpected , unknown exception in retrieve worker", clientID, requestID);
     }
 }
 
@@ -470,7 +492,7 @@ void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t req
 
     if (storeState->includedDataURIs().empty()) {
         // Client should not communicate with the store if there are no data URIs to wipe.
-        error("Wipe request has no data URIs", clientID, requestID);
+        error(true, "Wipe request has no data URIs", clientID, requestID);
         return;
     }
 
@@ -488,7 +510,6 @@ void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t req
 
     // keep state for doWipeURIs
     if (doit) {
-        ASSERT(!unsafeAll);  // Until Im explicitly told otherwise, we dont support unsafeAll on remote fdb.
         wipesInProgress_.emplace(dbkey, WipeInProgress{unsafeAll, std::move(storeState)});
     }
 }

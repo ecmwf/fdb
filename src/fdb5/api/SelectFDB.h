@@ -18,15 +18,15 @@
 
 #pragma once
 
-#include <optional>
-#include <string>
-#include <vector>
+#include "fdb5/api/FDB.h"
+#include "fdb5/api/FDBFactory.h"
+#include "fdb5/config/Config.h"
 
 #include "metkit/mars/Matcher.h"
 
-#include "fdb5/api/FDB.h"
-#include "fdb5/api/FDBFactory.h"
-#include "fdb5/rules/SelectMatcher.h"
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace fdb5 {
 
@@ -36,7 +36,6 @@ class SelectFDB : public FDBBase {
 private:  // types
 
     class FDBLane {
-        SelectMatcher matcher_;
         Config config_;
         std::shared_ptr<FDBBase> fdb_;
 
