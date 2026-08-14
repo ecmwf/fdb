@@ -132,10 +132,16 @@ void Connection::write(const Message msg, const bool control, const uint32_t cli
     writeUnsafe(socket, &MessageHeader::EndMarker, MessageHeader::markerBytes);
 }
 
-void Connection::error(std::string_view msg, uint32_t clientID, uint32_t requestID) const {
+void Connection::error(std::string_view msg, uint32_t clientID, uint32_t requestID, bool control) const {
     eckit::Log::error() << "[clientID=" << clientID << ",requestID=" << requestID << "]  " << msg << std::endl;
-    write(Message::Error, false, clientID, requestID, msg.data(), msg.length());
+    write(Message::Error, control, clientID, requestID, msg.data(), msg.length());
 }
+
+void Connection::unauthorised(std::string_view msg, uint32_t clientID, uint32_t requestID) const {
+    eckit::Log::warning() << "[clientID=" << clientID << ",requestID=" << requestID << "]  " << msg << std::endl;
+    write(Message::Unauthorised, true, clientID, requestID, msg.data(), msg.length());
+}
+
 
 eckit::Buffer Connection::readControl(MessageHeader& hdr) const {
     return read(true, hdr);

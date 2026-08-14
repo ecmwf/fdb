@@ -135,16 +135,16 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
 
             case Message::Wipe:  // Initial wipe request
                 if (!wipeEnabled) {
-                    error("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::No;
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
                 }
                 wipe(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoMaskIndexEntries:
                 if (!wipeEnabled) {
-                    error("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::No;
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
                 }
                 // doit! We expect DoMaskIndexEntries, doWipeURIs, DoWipeUnknowns and doWipeEmptyDatabase in succession
                 doMaskIndexEntries(clientID, requestID, std::move(payload));
@@ -152,32 +152,32 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
 
             case Message::DoWipeURIs:  // Do the wipe on our currentWipeState
                 if (!wipeEnabled) {
-                    error("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::No;
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
                 }
                 doWipeURIs(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoWipeFinish:  // Finish wipe by deleting empty DBs
                 if (!wipeEnabled) {
-                    error("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::No;
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
                 }
                 doWipeEmptyDatabase(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoWipeUnknowns:  // Wipe a set of unknown URIs
                 if (!wipeEnabled) {
-                    error("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::No;
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
                 }
                 doWipeUnknowns(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoUnsafeFullWipe:  // wipe a full database including its content
                 if (!wipeEnabled) {
-                    error("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::No;
+                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
+                    return Handled::Replied;
                 }
                 doUnsafeFullWipe(clientID, requestID, std::move(payload));
                 return Handled::Replied;

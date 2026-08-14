@@ -74,7 +74,8 @@ public:  // methods
         write(msg, control, clientID, requestID, {{length, data}});
     }
 
-    void error(std::string_view msg, uint32_t clientID, uint32_t requestID) const;
+    void error(std::string_view msg, uint32_t clientID, uint32_t requestID, bool control = false) const;
+    void unauthorised(std::string_view msg, uint32_t clientID, uint32_t requestID) const;
 
     eckit::Buffer readControl(MessageHeader& hdr) const;
 
