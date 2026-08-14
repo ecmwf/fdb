@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2025 European Centre for Medium-Range Weather Forecasts (ECMWF)
 # SPDX-License-Identifier: Apache-2.0
 import os
+from pathlib import Path
 from setuptools import setup
 import platform
 from wheel.bdist_wheel import bdist_wheel
@@ -41,7 +42,24 @@ setup(
     package_data={
         "chunked_data_view_bindings": ["*.so", "*.pyd", "*.pyi", "py.typed"],
     },
-    install_requires=["numpy", "zarr>=3,<4", "findlibs>=0.1.2"] + requires_extra,
+    license="Apache 2.0",
+    license_files=["LICENSE"],
+    long_description=Path("README.md").read_text(),
+    long_description_content_type="text/markdown",
+    install_requires=["numpy", "zarr==3.1.6", "findlibs>=0.1.2"] + requires_extra,
+    python_requires=">=3.11",
+    classifiers=[
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Developers",
+        "Intended Audience :: Science/Research",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
+        "Operating System :: OS Independent",
+        "Topic :: Software Development :: Libraries",
+    ],
     has_ext_modules=lambda: True,
     **ext_kwargs[sys.platform],
 )
