@@ -7,6 +7,8 @@ fi
 
 set -ux
 
+source "@FDB_REMOTE_TEST_HELPER@"
+
 testdir=$1
 client_config="$testdir/$2"
 store1_config="$testdir/$3"
@@ -14,136 +16,30 @@ store2_config="$testdir/$4"
 catalogue_rootdir=$testdir/catalogue_root
 store1_rootdir=$testdir/store1_root
 store2_rootdir=$testdir/store2_root
-server_pidfile=$testdir/servers.pid
 
 server="$<TARGET_FILE:fdb-server>"
 test="$<TARGET_FILE:fdb_test_remote_multi_store>"
 
-SERVER_LIFETIME=600
-server_group_pids=()
-server_pids=()
-
 cleanup() {
-  local server_pid
-  local server_pgid
+    local exit_code=$?
 
-  if ((${#server_group_pids[@]} == 0)); then
-    for server_pid in "${server_pids[@]}"; do
-      server_pgid=$(ps -o pgid= -p "$server_pid" 2>/dev/null | tr -d '[:space:]')
-      [[ "$server_pgid" =~ ^[0-9]+$ ]] && server_group_pids+=("$server_pgid")
-    done
-  fi
-
-  for server_pgid in "${server_group_pids[@]}"; do
-    kill -TERM -- "-$server_pgid" 2>/dev/null || true
-  done
-  if ((${#server_group_pids[@]})); then
-    sleep 0.2
-    for server_pgid in "${server_group_pids[@]}"; do
-      kill -KILL -- "-$server_pgid" 2>/dev/null || true
-    done
-  fi
-
-    if [[ -f $server_pidfile ]]; then
-    while read -r _ _ server_pid; do
-      kill -TERM "$server_pid" 2>/dev/null || true
-            sleep 0.2
-      kill -KILL "$server_pid" 2>/dev/null || true
-        done < "$server_pidfile"
-        rm "$server_pidfile"
-    fi
-
-    rm -rf "$catalogue_rootdir"
-    rm -rf "$store1_rootdir"
-    rm -rf "$store2_rootdir"
-}
-
-run_server() {
-  local label="$1"; shift
-  local config="$1"; shift
-  local port
-  port=$(awk '/^[[:space:]]*serverPort:/{print $2; exit}' "$config")
-  [[ "$port" =~ ^[0-9]+$ ]] || { echo "Unable to determine server port from $config" >&2; exit 1; }
-
-  setsid env FDB5_CONFIG_FILE="$config" FDB_DEBUG=1 timeout "$SERVER_LIFETIME" "$@" > >(
-    awk -v label="$label" '
-        {
-          print "[" label "] " $0
-          fflush()
-        }
-      '
-  ) 2>&1 &
-  local server_pid=$!
-  server_pids+=("$server_pid")
-  printf '%s %s %s\n' "$label" "$port" "$server_pid" >> "$server_pidfile"
-}
-
-port_is_listening() {
-    local port_hex
-    local proc_files=(/proc/net/tcp)
-    [[ -r /proc/net/tcp6 ]] && proc_files+=(/proc/net/tcp6)
-    [[ -r /proc/net/tcp ]] || return 0
-
-    printf -v port_hex '%04X' "$1"
-    awk -v port="$port_hex" '$4 == "0A" { split($2, address, ":"); if (toupper(address[2]) == port) found=1 }
-                             END { exit !found }' "${proc_files[@]}"
-}
-
-wait_for_servers() {
-    local label
-    local port
-    local server_pid
-    local server_pgid
-    local server_info
-    local deadline=$((SECONDS + 10))
-
-    while ((SECONDS < deadline)); do
-        local ready=true
-        for label in "$@"; do
-          server_info=$(awk -v label="$label" '$1 == label {print $2, $3; exit}' "$server_pidfile" 2>/dev/null || true)
-            if [[ -z "$server_info" ]]; then
-                ready=false
-                break
-            fi
-            read -r port server_pid <<< "$server_info"
-            if ! kill -0 "$server_pid" 2>/dev/null; then
-                echo "$label fdb-server exited before becoming ready" >&2
-                exit 1
-            fi
-            if ! port_is_listening "$port"; then
-                ready=false
-                break
-            fi
-        done
-
-        if [[ "$ready" == true ]]; then
-            server_group_pids=()
-            for label in "$@"; do
-              server_pid=$(awk -v label="$label" '$1 == label {print $3; exit}' "$server_pidfile")
-                server_pgid=$(ps -o pgid= -p "$server_pid" | tr -d '[:space:]')
-                [[ "$server_pgid" =~ ^[0-9]+$ ]] || { echo "Unable to determine process group for $label" >&2; exit 1; }
-                server_group_pids+=("$server_pgid")
-            done
-            return
-        fi
-        sleep 0.1
-    done
-
-    echo "Timed out waiting for remote test servers: $*" >&2
-    exit 1
+    fdb_remote_cleanup "$exit_code"
+    rm -rf "$catalogue_rootdir" "$store1_rootdir" "$store2_rootdir"
+    return "$exit_code"
 }
 
 trap cleanup EXIT
 trap 'exit 1' INT TERM
 
-cleanup
+rm -rf "$catalogue_rootdir" "$store1_rootdir" "$store2_rootdir"
 mkdir -p "$catalogue_rootdir" "$store1_rootdir" "$store2_rootdir"
+fdb_remote_init "$testdir/remote_servers"
 
-run_server "STORE1" "$store1_config" "$server"
-run_server "STORE2" "$store2_config" "$server"
+fdb_remote_start_server STORE1 "$store1_config" "$(fdb_remote_config_port "$store1_config")" FDB_DEBUG=1 -- "$server"
+fdb_remote_start_server STORE2 "$store2_config" "$(fdb_remote_config_port "$store2_config")" FDB_DEBUG=1 -- "$server"
 
-wait_for_servers STORE1 STORE2
+fdb_remote_wait_for_servers
 
-FDB5_CONFIG_FILE=$client_config $test
+FDB5_CONFIG_FILE="$client_config" "$test"
 
 exit $?

@@ -8,35 +8,17 @@
 
 set -exo pipefail
 
+source "@FDB_REMOTE_TEST_HELPER@"
+
 export FDB_HOME=@CMAKE_CURRENT_BINARY_DIR@
 export FDB_DEBUG=1
-SERVER_LIFETIME=600
-server_group_pids=()
 
 cleanup() {
     local exit_code=$?
-    local server_pid
-    local server_pgid
     echo "Shutting down..."
 
-    if ((${#server_group_pids[@]} == 0)); then
-        for server_pid in "${PID_STORE:-}" "${PID_CATALOGUE:-}"; do
-            [[ -n "$server_pid" ]] || continue
-            server_pgid=$(ps -o pgid= -p "$server_pid" 2>/dev/null | tr -d '[:space:]')
-            [[ "$server_pgid" =~ ^[0-9]+$ ]] && server_group_pids+=("$server_pgid")
-        done
-    fi
-
-    for server_pgid in "${server_group_pids[@]}"; do
-        kill -TERM -- "-$server_pgid" 2>/dev/null || true
-    done
-    if ((${#server_group_pids[@]})); then
-        sleep 0.2
-        for server_pgid in "${server_group_pids[@]}"; do
-            kill -KILL -- "-$server_pgid" 2>/dev/null || true
-        done
-    fi
-    exit $exit_code
+    fdb_remote_cleanup "$exit_code"
+    return "$exit_code"
 }
 trap cleanup EXIT
 trap 'exit 1' INT TERM
@@ -47,57 +29,14 @@ FDB_SERVER="$<TARGET_FILE:fdb-server>"
 mkdir -p "$LOGS_DIR"
 
 echo "Starting Store..."
-STORE_LOG="$LOGS_DIR/store.log"
-setsid env FDB5_CONFIG_FILE="$TEST_ROOT/fdb_config_store.yaml" timeout "$SERVER_LIFETIME" "$FDB_SERVER" > "$STORE_LOG" 2>&1 &
-PID_STORE=$!
+fdb_remote_init "$LOGS_DIR/remote_servers"
+fdb_remote_start_server STORE "$TEST_ROOT/fdb_config_store.yaml" \
+    "$(fdb_remote_config_port "$TEST_ROOT/fdb_config_store.yaml")" -- "$FDB_SERVER"
 
 echo "Starting Catalogue..."
-CATALOGUE_LOG="$LOGS_DIR/catalogue.log"
-setsid env FDB5_CONFIG_FILE="$TEST_ROOT/fdb_config_catalogue.yaml" timeout "$SERVER_LIFETIME" "$FDB_SERVER" > "$CATALOGUE_LOG" 2>&1 &
-PID_CATALOGUE=$!
-
-wait_for_servers() {
-    local server_pid
-    local server_pgid
-    local port
-    local deadline=$((SECONDS + 10))
-
-    while ((SECONDS < deadline)); do
-        local ready=true
-        for port in 8002 8003; do
-            if [[ $port -eq 8002 ]]; then
-                server_pid=$PID_CATALOGUE
-                log=$CATALOGUE_LOG
-            else
-                server_pid=$PID_STORE
-                log=$STORE_LOG
-            fi
-            if ! kill -0 "$server_pid" 2>/dev/null; then
-                echo "fdb-server on port $port exited before becoming ready" >&2
-                exit 1
-            fi
-            if ! grep -q "Listening on socket .* port: $port " "$log"; then
-                ready=false
-                break
-            fi
-        done
-
-        if [[ "$ready" == true ]]; then
-            for server_pid in "$PID_STORE" "$PID_CATALOGUE"; do
-                server_pgid=$(ps -o pgid= -p "$server_pid" | tr -d '[:space:]')
-                [[ "$server_pgid" =~ ^[0-9]+$ ]] || { echo "Unable to determine fdb-server process group" >&2; exit 1; }
-                server_group_pids+=("$server_pgid")
-            done
-            return
-        fi
-        sleep 0.1
-    done
-
-    echo "Timed out waiting for FDB-610 remote servers" >&2
-    exit 1
-}
-
-wait_for_servers
+fdb_remote_start_server CATALOGUE "$TEST_ROOT/fdb_config_catalogue.yaml" \
+    "$(fdb_remote_config_port "$TEST_ROOT/fdb_config_catalogue.yaml")" -- "$FDB_SERVER"
+fdb_remote_wait_for_servers
 
 fdbread="$<TARGET_FILE:fdb-read>"
 fdbwrite="$<TARGET_FILE:fdb-write>"
@@ -114,5 +53,3 @@ if [[ $actual_size -ne $expected_size ]]; then
     echo "Error: Did not read 2 messages!" >&2
     exit 1
 fi
-
-cleanup

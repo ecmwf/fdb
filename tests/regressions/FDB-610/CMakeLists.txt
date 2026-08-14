@@ -23,6 +23,7 @@ ecbuild_add_test(
     COMMAND        ${CMAKE_CURRENT_BINARY_DIR}/FDB-610.sh
     ENVIRONMENT    "${test_environment}"
     TEST_PROPERTIES
+    TIMEOUT 600
     RESOURCE_LOCK fdb_remote_fdb610
     LABELS remotefdb
 )
