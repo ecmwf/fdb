@@ -1,10 +1,5 @@
-# (C) Copyright 2025- ECMWF.
-#
-# This software is licensed under the terms of the Apache Licence Version 2.0
-# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
-# In applying this licence, ECMWF does not waive the privileges and immunities
-# granted to it by virtue of its status as an intergovernmental organisation
-# nor does it submit to any jurisdiction.
+# SPDX-FileCopyrightText: 2026 European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
 
 """Online z3fdb tests.
 
@@ -54,15 +49,20 @@ def swh_grib_download(tmp_path_factory):
     tmp = tmp_path_factory.mktemp("swh_online")
     grib = tmp / "swh_opendata.grib2"
 
-    opendata.Client(source="ecmwf", model="ifs", resol="0p25").retrieve(
-        date=date.isoformat(),
-        time=0,
-        type="fc",
-        stream="wave",
-        step=0,
-        param="swh",
-        target=str(grib),
-    )
+    try:
+        opendata.Client(source="ecmwf", model="ifs", resol="0p25").retrieve(
+            date=date.isoformat(),
+            time=0,
+            type="fc",
+            stream="wave",
+            step=0,
+            param="swh",
+            target=str(grib),
+        )
+    except Exception as e:
+        if getattr(getattr(e, "response", None), "status_code", None) == 429:
+            pytest.skip("ECMWF Open Data rate limit exceeded (HTTP 429)")
+        raise
 
     with open(grib, "rb") as f:
         gid = ec.codes_grib_new_from_file(f)

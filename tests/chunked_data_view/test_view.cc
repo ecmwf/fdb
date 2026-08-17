@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 2025- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 2025 European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #include <chunked_data_view/ChunkedDataView.h>
 #include <chunked_data_view/ChunkedDataViewBuilder.h>
@@ -145,6 +138,27 @@ CASE("ChunkedDataView | View from 2 requests | Can compute shape, combined axis"
                           .build();
     // Expect to get: 16 date/times (4 dates * 4 times), 2*2 fields (2 per request), 10 values per field (implicit
     EXPECT_EQUAL(view->shape(), (std::vector<size_t>{16, 4, 10}));
+}
+
+CASE("ChunkedDataViewBuilder | build | Calling build twice throws") {
+    // build() used to move the shared_ptr<Extractor> out of the builder's internal parts_ list, making a second call
+    // UB. The builder now retains ownership so build() can be called multiple times safely.
+    const std::string keys{
+        "type=an,domain=g,expver=0001,stream=oper,"
+        "date=2020-01-01/to/2020-01-04,levtype=sfc,"
+        "param=v/u,time=0/6/12/18"};
+
+    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB());
+
+    cdv::ChunkedDataViewBuilder builder;
+    builder.addPart(keys,
+                    {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::SingleValueChunking{}},
+                     cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
+                     cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::WholeAxisChunking{}}},
+                    mock_extractor);
+
+    EXPECT_NO_THROW(builder.build());
+    EXPECT_NO_THROW(builder.build());
 }
 
 CASE("ChunkedDataView - Can build") {

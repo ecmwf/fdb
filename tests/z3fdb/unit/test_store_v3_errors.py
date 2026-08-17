@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
+
 import logging
 
 import pytest
@@ -27,10 +30,16 @@ def test_extend_on_invalid_axis_raises(
     # axis); index 4 is strictly out of bounds.
     builder.add_part(
         {
-            "type": "an", "class": "ea", "domain": "g", "expver": "0001",
-            "stream": "oper", "time": [0, 6, 12, 18],
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "time": [0, 6, 12, 18],
             "date": "2020-01-01/to/2020-01-02",
-            "levtype": "sfc", "step": 0, "param": [165, 166, 167],
+            "levtype": "sfc",
+            "step": 0,
+            "param": [165, 166, 167],
         },
         [
             AxisDefinition(["date"], Chunking.SINGLE_VALUE),
@@ -54,11 +63,16 @@ def test_wrong_key(
 
     builder.add_part(
         {
-            "type": "an", "class": "ea", "domain": "g",
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
             "blubb": "0001",  # There is no blubb key
-            "stream": "oper", "time": [18, 0, 12, 6],
+            "stream": "oper",
+            "time": [18, 0, 12, 6],
             "date": ["2020-01-03", "2020-01-01", "2020-01-02"],
-            "levtype": "sfc", "step": 0, "param": [167, 165, 166],
+            "levtype": "sfc",
+            "step": 0,
+            "param": [167, 165, 166],
         },
         [
             AxisDefinition(["time"], Chunking.SINGLE_VALUE),

@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 2025- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 2025 European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 #include "RequestManipulation.h"
 
 #include "Axis.h"
@@ -112,6 +105,23 @@ void RequestManipulation::updateRequest(metkit::mars::MarsRequest& request, cons
                "would result in two needed MARS requests which is not supported.";
         throw chunked_data_view::RequestManipulationException(buf.str());
     }
+}
+
+metkit::mars::MarsRequest RequestManipulation::allParamRequest(const metkit::mars::MarsRequest& request) {
+
+    metkit::mars::MarsRequest base = request;
+
+    for (const auto& p : request.parameters()) {
+        if (p.name() == "param") {
+            continue;
+        }
+        const auto& vals = p.values();
+        if (vals.size() > 1) {
+            base.values(p.name(), {vals.front()});
+        }
+    }
+
+    return base;
 }
 
 }  // namespace chunked_data_view

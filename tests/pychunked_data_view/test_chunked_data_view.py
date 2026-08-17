@@ -1,10 +1,5 @@
-# (C) Copyright 2025- ECMWF.
-#
-# This software is licensed under the terms of the Apache Licence Version 2.0
-# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
-# In applying this licence, ECMWF does not waive the privileges and immunities
-# granted to it by virtue of its status as an intergovernmental organisation nor
-# does it submit to any jurisdiction.
+# SPDX-FileCopyrightText: 2025 European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
 import numpy as np
 import itertools
 
@@ -31,6 +26,8 @@ def test_axis_definition_can_assign():
     assert obj.keys == []
     obj.chunking = Chunking.SINGLE_VALUE
     assert obj.chunking == Chunking.SINGLE_VALUE
+    obj.chunking = Chunking.WHOLE_AXIS
+    assert obj.chunking == Chunking.WHOLE_AXIS
 
 
 def test_axis_definition_individual_chunk():
@@ -47,9 +44,15 @@ def test_builder(read_only_fdb_setup):
     builder = ChunkedDataViewBuilder(read_only_fdb_setup)
     builder.add_part(
         {
-            "type": "an", "class": "ea", "domain": "g", "expver": "0001",
-            "stream": "oper", "date": "2020-01-01/to/2020-01-04",
-            "levtype": "sfc", "step": 0, "param": [167, 131, 132],
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": "2020-01-01/to/2020-01-04",
+            "levtype": "sfc",
+            "step": 0,
+            "param": [167, 131, 132],
             "time": "0/to/21/by/3",
         },
         [
