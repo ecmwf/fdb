@@ -65,7 +65,7 @@ setup(
         "Operating System :: OS Independent",
         "Topic :: Software Development :: Libraries",
     ],
-    install_requires=["numpy", "zarr==3.1.6", "findlibs>=0.1.2"] + requires_extra,
+    install_requires=["numpy", "zarr~=3.1.6", "findlibs>=0.1.2"] + requires_extra,
     python_requires=python_requires,
     has_ext_modules=lambda: True,
     **ext_kwargs[sys.platform],
