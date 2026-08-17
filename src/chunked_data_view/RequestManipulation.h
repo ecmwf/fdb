@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 2025- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 2025 European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 #pragma once
 
 #include "chunked_data_view/Axis.h"
@@ -39,5 +32,10 @@ public:
     ///         would require multiple MARS requests to retrieve.
     static void updateRequest(metkit::mars::MarsRequest& request, const Axis& axis, size_t lowerIndex,
                               size_t upperIndex);
+
+    /// Returns a copy of @p request where every key except "param" is reduced to its
+    /// first value.  The "param" values are left intact so the returned request covers all
+    /// requested parameters in a single FDB retrieve call with minimal other key cardinality.
+    static metkit::mars::MarsRequest allParamRequest(const metkit::mars::MarsRequest& request);
 };
 }  // namespace chunked_data_view

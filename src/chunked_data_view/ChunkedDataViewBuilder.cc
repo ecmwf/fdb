@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 2025- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 2025 European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 #include "chunked_data_view/ChunkedDataViewBuilder.h"
 
 #include "ChunkedDataViewImpl.h"
@@ -21,6 +14,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <filesystem>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -111,7 +105,15 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
     for (auto& [req, defs, ext] : parts_) {
         ext->setFillValue(fillValue_);
 
-        auto request = fdb5::FDBToolRequest::requestsFromString(req).at(0).request();
+        const auto requests = fdb5::FDBToolRequest::requestsFromString(req);
+
+        if (requests.size() > 1) {
+            std::ostringstream ss;
+            ss << "Cannot create view, request " << req << " expanded to multiple requests.";
+            throw eckit::UserError(ss.str());
+        }
+
+        const auto request = requests.at(0).request();
 
         try {
             const auto layout = ext->layout(request);
@@ -124,7 +126,7 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
             ViewPart vp(std::move(request), layout, axes, offsetInChunkedDataView);
             part_offsets.push_back(part_offsets.back() + vp.extension()[extensionAxisIndex_.value_or(0)]);
 
-            viewParts.emplace_back(std::move(vp), std::move(ext));
+            viewParts.emplace_back(std::move(vp), ext);
         }
         catch (const std::exception& e) {
             std::ostringstream ss;

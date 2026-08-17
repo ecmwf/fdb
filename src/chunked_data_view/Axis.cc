@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 2025- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 2025 European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 #include "Axis.h"
 
 #include "eckit/exception/Exceptions.h"
@@ -62,14 +55,31 @@ size_t Axis::index(const fdb5::Key& key) const {
         auto [it, success] = key.find(param.name());
 
         if (!success) {
-            throw eckit::Exception("Couldn't find the parameter name in the keys of the request.");
+            std::stringstream buf;
+            buf << "Couldn't find the parameter name (";
+            buf << param.name();
+            buf << ") in the keys of the request.";
+            throw eckit::Exception(buf.str());
         }
 
         // Find the index of the key value in the axis
         auto res = std::find(std::begin(param.values()), std::end(param.values()), it->second);
 
         if (res == param.values().end()) {
-            throw eckit::Exception("Couldn't find request's key value in the axis.");
+            std::stringstream buf;
+            buf << "Couldn't find request's key value (";
+            buf << it->second;
+            buf << ") in the axis (";
+            bool first = true;
+            for (const auto& v : param.values()) {
+                if (!first) {
+                    buf << ", ";
+                }
+                buf << v;
+                first = false;
+            }
+            buf << ").";
+            throw eckit::Exception(buf.str());
         }
 
         size_t value_index = std::distance(param.values().begin(), res);
