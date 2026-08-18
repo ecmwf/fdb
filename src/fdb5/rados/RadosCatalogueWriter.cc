@@ -93,20 +93,10 @@ RadosCatalogueWriter::RadosCatalogueWriter(const Key& key, const fdb5::Config& c
             hs << dbKey_;
         }
 
-        int db_key_max_len = RADOS_MAX_SERIALISED_LEN;  // @todo: take from config
-        if (hs.bytesWritten() > db_key_max_len) {
-            throw eckit::Exception("Serialised db key exceeded configured maximum db key length.");
-        }
-
         db_kv_->put("key", h.data(), hs.bytesWritten());
 
         /// index newly created catalogue kv in main kv
-        int db_loc_max_len = RADOS_MAX_SERIALISED_LEN;  // @todo: take from config
         std::string nstr = db_kv_->uri().asString();
-        if (nstr.length() > db_loc_max_len) {
-            throw eckit::Exception("Serialised db location exceeded configured maximum db location length.");
-        }
-
         root_kv_->put(db_name, nstr.data(), nstr.length());
     }
 
@@ -121,10 +111,7 @@ RadosCatalogueWriter::RadosCatalogueWriter(const Key& key, const fdb5::Config& c
 }
 
 RadosCatalogueWriter::RadosCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config) :
-    RadosCatalogue(uri, ControlIdentifiers{}, config), firstIndexWrite_(false) {
-
-    NOTIMP;
-}
+    RadosCatalogue(uri, ControlIdentifiers{}, config), firstIndexWrite_(false) {}
 
 RadosCatalogueWriter::~RadosCatalogueWriter() {
 
@@ -149,19 +136,15 @@ bool RadosCatalogueWriter::selectIndex(const Key& key) {
         /// - generate catalogue kv oid (daos_obj_generate_oid)
         /// - ensure catalogue kv exists (daos_kv_open)
 
-        int idx_loc_max_len = RADOS_MAX_SERIALISED_LEN;  /// @todo: take from config
-
         try {
-
-            std::vector<char> n((long)idx_loc_max_len);
-            long res;
 
             /// @note: performed RPCs:
             /// - get index location from catalogue kv (daos_kv_get)
-            res = db_kv_->get(key.valuesToString(), &n[0], idx_loc_max_len);
+            std::vector<char> data;
+            db_kv_->getMemoryStream(data, key.valuesToString(), "DB kv");
 
             indexes_[key] = Index(new fdb5::RadosIndex(
-                key, eckit::RadosKeyValue{eckit::URI{std::string{n.begin(), std::next(n.begin(), res)}}}, false));
+                key, eckit::RadosKeyValue{eckit::URI{std::string{data.begin(), data.end()}}}, false));
         }
         catch (eckit::RadosEntityNotFoundException& e) {
 
@@ -171,9 +154,6 @@ bool RadosCatalogueWriter::selectIndex(const Key& key) {
 
             /// index index kv in catalogue kv
             std::string nstr{indexes_[key].location().uri().asString()};
-            if (nstr.length() > idx_loc_max_len) {
-                throw eckit::Exception("Serialised index location exceeded configured maximum index location length.");
-            }
             /// @note: performed RPCs (only if the index wasn't visited yet and index kv doesn't exist yet, i.e. only on
             /// first write to an index key):
             /// - record index kv location into catalogue kv (daos_kv_put) -- always performed
@@ -280,11 +260,6 @@ void RadosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
         /// @note: performed RPCs:
         /// - generate index kv oid (daos_obj_generate_oid)
         /// - ensure index kv exists (daos_obj_open)
-
-        int axis_names_max_len = RADOS_MAX_SERIALISED_LEN;
-        if (axisNames.length() > axis_names_max_len) {
-            throw eckit::Exception("Serialised axis names exceeded configured maximum axis names length.");
-        }
 
         /// @note: performed RPCs:
         /// - record axis names into index kv (daos_kv_put)
