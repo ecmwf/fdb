@@ -10,14 +10,14 @@
 
 #include "fdb5/rados/RadosCommon.h"
 
+#include "fdb5/config/Config.h"
+#include "fdb5/database/Key.h"
+
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/utils/Tokenizer.h"
-
-#include "fdb5/config/Config.h"
-#include "fdb5/database/Key.h"
 
 #include <algorithm>
 #include <cctype>
