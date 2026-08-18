@@ -27,6 +27,7 @@
 #include "eckit/serialisation/Reanimator.h"
 #include "eckit/utils/Literals.h"
 
+#include <chrono>
 #include <cstdint>
 #include <exception>
 #include <memory>
@@ -35,6 +36,7 @@
 #include <random>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -251,6 +253,9 @@ RemoteFDB::~RemoteFDB() {
     while (counter != 0) {
         std::lock_guard lock(handleCounterMutex_);
         counter = handleCounter_;
+        if (counter != 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        }
     }
 }
 

@@ -15,8 +15,10 @@
 
 #include "fdb5/remote/FdbServer.h"
 
+#include <chrono>
 #include <cstdlib>
 #include <sstream>
+#include <thread>
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/thread/Thread.h"
