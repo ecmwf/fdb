@@ -88,6 +88,7 @@ jobs:
             -o APT::Keep-Downloaded-Packages=true \
             build-essential \
             cmake \
+            jq \
             ninja-build \
             gfortran \
             libopenmpi-dev \
@@ -145,7 +146,21 @@ jobs:
           fi
           docker exec ceph-demo ceph osd pool create "${FDB_RADOS_TEST_POOL}" 8 8
           docker exec ceph-demo ceph osd pool application enable "${FDB_RADOS_TEST_POOL}" rados
-          docker exec ceph-demo ceph osd pool ls
+          echo "Waiting for ${FDB_RADOS_TEST_POOL} placement groups to become active+clean..."
+          for i in $(seq 1 60); do
+            if docker exec ceph-demo ceph pg ls-by-pool "${FDB_RADOS_TEST_POOL}" --format json | \
+              jq -e 'length > 0 and all(.[]; .state == "active+clean")' >/dev/null 2>&1; then
+              pool_ready=1
+              break
+            fi
+            sleep 5
+          done
+          if [ "${pool_ready:-0}" != "1" ]; then
+            echo "Ceph test pool did not become active+clean in time" >&2
+            docker exec ceph-demo ceph status || true
+            docker exec ceph-demo ceph pg stat || true
+            exit 1
+          fi
           sudo chmod 0644 "${CEPH_ETC}/ceph.client.admin.keyring"
 
       - name: Build eckit
@@ -204,6 +219,16 @@ jobs:
         run: |
           ctest --test-dir build/fdb -L rados --output-on-failure
 
-      - name: Dump Ceph logs on failure
+      - name: Dump Ceph diagnostics on failure
         if: failure()
-        run: docker logs ceph-demo || true
+        run: |
+          echo "=== Ceph status ==="
+          docker exec ceph-demo ceph status || true
+          echo "=== Ceph capacity ==="
+          docker exec ceph-demo ceph df || true
+          echo "=== Test-pool objects ==="
+          docker exec ceph-demo rados -p "${FDB_RADOS_TEST_POOL}" ls || true
+          echo "=== CTest temporary files ==="
+          ls -la build/fdb/Testing/Temporary/ || true
+          echo "=== Ceph container logs ==="
+          docker logs ceph-demo || true
