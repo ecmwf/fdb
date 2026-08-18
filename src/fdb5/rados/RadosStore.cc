@@ -156,6 +156,15 @@ std::unique_ptr<const FieldLocation> RadosStore::archive(const Key& key, const v
     return std::make_unique<RadosFieldLocation>(o.uri(), offset, length, fdb5::Key{});
 }
 
+RadosStore::~RadosStore() {
+
+    try {
+        closeDataHandles();
+    }
+    catch (...) {
+    }
+}
+
 size_t RadosStore::flush() {
 
     if (archivedFields_ == 0) {
@@ -362,23 +371,20 @@ eckit::DataHandle& RadosStore::getDataHandle(const Key& key, const eckit::RadosO
         return *(iter->second);
     }
 
-    auto* dh = name.multipartWriteHandle(maxPartSize_);
+    auto handle = std::unique_ptr<eckit::DataHandle>{name.multipartWriteHandle(maxPartSize_)};
+    ASSERT(handle);
 
-    ASSERT(dh);
+    handle->openForWrite(0);
+    auto [inserted, success] = handles_.emplace(key, std::move(handle));
+    ASSERT(success);
 
-    handles_[key] = dh;
-
-    dh->openForWrite(0);
-
-    return *dh;
+    return *inserted->second;
 }
 
 void RadosStore::closeDataHandles() {
 
     for (auto& handle : handles_) {
-        auto* dh = handle.second;
-        dh->close();
-        delete dh;
+        handle.second->close();
     }
 
     handles_.clear();
@@ -388,8 +394,7 @@ void RadosStore::closeDataHandles() {
 void RadosStore::flushDataHandles() {
 
     for (auto& handle : handles_) {
-        auto* dh = handle.second;
-        dh->flush();
+        handle.second->flush();
     }
 }
 

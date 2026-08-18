@@ -46,6 +46,12 @@ public:  // methods
     RadosStore(const Key& key, const Config& config);
     RadosStore(const Schema& schema, const Key& key, const Config& config);
     RadosStore(const eckit::URI& uri, const Config& config);
+    ~RadosStore() override;
+
+    RadosStore(const RadosStore&) = delete;
+    RadosStore& operator=(const RadosStore&) = delete;
+    RadosStore(RadosStore&&) = delete;
+    RadosStore& operator=(RadosStore&&) = delete;
 
     eckit::URI uri() const override;
     static eckit::URI uri(const eckit::URI& dataURI);
@@ -60,7 +66,7 @@ public:  // methods
 
     void checkUID() const override { /* nothing to do */ }
 
-    /// Wipe-related methods (not implemented for the Rados backend)
+    /// Wipe-related methods
     void finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override;
     bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const override;
     bool doWipeURIs(const StoreWipeState& wipeState) const override;
@@ -91,7 +97,7 @@ protected:  // methods
 
 private:  // types
 
-    using HandleStore = std::map<Key, eckit::DataHandle*>;
+    using HandleStore = std::map<Key, std::unique_ptr<eckit::DataHandle>>;
     using ObjectStore = std::map<Key, eckit::RadosObject>;
 
 private:  // members
