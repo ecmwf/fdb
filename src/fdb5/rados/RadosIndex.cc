@@ -16,7 +16,6 @@
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/rados/RadosCommon.h"
 #include "fdb5/rados/RadosLazyFieldLocation.h"
 
 #include "eckit/exception/Exceptions.h"
@@ -65,12 +64,6 @@ RadosIndex::RadosIndex(const Key& key, const eckit::RadosNamespace& name) :
         hs << key;
     }
 
-    int idx_key_max_len = RADOS_MAX_SERIALISED_LEN;
-
-    if (hs.bytesWritten() > idx_key_max_len) {
-        throw eckit::Exception("Serialised index key exceeded configured maximum index key length.");
-    }
-
     /// @note: performed RPCs:
     /// - record index key into index kv (daos_kv_put)
     idx_kv_.put("key", h.data(), hs.bytesWritten());
@@ -111,16 +104,14 @@ void RadosIndex::updateAxes() {
     /// @note: performed RPCs:
     /// - ensure axis kv exists (daos_obj_open)
 
-    int axis_names_max_len = RADOS_MAX_SERIALISED_LEN;  /// @todo: take from config
-    std::vector<char> axes_data((long)axis_names_max_len);
-
     /// @note: performed RPCs:
     /// - get axes key size and content (daos_kv_get without buffer + daos_kv_get)
-    long res = idx_kv_.get("axes", &axes_data[0], axis_names_max_len);
+    std::vector<char> axes_data;
+    idx_kv_.getMemoryStream(axes_data, "axes", "index kv");
 
     std::vector<std::string> axis_names;
     eckit::Tokenizer parse(",");
-    parse(std::string(axes_data.begin(), std::next(axes_data.begin(), res)), axis_names);
+    parse(std::string(axes_data.begin(), axes_data.end()), axis_names);
     std::string indexKey{key_.valuesToString()};
     for (const auto& name : axis_names) {
         /// @note: performed RPCs:
@@ -144,15 +135,19 @@ bool RadosIndex::get(const Key& key, const Key& remapKey, Field& field) const {
 
     std::string query{key.valuesToString()};
 
-    int field_loc_max_len = RADOS_MAX_SERIALISED_LEN;  /// @todo: read from config
-    std::vector<char> loc_data((long)field_loc_max_len);
-    long res;
-
     try {
 
         /// @note: performed RPCs:
         /// - retrieve field array location from index kv (daos_kv_get)
-        res = idx_kv_.get(query, &loc_data[0], (long)field_loc_max_len);
+        std::vector<char> loc_data;
+        eckit::MemoryStream ms = idx_kv_.getMemoryStream(loc_data, query, "index kv");
+
+        /// @note: timestamp read for informational purpoes. See note in DaosIndex::add.
+        time_t ts;
+        ms >> ts;
+
+        fdb5::FieldLocation* loc = eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms);
+        field = fdb5::Field(std::move(*loc), ts, fdb5::FieldDetails());
     }
     catch (eckit::RadosEntityNotFoundException& e) {
 
@@ -161,15 +156,6 @@ bool RadosIndex::get(const Key& key, const Key& remapKey, Field& field) const {
 
         return false;
     }
-
-    eckit::MemoryStream ms{&loc_data[0], (size_t)res};
-
-    /// @note: timestamp read for informational purpoes. See note in DaosIndex::add.
-    time_t ts;
-    ms >> ts;
-
-    fdb5::FieldLocation* loc = eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms);
-    field = fdb5::Field(std::move(*loc), ts, fdb5::FieldDetails());
 
     /// @note: performed RPCs:
     /// - close index kv (daos_obj_close)
@@ -197,11 +183,6 @@ void RadosIndex::add(const Key& key, const Field& field) {
         takeTimestamp();
         hs << timestamp();
         hs << field.location();
-    }
-
-    int field_loc_max_len = RADOS_MAX_SERIALISED_LEN;  /// @todo: read from config
-    if (hs.bytesWritten() > field_loc_max_len) {
-        throw eckit::Exception("Serialised field location exceeded configured maximum location length.");
     }
 
     /// @note: performed RPCs:
