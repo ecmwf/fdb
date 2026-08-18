@@ -8,37 +8,41 @@
  * does it submit to any jurisdiction.
  */
 
-// #include <cstring>
-// #include <memory>
-
-#include "eckit/config/Resource.h"
-#include "eckit/testing/Test.h"
-// #include "eckit/filesystem/URI.h"
-#include "eckit/filesystem/PathName.h"
-#include "eckit/filesystem/TmpFile.h"
-// #include "eckit/filesystem/TmpDir.h"
-// #include "eckit/io/FileHandle.h"
-#include "eckit/config/YAMLConfiguration.h"
-#include "eckit/io/MemoryHandle.h"
-#include "eckit/io/PartHandle.h"
-
-// #include "metkit/mars/MarsRequest.h"
-
-#include "fdb5/fdb5_config.h"
-// #include "fdb5/config/Config.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/api/helpers/ListElement.h"
+#include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
-#include "fdb5/toc/TocStore.h"
-
-// #include "fdb5/daos/DaosSession.h"
-// #include "fdb5/daos/DaosPool.h"
-// #include "fdb5/daos/DaosArrayPartHandle.h"
-
+#include "fdb5/database/Field.h"
+#include "fdb5/database/FieldLocation.h"
 #include "fdb5/rados/RadosCatalogueReader.h"
 #include "fdb5/rados/RadosCatalogueWriter.h"
 #include "fdb5/rados/RadosFieldLocation.h"
 #include "fdb5/rados/RadosStore.h"
+#include "fdb5/rules/Schema.h"
+
+#include "metkit/mars/MarsRequest.h"
+
+#include "eckit/config/YAMLConfiguration.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/TmpFile.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/DataHandle.h"
+#include "eckit/io/MemoryHandle.h"
+#include "eckit/io/Offset.h"
+#include "eckit/io/PartHandle.h"
+#include "eckit/io/rados/RadosPool.h"
+#include "eckit/testing/Test.h"
+
+#include <cstddef>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <memory>
+#include <ostream>
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace eckit::testing;
 using namespace eckit;
@@ -64,17 +68,6 @@ void deldir(eckit::PathName& p) {
     p.rmdir();
 };
 
-void ensureCleanNamespaces(const std::string& pool, const std::string& prefix) {
-    ASSERT(prefix.length() > 3);
-    for (const std::string& name : eckit::RadosCluster::instance().listNamespaces(pool)) {
-        if (name.rfind(prefix, 0) == 0) {
-            eckit::RadosNamespace{pool, name}.destroy();
-        }
-    }
-}
-
-}  // namespace
-
 // temporary schema,spaces,root files common to all DAOS Catalogue tests
 
 eckit::TmpFile& schema_file() {
@@ -92,8 +85,9 @@ eckit::PathName& catalogue_tests_tmp_root() {
     return cd;
 }
 
-namespace fdb {
-namespace test {
+}  // namespace
+
+namespace fdb::test {
 
 CASE("Setup") {
 
@@ -379,8 +373,8 @@ CASE("RadosCatalogue tests") {
         fdb5::Key index_key({{"c", "large"}, {"d", "large"}});
         fdb5::Key field_key({{"e", "5"}, {"f", "6"}});
 
-        auto location = std::make_unique<fdb5::RadosFieldLocation>(
-            eckit::URI{"rados", std::string(600, 'x')}, eckit::Offset(0), eckit::Length(1), fdb5::Key{});
+        auto location = std::make_unique<fdb5::RadosFieldLocation>(eckit::URI{"rados", std::string(600, 'x')},
+                                                                   eckit::Offset(0), eckit::Length(1), fdb5::Key{});
 
         {
             fdb5::RadosCatalogueWriter writer{db_key, config};
@@ -887,8 +881,8 @@ CASE("RadosCatalogue tests") {
 #endif
 }
 
-}  // namespace test
-}  // namespace fdb
+}  // namespace fdb::test
+
 
 int main(int argc, char** argv) {
     return run_tests(argc, argv);
