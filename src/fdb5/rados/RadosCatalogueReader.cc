@@ -54,24 +54,22 @@ bool RadosCatalogueReader::selectIndex(const Key& key) {
         return true;
     }
 
-    /// @todo: shouldn't this be set only if found a matching index?
-    currentIndexKey_ = key;
-
     if (indexes_.find(key) == indexes_.end()) {
 
         /// @note: performed RPCs:
         /// - generate catalogue kv oid (daos_obj_generate_oid)
         /// - ensure catalogue kv exists (daos_kv_open)
 
-        int idx_loc_max_len = RADOS_MAX_SERIALISED_LEN;  /// @todo: take from config
-        std::vector<char> n((long)idx_loc_max_len);
-        long res;
-
         try {
 
             /// @note: performed RPCs:
             /// - retrieve index kv location from catalogue kv (daos_kv_get)
-            res = db_kv_->get(key.valuesToString(), &n[0], idx_loc_max_len);
+            std::vector<char> data;
+            db_kv_->getMemoryStream(data, key.valuesToString(), "DB kv");
+            eckit::URI uri{std::string{data.begin(), data.end()}};
+            eckit::RadosKeyValue index_kv{uri};
+
+            indexes_[key] = Index(new RadosIndex(key, index_kv, true));
         }
         catch (eckit::RadosEntityNotFoundException& e) {
 
@@ -81,15 +79,11 @@ bool RadosCatalogueReader::selectIndex(const Key& key) {
             return false;
         }
 
-        eckit::URI uri{std::string{n.begin(), std::next(n.begin(), res)}};
-        eckit::RadosKeyValue index_kv{uri};
-
-        indexes_[key] = Index(new RadosIndex(key, index_kv, true));
-
         /// @note: performed RPCs:
         /// - close catalogue kv (daos_obj_close)
     }
 
+    currentIndexKey_ = key;
     current_ = indexes_[key];
 
     return true;
@@ -97,7 +91,8 @@ bool RadosCatalogueReader::selectIndex(const Key& key) {
 
 void RadosCatalogueReader::deselectIndex() {
 
-    NOTIMP;  //< should not be called
+    current_ = Index();
+    currentIndexKey_ = Key();
 }
 
 bool RadosCatalogueReader::open() {
