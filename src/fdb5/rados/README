@@ -1,6 +1,14 @@
 Running RadosStore unit tests against Ceph on Docker on mac:
 ============================================================
 
+Supported RADOS backend scope:
+==============================
+
+The backend supports archive, retrieve, and reopening catalogues by URI. Archive calls on a single RadosStore must be
+serialised by the caller. Catalogue-side wipe, purge, statistics, move, and control operations are not implemented.
+
+RADOS tests require eckit to be built with RADOS support.
+
 git clone https://github.com/datenkollektiv/ceph-playground.git
 cd ceph-playground
 sed -i '' 's#volumes:#volumes:\n            - < PATH TO YOUR LOCAL FDB BUNDLE SOURCE >:/root/git/fdb-bundle#g' docker-compose.yaml
