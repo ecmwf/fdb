@@ -54,8 +54,6 @@ public:
     virtual Handled handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) = 0;
     virtual Handled handleData(Message message, uint32_t clientID, uint32_t requestID) = 0;
     virtual Handled handleData(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) = 0;
-
-    virtual void handleException(std::exception_ptr e) = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -120,8 +118,6 @@ protected:
     // archival helper methods
     void archiver();
     void queue(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
-
-    void handleException(std::exception_ptr e) override;
 
 private:
 

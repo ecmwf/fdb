@@ -107,12 +107,12 @@ Handled ServerConnection::handleData(Message message, uint32_t clientID, uint32_
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        error(e.what(), clientID, requestID);
+        error(false, e.what(), clientID, requestID);
     }
     catch (...) {
-        error("Caught unexpected and unknown error", clientID, requestID);
+        error(false, "Caught unexpected and unknown error", clientID, requestID);
     }
-    return Handled::No;
+    return Handled::Replied;
 }
 
 Handled ServerConnection::handleData(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
@@ -134,12 +134,12 @@ Handled ServerConnection::handleData(Message message, uint32_t clientID, uint32_
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        error(e.what(), clientID, requestID);
+        error(false, e.what(), clientID, requestID);
     }
     catch (...) {
-        error("Caught unexpected and unknown error", clientID, requestID);
+        error(false, "Caught unexpected and unknown error", clientID, requestID);
     }
-    return Handled::No;
+    return Handled::Replied;
 }
 
 RemoteConfiguration ServerConnection::availableFunctionality() const {
@@ -164,7 +164,7 @@ void ServerConnection::initialiseConnections() {
         s1 >> remoteProtocolVersion;
     }
     catch (...) {
-        error("Error retrieving client protocol version", hdr.clientID(), hdr.requestID);
+        error(true, "Error retrieving client protocol version", hdr.clientID(), hdr.requestID);
         return;
     }
 
@@ -174,7 +174,7 @@ void ServerConnection::initialiseConnections() {
         ss << "    versions supported by server: " << LibFdb5::instance().remoteProtocolVersion().supportedStr()
            << std::endl;
         ss << "    version requested by client: " << remoteProtocolVersion << std::endl;
-        error(ss.str(), hdr.clientID(), hdr.requestID);
+        error(true, ss.str(), hdr.clientID(), hdr.requestID);
         return;
     }
 
@@ -185,7 +185,7 @@ void ServerConnection::initialiseConnections() {
         single_ = agreedConf_.singleConnection();
     }
     catch (const eckit::Exception& e) {
-        error(e.what(), hdr.clientID(), hdr.requestID);
+        error(true, e.what(), hdr.clientID(), hdr.requestID);
         return;
     }
 
@@ -362,18 +362,18 @@ void ServerConnection::listeningThreadLoopData() {
                     default:
                         std::ostringstream ss;
                         ss << "Unable to handle message " << hdr.message << " received on the data connection";
-                        error(ss.str(), hdr.clientID(), hdr.requestID);
+                        error(false, ss.str(), hdr.clientID(), hdr.requestID);
                 }
             }
         }
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        error(e.what(), hdr.clientID(), hdr.requestID);
+        error(false, e.what(), hdr.clientID(), hdr.requestID);
         throw;
     }
     catch (...) {
-        error("Caught unexpected, unknown exception in retrieve worker", hdr.clientID(), hdr.requestID);
+        error(false, "Caught unexpected, unknown exception in retrieve worker", hdr.clientID(), hdr.requestID);
         throw;
     }
 }
@@ -449,7 +449,7 @@ void ServerConnection::handle() {
                     default:
                         std::ostringstream ss;
                         ss << "Unable to handle message " << hdr.message;
-                        error(ss.str(), hdr.clientID(), hdr.requestID);
+                        error(true, ss.str(), hdr.clientID(), hdr.requestID);
                 }
             }
         }
@@ -462,17 +462,6 @@ void ServerConnection::handle() {
     archiveQueue_.close();
 
     teardown();
-}
-
-void ServerConnection::handleException(std::exception_ptr e) {
-    try {
-        if (e) {
-            std::rethrow_exception(e);
-        }
-    }
-    catch (const std::exception& e) {
-        error(e.what(), 0, 0);
-    }
 }
 
 void ServerConnection::queue(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {

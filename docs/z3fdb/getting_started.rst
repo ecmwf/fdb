@@ -1,3 +1,6 @@
+.. SPDX-FileCopyrightText: 2026 European Centre for Medium-Range Weather Forecasts (ECMWF)
+.. SPDX-License-Identifier: Apache-2.0
+
 Getting Started
 ===============
 
@@ -156,10 +159,10 @@ Pass both keys to one :class:`~pychunked_data_view.AxisDefinition`:
 
    builder.add_part(
        {
-           "class": "od", 
+           "class": "od",
            ...,
            "date": ["2020-01-01", "2020-01-02"],
-           "time": ["0000", "0600", "1200", "1800"], 
+           "time": ["0000", "0600", "1200", "1800"],
            ...,
        },
        [
