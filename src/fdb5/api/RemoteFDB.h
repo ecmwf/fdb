@@ -97,6 +97,9 @@ private:  // members
     std::unordered_map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
 
     mutable std::mutex messageQueueMutex_;
+
+    mutable std::mutex handleCounterMutex_;
+    mutable size_t handleCounter_ = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

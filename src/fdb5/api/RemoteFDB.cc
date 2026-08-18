@@ -247,7 +247,11 @@ RemoteFDB::~RemoteFDB() {
     // 1- stop listening thread dispatching to this client
     deregister();
     // 2- wait for any handle() before destroying
-    std::lock_guard lock(messageQueueMutex_);
+    size_t counter = 1;
+    while (counter != 0) {
+        std::lock_guard lock(handleCounterMutex_);
+        counter = handleCounter_;
+    }
 }
 
 // -----------------------------------------------------------------------------------------------------
@@ -342,6 +346,10 @@ const Configuration& RemoteFDB::clientConfig() const {
 }
 
 bool RemoteFDB::handle(remote::Message message, uint32_t requestID) {
+    {
+        std::lock_guard lock(handleCounterMutex_);
+        handleCounter_++;
+    }
 
     switch (message) {
         case Message::Complete: {
@@ -358,6 +366,10 @@ bool RemoteFDB::handle(remote::Message message, uint32_t requestID) {
                 messageQueues_.erase(iter);
             }
             queue->close();
+            {
+                std::lock_guard lock(handleCounterMutex_);
+                handleCounter_--;
+            }
             return true;
         }
         case Message::Error: {
@@ -367,10 +379,19 @@ bool RemoteFDB::handle(remote::Message message, uint32_t requestID) {
                << " - received an error without error description for requestID " << requestID << std::endl;
             throw RemoteFDBException(ss.str(), controlEndpoint());
 
+            {
+                std::lock_guard lock(handleCounterMutex_);
+                handleCounter_--;
+            }
             return false;
         }
-        default:
+        default: {
+            {
+                std::lock_guard lock(handleCounterMutex_);
+                handleCounter_--;
+            }
             return false;
+        }
     }
 }
 bool RemoteFDB::handle(remote::Message message, uint32_t requestID, Buffer&& payload) {
