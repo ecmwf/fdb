@@ -131,15 +131,15 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::refresh(const eckit::C
 }
 
 void ClientConnectionRouter::reap() {
-    for (auto iter = connections_.begin(); iter != connections_.end();) {
-        auto conn = iter->second.lock();
-        if (!conn || !conn->valid()) {
-            iter = connections_.erase(iter);
-        }
-        else {
-            ++iter;
-        }
-    }
+    // for (auto iter = connections_.begin(); iter != connections_.end();) {
+    //     auto conn = iter->second.lock();
+    //     if (!conn || !conn->valid()) {
+    //         iter = connections_.erase(iter);
+    //     }
+    //     else {
+    //         ++iter;
+    //     }
+    // }
 }
 
 void ClientConnectionRouter::deregister(ClientConnection& connection) {
