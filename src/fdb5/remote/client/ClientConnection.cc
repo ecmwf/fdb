@@ -412,19 +412,41 @@ void ClientConnection::listeningControlThreadLoop() {
 
                     auto pp = promises_.find(hdr.requestID);
                     if (pp != promises_.end()) {
-                        if (hdr.message == Message::Error) {
-                            std::string msg(hdr.payloadSize, ' ');
-                            if (hdr.payloadSize != 0) {
-                                payload.copy(msg.data(), payload.size());
+                        if (hdr.message == Message::Received) {
+                            if (hdr.payloadSize == 0) {
+                                pp->second.set_value(Buffer(0));
                             }
-                            pp->second.set_exception(
-                                std::make_exception_ptr(RemoteFDBException(msg, controlEndpoint_)));
+                            else {
+                                pp->second.set_value(std::move(payload));
+                            }
                         }
-                        else if (hdr.payloadSize == 0) {
-                            pp->second.set_value(Buffer(0));
-                        }
-                        else {
-                            pp->second.set_value(std::move(payload));
+                        else {  // Message::Error or Message::Unauthorised - must contain a payload with the error
+                                // message
+                            if (hdr.payloadSize == 0) {
+                                std::ostringstream ss;
+                                ss << "Received " << hdr.message << " message with no payload from server";
+                                pp->second.set_exception(
+                                    std::make_exception_ptr(RemoteFDBException(ss.str(), controlEndpoint_)));
+                            }
+                            else {
+                                std::string msg(hdr.payloadSize, ' ');
+                                payload.copy(msg.data(), payload.size());
+
+                                if (hdr.message == Message::Error) {
+                                    pp->second.set_exception(
+                                        std::make_exception_ptr(RemoteFDBException(msg, controlEndpoint_)));
+                                }
+                                else if (hdr.message == Message::Unauthorised) {
+                                    pp->second.set_exception(
+                                        std::make_exception_ptr(RemoteFDBUnauthorised(msg, controlEndpoint_)));
+                                }
+                                else {
+                                    std::ostringstream ss;
+                                    ss << "Received unexpected message " << hdr.message << " from server";
+                                    pp->second.set_exception(
+                                        std::make_exception_ptr(RemoteFDBException(ss.str(), controlEndpoint_)));
+                                }
+                            }
                         }
                         promises_.erase(pp);
                         handled = true;

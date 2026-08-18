@@ -37,6 +37,13 @@ public:
         eckit::RemoteException(msg, endpoint) {}
 };
 
+class RemoteFDBUnauthorised : public eckit::RemoteException {
+public:
+
+    RemoteFDBUnauthorised(const std::string& msg, const eckit::net::Endpoint& endpoint) :
+        eckit::RemoteException(msg, endpoint) {}
+};
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class Client {

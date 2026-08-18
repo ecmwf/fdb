@@ -115,6 +115,9 @@ std::ostream& operator<<(std::ostream& s, const Message& m) {
         case Message::Complete:
             s << "Complete";
             break;
+        case Message::Unauthorised:
+            s << "Unauthorised";
+            break;
 
             // Data communication
         case Message::Blob:
