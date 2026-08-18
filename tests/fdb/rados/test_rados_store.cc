@@ -12,6 +12,7 @@
 // #include <memory>
 
 #include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/testing/Test.h"
 // #include "eckit/filesystem/URI.h"
 #include "eckit/filesystem/PathName.h"
@@ -28,6 +29,7 @@
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/database/Engine.h"
 #include "fdb5/toc/TocCatalogueReader.h"
 #include "fdb5/toc/TocCatalogueWriter.h"
 
@@ -167,6 +169,7 @@ CASE("RadosStore tests") {
             store_tests_tmp_root().asString() +
             "\n"
             "rados:\n"
+            "  maxPartSize: 16\n"
             "  store:\n"
             "    pool: " +
             pool +
@@ -185,15 +188,15 @@ CASE("RadosStore tests") {
         fdb5::Key db_key({{"a", "1"}, {"b", "2"}});
         fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
 
-        char data[] = "test";
+        const std::string data{"0123456789abcdef0123456789abcdef"};
 
         // archive
 
         fdb5::RadosStore rados_store{schema, db_key, config};
         fdb5::Store& store = rados_store;
-        std::unique_ptr<const fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
+        std::unique_ptr<const fdb5::FieldLocation> loc(store.archive(index_key, data.data(), data.size()));
 
-        rados_store.flush();
+        rados_store.close();
 
         // retrieve
         fdb5::Field field(std::move(loc), std::time(nullptr));
@@ -205,8 +208,8 @@ CASE("RadosStore tests") {
 
         eckit::MemoryHandle mh;
         dh->copyTo(mh);
-        EXPECT(mh.size() == eckit::Length(sizeof(data)));
-        EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
+        EXPECT(mh.size() == eckit::Length(data.size()));
+        EXPECT(::memcmp(mh.data(), data.data(), data.size()) == 0);
 
         // remove
         eckit::RadosObject field_name{field.location().uri()};
@@ -218,6 +221,39 @@ CASE("RadosStore tests") {
         store.remove(store_uri, out, out, true);
         EXPECT_NOT(field_name.exists());
         EXPECT(store_name.listObjects().size() == 0);
+
+        std::unique_ptr<const fdb5::FieldLocation> expiring_location;
+        {
+            fdb5::RadosStore expiring_store{schema, db_key, config};
+            fdb5::Store& store = expiring_store;
+            expiring_location = store.archive(index_key, data.data(), data.size());
+        }
+
+        fdb5::Field expiring_field(std::move(expiring_location), std::time(nullptr));
+        std::unique_ptr<eckit::DataHandle> expiring_handle(expiring_field.dataHandle());
+        eckit::MemoryHandle expiring_data;
+        expiring_handle->copyTo(expiring_data);
+        EXPECT(expiring_data.size() == eckit::Length(data.size()));
+        EXPECT(::memcmp(expiring_data.data(), data.data(), data.size()) == 0);
+
+        eckit::RadosObject{expiring_field.location().uri()}.nspace().destroy();
+    }
+
+    SECTION("rejects namespace prefixes containing underscores") {
+
+        fdb5::Schema schema{schema_file()};
+        fdb5::Key db_key({{"a", "1"}, {"b", "2"}});
+
+        std::string config_str{
+            "rados:\n"
+            "  pool: " +
+            std::string{"unused"} +
+            "\n"
+            "  namespace_prefix: invalid_prefix\n"};
+
+        fdb5::Config config{YAMLConfiguration(config_str)};
+        EXPECT_THROWS_AS((fdb5::RadosStore{schema, db_key, config}), eckit::UserError);
+        EXPECT_THROWS_AS((fdb5::Engine::backend("rados").location(db_key, config)), eckit::UserError);
     }
 
     SECTION("with POSIX Catalogue") {

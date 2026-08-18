@@ -28,6 +28,7 @@
 // #include "fdb5/config/Config.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/toc/TocStore.h"
 
 // #include "fdb5/daos/DaosSession.h"
@@ -181,6 +182,7 @@ CASE("RadosCatalogue tests") {
         std::unique_ptr<fdb5::FieldLocation> loc(new fdb5::RadosFieldLocation(
             eckit::URI{"rados", "test_uri"}, eckit::Offset(0), eckit::Length(1), fdb5::Key{}));
 
+        eckit::URI catalogue_uri;
         {
             fdb5::RadosCatalogueWriter dcatw{db_key, config};
 
@@ -200,6 +202,7 @@ CASE("RadosCatalogue tests") {
             fdb5::CatalogueWriter& catw = dcatw;
             catw.archive(index_key, field_key, std::move(loc));
             cat.flush(0);
+            catalogue_uri = cat.uri();
             //     EXPECT(index_kv.has(field_key.valuesToString()));
             //     fdb5::DaosKeyValueOID e_axis_kv_oid{index_key.valuesToString() + std::string{".e"}, OC_S1};
             //     fdb5::DaosKeyValueName e_axis_kv{pool_name, db_key.valuesToString(), e_axis_kv_oid};
@@ -211,13 +214,26 @@ CASE("RadosCatalogue tests") {
             //     EXPECT(f_axis_kv.has("6"));
         }
 
+        {
+            auto reopened = fdb5::CatalogueWriterFactory::instance().build(catalogue_uri, config);
+            EXPECT(reopened->key() == db_key);
+        }
+
         // retrieve
 
         {
             fdb5::RadosCatalogueReader dcatr{db_key, config};
 
             fdb5::Catalogue& cat = dcatr;
-            cat.selectIndex(index_key);
+            EXPECT(cat.selectIndex(index_key));
+
+            fdb5::Key missing_index_key({{"c", "missing"}, {"d", "missing"}});
+            EXPECT_NOT(cat.selectIndex(missing_index_key));
+            EXPECT_NOT(cat.selectIndex(missing_index_key));
+
+            EXPECT(cat.selectIndex(index_key));
+            cat.deselectIndex();
+            EXPECT(cat.selectIndex(index_key));
 
             fdb5::Field f;
             fdb5::CatalogueReader& catr = dcatr;
@@ -335,6 +351,54 @@ CASE("RadosCatalogue tests") {
         //         std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
         //         cat.visitEntries(*wv, store, false);
         //     }
+    }
+
+    SECTION("RadosCatalogue supports large serialised field locations") {
+
+        std::string config_str{
+            "spaces:\n"
+            "- roots:\n"
+            "  - path: " +
+            catalogue_tests_tmp_root().asString() +
+            "\n"
+            "schema : " +
+            schema_file().path() +
+            "\n"
+            "rados:\n"
+            "  pool: " +
+            pool +
+            "\n"
+            "  root_namespace: " +
+            test_id +
+            "_root\n"
+            "  namespace_prefix: " +
+            test_id + "\n"};
+
+        fdb5::Config config{YAMLConfiguration(config_str)};
+        fdb5::Key db_key({{"a", "large"}, {"b", "large"}});
+        fdb5::Key index_key({{"c", "large"}, {"d", "large"}});
+        fdb5::Key field_key({{"e", "5"}, {"f", "6"}});
+
+        auto location = std::make_unique<fdb5::RadosFieldLocation>(
+            eckit::URI{"rados", std::string(600, 'x')}, eckit::Offset(0), eckit::Length(1), fdb5::Key{});
+
+        {
+            fdb5::RadosCatalogueWriter writer{db_key, config};
+            fdb5::Catalogue& catalogue = writer;
+            EXPECT(catalogue.selectIndex(index_key));
+            static_cast<fdb5::CatalogueWriter&>(writer).archive(index_key, field_key, std::move(location));
+            catalogue.flush(0);
+        }
+
+        {
+            fdb5::RadosCatalogueReader reader{db_key, config};
+            fdb5::Catalogue& catalogue = reader;
+            EXPECT(catalogue.selectIndex(index_key));
+
+            fdb5::Field field;
+            EXPECT(static_cast<fdb5::CatalogueReader&>(reader).retrieve(field_key, field));
+            EXPECT(field.location().uri().name() == std::string(600, 'x'));
+        }
     }
 
     // SECTION("DaosCatalogue archive (index) and retrieve with a TocStore") {
@@ -533,6 +597,14 @@ CASE("RadosCatalogue tests") {
         dh->copyTo(mh);
         EXPECT(mh.size() == eckit::Length(sizeof(data)));
         EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
+
+        fdb5::FDB reopened(config);
+        std::unique_ptr<eckit::DataHandle> reopened_handle(reopened.retrieve(r));
+
+        eckit::MemoryHandle reopened_data;
+        reopened_handle->copyTo(reopened_data);
+        EXPECT(reopened_data.size() == eckit::Length(sizeof(data)));
+        EXPECT(::memcmp(reopened_data.data(), data, sizeof(data)) == 0);
 
         // list all
 
