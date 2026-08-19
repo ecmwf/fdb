@@ -60,9 +60,6 @@ RadosCatalogue::RadosCatalogue(const eckit::URI& uri, const ControlIdentifiers& 
                                const fdb5::Config& config) :
     CatalogueImpl(Key(), controlIdentifiers, config), RadosCommon(config, "catalogue", uri) {
 
-    std::string pool = pool_;
-    std::string nspace = db_namespace_;
-
     // Read the real DB key into the DB base object
     try {
         std::vector<char> data;
@@ -71,8 +68,8 @@ RadosCatalogue::RadosCatalogue(const eckit::URI& uri, const ControlIdentifiers& 
     }
     catch (eckit::RadosEntityNotFoundException& e) {
 
-        throw fdb5::DatabaseNotFoundException(std::string("RadosCatalogue database not found ") + "(pool: '" + pool +
-                                              "', namespace: '" + nspace + "')");
+        throw fdb5::DatabaseNotFoundException(std::string("RadosCatalogue database not found ") + "(pool: '" + pool_ +
+                                              "', namespace: '" + db_namespace_ + "')");
     }
 }
 

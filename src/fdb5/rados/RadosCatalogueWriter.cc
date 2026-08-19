@@ -108,9 +108,6 @@ bool RadosCatalogueWriter::createIndex(const Key& /* idxKey */, size_t /* datumK
 
 bool RadosCatalogueWriter::selectIndex(const Key& key) {
 
-    std::string pool = pool_;
-    std::string nspace = db_namespace_;
-
     currentIndexKey_ = key;
 
     if (indexes_.find(key) == indexes_.end()) {
@@ -126,7 +123,7 @@ bool RadosCatalogueWriter::selectIndex(const Key& key) {
 
             firstIndexWrite_ = true;
 
-            indexes_[key] = Index(new fdb5::RadosIndex(key, eckit::RadosNamespace{pool, nspace}));
+            indexes_[key] = Index(new fdb5::RadosIndex(key, eckit::RadosNamespace{pool_, db_namespace_}));
 
             /// index index kv in catalogue kv
             std::string nstr{indexes_[key].location().uri().asString()};
@@ -162,11 +159,8 @@ const Index& RadosCatalogueWriter::currentIndex() {
     return current_;
 }
 
-void RadosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
+void RadosCatalogueWriter::archive(const Key& /* idxKey */, const Key& datumKey,
                                    std::shared_ptr<const FieldLocation> fieldLocation) {
-
-    std::string pool = pool_;
-    std::string nspace = db_namespace_;
 
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
@@ -202,17 +196,16 @@ void RadosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
 
     current_.put(datumKey, field);
 
+    auto* radosIndex = dynamic_cast<fdb5::RadosIndex*>(current_.content());
+    ASSERT(radosIndex);
+
     if (firstIndexWrite_) {
-        dynamic_cast<fdb5::RadosIndex*>(current_.content())->putAxisNames(axisNames);
+        radosIndex->putAxisNames(axisNames);
         firstIndexWrite_ = false;
     }
 
-    if (axesToExpand.empty()) {
-        return;
-    }
-
     while (!axesToExpand.empty()) {
-        dynamic_cast<fdb5::RadosIndex*>(current_.content())->putAxisValue(axesToExpand.back(), valuesToAdd.back());
+        radosIndex->putAxisValue(axesToExpand.back(), valuesToAdd.back());
         axesToExpand.pop_back();
         valuesToAdd.pop_back();
     }
