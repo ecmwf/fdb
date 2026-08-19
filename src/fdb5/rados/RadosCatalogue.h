@@ -13,12 +13,6 @@
 
 #pragma once
 
-#include "eckit/config/Configuration.h"
-#include "eckit/container/Queue.h"
-#include "eckit/exception/Exceptions.h"
-#include "eckit/filesystem/URI.h"
-#include "eckit/io/Offset.h"
-
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/config/Config.h"
@@ -29,6 +23,12 @@
 #include "fdb5/database/StatsReportVisitor.h"
 #include "fdb5/rados/RadosCommon.h"
 #include "fdb5/rules/Schema.h"
+
+#include "eckit/config/Configuration.h"
+#include "eckit/container/Queue.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/Offset.h"
 
 #include <ostream>
 #include <set>
@@ -63,7 +63,7 @@ public:  // methods
 
     std::string type() const override;
 
-    void checkUID() const override { NOTIMP; };
+    void checkUID() const override { /* nothing to do */ }
     bool exists() const override;
     void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override { NOTIMP; };
     const Schema& schema() const override;
@@ -89,15 +89,17 @@ public:  // methods
     };
 
     // Control access properties of the DB
-    void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override { NOTIMP; };
+    /// @todo: control identifiers are not persisted for RADOS yet; wipe/coordinator invocations rely on default-enabled
+    /// semantics.
+    void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override {}
 
     const Rule& rule() const override;
 
     bool uriBelongs(const eckit::URI& uri) const override;
 
-    void maskIndexEntries(const std::set<Index>& indexes) const override { NOTIMP; }
+    void maskIndexEntries(const std::set<Index>& indexes) const override;
 
-    /// Wipe-related methods (not implemented for the Rados backend)
+    /// Wipe-related methods
     CatalogueWipeState wipeInit() const override;
     bool markIndexForWipe(const Index& index, bool include, CatalogueWipeState& wipeState) const override;
     void finaliseWipeState(CatalogueWipeState& wipeState) const override;

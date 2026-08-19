@@ -18,15 +18,9 @@
 
 #include "fdb5/rados/RadosCatalogue.h"
 
-#include "eckit/filesystem/URI.h"
-#include "eckit/io/rados/RadosException.h"
-#include "eckit/io/rados/RadosKeyValue.h"
-#include "eckit/log/Timer.h"
-#include "eckit/serialisation/MemoryStream.h"
-#include "eckit/utils/Tokenizer.h"
-
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/DatabaseNotFoundException.h"
@@ -38,7 +32,21 @@
 #include "fdb5/rules/Rule.h"
 #include "fdb5/rules/Schema.h"
 
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/rados/RadosException.h"
+#include "eckit/io/rados/RadosKeyValue.h"
+#include "eckit/io/rados/RadosNamespace.h"
+#include "eckit/io/rados/RadosObject.h"
+#include "eckit/log/Log.h"
+#include "eckit/log/Timer.h"
+#include "eckit/serialisation/MemoryStream.h"
+#include "eckit/utils/Tokenizer.h"
+
+#include <iostream>
 #include <optional>
+#include <ostream>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -50,10 +58,10 @@ namespace fdb5 {
 RadosCatalogue::RadosCatalogue(const Key& key, const fdb5::Config& config) :
     CatalogueImpl(key, ControlIdentifiers{}, config), RadosCommon(config, "catalogue", key) {
 
-    // TODO: apply the mechanism in RootManager::directory, using
-    //   FileSpaceTables to determine root_pool_name_ according to key
-    //   and using DbPathNamerTables to determine db_cont_name_ according
-    //   to key
+    /// TODO: apply the mechanism in RootManager::directory, using
+    ///   FileSpaceTables to determine root_pool_name_ according to key
+    ///   and using DbPathNamerTables to determine db_cont_name_ according
+    ///   to key
 }
 
 RadosCatalogue::RadosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers,
@@ -189,46 +197,171 @@ bool RadosCatalogue::uriBelongs(const eckit::URI& uri) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// Wipe-related methods are not implemented for the Rados backend.
+/// @note: Catalogue and store share the same Rados namespace, so wipe reports every non-safe object
+///   found there as unrecognised. The `WipeCoordinator` then cross-checks store and catalogue
+///   `uriBelongs()` to attribute each unknown to the correct owner.
 
 CatalogueWipeState RadosCatalogue::wipeInit() const {
-    NOTIMP;
+    return CatalogueWipeState{dbKey_, config()};
 }
 
-bool RadosCatalogue::markIndexForWipe(const Index&, bool, CatalogueWipeState&) const {
-    NOTIMP;
+void RadosCatalogue::maskIndexEntries(const std::set<Index>& indexes) const {
+
+    for (const auto& index : indexes) {
+        std::string key = index.key().valuesToString();
+        if (db_kv_->has(key)) {
+            db_kv_->remove(key);
+        }
+    }
 }
 
-void RadosCatalogue::finaliseWipeState(CatalogueWipeState&) const {
-    NOTIMP;
+bool RadosCatalogue::markIndexForWipe(const Index& index, bool include, CatalogueWipeState& wipeState) const {
+
+    eckit::RadosKeyValue index_kv{index.location().uri()};
+
+    // A cross fdb-mount must never delete another DB's index/axis KVs.
+    if (index_kv.nspace().pool().name() != pool_ || index_kv.nspace().name() != db_namespace_) {
+        include = false;
+    }
+
+    std::vector<eckit::URI> axis_uris;
+    try {
+        std::vector<char> axes_data;
+        index_kv.getMemoryStream(axes_data, "axes", "index kv");
+        std::vector<std::string> axis_names;
+        eckit::Tokenizer parse(",");
+        parse(std::string(axes_data.begin(), axes_data.end()), axis_names);
+        const std::string idx_key = index.key().valuesToString();
+        for (const auto& axis : axis_names) {
+            axis_uris.push_back(
+                eckit::RadosKeyValue{index_kv.nspace().pool().name(), index_kv.nspace().name(), idx_key + "." + axis}
+                    .uri());
+        }
+    }
+    catch (const eckit::RadosEntityNotFoundException&) {
+        // Index KV or its axes list may already be gone (e.g. after an incomplete wipe).
+    }
+
+    const eckit::URI index_uri = index.location().uri();
+
+    if (include) {
+        wipeState.markForMasking(index);
+        wipeState.markForDeletion(WipeElementType::CATALOGUE_INDEX, index_uri);
+        for (const auto& uri : axis_uris) {
+            wipeState.markForDeletion(WipeElementType::CATALOGUE_INDEX, uri);
+        }
+    }
+    else {
+        wipeState.markAsSafe({index_uri});
+        for (const auto& uri : axis_uris) {
+            wipeState.markAsSafe({uri});
+        }
+    }
+
+    return include;
 }
 
-bool RadosCatalogue::doWipeUnknowns(const std::set<eckit::URI>&) const {
-    NOTIMP;
+void RadosCatalogue::finaliseWipeState(CatalogueWipeState& wipeState) const {
+
+    const eckit::URI db_kv_uri = db_kv_->uri();
+
+    const bool wipeAll = wipeState.safeURIs().empty();
+    if (wipeAll) {
+        wipeState.markForDeletion(WipeElementType::CATALOGUE, db_kv_uri);
+    }
+    else {
+        wipeState.markAsSafe({db_kv_uri});
+        return;
+    }
+
+    eckit::RadosNamespace db{pool_, db_namespace_};
+    if (!db.exists()) {
+        return;
+    }
+
+    for (const auto& obj : db.listObjects()) {
+        if (obj.name().find(";part-") != std::string::npos) {
+            continue;
+        }
+        const eckit::URI uri = obj.uri();
+        if (!wipeState.isMarkedForDeletion(uri)) {
+            wipeState.insertUnrecognised(uri);
+        }
+    }
 }
 
-bool RadosCatalogue::doWipeURIs(const CatalogueWipeState&) const {
-    NOTIMP;
+namespace {
+
+void remove_catalogue_uri(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) {
+
+    eckit::RadosObject obj{uri};
+    logVerbose << "destroy Rados object: ";
+    logAlways << obj.str() << std::endl;
+    if (doit) {
+        obj.ensureAllDestroyed();
+    }
+}
+
+}  // namespace
+
+bool RadosCatalogue::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
+
+    for (const auto& uri : unknownURIs) {
+        if (eckit::RadosObject{uri}.exists()) {
+            remove_catalogue_uri(uri, std::cout, std::cout, true);
+        }
+    }
+    return true;
+}
+
+bool RadosCatalogue::doWipeURIs(const CatalogueWipeState& wipeState) const {
+
+    const bool wipeAll = wipeState.safeURIs().empty();
+
+    for (const auto& [type, uris] : wipeState.deleteMap()) {
+        for (const auto& uri : uris) {
+            remove_catalogue_uri(uri, std::cout, std::cout, true);
+        }
+    }
+
+    if (wipeAll) {
+        cleanupEmptyDatabase_ = true;
+    }
+
+    return true;
 }
 
 void RadosCatalogue::doWipeEmptyDatabase() const {
-    NOTIMP;
+
+    if (!cleanupEmptyDatabase_) {
+        return;
+    }
+
+    eckit::RadosNamespace db{pool_, db_namespace_};
+    if (db.exists()) {
+        db.destroy();
+    }
+
+    if (root_kv_ && root_kv_->exists() && root_kv_->has(db_namespace_)) {
+        root_kv_->remove(db_namespace_);
+    }
+
+    cleanupEmptyDatabase_ = false;
 }
 
 bool RadosCatalogue::doUnsafeFullWipe() const {
-    NOTIMP;
+
+    eckit::RadosNamespace db{pool_, db_namespace_};
+    if (db.exists()) {
+        db.destroy();
+    }
+
+    if (root_kv_ && root_kv_->exists() && root_kv_->has(db_namespace_)) {
+        root_kv_->remove(db_namespace_);
+    }
+
+    return true;
 }
-
-// void RadosCatalogue::remove(const fdb5::DaosNameBase& n, std::ostream& logAlways, std::ostream& logVerbose, bool
-// doit) {
-
-//     ASSERT(n.hasContainerName());
-
-//     logVerbose << "Removing " << (n.hasOID() ? "KV" : "container") << ": ";
-//     logAlways << n.URI() << std::endl;
-//     if (doit) n.destroy();
-
-// }
 
 //----------------------------------------------------------------------------------------------------------------------
 
