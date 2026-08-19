@@ -99,7 +99,7 @@ std::vector<Index> RadosCatalogue::indexes(bool) const {
 
     for (const auto& key : db_kv_->keys()) {
 
-        if (key == "schema" || key == "key") {
+        if (key == "schema" || key == "key" || key.rfind("control.", 0) == 0) {
             continue;
         }
 
@@ -301,6 +301,63 @@ bool RadosCatalogue::doUnsafeFullWipe() const {
     }
 
     return true;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+namespace {
+
+// Reserved KV entry name for a given control identifier; must be filtered out of index enumeration.
+std::string control_kv_key(ControlIdentifier id) {
+    switch (id) {
+        case ControlIdentifier::List:
+            return "control.list";
+        case ControlIdentifier::Retrieve:
+            return "control.retrieve";
+        case ControlIdentifier::Archive:
+            return "control.archive";
+        case ControlIdentifier::Wipe:
+            return "control.wipe";
+        case ControlIdentifier::UniqueRoot:
+            return "control.unique_root";
+        default:
+            return "";
+    }
+}
+
+}  // namespace
+
+void RadosCatalogue::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {
+
+    for (ControlIdentifier id : identifiers) {
+        const std::string key = control_kv_key(id);
+        if (key.empty()) {
+            continue;
+        }
+        switch (action) {
+            case ControlAction::Disable: {
+                const char flag = '1';
+                db_kv_->put(key, &flag, 1);
+                break;
+            }
+            case ControlAction::Enable:
+                if (db_kv_->has(key)) {
+                    db_kv_->remove(key);
+                }
+                break;
+            default:
+                eckit::Log::warning() << "RadosCatalogue::control: unexpected action " << static_cast<uint16_t>(action)
+                                      << std::endl;
+        }
+    }
+}
+
+bool RadosCatalogue::enabled(const ControlIdentifier& controlIdentifier) const {
+    const std::string key = control_kv_key(controlIdentifier);
+    if (key.empty()) {
+        return true;
+    }
+    return !db_kv_->has(key);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

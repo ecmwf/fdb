@@ -48,7 +48,6 @@ public:  // methods
     void funlock() const override { NOTIMP; }
 
     // Exposed so RadosCatalogueWriter can persist axis metadata into idx_kv_ / axis_kvs_.
-    void putAxisNames(const std::string& names);
     void putAxisValue(const std::string& axis, const std::string& value);
 
     // Exposed so RadosCatalogueReader can enumerate field entries directly for stats.

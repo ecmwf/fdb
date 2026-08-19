@@ -8,6 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
+/// @author Metin Cakircali
+/// @date   Aug 2026
+
 #pragma once
 
 #include "eckit/log/Log.h"

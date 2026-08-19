@@ -8,42 +8,27 @@
  * does it submit to any jurisdiction.
  */
 
-// #include <cstring>
-// #include <memory>
-
-#include "eckit/config/Resource.h"
-#include "eckit/exception/Exceptions.h"
-#include "eckit/testing/Test.h"
-// #include "eckit/filesystem/URI.h"
-#include "eckit/filesystem/PathName.h"
-#include "eckit/filesystem/TmpFile.h"
-// #include "eckit/filesystem/TmpDir.h"
-// #include "eckit/io/FileHandle.h"
-#include "eckit/config/YAMLConfiguration.h"
-#include "eckit/io/MemoryHandle.h"
-
-// #include "metkit/mars/MarsRequest.h"
-
-#include "fdb5/fdb5_config.h"
-// #include "fdb5/config/Config.h"
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Engine.h"
+#include "fdb5/fdb5_config.h"
+#include "fdb5/rados/RadosFieldLocation.h"
+#include "fdb5/rados/RadosStore.h"
 #include "fdb5/toc/TocCatalogueReader.h"
 #include "fdb5/toc/TocCatalogueWriter.h"
 
-// #include "eckit/io/s3/S3Client.h"
-// #include "eckit/io/s3/S3Session.h"
-// #include "eckit/io/s3/S3Credential.h"
-#include "fdb5/rados/RadosFieldLocation.h"
-#include "fdb5/rados/RadosStore.h"
-
+#include "eckit/config/YAMLConfiguration.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/TmpFile.h"
+#include "eckit/io/MemoryHandle.h"
 #include "eckit/io/PartHandle.h"
-// #include "fdb5/daos/DaosException.h"
+#include "eckit/testing/Test.h"
 
-using namespace eckit::testing;
 using namespace eckit;
+
+//----------------------------------------------------------------------------------------------------------------------
 
 namespace {
 
@@ -88,8 +73,6 @@ void ensureCleanPools(const std::string& prefix) {
 
 }  // namespace
 
-// temporary schema,spaces,root files common to all DAOS Store tests
-
 eckit::TmpFile& schema_file() {
     static eckit::TmpFile f{};
     return f;
@@ -117,8 +100,9 @@ size_t countWipeable(fdb5::WipeIterator& wipeObject, bool print = true) {
     return count;
 }
 
-namespace fdb {
-namespace test {
+//----------------------------------------------------------------------------------------------------------------------
+
+namespace fdb::test {
 
 CASE("Setup") {
 
@@ -627,15 +611,16 @@ CASE("RadosStore tests") {
     }
 }
 
-}  // namespace test
-}  // namespace fdb
+//----------------------------------------------------------------------------------------------------------------------
+
+}  // namespace fdb::test
+
 
 int main(int argc, char** argv) {
 
     int ret = -1;
-
     try {
-        ret = run_tests(argc, argv);
+        ret = eckit::testing::run_tests(argc, argv);
     }
     catch (...) {
     }

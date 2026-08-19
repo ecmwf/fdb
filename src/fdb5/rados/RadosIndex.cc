@@ -69,12 +69,11 @@ RadosIndex::RadosIndex(const Key& key, const eckit::RadosKeyValue& name, bool re
     }
 }
 
-void RadosIndex::putAxisNames(const std::string& names) {
-
-    idx_kv_.put("axes", names.data(), names.length());
-}
-
 void RadosIndex::putAxisValue(const std::string& axis, const std::string& value) {
+
+    const std::string axis_marker = "axis." + axis;
+    const char marker = '1';
+    idx_kv_.put(axis_marker, &marker, 1);
 
     auto axis_kv = axis_kvs_.find(axis);
 
@@ -93,12 +92,23 @@ void RadosIndex::putAxisValue(const std::string& axis, const std::string& value)
 
 void RadosIndex::updateAxes() {
 
-    std::vector<char> axes_data;
-    idx_kv_.getMemoryStream(axes_data, "axes", "index kv");
+    std::set<std::string> axis_names;
+    for (const auto& key : idx_kv_.keys()) {
+        if (key.rfind("axis.", 0) == 0) {
+            axis_names.insert(key.substr(5));
+        }
+    }
 
-    std::vector<std::string> axis_names;
-    eckit::Tokenizer parse(",");
-    parse(std::string(axes_data.begin(), axes_data.end()), axis_names);
+    // Compatibility with catalogues written before per-axis markers were introduced.
+    if (axis_names.empty() && idx_kv_.has("axes")) {
+        std::vector<char> axes_data;
+        idx_kv_.getMemoryStream(axes_data, "axes", "index kv");
+        std::vector<std::string> legacy_axis_names;
+        eckit::Tokenizer parse(",");
+        parse(std::string(axes_data.begin(), axes_data.end()), legacy_axis_names);
+        axis_names.insert(legacy_axis_names.begin(), legacy_axis_names.end());
+    }
+
     std::string indexKey{key_.valuesToString()};
     for (const auto& name : axis_names) {
         eckit::RadosKeyValue axis_kv{idx_kv_.nspace().pool().name(), idx_kv_.nspace().name(),
@@ -158,7 +168,7 @@ void RadosIndex::entries(EntryVisitor& visitor) const {
 
         for (const auto& key : idx_kv_.keys()) {
 
-            if (key == "axes" || key == "key") {
+            if (key == "axes" || key == "key" || key.rfind("axis.", 0) == 0) {
                 continue;
             }
 
@@ -179,7 +189,7 @@ std::vector<eckit::URI> RadosIndex::dataURIs() const {
 
     for (const auto& key : idx_kv_.keys()) {
 
-        if (key == "axes" || key == "key") {
+        if (key == "axes" || key == "key" || key.rfind("axis.", 0) == 0) {
             continue;
         }
 

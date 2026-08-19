@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996- ECMWF.
+ * (C) Copyright 2026- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -7,6 +7,9 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
+
+/// @author Metin Cakircali
+/// @date   Aug 2026
 
 #pragma once
 
@@ -22,7 +25,6 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// Minimal DB-level statistics for the RADOS backend: databases, indexes and fields visited.
 // Byte totals are intentionally omitted; adding them would require per-object HEAD reads.
 class RadosDbStats : public DbStatsContent {
 public:
@@ -38,7 +40,8 @@ public:
 
     RadosDbStats& operator+=(const RadosDbStats& rhs);
 
-    void add(const DbStatsContent&) override;
+    void add(const DbStatsContent& rhs) override;
+
     void report(std::ostream& out, const char* indent) const override;
 
 public:  // For Streamable

@@ -83,10 +83,10 @@ public:  // methods
     void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
                    std::set<eckit::URI>& data) const override {}
 
-    // Control access properties of the DB
-    // @todo: control identifiers are not persisted for RADOS yet; wipe/coordinator invocations rely
-    //        on default-enabled semantics.
-    void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override {}
+    // Control access properties of the DB. Persisted as per-identifier reserved KV entries (`control.list`, etc.)
+    // in the catalogue KV; absence of the entry means the identifier is enabled.
+    void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override;
+    bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
     const Rule& rule() const override;
 

@@ -48,8 +48,7 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RadosCatalogueWriter::RadosCatalogueWriter(const Key& key, const fdb5::Config& config) :
-    RadosCatalogue(key, config), firstIndexWrite_(false) {
+RadosCatalogueWriter::RadosCatalogueWriter(const Key& key, const fdb5::Config& config) : RadosCatalogue(key, config) {
 
     std::string db_name = db_namespace_;
     ASSERT(root_kv_->nspace().pool().exists());
@@ -87,12 +86,10 @@ RadosCatalogueWriter::RadosCatalogueWriter(const Key& key, const fdb5::Config& c
     }
 
     RadosCatalogue::loadSchema();
-
-    /// @todo: TocCatalogue::checkUID();
 }
 
 RadosCatalogueWriter::RadosCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config) :
-    RadosCatalogue(uri, ControlIdentifiers{}, config), firstIndexWrite_(false) {
+    RadosCatalogue(uri, ControlIdentifiers{}, config) {
     RadosCatalogue::loadSchema();
 }
 
@@ -104,6 +101,10 @@ RadosCatalogueWriter::~RadosCatalogueWriter() {
 
 bool RadosCatalogueWriter::createIndex(const Key& /* idxKey */, size_t /* datumKeySize */) {
     return true;
+}
+
+void RadosCatalogueWriter::hideContents() {
+    control(ControlAction::Disable, ControlIdentifier::List | ControlIdentifier::Retrieve);
 }
 
 bool RadosCatalogueWriter::selectIndex(const Key& key) {
@@ -121,8 +122,6 @@ bool RadosCatalogueWriter::selectIndex(const Key& key) {
         }
         catch (eckit::RadosEntityNotFoundException& e) {
 
-            firstIndexWrite_ = true;
-
             indexes_[key] = Index(new fdb5::RadosIndex(key, eckit::RadosNamespace{pool_, db_namespace_}));
 
             std::string nstr{indexes_[key].location().uri().asString()};
@@ -138,7 +137,6 @@ bool RadosCatalogueWriter::selectIndex(const Key& key) {
 void RadosCatalogueWriter::deselectIndex() {
     current_ = Index();
     currentIndexKey_ = Key();
-    firstIndexWrite_ = false;
 }
 
 void RadosCatalogueWriter::clean() {
@@ -172,17 +170,12 @@ void RadosCatalogueWriter::archive(const Key& /* idxKey */, const Key& datumKey,
 
     std::vector<std::string> axesToExpand;
     std::vector<std::string> valuesToAdd;
-    std::string axisNames;
-    std::string sep;
 
     for (const auto& [keyword, value] : datumKey) {
 
         if (value.length() == 0) {
             continue;
         }
-
-        axisNames += sep + keyword;
-        sep = ",";
 
         const auto& axis_set = current_.axes().values(keyword);
 
@@ -197,11 +190,6 @@ void RadosCatalogueWriter::archive(const Key& /* idxKey */, const Key& datumKey,
 
     auto* radosIndex = dynamic_cast<fdb5::RadosIndex*>(current_.content());
     ASSERT(radosIndex);
-
-    if (firstIndexWrite_) {
-        radosIndex->putAxisNames(axisNames);
-        firstIndexWrite_ = false;
-    }
 
     while (!axesToExpand.empty()) {
         radosIndex->putAxisValue(axesToExpand.back(), valuesToAdd.back());

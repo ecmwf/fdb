@@ -43,11 +43,15 @@
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
+#include <exception>
+#include <future>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <ostream>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -103,7 +107,7 @@ size_t countWipeable(fdb5::WipeIterator& wipeObject, bool print = true) {
     return count;
 }
 
-// temporary schema,spaces,root files common to all DAOS Catalogue tests
+// temporary schema,spaces,root files common to all RADOS Catalogue tests
 
 eckit::TmpFile& schema_file() {
     static eckit::TmpFile f{};
@@ -133,8 +137,6 @@ CASE("Setup") {
     }
     catalogue_tests_tmp_root().mkdir();
     ::setenv("FDB_ROOT_DIRECTORY", catalogue_tests_tmp_root().path().c_str(), 1);
-
-    // prepare schema for tests involving DaosCatalogue
 
     std::string schema_str{"[ a, b [ c, d [ e, f ]]]"};
 
@@ -174,7 +176,7 @@ CASE("RadosCatalogue tests") {
     ensureCleanNamespaces(pool, test_id);
 #endif
 
-    SECTION("DaosCatalogue archive (index) and retrieve without a Store") {
+    SECTION("RadosCatalogue archive (index) and retrieve without a Store") {
 
         std::string config_str{
             "spaces:\n"
@@ -215,16 +217,16 @@ CASE("RadosCatalogue tests") {
         {
             fdb5::RadosCatalogueWriter dcatw{db_key, config};
 
-            //     fdb5::DaosName db_cont{pool_name, db_key.valuesToString()};
-            //     fdb5::DaosKeyValueOID cat_kv_oid{0, 0, OC_S1};  /// @todo: take oclass from config
-            //     fdb5::DaosKeyValueName cat_kv{pool_name, db_key.valuesToString(), cat_kv_oid};
+            //     fdb5::RadosName db_cont{pool_name, db_key.valuesToString()};
+            //     fdb5::RadosKeyValueOID cat_kv_oid{0, 0, OC_S1};  /// @todo: take oclass from config
+            //     fdb5::RadosKeyValueName cat_kv{pool_name, db_key.valuesToString(), cat_kv_oid};
             //     EXPECT(db_cont.exists());
             //     EXPECT(cat_kv.exists());
 
             fdb5::Catalogue& cat = dcatw;
             cat.selectIndex(index_key);
-            //     fdb5::DaosKeyValueOID index_kv_oid{index_key.valuesToString(), OC_S1};  /// @todo: take oclass from
-            //     config fdb5::DaosKeyValueName index_kv{pool_name, db_key.valuesToString(), index_kv_oid};
+            //     fdb5::RadosKeyValueOID index_kv_oid{index_key.valuesToString(), OC_S1};  /// @todo: take oclass from
+            //     config fdb5::RadosKeyValueName index_kv{pool_name, db_key.valuesToString(), index_kv_oid};
             //     EXPECT(index_kv.exists());
             //     EXPECT(cat_kv.has(index_key.valuesToString()));
 
@@ -233,12 +235,12 @@ CASE("RadosCatalogue tests") {
             cat.flush(0);
             catalogue_uri = cat.uri();
             //     EXPECT(index_kv.has(field_key.valuesToString()));
-            //     fdb5::DaosKeyValueOID e_axis_kv_oid{index_key.valuesToString() + std::string{".e"}, OC_S1};
-            //     fdb5::DaosKeyValueName e_axis_kv{pool_name, db_key.valuesToString(), e_axis_kv_oid};
+            //     fdb5::RadosKeyValueOID e_axis_kv_oid{index_key.valuesToString() + std::string{".e"}, OC_S1};
+            //     fdb5::RadosKeyValueName e_axis_kv{pool_name, db_key.valuesToString(), e_axis_kv_oid};
             //     EXPECT(e_axis_kv.exists());
             //     EXPECT(e_axis_kv.has("5"));
-            //     fdb5::DaosKeyValueOID f_axis_kv_oid{index_key.valuesToString() + std::string{".f"}, OC_S1};
-            //     fdb5::DaosKeyValueName f_axis_kv{pool_name, db_key.valuesToString(), f_axis_kv_oid};
+            //     fdb5::RadosKeyValueOID f_axis_kv_oid{index_key.valuesToString() + std::string{".f"}, OC_S1};
+            //     fdb5::RadosKeyValueName f_axis_kv{pool_name, db_key.valuesToString(), f_axis_kv_oid};
             //     EXPECT(f_axis_kv.exists());
             //     EXPECT(f_axis_kv.has("6"));
         }
@@ -276,14 +278,14 @@ CASE("RadosCatalogue tests") {
         // // remove (manual deindex)
 
         // {
-        //     fdb5::DaosCatalogueWriter dcatw{db_key, config};
-        //     fdb5::DaosName db_cont{dcatw.uri()};
+        //     fdb5::RadosCatalogueWriter dcatw{db_key, config};
+        //     fdb5::RadosName db_cont{dcatw.uri()};
         //     std::ostream out(std::cout.rdbuf());
 
-        //     fdb5::DaosCatalogue::remove(db_cont, out, out, true);
+        //     fdb5::RadosCatalogue::remove(db_cont, out, out, true);
 
-        //     fdb5::DaosKeyValueOID cat_kv_oid{0, 0, OC_S1};  /// @todo: take oclass from config
-        //     fdb5::DaosKeyValueName cat_kv{pool_name, db_key.valuesToString(), cat_kv_oid};
+        //     fdb5::RadosKeyValueOID cat_kv_oid{0, 0, OC_S1};  /// @todo: take oclass from config
+        //     fdb5::RadosKeyValueName cat_kv{pool_name, db_key.valuesToString(), cat_kv_oid};
         //     EXPECT_NOT(cat_kv.exists());
         //     EXPECT_NOT(db_cont.exists());
         // }
@@ -344,7 +346,7 @@ CASE("RadosCatalogue tests") {
             catw.archive(index_key, field_key, std::move(loc));
 
             /// flush store before flushing catalogue
-            rstore.flush();  // not necessary if using a DAOS store
+            rstore.flush();  // not necessary if using a RADOS store
         }
 
         // find data
@@ -374,7 +376,7 @@ CASE("RadosCatalogue tests") {
         //     // deindex data
 
         //     {
-        //         fdb5::DaosCatalogueWriter dcat{db_key, config};
+        //         fdb5::RadosCatalogueWriter dcat{db_key, config};
         //         fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(dcat);
         //         std::ostream out(std::cout.rdbuf());
         //         metkit::mars::MarsRequest r = db_key.request("retrieve");
@@ -483,6 +485,144 @@ CASE("RadosCatalogue tests") {
         }
     }
 
+    SECTION("RadosCatalogue persists ControlIdentifiers across processes") {
+
+        std::string config_str{
+            "spaces:\n"
+            "- roots:\n"
+            "  - path: " +
+            catalogue_tests_tmp_root().asString() +
+            "\n"
+            "schema : " +
+            schema_file().path() +
+            "\n"
+            "rados:\n"
+            "  catalogue:\n"
+            "    pool: " +
+            pool +
+            "\n"
+            "    root_namespace: " +
+            test_id +
+            "_root\n"
+            "    namespace_prefix: " +
+            test_id + "\n"};
+
+        fdb5::Config config{YAMLConfiguration(config_str)};
+
+        fdb5::Key db_key({{"a", "88"}, {"b", "88"}});
+        fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
+        fdb5::Key field_key({{"e", "5"}, {"f", "6"}});
+
+        {
+            fdb5::RadosCatalogueWriter writer{db_key, config};
+            fdb5::Catalogue& cat = writer;
+            cat.selectIndex(index_key);
+            std::unique_ptr<fdb5::FieldLocation> loc(
+                new fdb5::RadosFieldLocation(eckit::URI{"rados", "unused"}, eckit::Offset(0), eckit::Length(1)));
+            static_cast<fdb5::CatalogueWriter&>(writer).archive(index_key, field_key, std::move(loc));
+            cat.flush(0);
+
+            // Default: everything enabled.
+            EXPECT(cat.enabled(fdb5::ControlIdentifier::Retrieve));
+            EXPECT(cat.enabled(fdb5::ControlIdentifier::List));
+            EXPECT(cat.enabled(fdb5::ControlIdentifier::Archive));
+
+            // hideContents disables List and Retrieve, leaves Archive.
+            cat.hideContents();
+            EXPECT_NOT(cat.enabled(fdb5::ControlIdentifier::Retrieve));
+            EXPECT_NOT(cat.enabled(fdb5::ControlIdentifier::List));
+            EXPECT(cat.enabled(fdb5::ControlIdentifier::Archive));
+        }
+
+        {
+            fdb5::RadosCatalogueReader reader{db_key, config};
+            fdb5::Catalogue& cat = reader;
+            EXPECT(static_cast<fdb5::CatalogueReader&>(reader).open());
+            // State survives process boundary.
+            EXPECT_NOT(cat.enabled(fdb5::ControlIdentifier::Retrieve));
+            EXPECT_NOT(cat.enabled(fdb5::ControlIdentifier::List));
+            EXPECT(cat.enabled(fdb5::ControlIdentifier::Archive));
+        }
+
+        {
+            fdb5::RadosCatalogueWriter writer{db_key, config};
+            fdb5::Catalogue& cat = writer;
+            fdb5::ControlIdentifiers ids = fdb5::ControlIdentifier::List | fdb5::ControlIdentifier::Retrieve;
+            cat.control(fdb5::ControlAction::Enable, ids);
+            EXPECT(cat.enabled(fdb5::ControlIdentifier::Retrieve));
+            EXPECT(cat.enabled(fdb5::ControlIdentifier::List));
+        }
+    }
+
+    SECTION("RadosCatalogueWriter supports concurrent writers on the same database") {
+
+        std::string config_str{
+            "spaces:\n"
+            "- roots:\n"
+            "  - path: " +
+            catalogue_tests_tmp_root().asString() +
+            "\n"
+            "schema : " +
+            schema_file().path() +
+            "\n"
+            "rados:\n"
+            "  catalogue:\n"
+            "    pool: " +
+            pool +
+            "\n"
+            "    root_namespace: " +
+            test_id +
+            "_root\n"
+            "    namespace_prefix: " +
+            test_id + "\n"};
+
+        fdb5::Config config{YAMLConfiguration(config_str)};
+
+        fdb5::Key db_key({{"a", "66"}, {"b", "66"}});
+        fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
+        fdb5::Key first_field_key({{"e", "5"}});
+        fdb5::Key second_field_key({{"g", "6"}});
+
+        std::promise<void> start;
+        const std::shared_future<void> ready = start.get_future().share();
+        std::mutex error_mutex;
+        std::exception_ptr error;
+        const auto archive = [&](const fdb5::Key& field_key, eckit::Offset offset) {
+            try {
+                ready.wait();
+                fdb5::RadosCatalogueWriter writer{db_key, config};
+                fdb5::Catalogue& catalogue = writer;
+                catalogue.selectIndex(index_key);
+                std::unique_ptr<fdb5::FieldLocation> location(
+                    new fdb5::RadosFieldLocation(eckit::URI{"rados", "unused"}, offset, eckit::Length(1)));
+                static_cast<fdb5::CatalogueWriter&>(writer).archive(index_key, field_key, std::move(location));
+                catalogue.flush(0);
+            }
+            catch (...) {
+                std::lock_guard<std::mutex> lock{error_mutex};
+                if (!error) {
+                    error = std::current_exception();
+                }
+            }
+        };
+
+        std::thread first{archive, std::cref(first_field_key), eckit::Offset(0)};
+        std::thread second{archive, std::cref(second_field_key), eckit::Offset(1)};
+        start.set_value();
+        first.join();
+        second.join();
+        EXPECT(!error);
+
+        fdb5::RadosCatalogueReader reader{db_key, config};
+        fdb5::Catalogue& catalogue = reader;
+        EXPECT(static_cast<fdb5::CatalogueReader&>(reader).open());
+        EXPECT(catalogue.selectIndex(index_key));
+        const auto e_axis = static_cast<fdb5::CatalogueReader&>(reader).axis("e");
+        const auto g_axis = static_cast<fdb5::CatalogueReader&>(reader).axis("g");
+        EXPECT(e_axis && e_axis->get().contains("5"));
+        EXPECT(g_axis && g_axis->get().contains("6"));
+    }
+
     SECTION("RadosCatalogue supports large serialised field locations") {
 
         std::string config_str{
@@ -531,7 +671,7 @@ CASE("RadosCatalogue tests") {
         }
     }
 
-    // SECTION("DaosCatalogue archive (index) and retrieve with a TocStore") {
+    // SECTION("RadosCatalogue archive (index) and retrieve with a TocStore") {
 
     //     // FDB configuration
 
@@ -540,7 +680,7 @@ CASE("RadosCatalogue tests") {
     //         "- roots:\n"
     //         "  - path: " + catalogue_tests_tmp_root().asString() + "\n"
     //         "schema : " + schema_file().path() + "\n"
-    //         "daos:\n"
+    //         "Rados:\n"
     //         "  catalogue:\n"
     //         "    pool: " + pool_name + "\n"
     //         "    root_cont: " + root_cont_name + "\n"
@@ -569,12 +709,12 @@ CASE("RadosCatalogue tests") {
     //     fdb5::Store& store = static_cast<fdb5::Store&>(tstore);
     //     std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
     //     /// @todo: there are two cont create with label here
-    //     /// @todo: again, daos_fini happening before cont and pool close
+    //     /// @todo: again, Rados_fini happening before cont and pool close
 
     //     // index data
 
     //     {
-    //         fdb5::DaosCatalogueWriter dcatw{db_key, config};
+    //         fdb5::RadosCatalogueWriter dcatw{db_key, config};
     //         fdb5::Catalogue& cat = dcatw;
     //         cat.deselectIndex();
     //         cat.selectIndex(index_key);
@@ -589,7 +729,7 @@ CASE("RadosCatalogue tests") {
 
     //     fdb5::Field field;
     //     {
-    //         fdb5::DaosCatalogueReader dcatr{db_key, config};
+    //         fdb5::RadosCatalogueReader dcatr{db_key, config};
     //         fdb5::Catalogue& cat = dcatr;
     //         cat.selectIndex(index_key);
     //         fdb5::CatalogueReader& catr = dcatr;
@@ -614,7 +754,7 @@ CASE("RadosCatalogue tests") {
 
     //     // remove data
 
-    //     /// @todo: should DaosStore::remove accept full URIs to field arrays and remove the store container?
+    //     /// @todo: should RadosStore::remove accept full URIs to field arrays and remove the store container?
     //     eckit::PathName store_path{field.location().uri().path()};
     //     std::ostream out(std::cout.rdbuf());
     //     store.remove(field.location().uri(), out, out, false);
@@ -625,7 +765,7 @@ CASE("RadosCatalogue tests") {
     //     // deindex data
 
     //     {
-    //         fdb5::DaosCatalogueWriter dcat{db_key, config};
+    //         fdb5::RadosCatalogueWriter dcat{db_key, config};
     //         fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(dcat);
     //         std::ostream out(std::cout.rdbuf());
     //         metkit::mars::MarsRequest r = db_key.request("retrieve");
@@ -633,14 +773,12 @@ CASE("RadosCatalogue tests") {
     //         cat.visitEntries(*wv, store, false);
     //     }
 
-    //     /// @todo: again, daos_fini happening before
+    //     /// @todo: again, Rados_fini happening before
 
     // }
 
     SECTION("Via FDB API with a Rados catalogue and store") {
 
-        /// @note: earlier sections share the same catalogue namespaces/pool; reset them so this
-        ///   section starts from a clean, empty catalogue (it asserts the FDB is initially empty).
 #ifdef eckit_HAVE_RADOS_TESTS_MANAGE_POOLS
         eckit::RadosPool{pool}.ensureDestroyed();
         eckit::RadosPool{pool}.ensureCreated();
@@ -694,10 +832,6 @@ CASE("RadosCatalogue tests") {
         size_t count;
         fdb5::ListElement info;
 
-        /// @todo: here, DaosManager is being configured with DAOS client config passed to FDB instance constructor.
-        //   It happens in EntryVisitMechanism::visit when calling DB::open. Is this OK, or should this configuring
-        //   rather happen as part of transforming a FieldLocation into a DataHandle? It is probably OK. One thing
-        //   is to configure the DAOS client and the other thing is to initialise it.
         auto listObject = fdb.list(db_req);
 
         count = 0;
@@ -712,9 +846,6 @@ CASE("RadosCatalogue tests") {
 
         char data[] = "test";
 
-        /// @todo: here, DaosManager is being reconfigured with identical config, and it happens again multiple times
-        /// below.
-        //   Should this be avoided?
         fdb.archive(request_key, data, sizeof(data));
         fdb.flush();
 
@@ -741,8 +872,6 @@ CASE("RadosCatalogue tests") {
         listObject = fdb.list(all_req);
         count = 0;
         while (listObject.next(info)) {
-            // info.print(std::cout, true, true);
-            // std::cout << std::endl;
             count++;
         }
         EXPECT(count == 1);
@@ -835,9 +964,9 @@ CASE("RadosCatalogue tests") {
     //         "  - path: " + catalogue_tests_tmp_root().asString() + "\n"
     //         "type: local\n"
     //         "schema : " + opt_schema_file().path() + "\n"
-    //         "engine: daos\n"
-    //         "store: daos\n"
-    //         "daos:\n"
+    //         "engine: Rados\n"
+    //         "store: Rados\n"
+    //         "Rados:\n"
     //         "  catalogue:\n"
     //         "    pool: " + pool_name + "\n"
     //         "    root_cont: " + root_cont_name + "\n"

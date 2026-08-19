@@ -13,6 +13,7 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/database/Catalogue.h"
+#include "fdb5/database/DbStats.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Key.h"
@@ -20,6 +21,7 @@
 #include "fdb5/rados/RadosIndex.h"
 #include "fdb5/rados/RadosStats.h"
 
+#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/rados/RadosException.h"
 #include "eckit/io/rados/RadosKeyValue.h"
@@ -87,14 +89,14 @@ DbStats RadosCatalogueReader::stats() const {
         const auto* radosIndex = dynamic_cast<const RadosIndex*>(indexEntry.content());
         ASSERT(radosIndex);
         for (const auto& key : radosIndex->idx_kv().keys()) {
-            if (key == "axes" || key == "key") {
+            if (key == "axes" || key == "key" || key.rfind("axis.", 0) == 0) {
                 continue;
             }
             content->fieldCount_++;
         }
     }
 
-    return DbStats(content);
+    return {content};
 }
 
 std::optional<Axis> RadosCatalogueReader::computeAxis(const std::string& keyword) const {

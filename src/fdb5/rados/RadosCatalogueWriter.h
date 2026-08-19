@@ -37,7 +37,7 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 /// DB writer that implements the FDB on Rados.
-/// Not thread-safe: archive/flush/close calls on a single instance must be serialised by the caller.
+/// Not thread-safe per instance; separate writer instances may archive to the same database.
 
 class RadosCatalogueWriter : public RadosCatalogue, public CatalogueWriter {
 
@@ -54,6 +54,8 @@ public:  // methods
     void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) override {
         NOTIMP;
     };
+
+    void hideContents() override;
 
     const Index& currentIndex() override;
 
@@ -85,8 +87,6 @@ private:  // members
     IndexStore indexes_;
 
     Index current_;
-
-    bool firstIndexWrite_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
