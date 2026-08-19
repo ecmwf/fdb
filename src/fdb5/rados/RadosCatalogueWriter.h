@@ -13,7 +13,24 @@
 
 #pragma once
 
+#include "fdb5/config/Config.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/Index.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/rados/RadosCatalogue.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/Length.h"
+#include "eckit/io/Offset.h"
+
+#include <cstddef>
+#include <map>
+#include <memory>
+#include <ostream>
+#include <set>
+#include <string>
 
 namespace fdb5 {
 
@@ -33,9 +50,6 @@ public:  // methods
 
     void reconsolidate() override { NOTIMP; }
 
-    /// Mount an existing TocCatalogue, which has a different metadata key (within
-    /// constraints) to allow on-line rebadging of data
-    /// variableKeys: The keys that are allowed to differ between the two DBs
     void overlayDB(const Catalogue& otherCatalogue, const std::set<std::string>& variableKeys, bool unmount) override {
         NOTIMP;
     };
@@ -44,9 +58,9 @@ public:  // methods
 
 protected:  // methods
 
-    virtual bool selectIndex(const Key& key) override;
+    bool selectIndex(const Key& key) override;
     bool createIndex(const Key& idxKey, size_t datumKeySize) override;
-    virtual void deselectIndex() override;
+    void deselectIndex() override;
 
     bool open() override { NOTIMP; }
     void flush(size_t archivedFields) override;
@@ -63,7 +77,7 @@ private:  // methods
 
 private:  // types
 
-    typedef std::map<Key, Index> IndexStore;
+    using IndexStore = std::map<Key, Index>;
 
 private:  // members
 

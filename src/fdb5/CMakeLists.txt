@@ -353,6 +353,7 @@ if( HAVE_RADOSFDB )
         rados/RadosStore.h
         rados/RadosCommon.cc
         rados/RadosCommon.h
+        rados/RadosCleanup.h
         rados/RadosCatalogue.cc
         rados/RadosCatalogue.h
         rados/RadosCatalogueWriter.cc

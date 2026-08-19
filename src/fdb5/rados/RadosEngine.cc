@@ -42,13 +42,7 @@ std::string RadosEngine::name() const {
 }
 
 eckit::URI RadosEngine::location(const Key& key, const Config& config) const {
-
-    /// @note: cannot inherit from RadosCommon here, as the Engine is always instantiated even when
-    ///   Rados is not used; it would then initialise RadosCommon unnecessarily. So the db key-value
-    ///   naming is resolved locally via readConfig, mirroring RadosCommon's key-based constructor.
-
     readConfig(config, "catalogue", true);
-
     const std::string db_namespace = nspacePrefix_ + "_" + key.valuesToString();
     return eckit::RadosKeyValue{pool_, db_namespace, "catalogue_kv"}.uri();
 }
@@ -77,10 +71,6 @@ bool RadosEngine::canHandle(const eckit::URI& uri, const Config&) const {
 std::vector<eckit::URI> RadosEngine::visitableLocations(const std::function<bool(const fdb5::Key&)>& matches,
                                                         const Config& config) const {
 
-    /// @note: cannot inherit from RadosCommon here, as the Engine is always instantiated even when
-    ///   Rados is not used; it would then initialise RadosCommon unnecessarily. So the root key-value
-    ///   naming is resolved locally via readConfig.
-
     const std::string component = "catalogue";
 
     readConfig(config, component, true);
@@ -94,7 +84,6 @@ std::vector<eckit::URI> RadosEngine::visitableLocations(const std::function<bool
     }
 
     for (const auto& k : rootKv_->keys()) {
-
         try {
 
             std::vector<char> v;

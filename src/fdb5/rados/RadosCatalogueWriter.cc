@@ -20,7 +20,7 @@
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/rados/RadosCatalogue.h"
-#include "fdb5/rados/RadosCommon.h"
+#include "fdb5/rados/RadosCleanup.h"
 #include "fdb5/rados/RadosIndex.h"
 
 #include "eckit/exception/Exceptions.h"
@@ -37,7 +37,7 @@
 
 #include <climits>
 #include <cstddef>
-#include <iterator>
+#include <exception>
 #include <memory>
 #include <ostream>
 #include <string>
@@ -51,26 +51,14 @@ namespace fdb5 {
 RadosCatalogueWriter::RadosCatalogueWriter(const Key& key, const fdb5::Config& config) :
     RadosCatalogue(key, config), firstIndexWrite_(false) {
 
-    /// @note: performed RPCs:
-    /// - daos_pool_connect
-    /// - root cont open (daos_cont_open)
-    /// - root cont create (daos_cont_create)
     std::string db_name = db_namespace_;
     ASSERT(root_kv_->nspace().pool().exists());
 
-    /// @note: the DaosKeyValue constructor checks if the kv exists, which results in creation if not exists
-    /// @note: performed RPCs:
-    /// - main kv open (daos_kv_open)
-
-    /// @note: performed RPCs:
-    /// - check if main kv contains db key (daos_kv_get without a buffer)
     root_kv_->ensureCreated();
     if (!root_kv_->has(db_name)) {
 
-        /// create catalogue kv
         db_kv_->ensureCreated();
 
-        /// write schema under "schema"
         eckit::Log::debug<LibFdb5>() << "Copy schema from " << config_.schemaPath() << " to "
                                      << db_kv_->uri().asString() << " at key 'schema'." << std::endl;
 
@@ -84,7 +72,6 @@ RadosCatalogueWriter::RadosCatalogueWriter(const Key& key, const fdb5::Config& c
         }
         db_kv_->put("schema", &data[0], data.size());
 
-        /// write dbKey under "key"
         eckit::MemoryHandle h{(size_t)PATH_MAX};
         eckit::HandleStream hs{h};
         h.openForWrite(eckit::Length(0));
@@ -95,16 +82,10 @@ RadosCatalogueWriter::RadosCatalogueWriter(const Key& key, const fdb5::Config& c
 
         db_kv_->put("key", h.data(), hs.bytesWritten());
 
-        /// index newly created catalogue kv in main kv
         std::string nstr = db_kv_->uri().asString();
         root_kv_->put(db_name, nstr.data(), nstr.length());
     }
 
-    /// @todo: record or read dbUID
-
-    /// @note: performed RPCs:
-    /// - catalogue container open (daos_cont_open)
-    /// - get schema from catalogue kv (daos_kv_get)
     RadosCatalogue::loadSchema();
 
     /// @todo: TocCatalogue::checkUID();
@@ -116,9 +97,9 @@ RadosCatalogueWriter::RadosCatalogueWriter(const eckit::URI& uri, const fdb5::Co
 }
 
 RadosCatalogueWriter::~RadosCatalogueWriter() {
-
-    clean();
-    close();
+    std::exception_ptr ignored;
+    best_effort(ignored, "~RadosCatalogueWriter::clean", [&] { clean(); });
+    best_effort(ignored, "~RadosCatalogueWriter::close", [&] { close(); });
 }
 
 bool RadosCatalogueWriter::createIndex(const Key& /* idxKey */, size_t /* datumKeySize */) {
@@ -134,14 +115,7 @@ bool RadosCatalogueWriter::selectIndex(const Key& key) {
 
     if (indexes_.find(key) == indexes_.end()) {
 
-        /// @note: performed RPCs:
-        /// - generate catalogue kv oid (daos_obj_generate_oid)
-        /// - ensure catalogue kv exists (daos_kv_open)
-
         try {
-
-            /// @note: performed RPCs:
-            /// - get index location from catalogue kv (daos_kv_get)
             std::vector<char> data;
             db_kv_->getMemoryStream(data, key.valuesToString(), "DB kv");
 
@@ -156,17 +130,8 @@ bool RadosCatalogueWriter::selectIndex(const Key& key) {
 
             /// index index kv in catalogue kv
             std::string nstr{indexes_[key].location().uri().asString()};
-            /// @note: performed RPCs (only if the index wasn't visited yet and index kv doesn't exist yet, i.e. only on
-            /// first write to an index key):
-            /// - record index kv location into catalogue kv (daos_kv_put) -- always performed
             db_kv_->put(key.valuesToString(), nstr.data(), nstr.length());
-
-            /// @note: performed RPCs:
-            /// - close index kv when destroyed (daos_obj_close)
         }
-
-        /// @note: performed RPCs:
-        /// - close catalogue kv (daos_obj_close)
     }
 
     current_ = indexes_[key];
@@ -175,37 +140,28 @@ bool RadosCatalogueWriter::selectIndex(const Key& key) {
 }
 
 void RadosCatalogueWriter::deselectIndex() {
-
     current_ = Index();
     currentIndexKey_ = Key();
     firstIndexWrite_ = false;
 }
 
 void RadosCatalogueWriter::clean() {
-
     flush(0);
-
     deselectIndex();
 }
 
 void RadosCatalogueWriter::close() {
-
     closeIndexes();
 }
 
 const Index& RadosCatalogueWriter::currentIndex() {
-
     if (current_.null()) {
         ASSERT(!currentIndexKey_.empty());
         selectIndex(currentIndexKey_);
     }
-
     return current_;
 }
 
-/// @todo: other writers may be simultaneously updating the axes KeyValues in DAOS. Should these
-///        new updates be retrieved and put into in-memory axes from time to time, e.g. every
-///        time a value is put in an axis KeyValue?
 void RadosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
                                    std::shared_ptr<const FieldLocation> fieldLocation) {
 
@@ -217,19 +173,14 @@ void RadosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
         selectIndex(currentIndexKey_);
     }
 
-    /// @note: the current index timestamp is undefined at this point
     Field field(std::move(fieldLocation), currentIndex().timestamp());
 
-    /// @todo: is sorting axes really necessary?
-    /// @note: sort in-memory axis values. Not triggering retrieval from DAOS axes.
     const_cast<fdb5::IndexAxis&>(current_.axes()).sort();
 
-    /// before in-memory axes are updated as part of current_.put, we determine which
-    /// additions will need to be performed on axes in DAOS after the field gets indexed.
     std::vector<std::string> axesToExpand;
     std::vector<std::string> valuesToAdd;
-    std::string axisNames = "";
-    std::string sep = "";
+    std::string axisNames;
+    std::string sep;
 
     for (const auto& [keyword, value] : datumKey) {
 
@@ -240,9 +191,6 @@ void RadosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
         axisNames += sep + keyword;
         sep = ",";
 
-        /// @note: obtain in-memory axis values. Not triggering retrieval from DAOS axes.
-        /// @note: on first archive the in-memory axes will be empty and values() will return
-        ///   empty sets. This is fine.
         const auto& axis_set = current_.axes().values(keyword);
 
         if (!axis_set.contains(value)) {
@@ -252,58 +200,32 @@ void RadosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
         }
     }
 
-    /// index the field and update in-memory axes
     current_.put(datumKey, field);
 
-    /// persist axis names
     if (firstIndexWrite_) {
-
-        /// @note: performed RPCs:
-        /// - generate index kv oid (daos_obj_generate_oid)
-        /// - ensure index kv exists (daos_obj_open)
-
-        /// @note: performed RPCs:
-        /// - record axis names into index kv (daos_kv_put)
-        /// - close index kv when destroyed (daos_obj_close)
         dynamic_cast<fdb5::RadosIndex*>(current_.content())->putAxisNames(axisNames);
-
         firstIndexWrite_ = false;
     }
-
-    /// @todo: axes are supposed to be sorted before persisting. How do we do this with the DAOS approach?
-    ///        sort axes every time they are loaded in the read pathway?
 
     if (axesToExpand.empty()) {
         return;
     }
 
-    /// expand axis info in DAOS
     while (!axesToExpand.empty()) {
-
-        /// @note: performed RPCs:
-        /// - generate axis kv oid (daos_obj_generate_oid)
-        /// - ensure axis kv exists (daos_obj_open)
-
-        /// @note: performed RPCs:
-        /// - record axis value into axis kv (daos_kv_put)
-        /// - close axis kv when destroyed (daos_obj_close)
         dynamic_cast<fdb5::RadosIndex*>(current_.content())->putAxisValue(axesToExpand.back(), valuesToAdd.back());
-
         axesToExpand.pop_back();
         valuesToAdd.pop_back();
     }
 }
 
 void RadosCatalogueWriter::flush(size_t /* archivedFields */) {
-
     if (!current_.null()) {
         current_ = Index();
     }
 }
 
 void RadosCatalogueWriter::closeIndexes() {
-
-    indexes_.clear();  // all indexes instances destroyed
+    indexes_.clear();
 }
 
 static fdb5::CatalogueWriterBuilder<fdb5::RadosCatalogueWriter> builder("rados");

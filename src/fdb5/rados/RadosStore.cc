@@ -15,6 +15,7 @@
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Store.h"
 #include "fdb5/database/WipeState.h"
+#include "fdb5/rados/RadosCleanup.h"
 #include "fdb5/rados/RadosCommon.h"
 #include "fdb5/rados/RadosFieldLocation.h"
 #include "fdb5/rules/Rule.h"
@@ -149,15 +150,8 @@ std::unique_ptr<const FieldLocation> RadosStore::archive(const Key& key, const v
 }
 
 RadosStore::~RadosStore() {
-    try {
-        closeDataHandles();
-    }
-    catch (const std::exception& e) {
-        eckit::Log::error() << "~RadosStore: closeDataHandles failed: " << e.what() << std::endl;
-    }
-    catch (...) {
-        eckit::Log::error() << "~RadosStore: closeDataHandles failed with unknown exception" << std::endl;
-    }
+    std::exception_ptr ignored;
+    best_effort(ignored, "~RadosStore::closeDataHandles", [&] { closeDataHandles(); });
 }
 
 size_t RadosStore::flush() {
@@ -376,18 +370,28 @@ eckit::DataHandle& RadosStore::getDataHandle(const Key& key, const eckit::RadosO
 
 void RadosStore::closeDataHandles() {
 
-    for (auto& handle : handles_) {
-        handle.second->close();
-    }
-
-    handles_.clear();
+    // Detach the map first so partial failures never leave the destructor retrying the same handle.
+    HandleStore handles;
+    handles.swap(handles_);
     dataObjects_.clear();
+
+    std::exception_ptr first;
+    for (auto& [key, handle] : handles) {
+        best_effort(first, "RadosStore::closeDataHandles", [&] { handle->close(); });
+    }
+    if (first) {
+        std::rethrow_exception(first);
+    }
 }
 
 void RadosStore::flushDataHandles() {
 
-    for (auto& handle : handles_) {
-        handle.second->flush();
+    std::exception_ptr first;
+    for (auto& [key, handle] : handles_) {
+        best_effort(first, "RadosStore::flushDataHandles", [&] { handle->flush(); });
+    }
+    if (first) {
+        std::rethrow_exception(first);
     }
 }
 
