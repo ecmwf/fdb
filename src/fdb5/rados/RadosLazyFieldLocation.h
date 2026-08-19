@@ -25,13 +25,9 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// @note: used in fdb-list index visiting, in DaosIndex::entries. During
-///   visitation, DaosFieldLocations are built, which normally require
-///   retrieving the location information from DAOS, inflicting RPCs.
-///   This DaosLazyFieldLocation, instead, remains empty and the actual
-///   information is only be retrieved from DAOS when stableLocation()
-///   is called. This allows the visiting mechanism to discard unmatching
-///   FieldLocations before any RPC is performed for them.
+// Used by fdb-list index visiting in RadosIndex::entries. Instances remain empty until the
+// visitor accepts the enclosing key; only then does stableLocation() trigger the RADOS read
+// and reanimate the concrete RadosFieldLocation. This avoids RPCs for unmatched keys.
 class RadosLazyFieldLocation : public FieldLocation {
 public:
 

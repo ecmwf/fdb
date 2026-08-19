@@ -98,11 +98,6 @@ void RadosCatalogue::loadSchema() {
 
     eckit::Timer timer("RadosCatalogue::loadSchema()", eckit::Log::debug<fdb5::LibFdb5>());
 
-    /// @note: performed RPCs:
-    /// - daos_obj_generate_oid
-    /// - daos_kv_open
-    /// - daos_kv_get without a buffer
-    /// - daos_kv_get
     std::vector<char> data;
     db_kv_->getMemoryStream(data, "schema", "DB Key-Value");
 
@@ -114,39 +109,23 @@ void RadosCatalogue::loadSchema() {
 
 std::vector<Index> RadosCatalogue::indexes(bool) const {
 
-    /// @note: sorted is not implemented as is not necessary in this backend.
-
-    /// @note: performed RPCs:
-    /// - db kv open (daos_kv_open)
-    /// - db kv list keys (daos_kv_list)
-
+    // `sorted` is intentionally ignored; the RADOS backend does not need ordered enumeration.
     std::vector<fdb5::Index> res;
 
     for (const auto& key : db_kv_->keys()) {
 
-        /// @todo: document these well. Single source these reserved values.
-        ///    Ensure where appropriate that user-provided keys do not collide.
+        // "schema" and "key" are reserved DB-KV entries and never index locations.
         if (key == "schema" || key == "key") {
             continue;
         }
 
-        /// @note: performed RPCs:
-        /// - db kv get index location size (daos_kv_get without a buffer)
-        /// - db kv get index location (daos_kv_get)
         std::vector<char> v;
         auto m = db_kv_->getMemoryStream(v, key, "DB kv");
 
         eckit::URI uri(std::string(v.begin(), v.end()));
 
-        /// @note: performed RPCs:
-        /// - index kv open (daos_kv_open)
-        /// - index kv get size (daos_kv_get without a buffer)
-        /// - index kv get key (daos_kv_get)
-        /// @note: the following three lines intend to check whether the index kv exists
-        ///   or not. The DaosKeyValue constructor calls kv open, which always succeeds,
-        ///   so it is not useful on its own to check whether the index KV existed or not.
-        ///   Instead, presence of a "key" key in the KV is used to determine if the index
-        ///   KV existed.
+        // The RadosKeyValue constructor does not itself verify the object exists; presence of a
+        // "key" entry is used as the existence signal for the index KV.
         eckit::RadosKeyValue index_kv{uri};
         std::optional<fdb5::Key> index_key;
         try {
@@ -155,8 +134,8 @@ std::vector<Index> RadosCatalogue::indexes(bool) const {
             index_key.emplace(ms);
         }
         catch (eckit::RadosEntityNotFoundException& e) {
-            continue;  /// @note: the index_kv may not exist after a failed wipe
-            /// @todo: the index_kv may exist even if it does not have the "key" key
+            // Stale index_kv left behind by a failed wipe; skip.
+            continue;
         }
 
         res.push_back(Index(new fdb5::RadosIndex(index_key.value(), index_kv, false)));

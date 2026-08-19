@@ -63,7 +63,7 @@ std::unique_ptr<fdb5::FieldLocation>& RadosLazyFieldLocation::realise() const {
     std::vector<char> data;
     eckit::MemoryStream ms = index_.getMemoryStream(data, key_, "index kv");
 
-    /// @note: timestamp read for informational purposes. See note in DaosIndex::add.
+    // Timestamp is read for informational purposes only; see note in RadosIndex::add.
     time_t ts;
     ms >> ts;
 

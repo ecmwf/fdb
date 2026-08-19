@@ -39,16 +39,15 @@ class RadosIndex : public IndexBase {
 
 public:  // methods
 
-    /// @note: creates a new index in DAOS, in the container pointed to by 'name'
+    // Creates a new index KV under `name`.
     RadosIndex(const Key& key, const eckit::RadosNamespace& name);
-    /// @note: used to represent and operate with an index which already exists in DAOS
+    // Wraps an already-existing index KV.
     RadosIndex(const Key& key, const eckit::RadosKeyValue& name, bool readAxes = true);
 
     void flock() const override { NOTIMP; }
     void funlock() const override { NOTIMP; }
 
-    /// @note: these methods are required for RadosCatalogueWriter to directly manipulate
-    /// idx_kv_ and axis_kvs_ within the RadosIndex.
+    // Exposed so RadosCatalogueWriter can persist axis metadata into idx_kv_ / axis_kvs_.
     void putAxisNames(const std::string& names);
     void putAxisValue(const std::string& axis, const std::string& value);
 
@@ -60,8 +59,8 @@ private:  // methods
     bool dirty() const override { NOTIMP; }
 
     void open() override { NOTIMP; };
-    /// @note: the Rados KV index holds no open file/handle state, so closing is a no-op.
-    ///   This must not throw: it is invoked during normal read/list flows via eckit::AutoCloser.
+    // The RADOS KV index holds no open file/handle state, so closing is a no-op.
+    // Must not throw: invoked during normal read/list flows via eckit::AutoCloser.
     void close() override {}
     void reopen() override { NOTIMP; }
 
@@ -80,7 +79,7 @@ private:  // methods
 
     IndexStats statistics() const override { NOTIMP; }
 
-    /// @note: reads complete axis info from DAOS.
+    // Rehydrates the complete axis info from RADOS.
     void updateAxes();
 
 private:  // members
