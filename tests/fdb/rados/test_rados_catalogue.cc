@@ -242,6 +242,7 @@ CASE("RadosCatalogue tests") {
         {
             auto reopened = fdb5::CatalogueWriterFactory::instance().build(catalogue_uri, config);
             EXPECT(reopened->key() == db_key);
+            EXPECT_NOT(reopened->schema().empty());
         }
 
         // retrieve

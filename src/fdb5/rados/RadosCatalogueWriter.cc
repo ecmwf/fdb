@@ -111,7 +111,9 @@ RadosCatalogueWriter::RadosCatalogueWriter(const Key& key, const fdb5::Config& c
 }
 
 RadosCatalogueWriter::RadosCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config) :
-    RadosCatalogue(uri, ControlIdentifiers{}, config), firstIndexWrite_(false) {}
+    RadosCatalogue(uri, ControlIdentifiers{}, config), firstIndexWrite_(false) {
+    RadosCatalogue::loadSchema();
+}
 
 RadosCatalogueWriter::~RadosCatalogueWriter() {
 
