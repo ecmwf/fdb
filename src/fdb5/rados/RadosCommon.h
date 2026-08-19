@@ -22,12 +22,26 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace fdb5 {
+
+struct RadosSpace {
+    std::string pool;
+    std::string rootNamespace;
+    std::string namespacePrefix;
+
+    std::string databaseNamespace(const Key& key) const;
+};
 
 // Reads the persisted `key` entry from a RADOS DB KV and deserialises it into an fdb5::Key.
 // Throws eckit::RadosEntityNotFoundException if the DB KV or the `key` entry is missing.
 fdb5::Key read_db_key(const eckit::RadosKeyValue& db_kv);
+
+// RADOS space is selected from the sole root of the first matching `spaces[]` entry.
+RadosSpace rados_space(const Config&, const Key&);
+RadosSpace rados_space(const Config&, const eckit::URI&);
+std::vector<RadosSpace> rados_spaces(const Config&);
 
 class RadosCommon {
 
@@ -38,22 +52,17 @@ public:  // methods
 
 private:  // methods
 
-    void readConfig(const Config& config, const std::string& component, bool readPool);
+    void readConfig(const Config& config, const std::string& component);
 
 protected:  // members
 
     std::string pool_;
-    std::string root_namespace_;
     std::string db_namespace_;
 
     std::optional<eckit::RadosKeyValue> root_kv_;
     std::optional<eckit::RadosKeyValue> db_kv_;
 
     eckit::Length maxPartSize_;
-
-private:  // members
-
-    std::string nspace_prefix_;
 };
 
 }  // namespace fdb5

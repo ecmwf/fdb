@@ -16,6 +16,7 @@
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/DatabaseNotFoundException.h"
 #include "fdb5/database/DbStats.h"
+#include "fdb5/database/Engine.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/rados/RadosCatalogueReader.h"
@@ -184,6 +185,15 @@ CASE("RadosCatalogue tests") {
             "  - path: " +
             catalogue_tests_tmp_root().asString() +
             "\n"
+            "    pool: " +
+            pool +
+            "\n"
+            "    root_namespace: " +
+            test_id +
+            "_root\n"
+            "    namespace_prefix: " +
+            test_id +
+            "\n"
             "schema : " +
             schema_file().path() +
             "\n"
@@ -217,32 +227,13 @@ CASE("RadosCatalogue tests") {
         {
             fdb5::RadosCatalogueWriter dcatw{db_key, config};
 
-            //     fdb5::RadosName db_cont{pool_name, db_key.valuesToString()};
-            //     fdb5::RadosKeyValueOID cat_kv_oid{0, 0, OC_S1};  /// @todo: take oclass from config
-            //     fdb5::RadosKeyValueName cat_kv{pool_name, db_key.valuesToString(), cat_kv_oid};
-            //     EXPECT(db_cont.exists());
-            //     EXPECT(cat_kv.exists());
-
             fdb5::Catalogue& cat = dcatw;
             cat.selectIndex(index_key);
-            //     fdb5::RadosKeyValueOID index_kv_oid{index_key.valuesToString(), OC_S1};  /// @todo: take oclass from
-            //     config fdb5::RadosKeyValueName index_kv{pool_name, db_key.valuesToString(), index_kv_oid};
-            //     EXPECT(index_kv.exists());
-            //     EXPECT(cat_kv.has(index_key.valuesToString()));
 
             fdb5::CatalogueWriter& catw = dcatw;
             catw.archive(index_key, field_key, std::move(loc));
             cat.flush(0);
             catalogue_uri = cat.uri();
-            //     EXPECT(index_kv.has(field_key.valuesToString()));
-            //     fdb5::RadosKeyValueOID e_axis_kv_oid{index_key.valuesToString() + std::string{".e"}, OC_S1};
-            //     fdb5::RadosKeyValueName e_axis_kv{pool_name, db_key.valuesToString(), e_axis_kv_oid};
-            //     EXPECT(e_axis_kv.exists());
-            //     EXPECT(e_axis_kv.has("5"));
-            //     fdb5::RadosKeyValueOID f_axis_kv_oid{index_key.valuesToString() + std::string{".f"}, OC_S1};
-            //     fdb5::RadosKeyValueName f_axis_kv{pool_name, db_key.valuesToString(), f_axis_kv_oid};
-            //     EXPECT(f_axis_kv.exists());
-            //     EXPECT(f_axis_kv.has("6"));
         }
 
         {
@@ -274,21 +265,6 @@ CASE("RadosCatalogue tests") {
             EXPECT(f.location().offset() == eckit::Offset(0));
             EXPECT(f.location().length() == eckit::Length(1));
         }
-
-        // // remove (manual deindex)
-
-        // {
-        //     fdb5::RadosCatalogueWriter dcatw{db_key, config};
-        //     fdb5::RadosName db_cont{dcatw.uri()};
-        //     std::ostream out(std::cout.rdbuf());
-
-        //     fdb5::RadosCatalogue::remove(db_cont, out, out, true);
-
-        //     fdb5::RadosKeyValueOID cat_kv_oid{0, 0, OC_S1};  /// @todo: take oclass from config
-        //     fdb5::RadosKeyValueName cat_kv{pool_name, db_key.valuesToString(), cat_kv_oid};
-        //     EXPECT_NOT(cat_kv.exists());
-        //     EXPECT_NOT(db_cont.exists());
-        // }
     }
 
     SECTION("RadosCatalogue archive (index) and retrieve with a RadosStore") {
@@ -300,6 +276,15 @@ CASE("RadosCatalogue tests") {
             "- roots:\n"
             "  - path: " +
             catalogue_tests_tmp_root().asString() +
+            "\n"
+            "    pool: " +
+            pool +
+            "\n"
+            "    root_namespace: " +
+            test_id +
+            "_root\n"
+            "    namespace_prefix: " +
+            test_id +
             "\n"
             "schema : " +
             schema_file().path() +
@@ -372,17 +357,6 @@ CASE("RadosCatalogue tests") {
         dh->copyTo(mh);
         EXPECT(mh.size() == eckit::Length(sizeof(data)));
         EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
-
-        //     // deindex data
-
-        //     {
-        //         fdb5::RadosCatalogueWriter dcat{db_key, config};
-        //         fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(dcat);
-        //         std::ostream out(std::cout.rdbuf());
-        //         metkit::mars::MarsRequest r = db_key.request("retrieve");
-        //         std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
-        //         cat.visitEntries(*wv, store, false);
-        //     }
     }
 
     SECTION("RadosCatalogue reports missing databases via factory paths") {
@@ -392,6 +366,15 @@ CASE("RadosCatalogue tests") {
             "- roots:\n"
             "  - path: " +
             catalogue_tests_tmp_root().asString() +
+            "\n"
+            "    pool: " +
+            pool +
+            "\n"
+            "    root_namespace: " +
+            test_id +
+            "_root\n"
+            "    namespace_prefix: " +
+            test_id +
             "\n"
             "schema : " +
             schema_file().path() +
@@ -435,6 +418,15 @@ CASE("RadosCatalogue tests") {
             "- roots:\n"
             "  - path: " +
             catalogue_tests_tmp_root().asString() +
+            "\n"
+            "    pool: " +
+            pool +
+            "\n"
+            "    root_namespace: " +
+            test_id +
+            "_root\n"
+            "    namespace_prefix: " +
+            test_id +
             "\n"
             "schema : " +
             schema_file().path() +
@@ -492,6 +484,15 @@ CASE("RadosCatalogue tests") {
             "- roots:\n"
             "  - path: " +
             catalogue_tests_tmp_root().asString() +
+            "\n"
+            "    pool: " +
+            pool +
+            "\n"
+            "    root_namespace: " +
+            test_id +
+            "_root\n"
+            "    namespace_prefix: " +
+            test_id +
             "\n"
             "schema : " +
             schema_file().path() +
@@ -571,6 +572,15 @@ CASE("RadosCatalogue tests") {
             "  - path: " +
             catalogue_tests_tmp_root().asString() +
             "\n"
+            "    pool: " +
+            pool +
+            "\n"
+            "    root_namespace: " +
+            test_id +
+            "_root\n"
+            "    namespace_prefix: " +
+            test_id +
+            "\n"
             "schema : " +
             schema_file().path() +
             "\n"
@@ -634,6 +644,74 @@ CASE("RadosCatalogue tests") {
         EXPECT(g_axis && g_axis->get().contains("6"));
     }
 
+    SECTION("Rados placements are selected from matching space roots") {
+
+        const std::string alpha_prefix = test_id + "alpha";
+        const std::string beta_prefix = test_id + "beta";
+        std::string config_str{
+            "spaces:\n"
+            "- regex: 11:11\n"
+            "  roots:\n"
+            "  - path: " +
+            catalogue_tests_tmp_root().asString() +
+            "\n"
+            "    pool: " +
+            pool +
+            "\n"
+            "    root_namespace: " +
+            test_id +
+            "_alpha_root\n"
+            "    namespace_prefix: " +
+            alpha_prefix +
+            "\n"
+            "- regex: 22:22\n"
+            "  roots:\n"
+            "  - path: " +
+            catalogue_tests_tmp_root().asString() +
+            "\n"
+            "    pool: " +
+            pool +
+            "\n"
+            "    root_namespace: " +
+            test_id +
+            "_beta_root\n"
+            "    namespace_prefix: " +
+            beta_prefix +
+            "\n"
+            "schema : " +
+            schema_file().path() +
+            "\n"
+            "rados:\n"
+            "  pool: " +
+            pool +
+            "\n"
+            "  root_namespace: " +
+            test_id +
+            "_legacy_root\n"
+            "  namespace_prefix: legacy\n"};
+
+        fdb5::Config config{YAMLConfiguration(config_str)};
+        fdb5::Key alpha_key({{"a", "11"}, {"b", "11"}});
+        fdb5::Key beta_key({{"a", "22"}, {"b", "22"}});
+
+        fdb5::RadosCatalogueWriter alpha{alpha_key, config};
+        fdb5::RadosCatalogueWriter beta{beta_key, config};
+
+        const std::string alpha_namespace = pool + "/" + alpha_prefix + "_" + alpha_key.valuesToString();
+        const std::string beta_namespace = pool + "/" + beta_prefix + "_" + beta_key.valuesToString();
+        EXPECT(alpha.uri().name() == alpha_namespace);
+        EXPECT(beta.uri().name() == beta_namespace);
+        EXPECT(fdb5::Engine::backend("rados").location(alpha_key, config).name() == alpha_namespace + "/catalogue_kv");
+        EXPECT(fdb5::Engine::backend("rados").location(beta_key, config).name() == beta_namespace + "/catalogue_kv");
+
+        const auto alpha_locations = fdb5::Engine::backend("rados").visitableLocations(alpha_key, config);
+        const auto beta_locations = fdb5::Engine::backend("rados").visitableLocations(beta_key, config);
+        EXPECT(alpha_locations.size() == 1);
+        EXPECT(beta_locations.size() == 1);
+        EXPECT(alpha_locations.front().name() == alpha_namespace + "/catalogue_kv");
+        EXPECT(beta_locations.front().name() == beta_namespace + "/catalogue_kv");
+    }
+
     SECTION("RadosCatalogue supports large serialised field locations") {
 
         std::string config_str{
@@ -641,6 +719,15 @@ CASE("RadosCatalogue tests") {
             "- roots:\n"
             "  - path: " +
             catalogue_tests_tmp_root().asString() +
+            "\n"
+            "    pool: " +
+            pool +
+            "\n"
+            "    root_namespace: " +
+            test_id +
+            "_root\n"
+            "    namespace_prefix: " +
+            test_id +
             "\n"
             "schema : " +
             schema_file().path() +
@@ -682,112 +769,6 @@ CASE("RadosCatalogue tests") {
         }
     }
 
-    // SECTION("RadosCatalogue archive (index) and retrieve with a TocStore") {
-
-    //     // FDB configuration
-
-    //     std::string config_str{
-    //         "spaces:\n"
-    //         "- roots:\n"
-    //         "  - path: " + catalogue_tests_tmp_root().asString() + "\n"
-    //         "schema : " + schema_file().path() + "\n"
-    //         "Rados:\n"
-    //         "  catalogue:\n"
-    //         "    pool: " + pool_name + "\n"
-    //         "    root_cont: " + root_cont_name + "\n"
-    //         "  client:\n"
-    //         "    container_oids_per_alloc: " + std::to_string(container_oids_per_alloc)
-    //     };
-
-    //     fdb5::Config config{YAMLConfiguration(config_str)};
-
-    //     // schema
-
-    //     fdb5::Schema schema{schema_file()};
-
-    //     // request
-
-    //     fdb5::Key request_key({{"a", "11"}, {"b", "22"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
-    //     fdb5::Key db_key({{"a", "11"}, {"b", "22"}});
-    //     fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
-    //     fdb5::Key field_key({{"e", "5"}, {"f", "6"}});
-
-    //     // store data
-
-    //     char data[] = "test";
-
-    //     fdb5::TocStore tstore{schema, db_key, config};
-    //     fdb5::Store& store = static_cast<fdb5::Store&>(tstore);
-    //     std::unique_ptr<fdb5::FieldLocation> loc(store.archive(index_key, data, sizeof(data)));
-    //     /// @todo: there are two cont create with label here
-    //     /// @todo: again, Rados_fini happening before cont and pool close
-
-    //     // index data
-
-    //     {
-    //         fdb5::RadosCatalogueWriter dcatw{db_key, config};
-    //         fdb5::Catalogue& cat = dcatw;
-    //         cat.deselectIndex();
-    //         cat.selectIndex(index_key);
-    //         fdb5::CatalogueWriter& catw = dcatw;
-    //         catw.archive(field_key, std::move(loc));
-
-    //         /// flush store before flushing catalogue
-    //         tstore.flush();
-    //     }
-
-    //     // find data
-
-    //     fdb5::Field field;
-    //     {
-    //         fdb5::RadosCatalogueReader dcatr{db_key, config};
-    //         fdb5::Catalogue& cat = dcatr;
-    //         cat.selectIndex(index_key);
-    //         fdb5::CatalogueReader& catr = dcatr;
-    //         catr.retrieve(field_key, field);
-    //     }
-    //     std::cout << "Read location: " << field.location() << std::endl;
-
-    //     // retrieve data
-
-    //     std::unique_ptr<eckit::DataHandle> dh(store.retrieve(field));
-
-    //     std::vector<char> test(dh->size());
-    //     dh->openForRead();
-    //     {
-    //         eckit::AutoClose closer(*dh);
-    //         dh->read(&test[0], test.size() - 3);
-    //     }
-    //     eckit::MemoryHandle mh;
-    //     dh->copyTo(mh);
-    //     EXPECT(mh.size() == eckit::Length(sizeof(data)));
-    //     EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
-
-    //     // remove data
-
-    //     /// @todo: should RadosStore::remove accept full URIs to field arrays and remove the store container?
-    //     eckit::PathName store_path{field.location().uri().path()};
-    //     std::ostream out(std::cout.rdbuf());
-    //     store.remove(field.location().uri(), out, out, false);
-    //     EXPECT(store_path.exists());
-    //     store.remove(field.location().uri(), out, out, true);
-    //     EXPECT_NOT(store_path.exists());
-
-    //     // deindex data
-
-    //     {
-    //         fdb5::RadosCatalogueWriter dcat{db_key, config};
-    //         fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(dcat);
-    //         std::ostream out(std::cout.rdbuf());
-    //         metkit::mars::MarsRequest r = db_key.request("retrieve");
-    //         std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
-    //         cat.visitEntries(*wv, store, false);
-    //     }
-
-    //     /// @todo: again, Rados_fini happening before
-
-    // }
-
     SECTION("Via FDB API with a Rados catalogue and store") {
 
 #ifdef eckit_HAVE_RADOS_TESTS_MANAGE_POOLS
@@ -804,6 +785,15 @@ CASE("RadosCatalogue tests") {
             "- roots:\n"
             "  - path: " +
             catalogue_tests_tmp_root().asString() +
+            "\n"
+            "    pool: " +
+            pool +
+            "\n"
+            "    root_namespace: " +
+            test_id +
+            "_root\n"
+            "    namespace_prefix: " +
+            test_id +
             "\n"
             "type: local\n"
             "schema : " +
@@ -967,160 +957,6 @@ CASE("RadosCatalogue tests") {
         EXPECT_NO_THROW(fdb2.wipe(db_req, true));
         fdb2.flush();
     }
-
-    // SECTION("OPTIONAL SCHEMA KEYS") {
-
-    //     // FDB configuration
-
-    //     ::setenv("FDB_SCHEMA_FILE", opt_schema_file().path().c_str(), 1);
-
-    //     std::string config_str{
-    //         "spaces:\n"
-    //         "- roots:\n"
-    //         "  - path: " + catalogue_tests_tmp_root().asString() + "\n"
-    //         "type: local\n"
-    //         "schema : " + opt_schema_file().path() + "\n"
-    //         "engine: Rados\n"
-    //         "store: Rados\n"
-    //         "Rados:\n"
-    //         "  catalogue:\n"
-    //         "    pool: " + pool_name + "\n"
-    //         "    root_cont: " + root_cont_name + "\n"
-    //         "  store:\n"
-    //         "    pool: " + pool_name + "\n"
-    //         "  client:\n"
-    //         "    container_oids_per_alloc: " + std::to_string(container_oids_per_alloc)
-    //     };
-
-    //     fdb5::Config config{YAMLConfiguration(config_str)};
-
-    //     // request
-
-    //     fdb5::Key request_key({{"a", "11"}, {"b", "22"}, {"d", "4"}, {"f", "6"}});
-    //     fdb5::Key request_key2({{"a", "11"}, {"b", "22"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
-    //     fdb5::Key db_key({{"a", "11"}, {"b", "22"}});
-    //     fdb5::Key index_key({{"a", "11"}, {"b", "22"}, {"d", "4"}});
-
-    //     fdb5::FDBToolRequest full_req{
-    //         request_key.request("retrieve"),
-    //         false,
-    //         std::vector<std::string>{"a", "b"}
-    //     };
-    //     fdb5::FDBToolRequest full_req2{
-    //         request_key2.request("retrieve"),
-    //         false,
-    //         std::vector<std::string>{"a", "b"}
-    //     };
-    //     fdb5::FDBToolRequest index_req{
-    //         index_key.request("retrieve"),
-    //         false,
-    //         std::vector<std::string>{"a", "b"}
-    //     };
-    //     fdb5::FDBToolRequest db_req{
-    //         db_key.request("retrieve"),
-    //         false,
-    //         std::vector<std::string>{"a", "b"}
-    //     };
-    //     fdb5::FDBToolRequest all_req{
-    //         metkit::mars::MarsRequest{},
-    //         true,
-    //         std::vector<std::string>{}
-    //     };
-
-    //     // initialise FDB
-
-    //     fdb5::FDB fdb(config);
-
-    //     // check FDB is empty
-
-    //     size_t count;
-    //     fdb5::ListElement info;
-
-    //     auto listObject = fdb.list(db_req);
-
-    //     count = 0;
-    //     while (listObject.next(info)) {
-    //         info.print(std::cout, true, true);
-    //         std::cout << std::endl;
-    //         ++count;
-    //     }
-    //     EXPECT(count == 0);
-
-    //     // archive data with incomplete key
-
-    //     char data[] = "test";
-
-    //     fdb.archive(request_key, data, sizeof(data));
-
-    //     fdb.flush();
-
-    //     // list data
-
-    //     listObject = fdb.list(db_req);
-
-    //     count = 0;
-    //     while (listObject.next(info)) {
-    //         info.print(std::cout, true, true);
-    //         std::cout << std::endl;
-    //         ++count;
-    //     }
-    //     EXPECT(count == 1);
-
-    //     // retrieve data
-
-    //     {
-    //         metkit::mars::MarsRequest r = request_key.request("retrieve");
-    //         std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(r));
-
-    //         eckit::MemoryHandle mh;
-    //         dh->copyTo(mh);
-    //         EXPECT(mh.size() == eckit::Length(sizeof(data)));
-    //         EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
-    //     }
-
-    //     // archive data with complete key
-
-    //     char data2[] = "abcd";
-
-    //     fdb.archive(request_key2, data2, sizeof(data));
-
-    //     fdb.flush();
-
-    //     // list data
-
-    //     listObject = fdb.list(db_req);
-
-    //     count = 0;
-    //     while (listObject.next(info)) {
-    //         info.print(std::cout, true, true);
-    //         std::cout << std::endl;
-    //         ++count;
-    //     }
-    //     EXPECT(count == 2);
-
-    //     // retrieve data
-
-    //     {
-    //         metkit::mars::MarsRequest r = request_key.request("retrieve");
-    //         std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(r));
-
-    //         eckit::MemoryHandle mh;
-    //         dh->copyTo(mh);
-    //         EXPECT(mh.size() == eckit::Length(sizeof(data)));
-    //         EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
-    //     }
-
-    //     {
-    //         metkit::mars::MarsRequest r = request_key2.request("retrieve");
-    //         std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(r));
-
-    //         eckit::MemoryHandle mh;
-    //         dh->copyTo(mh);
-    //         EXPECT(mh.size() == eckit::Length(sizeof(data2)));
-    //         EXPECT(::memcmp(mh.data(), data2, sizeof(data2)) == 0);
-    //     }
-
-    // }
 
     // teardown rados
 

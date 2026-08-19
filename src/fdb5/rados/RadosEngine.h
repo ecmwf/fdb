@@ -52,25 +52,12 @@ protected:  // methods
     std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq,
                                                const Config& config) const override;
 
-    void print(std::ostream& out) const override { out << "RadosEngine(" << pool_ << ", " << rootNamespace_ << ")"; }
+    void print(std::ostream& out) const override { out << "RadosEngine"; }
 
 private:  // methods
 
     std::vector<eckit::URI> visitableLocations(const std::function<bool(const fdb5::Key&)>& matches,
                                                const Config& config) const;
-
-    void readConfig(const fdb5::Config& config, const std::string& component, bool readPool) const;
-
-protected:  // members
-
-    mutable std::string pool_;
-    mutable std::string rootNamespace_;
-
-    mutable std::optional<eckit::RadosKeyValue> rootKv_;
-
-private:  // members
-
-    mutable std::string nspacePrefix_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

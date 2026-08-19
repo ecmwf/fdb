@@ -152,6 +152,15 @@ CASE("RadosStore tests") {
             "  - path: " +
             store_tests_tmp_root().asString() +
             "\n"
+            "    pool: " +
+            pool +
+            "\n"
+            "    root_namespace: " +
+            test_id +
+            "_root\n"
+            "    namespace_prefix: " +
+            test_id +
+            "\n"
             "rados:\n"
             "  maxPartSize: 16\n"
             "  store:\n"
@@ -229,11 +238,12 @@ CASE("RadosStore tests") {
         fdb5::Key db_key({{"a", "1"}, {"b", "2"}});
 
         std::string config_str{
-            "rados:\n"
-            "  pool: " +
-            std::string{"unused"} +
-            "\n"
-            "  namespace_prefix: invalid_prefix\n"};
+            "spaces:\n"
+            "- roots:\n"
+            "  - path: unused\n"
+            "    pool: unused\n"
+            "    root_namespace: unused\n"
+            "    namespace_prefix: invalid_prefix\n"};
 
         fdb5::Config config{YAMLConfiguration(config_str)};
         EXPECT_THROWS_AS((fdb5::RadosStore{schema, db_key, config}), eckit::UserError);
@@ -266,6 +276,15 @@ CASE("RadosStore tests") {
             "- roots:\n"
             "  - path: " +
             store_tests_tmp_root().asString() +
+            "\n"
+            "    pool: " +
+            pool +
+            "\n"
+            "    root_namespace: " +
+            test_id +
+            "_root\n"
+            "    namespace_prefix: " +
+            test_id +
             "\n"
             "schema : " +
             schema_file().path() +
@@ -388,6 +407,15 @@ CASE("RadosStore tests") {
             "- roots:\n"
             "  - path: " +
             store_tests_tmp_root().asString() +
+            "\n"
+            "    pool: " +
+            pool +
+            "\n"
+            "    root_namespace: " +
+            test_id +
+            "_root\n"
+            "    namespace_prefix: " +
+            test_id +
             "\n"
             "type: local\n"
             "schema : " +
@@ -543,6 +571,15 @@ CASE("RadosStore tests") {
             "- roots:\n"
             "  - path: " +
             store_tests_tmp_root().asString() +
+            "\n"
+            "    pool: " +
+            pool +
+            "\n"
+            "    root_namespace: " +
+            test_id +
+            "_root\n"
+            "    namespace_prefix: " +
+            test_id +
             "\n"
             "type: local\n"
             "schema : " +

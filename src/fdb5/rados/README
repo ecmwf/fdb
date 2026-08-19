@@ -4,9 +4,33 @@ Running RadosStore unit tests against Ceph on Docker on mac:
 Supported RADOS backend scope:
 ==============================
 
-The backend supports archive, retrieve, list, wipe, and reopening catalogues by URI. Archive calls
-on a single RadosStore must be serialised by the caller. Catalogue-side purge, statistics, move,
-control (hide/mount), and overlay operations are not implemented.
+The backend supports archive, retrieve, list, wipe, statistics, hide, and reopening catalogues by
+URI. Operations on a single RadosStore instance must be serialised by the caller; separate writer
+instances can archive concurrently to the same database. Catalogue-side purge, move, mount, and
+overlay operations are not implemented.
+
+RADOS placement is configured on `spaces[].roots[]`; legacy `rados.pool`, `rados.root_namespace`,
+and `rados.namespace_prefix` values are not used. The first matching space must have exactly one
+root with all of these required attributes:
+
+```yaml
+spaces:
+- regex: ".*"
+    roots:
+    - path: /local/fdb-root
+        pool: fdb-rados
+        root_namespace: fdb-root
+        namespace_prefix: fdb
+```
+
+- `pool` is the Ceph pool for the selected space.
+- `root_namespace` holds the space's `main_kv` registry, which maps database namespaces to catalogue URIs.
+- `namespace_prefix` forms each database namespace: a DB key with values `11:22` is stored in
+    `fdb_11:22`. It must not contain `_`, the prefix/key separator.
+
+The catalogue KV is `rados:fdb-rados/fdb_11:22/catalogue_kv`; index and data objects share the
+`fdb_11:22` namespace. Multiple spaces may share a pool when their root namespaces and namespace
+prefixes are distinct.
 
 RADOS tests require eckit to be built with RADOS support.
 

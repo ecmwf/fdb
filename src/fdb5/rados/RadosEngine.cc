@@ -18,14 +18,10 @@
 
 #include "metkit/mars/MarsRequest.h"
 
-#include "eckit/config/LocalConfiguration.h"
-#include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/rados/RadosKeyValue.h"
-#include "eckit/log/CodeLocation.h"
 #include "eckit/log/Log.h"
-#include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/Tokenizer.h"
 
 #include <cctype>
@@ -43,9 +39,8 @@ std::string RadosEngine::name() const {
 }
 
 eckit::URI RadosEngine::location(const Key& key, const Config& config) const {
-    readConfig(config, "catalogue", true);
-    const std::string db_namespace = nspacePrefix_ + "_" + key.valuesToString();
-    return eckit::RadosKeyValue{pool_, db_namespace, "catalogue_kv"}.uri();
+    const RadosSpace space = rados_space(config, key);
+    return eckit::RadosKeyValue{space.pool, space.databaseNamespace(key), "catalogue_kv"}.uri();
 }
 
 bool RadosEngine::canHandle(const eckit::URI& uri, const Config&) const {
@@ -72,38 +67,35 @@ bool RadosEngine::canHandle(const eckit::URI& uri, const Config&) const {
 std::vector<eckit::URI> RadosEngine::visitableLocations(const std::function<bool(const fdb5::Key&)>& matches,
                                                         const Config& config) const {
 
-    const std::string component = "catalogue";
-
-    readConfig(config, component, true);
-
-    rootKv_.emplace(pool_, rootNamespace_, "main_kv");
-
     std::vector<eckit::URI> res{};
 
-    if (!rootKv_->exists()) {
-        return res;
-    }
-
-    for (const auto& k : rootKv_->keys()) {
-        try {
-
-            std::vector<char> v;
-            rootKv_->getMemoryStream(v, k, "root kv");
-
-            eckit::URI uri(std::string(v.begin(), v.end()));
-            ASSERT(uri.scheme() == typeName());
-
-            eckit::RadosKeyValue db_kv{uri};
-            fdb5::Key db_key = read_db_key(db_kv);
-
-            if (matches(db_key)) {
-                eckit::Log::debug<LibFdb5>() << " found match with " << rootKv_->uri() << " at key " << k << std::endl;
-                res.push_back(uri);
-            }
+    for (const auto& space : rados_spaces(config)) {
+        eckit::RadosKeyValue rootKv{space.pool, space.rootNamespace, "main_kv"};
+        if (!rootKv.exists()) {
+            continue;
         }
-        catch (eckit::Exception& e) {
-            eckit::Log::error() << "Error loading FDB database " << k << " from " << rootKv_->uri() << std::endl;
-            eckit::Log::error() << e.what() << std::endl;
+        for (const auto& key : rootKv.keys()) {
+            try {
+
+                std::vector<char> val;
+                rootKv.getMemoryStream(val, key, "root kv");
+
+                eckit::URI uri(std::string(val.begin(), val.end()));
+                ASSERT(uri.scheme() == typeName());
+
+                eckit::RadosKeyValue db_kv{uri};
+                fdb5::Key db_key = read_db_key(db_kv);
+
+                if (matches(db_key)) {
+                    eckit::Log::debug<LibFdb5>()
+                        << " found match with " << rootKv.uri() << " at key " << key << std::endl;
+                    res.push_back(uri);
+                }
+            }
+            catch (eckit::Exception& e) {
+                eckit::Log::error() << "Error loading FDB database " << key << " from " << rootKv.uri() << std::endl;
+                eckit::Log::error() << e.what() << std::endl;
+            }
         }
     }
 
@@ -117,53 +109,6 @@ std::vector<eckit::URI> RadosEngine::visitableLocations(const Key& key, const Co
 std::vector<eckit::URI> RadosEngine::visitableLocations(const metkit::mars::MarsRequest& request,
                                                         const Config& config) const {
     return visitableLocations([&request](const fdb5::Key& dbKey) { return dbKey.partialMatch(request); }, config);
-}
-
-void RadosEngine::readConfig(const fdb5::Config& config, const std::string& component, bool readPool) const {
-
-    eckit::LocalConfiguration c{};
-
-    if (config.has("rados")) {
-        c = config.getSubConfiguration("rados");
-    }
-
-    std::string first_cap{component};
-    first_cap[0] = toupper(component[0]);
-
-    std::string all_caps{component};
-    for (auto& c : all_caps) {
-        c = toupper(c);
-    }
-
-    if (readPool) {
-        pool_ = "default";
-    }
-    rootNamespace_ = "root";
-
-    if (readPool) {
-        pool_ = c.getString("pool", pool_);
-        if (c.has(component)) {
-            pool_ = c.getSubConfiguration(component).getString("pool", pool_);
-        }
-    }
-    rootNamespace_ = c.getString("root_namespace", rootNamespace_);
-    if (c.has(component)) {
-        rootNamespace_ = c.getSubConfiguration(component).getString("root_namespace", rootNamespace_);
-    }
-
-    if (readPool) {
-        pool_ = eckit::Resource<std::string>("fdbRados" + first_cap + "Pool;$FDB_RADOS_" + all_caps + "_POOL", pool_);
-    }
-    rootNamespace_ = eckit::Resource<std::string>(
-        "fdbRados" + first_cap + "RootNamespace;$FDB_RADOS_" + all_caps + "_ROOT_NAMESPACE", rootNamespace_);
-
-    nspacePrefix_ = c.getString("namespace_prefix", nspacePrefix_);
-    if (c.has(component)) {
-        nspacePrefix_ = c.getSubConfiguration(component).getString("namespace_prefix", nspacePrefix_);
-    }
-    if (nspacePrefix_.find('_') != std::string::npos) {
-        throw eckit::UserError("RADOS namespace_prefix must not contain underscores: '" + nspacePrefix_ + "'", Here());
-    }
 }
 
 static EngineBuilder<RadosEngine> rados_builder;

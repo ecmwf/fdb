@@ -14,10 +14,12 @@
 #include "fdb5/database/Key.h"
 
 #include "eckit/config/LocalConfiguration.h"
-#include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
+#include "eckit/io/rados/RadosKeyValue.h"
+#include "eckit/log/CodeLocation.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/utils/Regex.h"
 #include "eckit/utils/Tokenizer.h"
 
 #include <algorithm>
@@ -29,10 +31,82 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+namespace {
+
+RadosSpace space_from_root(const eckit::LocalConfiguration& root) {
+    RadosSpace space{root.getString("pool"), root.getString("root_namespace"), root.getString("namespace_prefix")};
+    if (space.namespacePrefix.find('_') != std::string::npos) {
+        throw eckit::UserError("RADOS namespace_prefix must not contain underscores: '" + space.namespacePrefix + "'",
+                               Here());
+    }
+    return space;
+}
+
+}  // namespace
+
+//----------------------------------------------------------------------------------------------------------------------
+
 fdb5::Key read_db_key(const eckit::RadosKeyValue& db_kv) {
     std::vector<char> data;
     eckit::MemoryStream ms = db_kv.getMemoryStream(data, "key", "DB kv");
     return fdb5::Key(ms);
+}
+
+std::string RadosSpace::databaseNamespace(const Key& key) const {
+    return namespacePrefix + "_" + key.valuesToString();
+}
+
+std::vector<RadosSpace> rados_spaces(const Config& config) {
+    if (!config.has("spaces")) {
+        throw eckit::UserError("RADOS placement requires at least one spaces[] entry", Here());
+    }
+
+    std::vector<RadosSpace> spaces;
+    for (const auto& space : config.getSubConfigurations("spaces")) {
+        if (!space.has("roots")) {
+            throw eckit::UserError("RADOS placement requires roots[] in every spaces[] entry", Here());
+        }
+        for (const auto& root : space.getSubConfigurations("roots")) {
+            spaces.emplace_back(space_from_root(root));
+        }
+    }
+    return spaces;
+}
+
+RadosSpace rados_space(const Config& config, const Key& key) {
+    if (!config.has("spaces")) {
+        throw eckit::UserError("RADOS placement requires at least one spaces[] entry", Here());
+    }
+
+    const std::string keyString = key.valuesToString();
+    for (const auto& space : config.getSubConfigurations("spaces")) {
+        if (!eckit::Regex{space.getString("regex", ".*")}.match(keyString)) {
+            continue;
+        }
+        if (!space.has("roots")) {
+            throw eckit::UserError("RADOS placement requires roots[] in matching spaces[] entry", Here());
+        }
+        const auto roots = space.getSubConfigurations("roots");
+        if (roots.size() != 1) {
+            throw eckit::UserError("RADOS placement requires exactly one root in matching spaces[] entry", Here());
+        }
+        return space_from_root(roots.front());
+    }
+
+    throw eckit::UserError("No RADOS placement matches database key " + keyString, Here());
+}
+
+RadosSpace rados_space(const Config& config, const eckit::URI& uri) {
+    const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
+    ASSERT(parts.size() == 2 || parts.size() == 3);
+
+    for (const auto& space : rados_spaces(config)) {
+        if (space.pool == parts[0] && parts[1].rfind(space.namespacePrefix + "_", 0) == 0) {
+            return space;
+        }
+    }
+
+    throw eckit::UserError("No RADOS placement matches URI " + uri.asString(), Here());
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -42,32 +116,30 @@ RadosCommon::RadosCommon(const Config& config, const std::string& component, con
     std::vector<std::string> valid{"catalogue", "store"};
     ASSERT(std::find(valid.begin(), valid.end(), component) != valid.end());
 
-    readConfig(config, component, true);
+    const RadosSpace space = rados_space(config, key);
+    pool_ = space.pool;
+    db_namespace_ = space.databaseNamespace(key);
+    readConfig(config, component);
 
-    db_namespace_ = nspace_prefix_ + "_" + key.valuesToString();
-
-    root_kv_.emplace(pool_, root_namespace_, "main_kv");
+    root_kv_.emplace(pool_, space.rootNamespace, "main_kv");
     db_kv_.emplace(pool_, db_namespace_, "catalogue_kv");
 }
 
 RadosCommon::RadosCommon(const Config& config, const std::string& component, const eckit::URI& uri) {
 
-    // Accepts URIs from two callers: DB::buildReader in EntryVisitMechanism supplies a catalogue KV
-    // URI (pool/namespace/oid); StoreFactory during wipe supplies a store namespace URI
-    // (pool/namespace). Only pool and namespace are needed here.
     const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
     ASSERT(parts.size() == 2 || parts.size() == 3);
 
+    const RadosSpace space = rados_space(config, uri);
     pool_ = parts[0];
     db_namespace_ = parts[1];
+    readConfig(config, component);
 
-    readConfig(config, component, false);
-
-    root_kv_.emplace(pool_, root_namespace_, "main_kv");
+    root_kv_.emplace(pool_, space.rootNamespace, "main_kv");
     db_kv_.emplace(pool_, db_namespace_, "catalogue_kv");
 }
 
-void RadosCommon::readConfig(const Config& config, const std::string& component, bool readPool) {
+void RadosCommon::readConfig(const Config& config, const std::string& component) {
 
     eckit::LocalConfiguration c{};
 
@@ -76,44 +148,6 @@ void RadosCommon::readConfig(const Config& config, const std::string& component,
     }
 
     maxPartSize_ = c.getInt("maxPartSize", 0);
-
-    std::string first_cap{component};
-    first_cap[0] = toupper(component[0]);
-
-    std::string all_caps{component};
-    for (auto& c : all_caps) {
-        c = toupper(c);
-    }
-
-    if (readPool) {
-        pool_ = "default";
-    }
-    root_namespace_ = "root";
-
-    if (readPool) {
-        pool_ = c.getString("pool", pool_);
-        if (c.has(component)) {
-            pool_ = c.getSubConfiguration(component).getString("pool", pool_);
-        }
-    }
-    root_namespace_ = c.getString("root_namespace", root_namespace_);
-    if (c.has(component)) {
-        root_namespace_ = c.getSubConfiguration(component).getString("root_namespace", root_namespace_);
-    }
-
-    if (readPool) {
-        pool_ = eckit::Resource<std::string>("fdbRados" + first_cap + "Pool;$FDB_RADOS_" + all_caps + "_POOL", pool_);
-    }
-    root_namespace_ = eckit::Resource<std::string>(
-        "fdbRados" + first_cap + "RootNamespace;$FDB_RADOS_" + all_caps + "_ROOT_NAMESPACE", root_namespace_);
-
-    nspace_prefix_ = c.getString("namespace_prefix", nspace_prefix_);
-    if (c.has(component)) {
-        nspace_prefix_ = c.getSubConfiguration(component).getString("namespace_prefix", nspace_prefix_);
-    }
-    if (nspace_prefix_.find('_') != std::string::npos) {
-        throw eckit::UserError("RADOS namespace_prefix must not contain underscores: '" + nspace_prefix_ + "'", Here());
-    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
