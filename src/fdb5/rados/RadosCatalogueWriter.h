@@ -36,7 +36,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// DB that implements the FDB on Rados
+/// DB writer that implements the FDB on Rados.
+/// Not thread-safe: archive/flush/close calls on a single instance must be serialised by the caller.
 
 class RadosCatalogueWriter : public RadosCatalogue, public CatalogueWriter {
 

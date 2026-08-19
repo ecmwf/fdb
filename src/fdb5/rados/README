@@ -4,8 +4,9 @@ Running RadosStore unit tests against Ceph on Docker on mac:
 Supported RADOS backend scope:
 ==============================
 
-The backend supports archive, retrieve, and reopening catalogues by URI. Archive calls on a single RadosStore must be
-serialised by the caller. Catalogue-side wipe, purge, statistics, move, and control operations are not implemented.
+The backend supports archive, retrieve, list, wipe, and reopening catalogues by URI. Archive calls
+on a single RadosStore must be serialised by the caller. Catalogue-side purge, statistics, move,
+control (hide/mount), and overlay operations are not implemented.
 
 RADOS tests require eckit to be built with RADOS support.
 

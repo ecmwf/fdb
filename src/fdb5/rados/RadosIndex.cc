@@ -193,7 +193,7 @@ std::vector<eckit::URI> RadosIndex::dataURIs() const {
         res.insert(fl->uri());
     }
 
-    return std::vector<eckit::URI>(res.begin(), res.end());
+    return {res.begin(), res.end()};
 }
 
 //-----------------------------------------------------------------------------

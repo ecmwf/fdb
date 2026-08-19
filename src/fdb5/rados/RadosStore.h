@@ -37,7 +37,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// Store that implements the FDB on CEPH object store
+/// Store that implements the FDB on CEPH object store.
+/// Not thread-safe: archive/flush/close calls on a single instance must be serialised by the caller.
 
 class RadosStore : public Store, public RadosCommon {
 

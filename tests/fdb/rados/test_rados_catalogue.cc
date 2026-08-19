@@ -756,6 +756,11 @@ CASE("RadosCatalogue tests") {
             count++;
         }
         EXPECT(count == 0);
+
+        // Wipe an already-wiped DB. The store-side namespace destroy path must be idempotent so
+        // recovering from a partial wipe does not raise.
+        EXPECT_NO_THROW(fdb2.wipe(db_req, true));
+        fdb2.flush();
     }
 
     // SECTION("OPTIONAL SCHEMA KEYS") {

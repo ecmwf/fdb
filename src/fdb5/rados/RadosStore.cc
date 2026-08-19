@@ -190,8 +190,8 @@ void RadosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ost
         logVerbose << "destroy Rados namespace: ";
         logAlways << ns.str() << std::endl;
 
-        if (doit) {
-            ns.destroy();  /// @todo: ensureDestroyed?
+        if (doit && ns.exists()) {
+            ns.destroy();
         }
     }
     else {  // object
