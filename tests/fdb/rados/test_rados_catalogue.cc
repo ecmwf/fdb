@@ -11,6 +11,7 @@
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListElement.h"
+#include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Field.h"
@@ -67,6 +68,23 @@ void deldir(eckit::PathName& p) {
 
     p.rmdir();
 };
+
+// Count only URIs that would actually be deleted, filtering out safe/info/error records so that
+// too-specific requests yield zero.
+size_t countWipeable(fdb5::WipeIterator& wipeObject, bool print = true) {
+    size_t count = 0;
+    fdb5::WipeElement elem;
+    while (wipeObject.next(elem)) {
+        if (print) {
+            std::cout << elem << std::endl;
+        }
+        if (elem.type() != fdb5::WipeElementType::ERROR && elem.type() != fdb5::WipeElementType::CATALOGUE_INFO &&
+            elem.type() != fdb5::WipeElementType::CATALOGUE_SAFE && elem.type() != fdb5::WipeElementType::STORE_SAFE) {
+            count += elem.uris().size();
+        }
+    }
+    return count;
+}
 
 // temporary schema,spaces,root files common to all DAOS Catalogue tests
 
@@ -611,111 +629,75 @@ CASE("RadosCatalogue tests") {
         }
         EXPECT(count == 1);
 
-        // // wipe data
+        // wipe data
 
-        // fdb5::WipeElement elem;
+        // dry run attempt to wipe with too specific request
 
-        // // dry run attempt to wipe with too specific request
+        auto wipeObject = fdb.wipe(full_req);
+        EXPECT(countWipeable(wipeObject) == 0);
 
-        // auto wipeObject = fdb.wipe(full_req);
-        // count = 0;
-        // while (wipeObject.next(elem)) count++;
-        // EXPECT(count == 0);
+        // dry run wipe index and store unit
+        wipeObject = fdb.wipe(index_req);
+        EXPECT(countWipeable(wipeObject) > 0);
 
-        // // dry run wipe index and store unit
-        // wipeObject = fdb.wipe(index_req);
-        // count = 0;
-        // while (wipeObject.next(elem)) count++;
-        // EXPECT(count > 0);
+        // dry run wipe database
+        wipeObject = fdb.wipe(db_req);
+        EXPECT(countWipeable(wipeObject) > 0);
 
-        // // dry run wipe database
-        // wipeObject = fdb.wipe(db_req);
-        // count = 0;
-        // while (wipeObject.next(elem)) count++;
-        // EXPECT(count > 0);
+        // ensure field still exists
+        listObject = fdb.list(full_req);
+        count = 0;
+        while (listObject.next(info)) {
+            count++;
+        }
+        EXPECT(count == 1);
 
-        // // ensure field still exists
-        // listObject = fdb.list(full_req);
-        // count = 0;
-        // while (listObject.next(info)) {
-        //     // info.print(std::cout, true, true);
-        //     // std::cout << std::endl;
-        //     count++;
-        // }
-        // EXPECT(count == 1);
+        // attempt to wipe with too specific request
+        wipeObject = fdb.wipe(full_req, true);
+        EXPECT(countWipeable(wipeObject) == 0);
+        fdb.flush();
 
-        // // attempt to wipe with too specific request
-        // wipeObject = fdb.wipe(full_req, true);
-        // count = 0;
-        // while (wipeObject.next(elem)) count++;
-        // EXPECT(count == 0);
-        // /// @todo: really needed?
-        // fdb.flush();
+        // wipe index and store unit
+        wipeObject = fdb.wipe(index_req, true);
+        EXPECT(countWipeable(wipeObject) > 0);
+        fdb.flush();
 
-        // // wipe index and store unit
-        // wipeObject = fdb.wipe(index_req, true);
-        // count = 0;
-        // while (wipeObject.next(elem)) count++;
-        // EXPECT(count > 0);
-        // /// @todo: really needed?
-        // fdb.flush();
+        // ensure field does not exist
+        listObject = fdb.list(full_req);
+        count = 0;
+        while (listObject.next(info)) {
+            count++;
+        }
+        EXPECT(count == 0);
 
-        // // ensure field does not exist
-        // listObject = fdb.list(full_req);
-        // count = 0;
-        // while (listObject.next(info)) count++;
-        // EXPECT(count == 0);
+        // re-archive data
 
-        // /// @todo: ensure index and corresponding container do not exist
-        // /// @todo: ensure DB still exists
-        // /// @todo: list db or index and expect count = 0?
+        // FDB caches open DBs. Once a full DB is wiped, a fresh FDB instance is needed
+        // to re-create the top-level catalogue KV.
+        fdb5::FDB fdb2(config);
 
-        // // re-archive data
+        fdb2.archive(request_key, data, sizeof(data));
+        fdb2.flush();
 
-        // /// @note: FDB holds a LocalFDB which holds an Archiver which holds open DBs (DaosCatalogueWriters).
-        // ///   If a whole DB is wiped, the top-level structures for that DB (main and catalogue KVs in this case)
-        // ///   are deleted. If willing to archive again into that DB, the DB needs to be constructed again as the
-        // ///   top-level structures are only generated as part of the DaosCatalogueWriter constructor. There is
-        // ///   no way currently to destroy the open DBs held by FDB other than entirely destroying FDB.
-        // ///   Alternatively, a separate FDB instance can be created.
-        // fdb5::FDB fdb2(config);
+        listObject = fdb2.list(full_req);
+        count = 0;
+        while (listObject.next(info)) {
+            count++;
+        }
+        EXPECT(count == 1);
 
-        // fdb2.archive(request_key, data, sizeof(data));
+        // wipe full database
+        wipeObject = fdb2.wipe(db_req, true);
+        EXPECT(countWipeable(wipeObject) > 0);
+        fdb2.flush();
 
-        // fdb2.flush();
-
-        // listObject = fdb2.list(full_req);
-        // count = 0;
-        // while (listObject.next(info)) {
-        //     // info.print(std::cout, true, true);
-        //     // std::cout << std::endl;
-        //     count++;
-        // }
-        // EXPECT(count == 1);
-
-        // // wipe full database
-
-        // wipeObject = fdb2.wipe(db_req, true);
-        // count = 0;
-        // while (wipeObject.next(elem)) count++;
-        // EXPECT(count > 0);
-        // /// @todo: really needed?
-        // fdb2.flush();
-
-        // // ensure field does not exist
-
-        // listObject = fdb2.list(full_req);
-        // count = 0;
-        // while (listObject.next(info)) {
-        //     // info.print(std::cout, true, true);
-        //     // std::cout << std::endl;
-        //     count++;
-        // }
-        // EXPECT(count == 0);
-
-        // /// @todo: ensure DB and corresponding pool do not exist
-
-        // /// @todo: ensure new DaosSession has updated daos client config
+        // ensure field does not exist
+        listObject = fdb2.list(full_req);
+        count = 0;
+        while (listObject.next(info)) {
+            count++;
+        }
+        EXPECT(count == 0);
     }
 
     // SECTION("OPTIONAL SCHEMA KEYS") {
