@@ -205,8 +205,8 @@ CASE("RadosCatalogue tests") {
 
         // archive
 
-        std::unique_ptr<fdb5::FieldLocation> loc(new fdb5::RadosFieldLocation(
-            eckit::URI{"rados", "test_uri"}, eckit::Offset(0), eckit::Length(1), fdb5::Key{}));
+        std::unique_ptr<fdb5::FieldLocation> loc(
+            new fdb5::RadosFieldLocation(eckit::URI{"rados", "test_uri"}, eckit::Offset(0), eckit::Length(1)));
 
         eckit::URI catalogue_uri;
         {
@@ -450,7 +450,7 @@ CASE("RadosCatalogue tests") {
         fdb5::Key field_key({{"e", "5"}, {"f", "6"}});
 
         auto location = std::make_unique<fdb5::RadosFieldLocation>(eckit::URI{"rados", std::string(600, 'x')},
-                                                                   eckit::Offset(0), eckit::Length(1), fdb5::Key{});
+                                                                   eckit::Offset(0), eckit::Length(1));
 
         {
             fdb5::RadosCatalogueWriter writer{db_key, config};

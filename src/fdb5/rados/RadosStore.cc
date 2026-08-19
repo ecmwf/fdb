@@ -146,7 +146,7 @@ std::unique_ptr<const FieldLocation> RadosStore::archive(const Key& key, const v
 
     ASSERT(len == length);
 
-    return std::make_unique<RadosFieldLocation>(o.uri(), offset, length, fdb5::Key{});
+    return std::make_unique<RadosFieldLocation>(o.uri(), offset, length);
 }
 
 RadosStore::~RadosStore() {

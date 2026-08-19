@@ -256,6 +256,14 @@ CASE("RadosStore tests") {
         EXPECT_THROWS_AS((fdb5::Engine::backend("rados").location(db_key, config)), eckit::UserError);
     }
 
+    SECTION("RadosFieldLocation three-argument constructor forwards an empty remapKey") {
+        fdb5::RadosFieldLocation loc{eckit::URI{"rados", "pool/ns/obj"}, eckit::Offset(0), eckit::Length(1)};
+        EXPECT(loc.remapKey().empty());
+        EXPECT(loc.uri().name() == "pool/ns/obj");
+        EXPECT(loc.offset() == eckit::Offset(0));
+        EXPECT(loc.length() == eckit::Length(1));
+    }
+
     SECTION("with POSIX Catalogue") {
 
         std::string test_id = "test-store2";

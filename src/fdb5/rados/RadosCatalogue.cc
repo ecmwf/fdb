@@ -48,46 +48,33 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 RadosCatalogue::RadosCatalogue(const Key& key, const fdb5::Config& config) :
-    CatalogueImpl(key, ControlIdentifiers{}, config), RadosCommon(config, "catalogue", key) {
-
-    /// @todo: derive pool_ and db_namespace_ from the key via RootManager (FileSpaceTables,
-    ///   DbPathNamerTables) instead of the current fixed prefix + values-string scheme.
-}
+    CatalogueImpl(key, ControlIdentifiers{}, config), RadosCommon(config, "catalogue", key) {}
 
 RadosCatalogue::RadosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers,
                                const fdb5::Config& config) :
     CatalogueImpl(Key(), controlIdentifiers, config), RadosCommon(config, "catalogue", uri) {
-
-    // Read the real DB key into the DB base object
     try {
-        std::vector<char> data;
-        eckit::MemoryStream ms = db_kv_->getMemoryStream(data, "key", "DB kv");
-        dbKey_ = fdb5::Key(ms);
+        dbKey_ = read_db_key(*db_kv_);
     }
     catch (eckit::RadosEntityNotFoundException& e) {
-
         throw fdb5::DatabaseNotFoundException(std::string("RadosCatalogue database not found ") + "(pool: '" + pool_ +
                                               "', namespace: '" + db_namespace_ + "')");
     }
 }
 
 bool RadosCatalogue::exists() const {
-
     return db_kv_->exists();
 }
 
 eckit::URI RadosCatalogue::uri() const {
-
     return db_kv_->nspace().uri();
 }
 
 const Schema& RadosCatalogue::schema() const {
-
     return schema_;
 }
 
 const Rule& RadosCatalogue::rule() const {
-
     ASSERT(rule_);
     return *rule_;
 }
@@ -112,7 +99,6 @@ std::vector<Index> RadosCatalogue::indexes(bool) const {
 
     for (const auto& key : db_kv_->keys()) {
 
-        // "schema" and "key" are reserved DB-KV entries and never index locations.
         if (key == "schema" || key == "key") {
             continue;
         }
@@ -122,8 +108,6 @@ std::vector<Index> RadosCatalogue::indexes(bool) const {
 
         eckit::URI uri(std::string(v.begin(), v.end()));
 
-        // The RadosKeyValue constructor does not itself verify the object exists; presence of a
-        // "key" entry is used as the existence signal for the index KV.
         eckit::RadosKeyValue index_kv{uri};
         std::optional<fdb5::Key> index_key;
         try {
@@ -132,7 +116,6 @@ std::vector<Index> RadosCatalogue::indexes(bool) const {
             index_key.emplace(ms);
         }
         catch (eckit::RadosEntityNotFoundException& e) {
-            // Stale index_kv left behind by a failed wipe; skip.
             continue;
         }
 
@@ -157,12 +140,8 @@ bool RadosCatalogue::uriBelongs(const eckit::URI& uri) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// Catalogue and store share the same RADOS namespace: wipe reports every non-safe object found
-// there as unrecognised, and the WipeCoordinator cross-checks store and catalogue `uriBelongs()`
-// to attribute each unknown to the correct owner.
-
 CatalogueWipeState RadosCatalogue::wipeInit() const {
-    return CatalogueWipeState{dbKey_, config()};
+    return {dbKey_, config()};
 }
 
 void RadosCatalogue::maskIndexEntries(const std::set<Index>& indexes) const {

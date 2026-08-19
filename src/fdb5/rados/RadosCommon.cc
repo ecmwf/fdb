@@ -17,6 +17,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
+#include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/Tokenizer.h"
 
 #include <algorithm>
@@ -25,6 +26,14 @@
 #include <vector>
 
 namespace fdb5 {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+fdb5::Key read_db_key(const eckit::RadosKeyValue& db_kv) {
+    std::vector<char> data;
+    eckit::MemoryStream ms = db_kv.getMemoryStream(data, "key", "DB kv");
+    return fdb5::Key(ms);
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

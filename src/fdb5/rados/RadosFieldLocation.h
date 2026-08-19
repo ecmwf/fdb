@@ -34,6 +34,8 @@ public:
 
     RadosFieldLocation(const RadosFieldLocation& rhs);
     RadosFieldLocation(const eckit::URI& uri);
+    RadosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length);
+    // Factory-only overload; `remapKey` is ignored (see RadosFieldLocation.cc).
     RadosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length, const Key& remapKey);
     RadosFieldLocation(eckit::Stream&);
 

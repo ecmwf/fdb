@@ -40,10 +40,14 @@ RadosFieldLocation::RadosFieldLocation(const RadosFieldLocation& rhs) :
 
 RadosFieldLocation::RadosFieldLocation(const eckit::URI& uri) : FieldLocation(uri) {}
 
-/// @todo: remove remapKey from signature and always pass empty Key to FieldLocation
+RadosFieldLocation::RadosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length) :
+    FieldLocation(uri, offset, length, Key{}) {}
+
+// Kept for FieldLocationBuilder factory compatibility; `remapKey` is unused because the RADOS
+// backend does not support key remapping.
 RadosFieldLocation::RadosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length,
-                                       const Key& remapKey) :
-    FieldLocation(uri, offset, length, remapKey) {}
+                                       const Key& /* remapKey */) :
+    RadosFieldLocation(uri, offset, length) {}
 
 RadosFieldLocation::RadosFieldLocation(eckit::Stream& s) : FieldLocation(s) {}
 

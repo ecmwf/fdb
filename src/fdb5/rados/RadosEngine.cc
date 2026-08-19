@@ -14,6 +14,7 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Engine.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/rados/RadosCommon.h"
 
 #include "metkit/mars/MarsRequest.h"
 
@@ -92,11 +93,8 @@ std::vector<eckit::URI> RadosEngine::visitableLocations(const std::function<bool
             eckit::URI uri(std::string(v.begin(), v.end()));
             ASSERT(uri.scheme() == typeName());
 
-            /// @todo: this deserialisation is also performed in RadosCatalogue(uri, ...). Try to avoid one.
-            eckit::RadosKeyValue db_kv{uri};  /// @note: includes exist check
-            std::vector<char> data;
-            eckit::MemoryStream ms = db_kv.getMemoryStream(data, "key", "DB kv");
-            fdb5::Key db_key(ms);
+            eckit::RadosKeyValue db_kv{uri};
+            fdb5::Key db_key = read_db_key(db_kv);
 
             if (matches(db_key)) {
                 eckit::Log::debug<LibFdb5>() << " found match with " << rootKv_->uri() << " at key " << k << std::endl;

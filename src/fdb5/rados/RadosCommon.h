@@ -15,7 +15,6 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/fdb5_config.h"
 
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/Length.h"
@@ -25,6 +24,10 @@
 #include <string>
 
 namespace fdb5 {
+
+// Reads the persisted `key` entry from a RADOS DB KV and deserialises it into an fdb5::Key.
+// Throws eckit::RadosEntityNotFoundException if the DB KV or the `key` entry is missing.
+fdb5::Key read_db_key(const eckit::RadosKeyValue& db_kv);
 
 class RadosCommon {
 
