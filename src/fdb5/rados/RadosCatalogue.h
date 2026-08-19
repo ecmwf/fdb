@@ -65,7 +65,9 @@ public:  // methods
 
     void checkUID() const override { /* nothing to do */ }
     bool exists() const override;
-    void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override { NOTIMP; };
+    void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override {
+        out << "RadosCatalogue(" << type() << ":" << dbKey_ << ")";
+    }
     const Schema& schema() const override;
 
     StatsReportVisitor* statsReportVisitor() const override { NOTIMP; };
@@ -83,10 +85,10 @@ public:  // methods
 
     std::vector<Index> indexes(bool sorted = false) const override;
 
+    // No masking metadata is persisted for this backend; wipe removes entries directly, so there is
+    // nothing to enumerate here.
     void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata,
-                   std::set<eckit::URI>& data) const override {
-        NOTIMP;
-    };
+                   std::set<eckit::URI>& data) const override {}
 
     // Control access properties of the DB
     /// @todo: control identifiers are not persisted for RADOS yet; wipe/coordinator invocations rely on default-enabled

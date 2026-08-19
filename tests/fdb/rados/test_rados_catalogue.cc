@@ -24,6 +24,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/TmpFile.h"
@@ -32,6 +33,8 @@
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/io/Offset.h"
 #include "eckit/io/PartHandle.h"
+#include "eckit/io/rados/RadosCluster.h"
+#include "eckit/io/rados/RadosNamespace.h"
 #include "eckit/io/rados/RadosPool.h"
 #include "eckit/testing/Test.h"
 
@@ -68,6 +71,16 @@ void deldir(eckit::PathName& p) {
 
     p.rmdir();
 };
+
+// Guard against clobbering unrelated namespaces in a shared CI pool.
+void ensureCleanNamespaces(const std::string& pool, const std::string& prefix) {
+    ASSERT(prefix.length() > 3);
+    for (const std::string& name : eckit::RadosCluster::instance().listNamespaces(pool)) {
+        if (name.rfind(prefix, 0) == 0) {
+            eckit::RadosNamespace{pool, name}.destroy();
+        }
+    }
+}
 
 // Count only URIs that would actually be deleted, filtering out safe/info/error records so that
 // too-specific requests yield zero.

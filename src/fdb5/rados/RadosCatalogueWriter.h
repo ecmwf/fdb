@@ -60,7 +60,7 @@ protected:  // methods
 
     void archive(const Key& idxKey, const Key& datumKey, std::shared_ptr<const FieldLocation> fieldLocation) override;
 
-    virtual void print(std::ostream& out) const override { NOTIMP; }
+    void print(std::ostream& out) const override { out << "RadosCatalogueWriter(" << uri() << ")"; }
 
 private:  // methods
 

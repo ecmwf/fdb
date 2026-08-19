@@ -54,7 +54,7 @@ protected:  // methods
     std::vector<eckit::URI> visitableLocations(const metkit::mars::MarsRequest& rq,
                                                const Config& config) const override;
 
-    void print(std::ostream& out) const override { NOTIMP; };
+    void print(std::ostream& out) const override { out << "RadosEngine()"; }
 
 private:  // methods
 

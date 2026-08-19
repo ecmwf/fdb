@@ -238,8 +238,9 @@ bool RadosCatalogue::markIndexForWipe(const Index& index, bool include, Catalogu
                     .uri());
         }
     }
-    catch (const eckit::RadosEntityNotFoundException&) {
-        // Index KV or its axes list may already be gone (e.g. after an incomplete wipe).
+    catch (const eckit::RadosEntityNotFoundException& e) {
+        LOG_DEBUG_LIB(LibFdb5) << "RadosCatalogue::markIndexForWipe: axes lookup missing for index " << index.key()
+                               << " (assuming stale index kv): " << e.what() << std::endl;
     }
 
     const eckit::URI index_uri = index.location().uri();

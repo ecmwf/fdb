@@ -26,6 +26,7 @@
 #include "eckit/io/rados/RadosNamespace.h"
 #include "eckit/io/rados/RadosObject.h"
 #include "eckit/io/rados/RadosPool.h"
+#include "eckit/log/Log.h"
 #include "eckit/log/TimeStamp.h"
 #include "eckit/runtime/Main.h"
 #include "eckit/thread/AutoLock.h"
@@ -36,12 +37,14 @@
 #include <unistd.h>
 
 #include <cstddef>
+#include <exception>
 #include <iostream>
 #include <memory>
 #include <ostream>
 #include <set>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace fdb5 {
@@ -50,12 +53,11 @@ namespace fdb5 {
 
 static StoreBuilder<RadosStore> builder("rados");
 
-RadosStore::RadosStore(const Key& key, const Config& config) : RadosCommon(config, "store", key), archivedFields_(0) {}
+RadosStore::RadosStore(const Key& key, const Config& config) : RadosCommon(config, "store", key) {}
 
-RadosStore::RadosStore(const Schema& schema, const Key& key, const Config& config) : RadosStore(key, config) {}
+RadosStore::RadosStore(const Schema& /*schema*/, const Key& key, const Config& config) : RadosStore(key, config) {}
 
-RadosStore::RadosStore(const eckit::URI& uri, const Config& config) :
-    RadosCommon(config, "store", uri), archivedFields_(0) {}
+RadosStore::RadosStore(const eckit::URI& uri, const Config& config) : RadosCommon(config, "store", uri) {}
 
 eckit::URI RadosStore::uri() const {
     return eckit::RadosNamespace(pool_, db_namespace_).uri();
@@ -157,11 +159,14 @@ std::unique_ptr<const FieldLocation> RadosStore::archive(const Key& key, const v
 }
 
 RadosStore::~RadosStore() {
-
     try {
         closeDataHandles();
     }
+    catch (const std::exception& e) {
+        eckit::Log::error() << "~RadosStore: closeDataHandles failed: " << e.what() << std::endl;
+    }
     catch (...) {
+        eckit::Log::error() << "~RadosStore: closeDataHandles failed with unknown exception" << std::endl;
     }
 }
 

@@ -13,10 +13,6 @@
 
 #pragma once
 
-#include "eckit/exception/Exceptions.h"
-#include "eckit/filesystem/URI.h"
-#include "eckit/types/Types.h"
-
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/DbStats.h"
@@ -24,6 +20,9 @@
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/rados/RadosCatalogue.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
 
 #include <map>
 #include <optional>
@@ -55,7 +54,7 @@ public:  // methods
 
     bool retrieve(const Key& key, Field& field) const override;
 
-    void print(std::ostream& out) const override { NOTIMP; }
+    void print(std::ostream& out) const override { out << "RadosCatalogueReader(" << uri() << ")"; }
 
 private:  // methods
 
@@ -63,7 +62,7 @@ private:  // methods
 
 private:  // types
 
-    typedef std::map<Key, Index> IndexStore;
+    using IndexStore = std::map<Key, Index>;
 
 private:  // members
 
