@@ -45,7 +45,7 @@ public:  // methods
 
     RadosCatalogueWriter(const Key& key, const fdb5::Config& config);
     RadosCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config);
-    virtual ~RadosCatalogueWriter() override;
+    ~RadosCatalogueWriter() override;
 
     void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) override { NOTIMP; };
 

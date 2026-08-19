@@ -15,6 +15,7 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/DatabaseNotFoundException.h"
+#include "fdb5/database/DbStats.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/rados/RadosCatalogueReader.h"
@@ -25,8 +26,8 @@
 
 #include "metkit/mars/MarsRequest.h"
 
-#include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/TmpFile.h"
 #include "eckit/filesystem/URI.h"
@@ -45,12 +46,14 @@
 #include <iostream>
 #include <memory>
 #include <ostream>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
 
-using namespace eckit::testing;
 using namespace eckit;
+
+//----------------------------------------------------------------------------------------------------------------------
 
 namespace {
 
@@ -421,6 +424,63 @@ CASE("RadosCatalogue tests") {
                          fdb5::DatabaseNotFoundException);
         EXPECT_THROWS_AS(fdb5::CatalogueWriterFactory::instance().build(missing_uri, config),
                          fdb5::DatabaseNotFoundException);
+    }
+
+    SECTION("RadosCatalogueReader::stats reports index and field counts") {
+
+        std::string config_str{
+            "spaces:\n"
+            "- roots:\n"
+            "  - path: " +
+            catalogue_tests_tmp_root().asString() +
+            "\n"
+            "schema : " +
+            schema_file().path() +
+            "\n"
+            "rados:\n"
+            "  catalogue:\n"
+            "    pool: " +
+            pool +
+            "\n"
+            "    root_namespace: " +
+            test_id +
+            "_root\n"
+            "    namespace_prefix: " +
+            test_id + "\n"};
+
+        fdb5::Config config{YAMLConfiguration(config_str)};
+
+        fdb5::Key db_key({{"a", "77"}, {"b", "77"}});
+        fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
+        fdb5::Key field_key_1({{"e", "5"}, {"f", "6"}});
+        fdb5::Key field_key_2({{"e", "5"}, {"f", "7"}});
+
+        {
+            fdb5::RadosCatalogueWriter writer{db_key, config};
+            fdb5::Catalogue& cat = writer;
+            cat.selectIndex(index_key);
+            std::unique_ptr<fdb5::FieldLocation> loc1(
+                new fdb5::RadosFieldLocation(eckit::URI{"rados", "unused"}, eckit::Offset(0), eckit::Length(1)));
+            std::unique_ptr<fdb5::FieldLocation> loc2(
+                new fdb5::RadosFieldLocation(eckit::URI{"rados", "unused"}, eckit::Offset(1), eckit::Length(1)));
+            static_cast<fdb5::CatalogueWriter&>(writer).archive(index_key, field_key_1, std::move(loc1));
+            static_cast<fdb5::CatalogueWriter&>(writer).archive(index_key, field_key_2, std::move(loc2));
+            cat.flush(0);
+        }
+
+        {
+            fdb5::RadosCatalogueReader reader{db_key, config};
+            fdb5::CatalogueReader& cr = reader;
+            EXPECT(cr.open());
+            fdb5::DbStats stats = cr.stats();
+            std::ostringstream oss;
+            stats.report(oss);
+            const std::string report = oss.str();
+            // Must expose non-empty output rather than throwing NOTIMP.
+            EXPECT(!report.empty());
+            EXPECT(report.find("Indexes") != std::string::npos);
+            EXPECT(report.find("Fields") != std::string::npos);
+        }
     }
 
     SECTION("RadosCatalogue supports large serialised field locations") {
@@ -928,7 +988,8 @@ CASE("RadosCatalogue tests") {
 
 }  // namespace fdb::test
 
+//----------------------------------------------------------------------------------------------------------------------
 
 int main(int argc, char** argv) {
-    return run_tests(argc, argv);
+    return eckit::testing::run_tests(argc, argv);
 }

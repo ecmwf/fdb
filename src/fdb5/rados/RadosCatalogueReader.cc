@@ -18,6 +18,7 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/rados/RadosCatalogue.h"
 #include "fdb5/rados/RadosIndex.h"
+#include "fdb5/rados/RadosStats.h"
 
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/rados/RadosException.h"
@@ -74,6 +75,26 @@ bool RadosCatalogueReader::open() {
     }
     RadosCatalogue::loadSchema();
     return true;
+}
+
+DbStats RadosCatalogueReader::stats() const {
+
+    auto* content = new RadosDbStats();
+    content->dbCount_ = 1;
+
+    for (const auto& indexEntry : indexes(false)) {
+        content->indexCount_++;
+        const auto* radosIndex = dynamic_cast<const RadosIndex*>(indexEntry.content());
+        ASSERT(radosIndex);
+        for (const auto& key : radosIndex->idx_kv().keys()) {
+            if (key == "axes" || key == "key") {
+                continue;
+            }
+            content->fieldCount_++;
+        }
+    }
+
+    return DbStats(content);
 }
 
 std::optional<Axis> RadosCatalogueReader::computeAxis(const std::string& keyword) const {

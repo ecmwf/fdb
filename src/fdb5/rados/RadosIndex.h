@@ -51,6 +51,9 @@ public:  // methods
     void putAxisNames(const std::string& names);
     void putAxisValue(const std::string& axis, const std::string& value);
 
+    // Exposed so RadosCatalogueReader can enumerate field entries directly for stats.
+    const eckit::RadosKeyValue& idx_kv() const { return idx_kv_; }
+
 private:  // methods
 
     const IndexLocation& location() const override { return location_; }

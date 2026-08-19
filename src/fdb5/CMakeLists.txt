@@ -368,6 +368,8 @@ if( HAVE_RADOSFDB )
         rados/RadosLazyFieldLocation.h
         rados/RadosEngine.cc
         rados/RadosEngine.h
+        rados/RadosStats.cc
+        rados/RadosStats.h
     )
 endif()
 

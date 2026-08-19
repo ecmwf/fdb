@@ -42,7 +42,7 @@ public:  // methods
     RadosCatalogueReader(const Key& key, const fdb5::Config& config);
     RadosCatalogueReader(const eckit::URI& uri, const fdb5::Config& config);
 
-    DbStats stats() const override { NOTIMP; }
+    DbStats stats() const override;
 
     bool selectIndex(const Key& key) override;
     void deselectIndex() override;
