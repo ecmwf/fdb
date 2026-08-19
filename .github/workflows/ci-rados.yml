@@ -145,6 +145,9 @@ jobs:
             exit 1
           fi
           docker exec ceph-demo ceph osd pool create "${FDB_RADOS_TEST_POOL}" 8 8
+          # The demo cluster has one OSD; its test pool must use a single replica to become active+clean.
+          docker exec ceph-demo ceph osd pool set "${FDB_RADOS_TEST_POOL}" size 1 --yes-i-really-mean-it
+          docker exec ceph-demo ceph osd pool set "${FDB_RADOS_TEST_POOL}" min_size 1
           docker exec ceph-demo ceph osd pool application enable "${FDB_RADOS_TEST_POOL}" rados
           echo "Waiting for ${FDB_RADOS_TEST_POOL} placement groups to become active+clean..."
           for i in $(seq 1 60); do
