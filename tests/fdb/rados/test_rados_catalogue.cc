@@ -512,6 +512,7 @@ CASE("RadosCatalogue tests") {
         fdb5::Key db_key({{"a", "88"}, {"b", "88"}});
         fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
         fdb5::Key field_key({{"e", "5"}, {"f", "6"}});
+        eckit::URI catalogue_uri;
 
         {
             fdb5::RadosCatalogueWriter writer{db_key, config};
@@ -532,6 +533,7 @@ CASE("RadosCatalogue tests") {
             EXPECT_NOT(cat.enabled(fdb5::ControlIdentifier::Retrieve));
             EXPECT_NOT(cat.enabled(fdb5::ControlIdentifier::List));
             EXPECT(cat.enabled(fdb5::ControlIdentifier::Archive));
+            catalogue_uri = cat.uri();
         }
 
         {
@@ -542,6 +544,13 @@ CASE("RadosCatalogue tests") {
             EXPECT_NOT(cat.enabled(fdb5::ControlIdentifier::Retrieve));
             EXPECT_NOT(cat.enabled(fdb5::ControlIdentifier::List));
             EXPECT(cat.enabled(fdb5::ControlIdentifier::Archive));
+        }
+
+        {
+            auto reader = fdb5::CatalogueReaderFactory::instance().build(catalogue_uri, config);
+            EXPECT_NOT(reader->enabled(fdb5::ControlIdentifier::Retrieve));
+            EXPECT_NOT(reader->enabled(fdb5::ControlIdentifier::List));
+            EXPECT(reader->enabled(fdb5::ControlIdentifier::Archive));
         }
 
         {
@@ -587,6 +596,8 @@ CASE("RadosCatalogue tests") {
         const std::shared_future<void> ready = start.get_future().share();
         std::mutex error_mutex;
         std::exception_ptr error;
+
+        //
         const auto archive = [&](const fdb5::Key& field_key, eckit::Offset offset) {
             try {
                 ready.wait();
@@ -933,10 +944,15 @@ CASE("RadosCatalogue tests") {
         }
         EXPECT(count == 1);
 
-        // wipe full database
+        // Wipe remains enabled after hideContents disables only List and Retrieve.
+        fdb2.control(db_req, fdb5::ControlAction::Disable,
+                     fdb5::ControlIdentifier::List | fdb5::ControlIdentifier::Retrieve);
         wipeObject = fdb2.wipe(db_req, true);
         EXPECT(countWipeable(wipeObject) > 0);
         fdb2.flush();
+
+        fdb5::RadosCatalogueReader hidden_reader{db_key, config};
+        EXPECT_NOT(static_cast<fdb5::CatalogueReader&>(hidden_reader).open());
 
         // ensure field does not exist
         listObject = fdb2.list(full_req);
