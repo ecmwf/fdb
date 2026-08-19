@@ -66,7 +66,7 @@ public:  // methods
 
     void checkUID() const override { /* nothing to do */ }
 
-    /// Wipe-related methods
+    // Wipe-related methods
     void finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override;
     bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const override;
     bool doWipeURIs(const StoreWipeState& wipeState) const override;

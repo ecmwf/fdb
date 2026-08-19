@@ -43,11 +43,9 @@ RadosCommon::RadosCommon(const Config& config, const std::string& component, con
 
 RadosCommon::RadosCommon(const Config& config, const std::string& component, const eckit::URI& uri) {
 
-    /// @note: this constructor is triggered both by DB::buildReader in EntryVisitMechanism (with a
-    ///   catalogue key-value URI, i.e. pool/namespace/oid) and by StoreFactory during wipe (with a
-    ///   store namespace URI, i.e. pool/namespace). Only the pool and namespace are needed here, so
-    ///   parse them directly and accept both the 2-token and 3-token forms.
-
+    // Accepts URIs from two callers: DB::buildReader in EntryVisitMechanism supplies a catalogue KV
+    // URI (pool/namespace/oid); StoreFactory during wipe supplies a store namespace URI
+    // (pool/namespace). Only pool and namespace are needed here.
     const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
     ASSERT(parts.size() == 2 || parts.size() == 3);
 

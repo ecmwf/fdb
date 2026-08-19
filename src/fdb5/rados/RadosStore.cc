@@ -214,11 +214,12 @@ void RadosStore::print(std::ostream& out) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// @note: the database maps to a Rados namespace. Only the namespace holding this database's
-///   objects is ever touched here.
+// The database maps to a RADOS namespace; only the namespace holding this database's objects is
+// ever touched by the wipe-related methods below.
 
 void RadosStore::finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) {
-    /// @note: doit and unsafeWipeAll do not affect the preparation of a Rados store wipe.
+
+    // `doit` and `unsafeWipeAll` do not affect the preparation of a RADOS store wipe.
 
     const std::set<eckit::URI>& dataURIs = storeState.includedDataURIs();  // included according to cat
     const std::set<eckit::URI>& safeURIs = storeState.safeURIs();          // excluded according to cat
@@ -298,9 +299,8 @@ void RadosStore::doWipeEmptyDatabase() const {
 
 bool RadosStore::doUnsafeFullWipe() const {
 
-    /// @note: if the database namespace/pool also holds a catalogue, the wiping is skipped as the
-    ///   catalogue is in charge. The presence of a "key" entry in the database key-value is used to
-    ///   determine whether a catalogue exists here.
+    // If the database namespace also holds a catalogue, skip: the catalogue-driven wipe owns the
+    // namespace. Presence of a "key" entry in the DB KV is used as the catalogue-exists signal.
     if (db_kv_ && (!db_kv_->exists() || !db_kv_->has("key"))) {
 
         eckit::RadosNamespace db{pool_, db_namespace_};
@@ -320,7 +320,7 @@ std::vector<eckit::URI> RadosStore::getAuxiliaryURIs(const eckit::URI& /*uri*/, 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// @note: unique name generation copied from LocalPathName::unique.
+// Unique name generation copied from eckit::LocalPathName::unique.
 static eckit::StaticMutex local_mutex;
 
 eckit::RadosObject RadosStore::generateDataObject(const Key& key) const {

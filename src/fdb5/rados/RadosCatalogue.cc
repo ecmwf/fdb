@@ -50,10 +50,8 @@ namespace fdb5 {
 RadosCatalogue::RadosCatalogue(const Key& key, const fdb5::Config& config) :
     CatalogueImpl(key, ControlIdentifiers{}, config), RadosCommon(config, "catalogue", key) {
 
-    /// TODO: apply the mechanism in RootManager::directory, using
-    ///   FileSpaceTables to determine root_pool_name_ according to key
-    ///   and using DbPathNamerTables to determine db_cont_name_ according
-    ///   to key
+    /// @todo: derive pool_ and db_namespace_ from the key via RootManager (FileSpaceTables,
+    ///   DbPathNamerTables) instead of the current fixed prefix + values-string scheme.
 }
 
 RadosCatalogue::RadosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers,
@@ -159,9 +157,9 @@ bool RadosCatalogue::uriBelongs(const eckit::URI& uri) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// @note: Catalogue and store share the same Rados namespace, so wipe reports every non-safe object
-///   found there as unrecognised. The `WipeCoordinator` then cross-checks store and catalogue
-///   `uriBelongs()` to attribute each unknown to the correct owner.
+// Catalogue and store share the same RADOS namespace: wipe reports every non-safe object found
+// there as unrecognised, and the WipeCoordinator cross-checks store and catalogue `uriBelongs()`
+// to attribute each unknown to the correct owner.
 
 CatalogueWipeState RadosCatalogue::wipeInit() const {
     return CatalogueWipeState{dbKey_, config()};

@@ -125,7 +125,6 @@ bool RadosCatalogueWriter::selectIndex(const Key& key) {
 
             indexes_[key] = Index(new fdb5::RadosIndex(key, eckit::RadosNamespace{pool_, db_namespace_}));
 
-            /// index index kv in catalogue kv
             std::string nstr{indexes_[key].location().uri().asString()};
             db_kv_->put(key.valuesToString(), nstr.data(), nstr.length());
         }

@@ -18,7 +18,6 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/rados/RadosLazyFieldLocation.h"
 
-#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/Length.h"
@@ -34,7 +33,6 @@
 #include <climits>  // for PATH_MAX
 #include <cstddef>
 #include <ctime>
-#include <iterator>
 #include <memory>
 #include <set>
 #include <string>
@@ -175,8 +173,7 @@ void RadosIndex::entries(EntryVisitor& visitor) const {
 
 std::vector<eckit::URI> RadosIndex::dataURIs() const {
 
-    // Iterates the index KV; each entry is a serialised RadosFieldLocation. Duplicate URIs
-    // are collapsed via std::set. Callers (e.g. wipe) only require the set of referenced objects.
+    // Iterates the index KV; each entry is a serialised RadosFieldLocation.
 
     std::set<eckit::URI> res;
 

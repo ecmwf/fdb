@@ -84,8 +84,8 @@ public:  // methods
                    std::set<eckit::URI>& data) const override {}
 
     // Control access properties of the DB
-    /// @todo: control identifiers are not persisted for RADOS yet; wipe/coordinator invocations rely on default-enabled
-    /// semantics.
+    // @todo: control identifiers are not persisted for RADOS yet; wipe/coordinator invocations rely
+    //        on default-enabled semantics.
     void control(const ControlAction& action, const ControlIdentifiers& identifiers) const override {}
 
     const Rule& rule() const override;
@@ -94,7 +94,7 @@ public:  // methods
 
     void maskIndexEntries(const std::set<Index>& indexes) const override;
 
-    /// Wipe-related methods
+    // Wipe-related methods
     CatalogueWipeState wipeInit() const override;
     bool markIndexForWipe(const Index& index, bool include, CatalogueWipeState& wipeState) const override;
     void finaliseWipeState(CatalogueWipeState& wipeState) const override;
