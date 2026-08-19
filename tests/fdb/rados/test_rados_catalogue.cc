@@ -14,6 +14,7 @@
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Catalogue.h"
+#include "fdb5/database/DatabaseNotFoundException.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/rados/RadosCatalogueReader.h"
@@ -377,6 +378,49 @@ CASE("RadosCatalogue tests") {
         //         std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
         //         cat.visitEntries(*wv, store, false);
         //     }
+    }
+
+    SECTION("RadosCatalogue reports missing databases via factory paths") {
+
+        std::string config_str{
+            "spaces:\n"
+            "- roots:\n"
+            "  - path: " +
+            catalogue_tests_tmp_root().asString() +
+            "\n"
+            "schema : " +
+            schema_file().path() +
+            "\n"
+            "rados:\n"
+            "  catalogue:\n"
+            "    pool: " +
+            pool +
+            "\n"
+            "    root_namespace: " +
+            test_id +
+            "_root\n"
+            "    namespace_prefix: " +
+            test_id + "\n"};
+
+        fdb5::Config config{YAMLConfiguration(config_str)};
+
+        // A key-based reader over a DB that was never written must fail to open.
+        fdb5::Key missing_db_key({{"a", "99"}, {"b", "99"}});
+        {
+            fdb5::RadosCatalogueReader reader{missing_db_key, config};
+            fdb5::CatalogueReader& cr = reader;
+            EXPECT_NOT(cr.open());
+        }
+
+        // A URI-based reader/writer over a DB whose namespace has no catalogue KV must throw
+        // DatabaseNotFoundException at construction so the caller does not proceed on empty state.
+        const std::string missing_ns = test_id + "_" + missing_db_key.valuesToString();
+        const eckit::URI missing_uri = eckit::RadosKeyValue{pool, missing_ns, "catalogue_kv"}.uri();
+
+        EXPECT_THROWS_AS(fdb5::CatalogueReaderFactory::instance().build(missing_uri, config),
+                         fdb5::DatabaseNotFoundException);
+        EXPECT_THROWS_AS(fdb5::CatalogueWriterFactory::instance().build(missing_uri, config),
+                         fdb5::DatabaseNotFoundException);
     }
 
     SECTION("RadosCatalogue supports large serialised field locations") {
