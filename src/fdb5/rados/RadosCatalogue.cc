@@ -8,14 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-// #include "eckit/config/Resource.h"
-// #include "eckit/serialisation/MemoryStream.h"
-// #include "eckit/io/rados/RadosException.h"
-
-// #include "fdb5/api/helpers/ControlIterator.h"
-// #include "fdb5/LibFdb5.h"
-// #include "fdb5/database/DatabaseNotFoundException.h"
-
 #include "fdb5/rados/RadosCatalogue.h"
 
 #include "fdb5/LibFdb5.h"
@@ -122,12 +114,6 @@ void RadosCatalogue::loadSchema() {
 
     rule_ = &schema_.matchingRule(dbKey_);
 }
-
-// WipeVisitor* RadosCatalogue::wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request,
-//                                          std::ostream& out, bool doit, bool porcelain, bool unsafeWipeAll) const {
-//     NOTIMP;
-//     // return new RadosWipeVisitor(*this, store, request, out, doit, porcelain, unsafeWipeAll);
-// }
 
 std::vector<Index> RadosCatalogue::indexes(bool) const {
 

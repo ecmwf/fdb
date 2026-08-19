@@ -105,14 +105,10 @@ std::set<eckit::URI> RadosStore::collocatedDataURIs() const {
         return store_unit_uris;
     }
 
-    /// @note if a RadosCatalogue is implemented, some filtering will need to
-    ///   be done here to discriminate store objects from catalogue objects
     for (const auto& obj : n.listObjects()) {
-
         if (obj.name().find(";part-") != std::string::npos) {
             continue;
         }
-
         store_unit_uris.insert(obj.uri());
     }
 
@@ -120,15 +116,10 @@ std::set<eckit::URI> RadosStore::collocatedDataURIs() const {
 }
 
 std::set<eckit::URI> RadosStore::asCollocatedDataURIs(const std::set<eckit::URI>& uris) const {
-
     std::set<eckit::URI> res;
-
-    /// @note: this is only uniquefying the input uris (coming from an index)
-    ///   in case theres any duplicate.
     for (const auto& uri : uris) {
         res.insert(uri);
     }
-
     return res;
 }
 
@@ -136,7 +127,6 @@ bool RadosStore::exists() const {
     return eckit::RadosNamespace(pool_, db_namespace_).exists();
 }
 
-/// @todo: never used in actual fdb-read?
 eckit::DataHandle* RadosStore::retrieve(Field& field) const {
     return field.dataHandle();
 }
@@ -176,8 +166,6 @@ size_t RadosStore::flush() {
         return 0;
     }
 
-    /// @note: the multipart handles need to persist the multipart attributes which is
-    ///   performed in the multihandle flush.
     flushDataHandles();
 
     size_t out = archivedFields_;

@@ -243,7 +243,6 @@ void RadosCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
         ///   empty sets. This is fine.
         const auto& axis_set = current_.axes().values(keyword);
 
-        // if (!axis_set.has_value() || !axis_set->get().contains(value)) {
         if (!axis_set.contains(value)) {
 
             axesToExpand.push_back(keyword);

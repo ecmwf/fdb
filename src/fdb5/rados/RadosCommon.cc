@@ -107,9 +107,6 @@ void RadosCommon::readConfig(const Config& config, const std::string& component,
     if (nspace_prefix_.find('_') != std::string::npos) {
         throw eckit::UserError("RADOS namespace_prefix must not contain underscores: '" + nspace_prefix_ + "'", Here());
     }
-
-    // if (c.has("client"))
-    //     DaosManager::instance().configure(c.getSubConfiguration("client"));
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -12,13 +12,26 @@
 #include "fdb5/rados/RadosEngine.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/database/Engine.h"
+#include "fdb5/database/Key.h"
 
+#include "metkit/mars/MarsRequest.h"
+
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/rados/RadosKeyValue.h"
+#include "eckit/log/CodeLocation.h"
+#include "eckit/log/Log.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/Tokenizer.h"
 
-using namespace eckit;
+#include <cctype>
+#include <functional>
+#include <ostream>
+#include <string>
+#include <vector>
 
 namespace fdb5 {
 
@@ -36,7 +49,7 @@ eckit::URI RadosEngine::location(const Key& key, const Config& config) const {
 
     readConfig(config, "catalogue", true);
 
-    const std::string db_namespace = nspace_prefix_ + "_" + key.valuesToString();
+    const std::string db_namespace = nspacePrefix_ + "_" + key.valuesToString();
     return eckit::RadosKeyValue{pool_, db_namespace, "catalogue_kv"}.uri();
 }
 
@@ -55,8 +68,8 @@ bool RadosEngine::canHandle(const eckit::URI& uri, const Config&) const {
         return eckit::RadosKeyValue{parts[0], parts[1], "catalogue_kv"}.exists();
     }
     catch (const eckit::Exception& e) {
-        Log::debug<LibFdb5>() << "RadosEngine::canHandle: exception checking URI " << uri << ": " << e.what()
-                              << std::endl;
+        eckit::Log::debug<LibFdb5>() << "RadosEngine::canHandle: exception checking URI " << uri << ": " << e.what()
+                                     << std::endl;
         return false;
     }
 }
@@ -72,20 +85,20 @@ std::vector<eckit::URI> RadosEngine::visitableLocations(const std::function<bool
 
     readConfig(config, component, true);
 
-    root_kv_.emplace(pool_, root_namespace_, "main_kv");
+    rootKv_.emplace(pool_, rootNamespace_, "main_kv");
 
     std::vector<eckit::URI> res{};
 
-    if (!root_kv_->exists()) {
+    if (!rootKv_->exists()) {
         return res;
     }
 
-    for (const auto& k : root_kv_->keys()) {
+    for (const auto& k : rootKv_->keys()) {
 
         try {
 
             std::vector<char> v;
-            root_kv_->getMemoryStream(v, k, "root kv");
+            rootKv_->getMemoryStream(v, k, "root kv");
 
             eckit::URI uri(std::string(v.begin(), v.end()));
             ASSERT(uri.scheme() == typeName());
@@ -97,12 +110,12 @@ std::vector<eckit::URI> RadosEngine::visitableLocations(const std::function<bool
             fdb5::Key db_key(ms);
 
             if (matches(db_key)) {
-                Log::debug<LibFdb5>() << " found match with " << root_kv_->uri() << " at key " << k << std::endl;
+                eckit::Log::debug<LibFdb5>() << " found match with " << rootKv_->uri() << " at key " << k << std::endl;
                 res.push_back(uri);
             }
         }
         catch (eckit::Exception& e) {
-            eckit::Log::error() << "Error loading FDB database " << k << " from " << root_kv_->uri() << std::endl;
+            eckit::Log::error() << "Error loading FDB database " << k << " from " << rootKv_->uri() << std::endl;
             eckit::Log::error() << e.what() << std::endl;
         }
     }
@@ -114,7 +127,8 @@ std::vector<eckit::URI> RadosEngine::visitableLocations(const Key& key, const Co
     return visitableLocations([&key](const fdb5::Key& dbKey) { return dbKey.match(key); }, config);
 }
 
-std::vector<URI> RadosEngine::visitableLocations(const metkit::mars::MarsRequest& request, const Config& config) const {
+std::vector<eckit::URI> RadosEngine::visitableLocations(const metkit::mars::MarsRequest& request,
+                                                        const Config& config) const {
     return visitableLocations([&request](const fdb5::Key& dbKey) { return dbKey.partialMatch(request); }, config);
 }
 
@@ -125,8 +139,6 @@ void RadosEngine::readConfig(const fdb5::Config& config, const std::string& comp
     if (config.has("rados")) {
         c = config.getSubConfiguration("rados");
     }
-
-    // maxPartSize_ = c.getInt("maxPartSize", 0);
 
     std::string first_cap{component};
     first_cap[0] = toupper(component[0]);
@@ -139,7 +151,7 @@ void RadosEngine::readConfig(const fdb5::Config& config, const std::string& comp
     if (readPool) {
         pool_ = "default";
     }
-    root_namespace_ = "root";
+    rootNamespace_ = "root";
 
     if (readPool) {
         pool_ = c.getString("pool", pool_);
@@ -147,23 +159,23 @@ void RadosEngine::readConfig(const fdb5::Config& config, const std::string& comp
             pool_ = c.getSubConfiguration(component).getString("pool", pool_);
         }
     }
-    root_namespace_ = c.getString("root_namespace", root_namespace_);
+    rootNamespace_ = c.getString("root_namespace", rootNamespace_);
     if (c.has(component)) {
-        root_namespace_ = c.getSubConfiguration(component).getString("root_namespace", root_namespace_);
+        rootNamespace_ = c.getSubConfiguration(component).getString("root_namespace", rootNamespace_);
     }
 
     if (readPool) {
         pool_ = eckit::Resource<std::string>("fdbRados" + first_cap + "Pool;$FDB_RADOS_" + all_caps + "_POOL", pool_);
     }
-    root_namespace_ = eckit::Resource<std::string>(
-        "fdbRados" + first_cap + "RootNamespace;$FDB_RADOS_" + all_caps + "_ROOT_NAMESPACE", root_namespace_);
+    rootNamespace_ = eckit::Resource<std::string>(
+        "fdbRados" + first_cap + "RootNamespace;$FDB_RADOS_" + all_caps + "_ROOT_NAMESPACE", rootNamespace_);
 
-    nspace_prefix_ = c.getString("namespace_prefix", nspace_prefix_);
+    nspacePrefix_ = c.getString("namespace_prefix", nspacePrefix_);
     if (c.has(component)) {
-        nspace_prefix_ = c.getSubConfiguration(component).getString("namespace_prefix", nspace_prefix_);
+        nspacePrefix_ = c.getSubConfiguration(component).getString("namespace_prefix", nspacePrefix_);
     }
-    if (nspace_prefix_.find('_') != std::string::npos) {
-        throw eckit::UserError("RADOS namespace_prefix must not contain underscores: '" + nspace_prefix_ + "'", Here());
+    if (nspacePrefix_.find('_') != std::string::npos) {
+        throw eckit::UserError("RADOS namespace_prefix must not contain underscores: '" + nspacePrefix_ + "'", Here());
     }
 }
 

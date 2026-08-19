@@ -40,11 +40,6 @@ public:  // methods
         NOTIMP;
     };
 
-    //     // Hide the contents of the DB!!!
-    //     void hideContents() override;
-
-    //     bool enabled(const ControlIdentifier& controlIdentifier) const override;
-
     const Index& currentIndex() override;
 
 protected:  // methods

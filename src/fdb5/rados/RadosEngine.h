@@ -14,11 +14,9 @@
 #pragma once
 
 #include "fdb5/database/Engine.h"
-#include "fdb5/fdb5_config.h"
 
 #include "metkit/mars/MarsRequest.h"
 
-#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/rados/RadosKeyValue.h"
 
@@ -58,8 +56,6 @@ protected:  // methods
 
 private:  // methods
 
-    /// @note: shared implementation of the two visitableLocations overloads; lists all databases
-    ///   registered in the root key-value and returns those whose key satisfies the predicate.
     std::vector<eckit::URI> visitableLocations(const std::function<bool(const fdb5::Key&)>& matches,
                                                const Config& config) const;
 
@@ -68,17 +64,13 @@ private:  // methods
 protected:  // members
 
     mutable std::string pool_;
-    mutable std::string root_namespace_;
-    // std::string db_namespace_;
+    mutable std::string rootNamespace_;
 
-    mutable std::optional<eckit::RadosKeyValue> root_kv_;
-    // std::optional<eckit::RadosKeyValue> db_kv_;
-
-    // eckit::Length maxPartSize_;
+    mutable std::optional<eckit::RadosKeyValue> rootKv_;
 
 private:  // members
 
-    mutable std::string nspace_prefix_;
+    mutable std::string nspacePrefix_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

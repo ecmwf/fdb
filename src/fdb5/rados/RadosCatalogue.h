@@ -53,13 +53,10 @@ public:  // methods
     RadosCatalogue(const Key& key, const fdb5::Config& config);
     RadosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config);
 
-    // static const char* catalogueTypeName() { return fdb5::RadosEngine::typeName(); }
     static const char* catalogueTypeName() { return "rados"; }
 
     eckit::URI uri() const override;
     const Key& indexKey() const override { return currentIndexKey_; }
-
-    // static void remove(const eckit::RadosObject&, std::ostream& logAlways, std::ostream& logVerbose, bool doit);
 
     std::string type() const override;
 
@@ -72,14 +69,10 @@ public:  // methods
 
     StatsReportVisitor* statsReportVisitor() const override { NOTIMP; };
     PurgeVisitor* purgeVisitor(const Store& store) const override { NOTIMP; };
-    // WipeVisitor* wipeVisitor(const Store& store, const metkit::mars::MarsRequest& request, std::ostream& out, bool
-    // doit,
-    //                          bool porcelain, bool unsafeWipeAll) const override;
     MoveVisitor* moveVisitor(const Store& store, const metkit::mars::MarsRequest& request, const eckit::URI& dest,
                              eckit::Queue<MoveElement>& queue) const override {
         NOTIMP;
     };
-    // void maskIndexEntry(const Index& index) const override { NOTIMP; };
 
     void loadSchema() override;
 
