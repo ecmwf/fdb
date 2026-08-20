@@ -18,6 +18,7 @@
 #include "fdb5/toc/TocCatalogueReader.h"
 #include "fdb5/toc/TocCatalogueWriter.h"
 
+#include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"

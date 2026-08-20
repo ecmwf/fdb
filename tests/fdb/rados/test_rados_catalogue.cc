@@ -27,6 +27,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
