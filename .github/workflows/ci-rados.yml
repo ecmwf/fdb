@@ -77,7 +77,7 @@ jobs:
         with:
           path: ${{ github.workspace }}/.apt-cache
           # Bump the suffix to invalidate when the package list changes.
-          key: apt-rados-${{ runner.os }}-v1
+          key: apt-rados-${{ runner.os }}-v2
 
       - name: Install build dependencies
         run: |
@@ -106,7 +106,7 @@ jobs:
         with:
           path: ${{ github.workspace }}/.docker-ceph
           # Bump the suffix to refresh the pinned image snapshot.
-          key: ceph-image-522483cf07cf-v1
+          key: ceph-image-522483cf07cf-v2
 
       - name: Load or pull Ceph image
         run: |
