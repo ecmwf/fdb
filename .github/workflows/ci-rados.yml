@@ -126,6 +126,7 @@ jobs:
             -e MON_IP=127.0.0.1 \
             -e CEPH_PUBLIC_NETWORK=0.0.0.0/0 \
             -e CEPH_DEMO_UID=ci \
+            -e DEMO_DAEMONS=mon,mgr,osd \
             -v "${CEPH_ETC}:/etc/ceph" \
             "${CEPH_IMAGE}" demo
 
@@ -144,6 +145,20 @@ jobs:
             docker logs ceph-demo || true
             exit 1
           fi
+          echo "Waiting for Ceph cluster health..."
+          for i in $(seq 1 60); do
+            if docker exec ceph-demo ceph health 2>/dev/null | grep -q '^HEALTH_OK'; then
+              health_ready=1
+              break
+            fi
+            sleep 5
+          done
+          if [ "${health_ready:-0}" != "1" ]; then
+            echo "Ceph cluster did not become healthy in time" >&2
+            docker exec ceph-demo ceph status || true
+            docker logs ceph-demo || true
+            exit 1
+          fi
           docker exec ceph-demo ceph config set mon mon_allow_pool_size_one true
           docker exec ceph-demo ceph osd pool create "${FDB_RADOS_TEST_POOL}" 8 8
           # The demo cluster has one OSD; its test pool must use a single replica to become active+clean.
@@ -152,8 +167,8 @@ jobs:
           docker exec ceph-demo ceph osd pool application enable "${FDB_RADOS_TEST_POOL}" rados
           echo "Waiting for ${FDB_RADOS_TEST_POOL} placement groups to become active+clean..."
           for i in $(seq 1 60); do
-            if docker exec ceph-demo ceph pg ls-by-pool "${FDB_RADOS_TEST_POOL}" --format json 2>/dev/null | \
-              jq -e 'length > 0 and all(.[]; (.state | contains("active+clean")))' >/dev/null 2>&1; then
+            if docker exec ceph-demo ceph pg stat 2>/dev/null | \
+              awk '$2 == "pgs:" { gsub("[,;]", "", $4); exit !($1 == $3 && $4 == "active+clean") }'; then
               pool_ready=1
               break
             fi
