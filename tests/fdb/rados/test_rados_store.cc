@@ -10,22 +10,47 @@
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/Engine.h"
+#include "fdb5/database/Field.h"
+#include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/Store.h"
 #include "fdb5/fdb5_config.h"
 #include "fdb5/rados/RadosFieldLocation.h"
 #include "fdb5/rados/RadosStore.h"
+#include "fdb5/rules/Schema.h"
 #include "fdb5/toc/TocCatalogueReader.h"
 #include "fdb5/toc/TocCatalogueWriter.h"
+
+#include "metkit/mars/MarsRequest.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/TmpFile.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/DataHandle.h"
 #include "eckit/io/MemoryHandle.h"
+#include "eckit/io/Offset.h"
 #include "eckit/io/PartHandle.h"
+#include "eckit/io/rados/RadosCluster.h"
+#include "eckit/io/rados/RadosNamespace.h"
+#include "eckit/io/rados/RadosObject.h"
+#include "eckit/io/rados/RadosPool.h"
 #include "eckit/testing/Test.h"
+
+#include <cstddef>
+#include <cstring>
+#include <ctime>
+#include <iostream>
+#include <memory>
+#include <ostream>
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace eckit;
 
@@ -370,16 +395,6 @@ CASE("RadosStore tests") {
         store.remove(store_uri, out, out, true);
         EXPECT_NOT(field_name.exists());
         EXPECT(store_name.listObjects().size() == 0);
-
-        // deindex data
-
-        // {
-        //     fdb5::TocCatalogueWriter tcat{db_key, config};
-        //     fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);
-        //     metkit::mars::MarsRequest r = db_key.request("retrieve");
-        //     std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
-        //     cat.visitEntries(*wv, store, false);
-        // }
     }
 
     SECTION("VIA FDB API") {
