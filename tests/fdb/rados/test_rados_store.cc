@@ -40,6 +40,7 @@
 #include "eckit/io/rados/RadosNamespace.h"
 #include "eckit/io/rados/RadosObject.h"
 #include "eckit/io/rados/RadosPool.h"
+#include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
 
 #include <cstddef>
@@ -107,6 +108,25 @@ eckit::TmpFile& schema_file() {
 eckit::PathName& store_tests_tmp_root() {
     static eckit::PathName sd("./rados_store_tests_fdb_root");
     return sd;
+}
+
+void cleanupRados() noexcept {
+    try {
+#ifdef fdb5_HAVE_RADOS_TESTS_MANAGE_POOLS
+        ensureCleanPools("test-store");
+#else
+        const std::string pool = eckit::Resource<std::string>("fdbRadosTestPool;$FDB_RADOS_TEST_POOL", "");
+        for (const std::string& prefix : {"test-store1", "test-store2", "test-store3", "test-store4"}) {
+            ensureCleanNamespaces(pool, prefix);
+        }
+#endif
+        if (store_tests_tmp_root().exists()) {
+            deldir(store_tests_tmp_root());
+        }
+    }
+    catch (...) {
+        eckit::Log::error() << "FDB RADOS store cleanup failed" << std::endl;
+    }
 }
 
 /// @note: counts only the URIs that would actually be deleted, filtering out purely
@@ -676,11 +696,10 @@ int main(int argc, char** argv) {
         ret = eckit::testing::run_tests(argc, argv);
     }
     catch (...) {
+        eckit::Log::error() << "FDB RADOS store tests terminated with an exception" << std::endl;
     }
 
-#ifdef fdb5_HAVE_RADOS_TESTS_MANAGE_POOLS
-    ensureCleanPools("test-store");
-#endif
+    cleanupRados();
 
     return ret;
 }

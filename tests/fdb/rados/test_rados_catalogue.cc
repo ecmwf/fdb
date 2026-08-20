@@ -40,6 +40,7 @@
 #include "eckit/io/rados/RadosCluster.h"
 #include "eckit/io/rados/RadosNamespace.h"
 #include "eckit/io/rados/RadosPool.h"
+#include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
 
 #include <cstddef>
@@ -124,6 +125,23 @@ eckit::TmpFile& opt_schema_file() {
 eckit::PathName& catalogue_tests_tmp_root() {
     static eckit::PathName cd("./rados_catalogue_tests_fdb_root");
     return cd;
+}
+
+void cleanupRados() noexcept {
+    try {
+#ifdef eckit_HAVE_RADOS_TESTS_MANAGE_POOLS
+        eckit::RadosPool{"test-catalogue"}.ensureDestroyed();
+#else
+        ensureCleanNamespaces(eckit::Resource<std::string>("fdbRadosTestPool;$FDB_RADOS_TEST_POOL", ""),
+                              "test-catalogue");
+#endif
+        if (catalogue_tests_tmp_root().exists()) {
+            deldir(catalogue_tests_tmp_root());
+        }
+    }
+    catch (...) {
+        eckit::Log::error() << "FDB RADOS catalogue cleanup failed" << std::endl;
+    }
 }
 
 }  // namespace
@@ -973,5 +991,14 @@ CASE("RadosCatalogue tests") {
 //----------------------------------------------------------------------------------------------------------------------
 
 int main(int argc, char** argv) {
-    return eckit::testing::run_tests(argc, argv);
+    int ret = -1;
+    try {
+        ret = eckit::testing::run_tests(argc, argv);
+    }
+    catch (...) {
+        eckit::Log::error() << "FDB RADOS catalogue tests terminated with an exception" << std::endl;
+    }
+
+    cleanupRados();
+    return ret;
 }
