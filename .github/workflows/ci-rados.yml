@@ -152,8 +152,8 @@ jobs:
           docker exec ceph-demo ceph osd pool application enable "${FDB_RADOS_TEST_POOL}" rados
           echo "Waiting for ${FDB_RADOS_TEST_POOL} placement groups to become active+clean..."
           for i in $(seq 1 60); do
-            if docker exec ceph-demo ceph pg ls-by-pool "${FDB_RADOS_TEST_POOL}" --format json | \
-              jq -e 'length > 0 and all(.[]; .state == "active+clean")' >/dev/null 2>&1; then
+            if docker exec ceph-demo ceph pg ls-by-pool "${FDB_RADOS_TEST_POOL}" --format json 2>/dev/null | \
+              jq -e 'length > 0 and all(.[]; (.state | contains("active+clean")))' >/dev/null 2>&1; then
               pool_ready=1
               break
             fi
