@@ -182,7 +182,7 @@ CASE("RadosStore tests") {
     SECTION("archive and retrieve") {
 
         std::string test_id = "test-store1";
-#ifdef eckit_HAVE_RADOS_TESTS_MANAGE_POOLS
+#ifdef fdb5_HAVE_RADOS_TESTS_MANAGE_POOLS
         std::string pool = test_id;
         eckit::RadosPool{pool}.ensureDestroyed();
         eckit::RadosPool{pool}.ensureCreated();  /// @todo: auto pool destroyer
@@ -307,7 +307,7 @@ CASE("RadosStore tests") {
     SECTION("with POSIX Catalogue") {
 
         std::string test_id = "test-store2";
-#ifdef eckit_HAVE_RADOS_TESTS_MANAGE_POOLS
+#ifdef fdb5_HAVE_RADOS_TESTS_MANAGE_POOLS
         std::string pool = test_id;
         eckit::RadosPool{pool}.ensureDestroyed();
         eckit::RadosPool{pool}.ensureCreated();  /// @todo: auto pool destroyer
@@ -427,7 +427,7 @@ CASE("RadosStore tests") {
             deldir(store_tests_tmp_root());
         }
         store_tests_tmp_root().mkdir();
-#ifdef eckit_HAVE_RADOS_TESTS_MANAGE_POOLS
+#ifdef fdb5_HAVE_RADOS_TESTS_MANAGE_POOLS
         std::string pool = test_id;
         eckit::RadosPool{pool}.ensureDestroyed();
         eckit::RadosPool{pool}.ensureCreated();  /// @todo: auto pool destroyer
@@ -591,7 +591,7 @@ CASE("RadosStore tests") {
             deldir(store_tests_tmp_root());
         }
         store_tests_tmp_root().mkdir();
-#ifdef eckit_HAVE_RADOS_TESTS_MANAGE_POOLS
+#ifdef fdb5_HAVE_RADOS_TESTS_MANAGE_POOLS
         std::string pool = test_id;
         eckit::RadosPool{pool}.ensureDestroyed();
         eckit::RadosPool{pool}.ensureCreated();  /// @todo: auto pool destroyer

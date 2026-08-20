@@ -129,7 +129,7 @@ eckit::PathName& catalogue_tests_tmp_root() {
 
 void cleanupRados() noexcept {
     try {
-#ifdef eckit_HAVE_RADOS_TESTS_MANAGE_POOLS
+#ifdef fdb5_HAVE_RADOS_TESTS_MANAGE_POOLS
         eckit::RadosPool{"test-catalogue"}.ensureDestroyed();
 #else
         ensureCleanNamespaces(eckit::Resource<std::string>("fdbRadosTestPool;$FDB_RADOS_TEST_POOL", ""),
@@ -185,7 +185,7 @@ CASE("Setup") {
 CASE("RadosCatalogue tests") {
 
     std::string test_id = "test-catalogue";
-#ifdef eckit_HAVE_RADOS_TESTS_MANAGE_POOLS
+#ifdef fdb5_HAVE_RADOS_TESTS_MANAGE_POOLS
     std::string pool = test_id;
     eckit::RadosPool{pool}.ensureDestroyed();
     eckit::RadosPool{pool}.ensureCreated();  /// @todo: auto pool destroyer
@@ -790,7 +790,7 @@ CASE("RadosCatalogue tests") {
 
     SECTION("Via FDB API with a Rados catalogue and store") {
 
-#ifdef eckit_HAVE_RADOS_TESTS_MANAGE_POOLS
+#ifdef fdb5_HAVE_RADOS_TESTS_MANAGE_POOLS
         eckit::RadosPool{pool}.ensureDestroyed();
         eckit::RadosPool{pool}.ensureCreated();
 #else
@@ -979,7 +979,7 @@ CASE("RadosCatalogue tests") {
 
     // teardown rados
 
-#ifdef eckit_HAVE_RADOS_TESTS_MANAGE_POOLS
+#ifdef fdb5_HAVE_RADOS_TESTS_MANAGE_POOLS
     eckit::RadosPool{pool}.ensureDestroyed();
 #else
     ensureCleanNamespaces(pool, test_id);
