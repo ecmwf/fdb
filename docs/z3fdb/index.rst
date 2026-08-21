@@ -17,7 +17,6 @@ Z3FDB
    getting_started
    dimension_mapping
    architecture
-   api
 
 .. toctree::
    :maxdepth: 1
@@ -36,6 +35,14 @@ Z3FDB
    technical_insights/chunk_access
    technical_insights/buffer_layout
    technical_insights/extractor
+   technical_insights/extractor_backends
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Reference:
+   :hidden:
+
+   api
 
 
 
@@ -64,7 +71,7 @@ acceptable. That trade-off makes sense in two situations:
 **Prototyping with an existing FDB**
    You have GRIB data in FDB and want a Zarr interface without first writing
    everything to disk. Redefining the store is a matter of changing a few lines
-   of Python -- no data copy required. Z3FDB stores are cheap to create because
+   of Python, with no data copy required. Z3FDB stores are cheap to create because
    data is only fetched when a chunk is accessed.
 
 **Very large datasets**

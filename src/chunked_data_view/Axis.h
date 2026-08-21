@@ -47,7 +47,8 @@ class AxisChunks {
 
 public:
 
-    explicit AxisChunks(const std::vector<std::variant<size_t, std::tuple<size_t, size_t>>>& chunks, bool singleGrowingChunk) :
+    explicit AxisChunks(const std::vector<std::variant<size_t, std::tuple<size_t, size_t>>>& chunks,
+                        bool singleGrowingChunk) :
         singleGrowingChunk_(singleGrowingChunk) {
         for (const auto& element : chunks) {
             if (std::holds_alternative<size_t>(element)) {

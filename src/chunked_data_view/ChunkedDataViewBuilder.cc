@@ -5,6 +5,7 @@
 #include "ChunkedDataViewImpl.h"
 #include "chunked_data_view/AxisDefinition.h"
 #include "chunked_data_view/ChunkedDataView.h"
+#include "chunked_data_view/DataLayout.h"
 #include "chunked_data_view/Extractor.h"
 #include "chunked_data_view/ViewPart.h"
 #include "chunked_data_view/mapping/AxisMapper.h"
@@ -28,8 +29,10 @@ ChunkedDataViewBuilder::ChunkedDataViewBuilder(const std::optional<std::filesyst
 
 ChunkedDataViewBuilder& ChunkedDataViewBuilder::addPart(std::string marsRequestKeyValues,
                                                         std::vector<AxisDefinition> axes,
-                                                        std::unique_ptr<ExtractorDefinition> definition) {
-    parts_.emplace_back(std::move(marsRequestKeyValues), std::move(axes), std::move(definition));
+                                                        const ExtractorDefinition& definition) {
+    auto copiedDefinition = definition.copy();
+    copiedDefinition->setDefaultIfUnset(configPath_);  // Set the default
+    parts_.emplace_back(std::move(marsRequestKeyValues), std::move(axes), std::move(copiedDefinition));
     return *this;
 }
 
@@ -68,6 +71,34 @@ bool ChunkedDataViewBuilder::chunkingConsistencyCheck(
         }
     }
     return true;
+}
+
+void ChunkedDataViewBuilder::validateLayouts(
+    const std::vector<std::pair<ViewPart, std::unique_ptr<Extractor>>>& viewParts) {
+
+    const DataLayout& reference = viewParts[0].second->layout();
+
+    for (size_t index = 1; index < viewParts.size(); ++index) {
+        const DataLayout& current = viewParts[index].second->layout();
+
+        if (current.countValues != reference.countValues) {
+            std::ostringstream ss;
+            ss << "ChunkedDataViewBuilder::build: part " << index << " has " << current.countValues
+               << " grid points but part 0 has " << reference.countValues
+               << ". The grid-point dimension is never the extension axis, so every part must cover the same "
+                  "grid; a view cannot have a ragged last dimension.";
+            throw eckit::UserError(ss.str());
+        }
+
+        if (current.countChunkValues != reference.countChunkValues) {
+            std::ostringstream ss;
+            ss << "ChunkedDataViewBuilder::build: part " << index << " splits the grid-point dimension into chunks of "
+               << current.countChunkValues << " values but part 0 uses " << reference.countChunkValues
+               << ". All parts must agree on the field chunking, so a GribJump part mixed with a Grib part has to "
+                  "use the default WholeAxisChunking.";
+            throw eckit::UserError(ss.str());
+        }
+    }
 }
 
 bool ChunkedDataViewBuilder::doPartsAlign(
@@ -114,9 +145,6 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
         const auto request = requests.at(0).request();
 
         try {
-            auto ext = extDef->buildExtractor(request);
-            ext->setFillValue(fillValue_);
-
             const auto axes = AxisMapper::mapRequestToAxis(request, defs);
 
             // Create offset vector
@@ -126,6 +154,8 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
             ViewPart vp(std::move(request), axes, offsetInChunkedDataView);
             part_offsets.push_back(part_offsets.back() + vp.extension()[extensionAxisIndex_.value_or(0)]);
 
+            auto ext = extDef->buildExtractor(request);
+            ext->setFillValue(fillValue_);
             viewParts.emplace_back(std::move(vp), std::move(ext));
         }
         catch (const std::exception& e) {
@@ -135,6 +165,8 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
             throw eckit::UserError(ss.str());
         }
     }
+
+    validateLayouts(viewParts);
 
     if (!doPartsAlign(viewParts)) {
         throw eckit::UserError("Shape of all parts must be identical except for the extension axis index.");

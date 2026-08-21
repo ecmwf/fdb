@@ -5,7 +5,6 @@
 #include "chunked_data_view/Extractor.h"
 
 #include <filesystem>
-#include <limits>
 #include <memory>
 #include <optional>
 
@@ -17,10 +16,19 @@ namespace chunked_data_view {
 /// applying the configured fill value.
 class GribExtractorDefinition : public ExtractorDefinition {
 public:
+
+    GribExtractorDefinition() = default;
+    GribExtractorDefinition(const GribExtractorDefinition&) = default;
+    GribExtractorDefinition& operator=(const GribExtractorDefinition&) = default;
+    GribExtractorDefinition(GribExtractorDefinition&&) = default;
+    GribExtractorDefinition& operator=(GribExtractorDefinition&&) = default;
+
     /// FDB config path. std::nullopt uses the environment default (FDB5_CONFIG / FDB_HOME).
     std::optional<std::filesystem::path> fdbConfig;
-    /// Fill value written for bitmap-masked (missing) grid points. Default: NaN.
-    float fillValue = std::numeric_limits<float>::quiet_NaN();
+
+    void setDefaultIfUnset(const std::optional<std::filesystem::path>& fdbConfigPath) override;
+
+    std::unique_ptr<ExtractorDefinition> copy() const override;
 
     std::unique_ptr<Extractor> buildExtractor(const metkit::mars::MarsRequest& request) const override;
 };

@@ -137,7 +137,7 @@ class FdbSource:
         self._dim_names = dim_names
 
         self._shape = self._chunked_data_view.shape()
-        self._chunks = self._chunked_data_view.chunkShape()
+        self._chunks = self._chunked_data_view.chunk_shape()
         self._chunks_per_dimension = self._chunked_data_view.chunks()
         self._fill_value = self._chunked_data_view.fill_missing_value()
 

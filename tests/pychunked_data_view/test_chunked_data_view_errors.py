@@ -75,3 +75,16 @@ def test_invalid_chunking_type_raises() -> None:
     """
     with pytest.raises(TypeError, match="chunking must be Chunking"):
         AxisDefinition(["param"], object())
+
+
+@pytest.mark.parametrize("chunk_shape", [0], ids=["zero"])
+def test_invalid_fixed_chunk_size_rejected_on_construction(chunk_shape) -> None:
+    """A non-positive chunk size is refused by FixedSizeChunking itself.
+
+    AxisDefinition::FixedSizeChunking asserts chunkSize > 0 in its constructor, so this fails
+    as soon as the chunking object is built — before any AxisDefinition, builder, request or
+    FDB is involved. Placed here rather than with the extractor tests because it is a property
+    of the chunking type, independent of which extractor consumes it.
+    """
+    with pytest.raises(Exception, match="The supplied chunk shape needs to be positive"):
+        Chunking.FixedSizeChunk(chunk_shape=chunk_shape)

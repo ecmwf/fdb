@@ -6,6 +6,7 @@
 #include <string>
 #include <variant>
 #include <vector>
+#include "eckit/exception/Exceptions.h"
 
 namespace chunked_data_view {
 
@@ -30,6 +31,7 @@ struct AxisDefinition {
     /// @p chunkSize must evenly divide the combined axis size, or evenly divide the
     /// fastest-varying constituent key's value count.
     struct FixedSizeChunking {
+        FixedSizeChunking(size_t chunkSize) : chunkSize(chunkSize) { ASSERT(chunkSize > 0); }
         size_t chunkSize;
     };
 

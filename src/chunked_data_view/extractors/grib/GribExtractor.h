@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <vector>
 
 namespace chunked_data_view {
@@ -55,6 +56,12 @@ private:  // members
 
     std::unique_ptr<FdbInterface> fdb_;
     float fillValue_ = std::numeric_limits<float>::quiet_NaN();
+
+    /// Serialises extractInto(). fdb_ is shared mutable backend state, but extractInto() is
+    /// const and the pybind11 layer releases the GIL around it, so a threaded zarr consumer
+    /// (e.g. dask) can enter it concurrently on one view. Reads serialise within a part;
+    /// separate parts own separate extractors and still proceed in parallel.
+    mutable std::mutex mutex_;
 
 private:  // methods
 

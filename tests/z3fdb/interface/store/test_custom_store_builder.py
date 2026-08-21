@@ -142,8 +142,14 @@ def test_deep_nesting(read_only_fdb_pattern_setup) -> None:
     root = zarr.open_group(store, mode="r")
     assert "analysis" in root
 
-    sfc_wind = root["analysis"]["sfc"]["wind"]
-    pl_wind = root["analysis"]["pl"]["wind"]
+    # The docstring's claim, actually asserted: exactly these two sub-groups, and no stray
+    # array left at the group level by the path-splitting logic.
+    analysis = root["analysis"]
+    assert sorted(analysis.group_keys()) == ["pl", "sfc"]
+    assert sorted(analysis.array_keys()) == []
+
+    sfc_wind = analysis["sfc"]["wind"]
+    pl_wind = analysis["pl"]["wind"]
 
     assert sfc_wind.shape[:2] == (12, 3)
     assert pl_wind.shape[:2] == (12, 9)
@@ -396,3 +402,55 @@ def test_top_level_arrays(read_only_fdb_pattern_setup) -> None:
     assert np.all(sfc[0, 0] == 0)
     # pl_value(d=0, t=0, p=0, l=0) = 36
     assert np.all(pl[0, 0] == 36)
+
+
+# extend_on_axis / fill_missing_value configure an existing array, so an unknown path is a
+# mistake. Before this was enforced they created an empty array instead, and the mistake only
+# surfaced at build() as "must add at least one part".
+def test_extend_on_axis_unknown_path_raises() -> None:
+    """Addressing a path that was never given an add_part must raise, not create it."""
+    builder = CustomStoreBuilder()
+    with pytest.raises(ValueError, match="no array registered"):
+        builder.extend_on_axis("never/registered", 0)
+
+
+def test_fill_missing_value_unknown_path_raises() -> None:
+    """Same rule for fill_missing_value."""
+    builder = CustomStoreBuilder()
+    with pytest.raises(ValueError, match="no array registered"):
+        builder.fill_missing_value("never/registered", -999.0)
+
+
+def test_configuring_a_mistyped_path_raises_and_names_the_real_one() -> None:
+    """The realistic case: a typo in an otherwise valid path.
+
+    The message must name the registered arrays, otherwise the reader has no way to spot the
+    transposition without re-reading their own code.
+    """
+    builder = CustomStoreBuilder()
+    builder.add_part("sfc/wind", _DUMMY_REQUEST, _DUMMY_AXES, _DUMMY_EXTRACTOR)
+
+    with pytest.raises(ValueError, match="sfc/wind") as excinfo:
+        builder.extend_on_axis("sfc/wnid", 1)
+    assert "sfc/wnid" in str(excinfo.value), "the rejected path should be quoted too"
+
+
+def test_configuring_root_before_add_part_raises() -> None:
+    """path=None is not exempt: the root array has to be registered first."""
+    builder = CustomStoreBuilder()
+    with pytest.raises(ValueError, match="root array"):
+        builder.fill_missing_value(None, -999.0)
+
+
+def test_fill_missing_value_reaches_the_zarr_metadata(read_only_fdb_pattern_setup) -> None:
+    """The fill value is threaded through to the array metadata, not merely accepted.
+
+    Nothing else exercises CustomStoreBuilder.fill_missing_value, so without this the plumbing
+    through FdbSource to DotZarrArrayJson is untested for the custom builder.
+    """
+    builder = CustomStoreBuilder(read_only_fdb_pattern_setup)
+    builder.add_part("sfc/wind", _SFC_REQUEST, _SFC_AXES, ExtractorType.Grib())
+    builder.fill_missing_value("sfc/wind", -999.0)
+
+    arr = zarr.open_group(builder.build(), mode="r")["sfc"]["wind"]
+    assert arr.fill_value == -999.0, f"unexpected fill_value {arr.fill_value}"

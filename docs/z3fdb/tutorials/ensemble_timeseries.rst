@@ -11,6 +11,13 @@ as a Zarr array. You will build a Z3FDB store backed by 50 ensemble members,
 plot the 2 m temperature time series for every member, and overlay the
 ensemble mean.
 
+.. note::
+
+   This tutorial uses ``ExtractorType.GribJump``, which is built only when fdb is configured
+   with ``-DENABLE_ZARR_GRIBJUMP_EXTRACTOR=ON``, off by default. On a build without it,
+   ``build()`` raises and names the flag. Check with
+   ``pychunked_data_view.has_gribjump_extractor``, and see :ref:`z3fdb_gribjump_availability`.
+
 .. contents:: On this page
    :local:
    :depth: 1
@@ -19,7 +26,7 @@ When to use GribJump
 --------------------
 
 The standard :class:`~z3fdb.ExtractorType.Grib` extractor decodes an entire
-GRIB field -- typically several million grid-point values -- just to return the
+GRIB field, typically several million grid-point values, just to return the
 portion you requested. For time series work where you need values at **one
 or a few grid points**, this is wasteful.
 
@@ -94,7 +101,7 @@ Building the Store
            AxisDefinition(keys=["step"],          chunking=Chunking.SINGLE_VALUE),
            AxisDefinition(keys=["param"],         chunking=Chunking.SINGLE_VALUE),
        ],
-       extractor=ExtractorType.GribJump(chunking=Chunking.FixedSizeChunk(chunk_shape=1)),
+       extractor=ExtractorType.GribJump(field_chunking=Chunking.FixedSizeChunk(chunk_shape=1)),
    )
    store = builder.build()
    arr = zarr.open_array(store, mode="r")
@@ -103,7 +110,7 @@ Building the Store
    Combines date and time into a single dimension. With one date and four
    init times this gives 4 entries, ordered as time cycles within each date.
 
-``ExtractorType.GribJump(chunking=Chunking.FixedSizeChunk(chunk_shape=1))``
+``ExtractorType.GribJump(field_chunking=Chunking.FixedSizeChunk(chunk_shape=1))``
    Uses GribJump as the extraction backend. ``FixedSizeChunk(chunk_shape=1)``
    makes each grid point its own chunk: accessing ``arr[..., k]`` retrieves
    exactly the value at grid point ``k`` without decoding the full field.
@@ -131,7 +138,7 @@ Its size ``N`` is determined by the GRIB grid (for a global O1280 grid,
 ``N ~ 6 600 000``).
 
 **No data is fetched from FDB until you index.** Building the store is
-cheap -- it probes one representative field to determine the layout but does
+cheap. It probes one representative field to determine the layout, but does
 not retrieve the full dataset.
 
 Plotting the Temperature Time Series
@@ -168,7 +175,7 @@ plot.
 
    ax.set_xlabel("Forecast step (hours)")
    ax.set_ylabel("2m Temperature (K)")
-   ax.set_title("2m Temperature -- 50 ensemble members and mean\n"
+   ax.set_title("2m Temperature, 50 ensemble members and mean\n"
                 f"Grid point {GRID_POINT}, init {_REQUEST['date']} {_REQUEST['time'][INIT_TIME]}")
    ax.legend()
    plt.tight_layout()
@@ -176,8 +183,8 @@ plot.
    plt.show()
 
 The statement ``arr[INIT_TIME, :, :, T2M, GRID_POINT]`` is a single zarr
-read that triggers 50 x 109 = 5 450 GribJump extractions -- one per
-(member, step) combination -- and returns a ``(50, 109)`` NumPy array.
+read that triggers 50 x 109 = 5 450 GribJump extractions, one per
+(member, step) combination. It returns a ``(50, 109)`` NumPy array.
 
 .. note::
 
@@ -189,7 +196,7 @@ read that triggers 50 x 109 = 5 450 GribJump extractions -- one per
 Next Steps
 ----------
 
-* :doc:`/z3fdb/dimension_mapping` -- full reference on axis mapping, chunking
+* :doc:`../dimension_mapping` for the full reference on axis mapping, chunking
   strategies, fill values, and multi-part views.
-* :doc:`/z3fdb/getting_started` -- introduction to ``SimpleStoreBuilder``
+* :doc:`../getting_started` for an introduction to ``SimpleStoreBuilder``
   covering surface and pressure-level data in a single array.

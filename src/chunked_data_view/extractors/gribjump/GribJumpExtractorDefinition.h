@@ -6,7 +6,6 @@
 #include "chunked_data_view/Extractor.h"
 
 #include <filesystem>
-#include <limits>
 #include <memory>
 #include <optional>
 
@@ -19,15 +18,23 @@ namespace chunked_data_view {
 class GribJumpExtractorDefinition : public ExtractorDefinition {
 public:
 
+    GribJumpExtractorDefinition() = default;
+    GribJumpExtractorDefinition(const GribJumpExtractorDefinition&) = default;
+    GribJumpExtractorDefinition& operator=(const GribJumpExtractorDefinition&) = default;
+    GribJumpExtractorDefinition(GribJumpExtractorDefinition&&) = default;
+    GribJumpExtractorDefinition& operator=(GribJumpExtractorDefinition&&) = default;
+
     /// FDB config path. std::nullopt uses the environment default (FDB5_CONFIG / FDB_HOME).
     std::optional<std::filesystem::path> fdbConfig;
-    /// Fill value written for bitmap-masked (missing) grid points. Default: NaN.
-    float fillValue = std::numeric_limits<float>::quiet_NaN();
     /// GribJump config path. std::nullopt reads the GRIBJUMP_CONFIG_FILE env var.
     std::optional<std::filesystem::path> gribjumpConfig;
     /// Chunking strategy for the implicit (grid-point) dimension.
     /// Defaults to WholeAxisChunking (single chunk covering the full field/window).
     AxisDefinition::ChunkingType fieldChunking{AxisDefinition::WholeAxisChunking{}};
+
+    void setDefaultIfUnset(const std::optional<std::filesystem::path>& fdbConfigPath) override;
+
+    std::unique_ptr<ExtractorDefinition> copy() const override;
 
     std::unique_ptr<Extractor> buildExtractor(const metkit::mars::MarsRequest& request) const override;
 };

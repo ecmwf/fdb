@@ -10,15 +10,15 @@ When a Zarr chunk is read from a Z3FDB store, the library executes three
 steps for every ``Part`` (one per :meth:`~z3fdb.SimpleStoreBuilder.add_part`
 call):
 
-1. **Intersection** — compute the overlap between the requested chunk's
+1. **Intersection.** Compute the overlap between the requested chunk's
    bounding box and the ``Part``'s bounding box. Parts with no overlap are
    skipped immediately.
-2. **FDB retrieve** — issue a sub-request to FDB for exactly the fields
+2. **FDB retrieve.** Issue a sub-request to FDB for exactly the fields
    inside the intersection. Fields outside it are never fetched.
-3. **Buffer fill** — decode each returned GRIB field to ``float32`` and write
+3. **Buffer fill.** Decode each returned GRIB field to ``float32`` and write
    it into the correct position in the flat chunk buffer (row-major / C order).
 
-The examples below use the two-part view from :doc:`/z3fdb/dimension_mapping`:
+The examples below use the two-part view from :doc:`../dimension_mapping`:
 **Part A** covers surface parameters (``sfc``, 2 params, axis 1 = [0, 1]) and
 **Part B** covers pressure-level parameters (``pl``, 4 params, axis 1 = [2, 5]).
 Both parts share 4 date × time values on axis 0.
@@ -51,10 +51,10 @@ region of the buffer.
 
     Buffer extent: [4, 6]
 
-    Part A — partAxisOffset = [0, 0], bufferOffset = [0, 0]
+    Part A: partAxisOffset = [0, 0], bufferOffset = [0, 0]
               The intersection starts at A's local origin and at the buffer corner.
 
-    Part B — partAxisOffset = [0, 0], bufferOffset = [0, 2]
+    Part B: partAxisOffset = [0, 0], bufferOffset = [0, 2]
               The intersection starts at B's local origin but at buffer column 2,
               because B begins at global index 2 on axis 1.
 
@@ -80,10 +80,10 @@ With ``SINGLE_VALUE`` every chunk holds exactly one field. Accessing chunk
           3  │   │   │   │   │   │   │
              └───┴───┴───┴───┴───┴───┘
 
-    Intersection with Part A: empty — skipped.
+    Intersection with Part A: empty, so it is skipped.
     Intersection with Part B: axis0 = [1, 1], axis1 = [2, 2]
 
-    Part B — partAxisOffset = [1, 0], bufferOffset = [0, 0], bufferExtent = [1, 1]
+    Part B: partAxisOffset = [1, 0], bufferOffset = [0, 0], bufferExtent = [1, 1]
 
         axis 0: partAxisOffset = 1 because the intersection starts at
                 date×time index 1 within Part B's local axis.
@@ -95,12 +95,12 @@ With ``SINGLE_VALUE`` every chunk holds exactly one field. Accessing chunk
 
     FDB returns one field. Within Part B, axis.index(key) = [1, 0]:
 
-        axis 0: local = 1 − 1 = 0,   bufPos = 0 + 0 = 0
-        axis 1: local = 0 − 0 = 0,   bufPos = 0 + 0 = 0
+        axis 0: local = 1 - 1 = 0,   bufPos = 0 + 0 = 0
+        axis 1: local = 0 - 0 = 0,   bufPos = 0 + 0 = 0
         → written to buffer slot (0, 0)
 
-``FixedSizeChunking`` — cross-part chunk example
--------------------------------------------------
+``FixedSizeChunking``, cross-part chunk example
+-----------------------------------------------
 
 With ``FixedSizeChunk(2)`` on axis 0 and ``FixedSizeChunk(3)`` on axis 1, the
 chunk grid is 2 × 2. Chunk ``(0, 0)`` covers two date×time steps and the first
@@ -129,13 +129,13 @@ three param slots, which straddles the boundary between Part A and Part B.
 
     Buffer extent: [2, 3]
 
-    Part A — partAxisOffset = [0, 0], bufferOffset = [0, 0]
+    Part A: partAxisOffset = [0, 0], bufferOffset = [0, 0]
               Intersection starts at A's local origin and at the buffer corner.
 
-    Part B — partAxisOffset = [0, 0], bufferOffset = [0, 2]
+    Part B: partAxisOffset = [0, 0], bufferOffset = [0, 2]
               B's local axis1 starts at global index 2, so global [2, 2]
               maps to local [0, 0]. The intersection lands at buffer column 2
-              because 2 − 0 (chunk lower bound) = 2.
+              because 2 - 0 (chunk lower bound) = 2.
 
     Buffer layout (2 rows × 3 columns):
 
@@ -146,26 +146,32 @@ three param slots, which straddles the boundary between Part A and Part B.
           1  │ A │ A │ B │
              └───┴───┴───┘
 
-FDB issues two sub-requests — one for Part A, one for Part B. Each field is
+FDB issues two sub-requests, one for Part A and one for Part B. Each field is
 placed using the buffer-position formula. For a field returned by Part A with
 ``axis.index(key) = [1, 1]`` (second date×time, second sfc param):
 
 .. code-block:: text
 
-        axis 0: local = 1 − 0 = 1,   bufPos = 1 + 0 = 1
-        axis 1: local = 1 − 0 = 1,   bufPos = 1 + 0 = 1
+        axis 0: local = 1 - 0 = 1,   bufPos = 1 + 0 = 1
+        axis 1: local = 1 - 0 = 1,   bufPos = 1 + 0 = 1
         → written to buffer slot (1, 1)
 
 For a field returned by Part B with ``axis.index(key) = [0, 0]`` (first
-date×time, first pl param — which is global param index 2):
+date x time, first pl param, which is global param index 2):
 
 .. code-block:: text
 
-        axis 0: local = 0 − 0 = 0,   bufPos = 0 + 0 = 0
-        axis 1: local = 0 − 0 = 0,   bufPos = 0 + 2 = 2
+        axis 0: local = 0 - 0 = 0,   bufPos = 0 + 0 = 0
+        axis 1: local = 0 - 0 = 0,   bufPos = 0 + 2 = 2
         → written to buffer slot (0, 2)
 
 .. seealso::
 
    :doc:`buffer_layout` for the general buffer-position formula and how
    the flat buffer index is computed from the per-axis positions.
+
+.. seealso::
+
+   :ref:`z3fdb_extractor_backends` for what the two extractor backends do inside step three,
+   and for the concurrency guarantee: each extractor serialises its own ``extractInto`` calls,
+   so the unit of parallelism is the part rather than the chunk.

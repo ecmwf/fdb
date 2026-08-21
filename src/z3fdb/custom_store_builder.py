@@ -4,9 +4,8 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from zarr.abc.store import Store
-
 from z3fdb._internal.zarr import FdbZarrArray, FdbZarrGroup, FdbZarrStore, FdbSource
+from z3fdb.z3fdb_error import Z3fdbError
 from pychunked_data_view import (
     ChunkedDataViewBuilder,
     AxisDefinition,
@@ -38,8 +37,19 @@ class _VGroup:
         return self._join_path(self) == self._join_path(value) and self.name == value.name
 
     def descent(self, name: str) -> "_VGroup":
+        """Return the single child group called *name*.
+
+        Raises:
+            ~z3fdb.Z3fdbError: If there is not exactly one. Names are unique by construction, so
+                this is an internal invariant, a bare ``assert`` would vanish under
+                ``python -O``.
+        """
         matches = [c for c in self.children if isinstance(c, _VGroup) and c.name == name]
-        assert len(matches) == 1
+        if len(matches) != 1:
+            raise Z3fdbError(
+                f"CustomStoreBuilder: expected exactly one group named {name!r} under "
+                f"{self.name!r}, found {len(matches)}."
+            )
         return matches[0]
 
 
@@ -60,21 +70,21 @@ class CustomStoreBuilder:
 
     def __init__(self, fdb_config_file: Path | None = None):
         self._config = fdb_config_file
-        self.structure: dict[str, _VArray] = {}
-        self.root = _VGroup(parents=None, name="/", children=[])
+        self._structure: dict[str, _VArray] = {}
+        self._root = _VGroup(parents=None, name="/", children=[])
 
     def _merge_vgroup(self, vgroup: _VGroup) -> None:
-        """Insert *vgroup* into the virtual group tree rooted at self.root."""
+        """Insert *vgroup* into the virtual group tree rooted at self._root."""
         if vgroup.parents is None:
             raise RuntimeError("Cannot have two root groups.")
 
-        current_group = self.root
+        current_group = self._root
         for parent in vgroup.parents[1:]:
-            child_names = [c.name for c in current_group.children]
-            if parent.name not in child_names:
-                if vgroup not in current_group.children:
-                    current_group.children.append(vgroup)
-                return
+            # _build_structure creates parents top-down, so every ancestor already exists.
+            if parent.name not in [c.name for c in current_group.children]:
+                raise Z3fdbError(
+                    f"CustomStoreBuilder: parent group {parent.name!r} of {vgroup.name!r} does not exist yet."
+                )
             current_group = current_group.descent(parent.name)
 
         if vgroup not in current_group.children:
@@ -112,18 +122,18 @@ class CustomStoreBuilder:
         """
         if path is None:
             # Root array - the store root is itself an array, not a group.
-            if self.root.children:
+            if self._root.children:
                 raise ValueError(
                     "CustomStoreBuilder: cannot register a root array (path=None) when "
                     "named paths are already registered. Use a named path instead."
                 )
-            if self._ROOT_KEY not in self.structure:
+            if self._ROOT_KEY not in self._structure:
                 builder = ChunkedDataViewBuilder(self._config)
-                self.structure[self._ROOT_KEY] = _VArray(name="", parent=self.root, builder=builder)
-            return self.structure[self._ROOT_KEY].builder
+                self._structure[self._ROOT_KEY] = _VArray(name="", parent=self._root, builder=builder)
+            return self._structure[self._ROOT_KEY].builder
 
         # Named path - cannot mix with a root array.
-        if self._ROOT_KEY in self.structure:
+        if self._ROOT_KEY in self._structure:
             raise ValueError(
                 "CustomStoreBuilder: cannot register a named path when a root array "
                 "(path=None) is already registered. Use path=None to add more parts "
@@ -131,13 +141,13 @@ class CustomStoreBuilder:
             )
 
         key = "/".join(path)
-        if key in self.structure:
-            return self.structure[key].builder
+        if key in self._structure:
+            return self._structure[key].builder
 
         group_names = path[:-1]
         array_name = path[-1]
 
-        parents: list[_VGroup] = [self.root]
+        parents: list[_VGroup] = [self._root]
         for group_name in group_names:
             # Collision: a _VArray already occupies this name - cannot reuse as a group.
             if any(isinstance(c, _VArray) and c.name == group_name for c in parents[-1].children):
@@ -160,7 +170,7 @@ class CustomStoreBuilder:
         builder = ChunkedDataViewBuilder(self._config)
         varray = _VArray(name=array_name, parent=parent_group, builder=builder)
         parent_group.children.append(varray)
-        self.structure[key] = varray
+        self._structure[key] = varray
         return builder
 
     def add_part(
@@ -193,18 +203,68 @@ class CustomStoreBuilder:
         builder = self._build_structure(parts)
         builder.add_part(mars_request, axes, extractor)
 
+    def _existing_array(self, path: list[str] | None) -> ChunkedDataViewBuilder:
+        """Return the builder for an array already registered at *path*.
+
+        Unlike :meth:`_build_structure` this never creates one. :meth:`extend_on_axis` and
+        :meth:`fill_missing_value` *configure* an existing array, so an unknown path is a
+        mistake -- usually a typo -- rather than a request for a new empty array. Creating one
+        silently would only surface much later, as "must add at least one part" from
+        :meth:`build`.
+
+        Args:
+            path: Path segments, or ``None`` for the root array.
+
+        Returns:
+            ChunkedDataViewBuilder: The builder registered at *path*.
+
+        Raises:
+            ValueError: If no array is registered at *path*.
+        """
+        key = self._ROOT_KEY if path is None else "/".join(path)
+        if key not in self._structure:
+            known = sorted(k or "<root>" for k in self._structure) or ["none"]
+            where = "the root array (path=None)" if path is None else repr("/".join(path))
+            raise ValueError(
+                f"CustomStoreBuilder: no array registered at {where}. Call add_part first. "
+                f"Registered arrays: {', '.join(known)}."
+            )
+        return self._structure[key].builder
+
     def extend_on_axis(self, path: str | None, axis: int) -> None:
-        """Extend the array at *path* along the given *axis*.
+        """Declare the extension axis of the array at *path*.
+
+        The array must already exist: call :meth:`add_part` for *path* first.
 
         Args:
             path: Zarr-style path (same format as :meth:`add_part`).
                 ``None`` refers to the root array.
             axis: Zero-based index of the axis to extend.
+
+        Raises:
+            ValueError: If no array is registered at *path*.
         """
         parts = None if path is None else self._parse_path(path)
-        self._build_structure(parts).extend_on_axis(axis)
+        self._existing_array(parts).extend_on_axis(axis)
 
-    def build(self) -> Store:
+    def fill_missing_value(self, path: str | None, value: float) -> None:
+        """Set the fill value for the array at *path*.
+
+        The array must already exist: call :meth:`add_part` for *path* first.
+
+        Args:
+            path: Zarr-style path (same format as :meth:`add_part`). ``None`` refers to the
+                root array.
+            value: Value written into positions flagged as missing by the GRIB bitmap. Also
+                becomes the zarr array's ``fill_value``. Defaults to NaN when not set.
+
+        Raises:
+            ValueError: If no array is registered at *path*.
+        """
+        parts = None if path is None else self._parse_path(path)
+        self._existing_array(parts).fill_missing_value(value)
+
+    def build(self) -> FdbZarrStore:
         """Assemble all registered views into a read-only :class:`FdbZarrStore`.
 
         Returns:
@@ -214,8 +274,8 @@ class CustomStoreBuilder:
             registered via ``path=None``).
         """
         # Root-array shortcut: the store root is itself an array.
-        if self._ROOT_KEY in self.structure:
-            varray = self.structure[self._ROOT_KEY]
+        if self._ROOT_KEY in self._structure:
+            varray = self._structure[self._ROOT_KEY]
             view = varray.builder.build()
             return FdbZarrStore(
                 FdbZarrArray(
@@ -234,5 +294,5 @@ class CustomStoreBuilder:
             children = [_to_fdb_node(c) for c in node.children]
             return FdbZarrGroup(name=node.name, children=children)
 
-        root_children = [_to_fdb_node(c) for c in self.root.children]
+        root_children = [_to_fdb_node(c) for c in self._root.children]
         return FdbZarrStore(FdbZarrGroup(name="", children=root_children))

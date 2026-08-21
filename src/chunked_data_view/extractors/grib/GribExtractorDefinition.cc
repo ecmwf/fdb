@@ -9,11 +9,19 @@
 
 namespace chunked_data_view {
 
-std::unique_ptr<Extractor> GribExtractorDefinition::buildExtractor(
-    const metkit::mars::MarsRequest& request) const {
+void GribExtractorDefinition::setDefaultIfUnset(const std::optional<std::filesystem::path>& fdbConfigPath) {
+    if (!fdbConfig.has_value()) {
+        fdbConfig = fdbConfigPath;
+    }
+}
+
+std::unique_ptr<ExtractorDefinition> GribExtractorDefinition::copy() const {
+    return std::make_unique<GribExtractorDefinition>(*this);
+}
+
+std::unique_ptr<Extractor> GribExtractorDefinition::buildExtractor(const metkit::mars::MarsRequest& request) const {
     auto fdb = makeFdb(fdbConfig);
     auto ext = std::make_unique<GribExtractor>(std::move(fdb), request);
-    ext->setFillValue(fillValue);
     return ext;
 }
 

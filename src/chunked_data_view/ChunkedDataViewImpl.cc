@@ -17,8 +17,9 @@
 
 namespace chunked_data_view {
 
-namespace {}  // namespace
-bool checkForEqualChunking(const std::vector<std::pair<ViewPart, std::unique_ptr<Extractor>>>& parts) {
+// Duplicates ChunkedDataViewBuilder::chunkingConsistencyCheck; kept as a belt-and-braces
+// check because the invariant is what chunkShape() relies on. Static: it is not API.
+static bool checkForEqualChunking(const std::vector<std::pair<ViewPart, std::unique_ptr<Extractor>>>& parts) {
 
     const auto reference_chunks = parts[0].first.chunks();
 

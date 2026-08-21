@@ -138,8 +138,11 @@ public:
     /// Ordered axes that define the non-values dimensions of this part.
     const std::vector<Axis>& axes() const { return axes_; }
 
-    /// Number of entries (fields or values) along each dimension, including the implicit values dimension as the last
-    /// entry.
+    /// Number of entries along each MARS-derived dimension, one per axis.
+    ///
+    /// Does *not* include the implicit values dimension: ChunkedDataViewImpl appends that from
+    /// the extractor's DataLayout after using this to size the view. Consequently the extension
+    /// axis index is always a valid index into this vector.
     std::vector<size_t> extension() const { return extension_; }
 
     /// Position of the lower corner of this part in the global view index space.

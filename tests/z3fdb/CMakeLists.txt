@@ -50,9 +50,12 @@ set(store_tests
   interface/store/test_custom_store_builder.py
 )
 
+# GribJump-backed integration tests. Registered unconditionally on purpose: the conftest in
+# integration/gribjump/ marks them and tests/z3fdb/conftest.py skips them when the build has no
+# GribJump extractor, so ctest reports a skip instead of the test silently not existing.
 set(integration_tests
-  integration/test_gribjump_extractor.py
-  integration/test_mixed_extractors.py
+  integration/gribjump/test_gribjump_extractor.py
+  integration/gribjump/test_mixed_extractors.py
 )
 
 set(zarr_interface_conformity_tests

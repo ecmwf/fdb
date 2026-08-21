@@ -12,6 +12,10 @@ from .chunked_data_view_bindings import (
     AxisDefinition,
     ChunkedDataView,
     ChunkedDataViewBuilder,
+    ExtractorDefinition,
+    GribExtractorError,
+    GribJumpExtractorError,
+    has_gribjump_extractor,
     ExtractorType,
 )
 
@@ -23,5 +27,9 @@ __all__ = [
     "AxisDefinition",
     "ChunkedDataView",
     "ChunkedDataViewBuilder",
+    "ExtractorDefinition",
+    "GribExtractorError",
+    "GribJumpExtractorError",
+    "has_gribjump_extractor",
     "ExtractorType",
 ]

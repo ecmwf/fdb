@@ -128,9 +128,9 @@ ViewPart::ViewPart(const metkit::mars::MarsRequest& request, const std::vector<s
                    const std::vector<size_t>& offset) :
     request_(request), offset_(offset) {
 
-    extension_.reserve(axes_.size());
-    chunks_.reserve(axes_.size());
-    axes_.reserve(axes_.size());
+    extension_.reserve(axes.size());
+    chunks_.reserve(axes.size());
+    axes_.reserve(axes.size());
 
     for (const auto& [axis, axis_chunks] : axes) {
         axes_.push_back(axis);

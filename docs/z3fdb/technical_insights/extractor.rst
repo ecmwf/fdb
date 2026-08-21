@@ -15,7 +15,7 @@ Ownership Model
 ---------------
 
 Extractors are held via ``std::unique_ptr<Extractor>``. Each ``ViewPart``
-owns its extractor exclusively — there is no sharing between parts.
+owns its extractor exclusively. There is no sharing between parts.
 
 **Tied lifetime**
    Each extractor's lifetime is bound to the ``ChunkedDataView`` that owns it.
@@ -27,8 +27,8 @@ Why Extractors Are Non-Copyable
 
 Concrete extractor implementations are **stateful and non-copyable**. An
 FDB-backed extractor owns an open FDB connection handle. Copying such a handle
-would duplicate a live network or file-system connection, which is unsafe —
-both copies would race on the same underlying state.
+would duplicate a live network or file-system connection, which is unsafe.
+Both copies would race on the same underlying state.
 
 ``std::unique_ptr`` makes this ownership explicit: each extractor belongs to
 exactly one ``ViewPart``, and is destroyed exactly once when the view is
@@ -38,7 +38,7 @@ ExtractorDefinition Factory
 ----------------------------
 
 Extractors are not constructed directly in ``addPart``. Instead, each part
-records an ``ExtractorDefinition`` — a lightweight configuration object that
+records an ``ExtractorDefinition``, a lightweight configuration object that
 implements a single factory method:
 
 .. code-block:: cpp
@@ -77,38 +77,14 @@ and expose a ``DataLayout`` computed eagerly in the constructor:
    :doc:`chunk_access` for how the extractor's ``extractInto`` method is
    invoked as part of the three-step chunk-access pipeline.
 
-GribExtractor
--------------
+The Two Backends
+----------------
 
-``GribExtractor`` (Python: :class:`~pychunked_data_view.ExtractorType.Grib`)
-reads GRIB messages from FDB and decodes them to ``float32`` via eccodes. The
-entire field is decoded for every chunk access; the implicit grid-point dimension
-always covers the full field.
-
-GribJumpExtractor
------------------
-
-``GribJumpExtractor`` (Python: :class:`~pychunked_data_view.ExtractorType.GribJump`)
-uses the GribJump library to read grid-point values without performing a full
-GRIB decode.  It is useful when the decode overhead of ``GribExtractor``
-would be wasteful.
-
-**Configuration**
-
-``GribJumpExtractor`` requires a running GribJump service.  Its configuration
-is read from the ``GRIBJUMP_CONFIG_FILE`` environment variable.  The Python
-binding also accepts an explicit ``gribjump_config`` path via
-:class:`~pychunked_data_view.ExtractorType.GribJump`; if set, the binding
-calls ``setenv("GRIBJUMP_CONFIG_FILE", ...)`` before constructing the
-``gribjump::GribJump`` object.
-
-**Layout caching**
-
-``GribJumpExtractor`` resolves the concrete ``gribjump::Range`` on the first
-``layout()`` call and caches it.  Subsequent calls to ``extractInto()`` reuse
-the cached range, so the service is queried only once per part.
+``GribExtractor`` and ``GribJumpExtractor`` are documented together in
+:doc:`extractor_backends`: what each one does, how to choose between them, their configuration,
+the constraints they impose on a view, and which builds provide them.
 
 .. seealso::
 
-   :doc:`../gribjump` for a user-facing guide on when and how to use
-   GribJump-backed extraction.
+   :ref:`z3fdb_extractor_backends` for the backends themselves, and
+   :ref:`tutorial_custom_store_mixed_extractors` for a store that uses both.

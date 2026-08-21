@@ -4,14 +4,12 @@
 
 #include "chunked_data_view/AxisDefinition.h"
 #include "chunked_data_view/DataLayout.h"
-#include "chunked_data_view/Extractor.h"
 #include "chunked_data_view/Fdb.h"
 #include "chunked_data_view/ListIterator.h"
 #include "chunked_data_view/RequestManipulation.h"
 #include "chunked_data_view/Types.h"
 #include "chunked_data_view/ViewPart.h"
 #include "chunked_data_view/exception/GribJumpExtractorException.h"
-#include "chunked_data_view/include/chunked_data_view/Fdb.h"
 #include "chunked_data_view/mapping/IndexMapper.h"
 
 #include "eckit/exception/Exceptions.h"
@@ -26,6 +24,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <memory>
+#include <mutex>
 #include <sstream>
 #include <vector>
 
@@ -34,7 +33,7 @@ namespace chunked_data_view {
 GribJumpExtractor::GribJumpExtractor(std::unique_ptr<FdbInterface> fdb, std::unique_ptr<gribjump::GribJump> gj,
                                      const metkit::mars::MarsRequest& marsRequest,
                                      AxisDefinition::ChunkingType fieldChunking) :
-    fdb_(std::move(fdb)), gj_(std::move(gj)), fieldChunking_(std::move(fieldChunking)) {
+    fdb_(std::move(fdb)), gj_(std::move(gj)) {
 
     // Use a minimal sample request (mirrors GribExtractor constructor).
     const metkit::mars::MarsRequest sampleRequest =
@@ -72,10 +71,8 @@ GribJumpExtractor::GribJumpExtractor(std::unique_ptr<FdbInterface> fdb, std::uni
         } while ((msg = reader.next()));
     }
 
-    fullCountValues_ = countValues;
-    resolvedRange_ = {0, countValues};
-
-    const size_t windowSize = resolvedRange_.second - resolvedRange_.first;
+    // The whole field is the window: there is no sub-range selection.
+    const size_t windowSize = countValues;
 
     // Resolve the per-chunk size from the fieldChunking variant.
     struct ChunkSizeVisitor {
@@ -84,19 +81,22 @@ GribJumpExtractor::GribJumpExtractor(std::unique_ptr<FdbInterface> fdb, std::uni
         size_t operator()(const AxisDefinition::SingleValueChunking&) const { return 1; }
         size_t operator()(const AxisDefinition::FixedSizeChunking& c) const { return c.chunkSize; }
     };
-    fieldChunkSize_ = std::visit(ChunkSizeVisitor{windowSize}, fieldChunking_);
+    const size_t fieldChunkSize = std::visit(ChunkSizeVisitor{windowSize}, fieldChunking);
 
-    if (windowSize % fieldChunkSize_ != 0) {
+    if (fieldChunkSize == 0) {
+        throw eckit::UserError("GribJumpExtractor: field chunk size must be greater than zero.");
+    }
+
+    if (windowSize % fieldChunkSize != 0) {
         std::ostringstream ss;
-        ss << "GribJumpExtractor: field chunk size " << fieldChunkSize_ << " does not evenly divide the window size "
+        ss << "GribJumpExtractor: field chunk size " << fieldChunkSize << " does not evenly divide the window size "
            << windowSize << ".";
         throw eckit::UserError(ss.str());
     }
-    fieldChunkCount_ = windowSize / fieldChunkSize_;
 
     // countValues      = total window size (implicit dimension extent in the Zarr array).
     // countChunkValues = per-chunk size (what extractInto() writes per field per call).
-    layout_ = {windowSize, 4, fieldChunkSize_};
+    layout_ = {windowSize, 4, fieldChunkSize};
 }
 
 size_t GribJumpExtractor::writeInto(const std::vector<fdb5::Key>& gj_keys, gribjump::ExtractionIterator& gj_it,
@@ -109,7 +109,12 @@ size_t GribJumpExtractor::writeInto(const std::vector<fdb5::Key>& gj_keys, gribj
             break;
         }
 
-        const fdb5::Key& key = gj_keys[i];
+        // gribjump::LocalGribJump::collect_results() builds its vector by walking the requests
+        // in order, so result i belongs to gj_requests[i] and hence gj_keys[i]. Checked, not
+        // assumed: a change upstream would otherwise scatter fields into the wrong slots.
+        ASSERT(i < gj_keys.size());
+
+        const fdb5::Key& key = gj_keys.at(i);
         const size_t msgIndex =
             index_mapping::computeBufferIndex(ctx.axes, key, ctx.partAxisOffset, ctx.bufferOffset, ctx.bufferExtent);
 
@@ -117,9 +122,8 @@ size_t GribJumpExtractor::writeInto(const std::vector<fdb5::Key>& gj_keys, gribj
         const float* end = dst + ctx.layout.countChunkValues;
         ASSERT(end - ptr <= static_cast<std::ptrdiff_t>(len));
 
-        // GribJump returns one range per ExtractionRequest range entry (we pass one).
-        assert(result->values().size() == 1);
-        assert(result->mask().size() == 1);
+        ASSERT(result->values().size() == 1);
+        ASSERT(result->mask().size() == 1);
 
         const auto& vals = result->values()[0];  // vector<double>
         const auto& mask = result->mask()[0];    // vector<bitset<64>>
@@ -151,27 +155,27 @@ size_t GribJumpExtractor::extractInto(const ViewPart& part, const ChunkBoundingB
     const BufferBoundingBox& bufRelBB = intersectionBB.subtract(chunkPartBoundingBox.lower());
 
     const metkit::mars::MarsRequest request = part.at(partRelBB);
+
+    // Derive the extraction range from the implicit dimension of chunkBoundingBox. It is the
+    // same for every field in this chunk, so it is built once rather than per field.
+    //   chunkBoundingBox.lower().back() = chunkIndex.back() * layout_.countChunkValues
+    //   chunkBoundingBox.upper().back() = lower.back() + countChunkValues - 1  (inclusive)
+    // gribjump::Range is half-open, hence the +1 on the upper bound.
+    const gribjump::Range chunkRange{chunkBoundingBox.lower().back(), chunkBoundingBox.upper().back() + 1};
+
+    // fdb_ and gj_ are shared mutable state; see mutex_ in the header.
+    const std::lock_guard<std::mutex> lock(mutex_);
+
     auto listIt = fdb_->inspect(request);
 
     std::vector<fdb5::Key> gj_keys;
     std::vector<gribjump::PathExtractionRequest> gj_requests;
 
-    while (const std::optional<ListElement>& res = listIt->next()) {
-
-        if (!res.has_value()) {
-            break;
-        }
+    while (const auto res = listIt->next()) {
 
         gj_keys.push_back(res->key);
 
         const auto& location_uri = res->location->fullUri();
-
-        // Derive the per-chunk extraction range from the implicit dimension of chunkBoundingBox.
-        // chunkBoundingBox.lower().back() = chunkIndex.back() * fieldChunkSize_
-        // chunkBoundingBox.upper().back() = lower.back() + fieldChunkSize_ - 1  (inclusive)
-        const size_t implicitStart = chunkBoundingBox.lower().back();
-        const size_t implicitEnd = chunkBoundingBox.upper().back() + 1;  // half-open for GribJump
-        const gribjump::Range chunkRange{resolvedRange_.first + implicitStart, resolvedRange_.first + implicitEnd};
 
         if (location_uri.fragment().empty()) {
             std::ostringstream ss;
@@ -180,11 +184,21 @@ size_t GribJumpExtractor::extractInto(const ViewPart& part, const ChunkBoundingB
             throw GribJumpExtractorException(ss.str());
         }
 
-        // File offsets can exceed 2 GB, therefore use stoll
-        gribjump::PathExtractionRequest tmp(location_uri.path(), location_uri.scheme(),
-                                            std::stoll(location_uri.fragment()), location_uri.host(),
-                                            location_uri.port() > 0 ? location_uri.port() : 0, {chunkRange});
-        gj_requests.emplace_back(tmp);
+        // File offsets can exceed 2 GB, therefore use stoll.
+        size_t fieldOffset = 0;
+        try {
+            fieldOffset = static_cast<size_t>(std::stoll(location_uri.fragment()));
+        }
+        catch (const std::exception& e) {
+            std::ostringstream ss;
+            ss << "GribJumpExtractor: Could not parse the file offset '" << location_uri.fragment()
+               << "' from the location uri in request " << request << ": " << e.what();
+            throw GribJumpExtractorException(ss.str());
+        }
+
+        gj_requests.emplace_back(location_uri.path(), location_uri.scheme(), fieldOffset, location_uri.host(),
+                                 location_uri.port() > 0 ? location_uri.port() : 0,
+                                 std::vector<gribjump::Range>{chunkRange});
     }
 
     if (gj_keys.empty()) {
@@ -203,15 +217,8 @@ size_t GribJumpExtractor::extractInto(const ViewPart& part, const ChunkBoundingB
     }
     catch (eckit::SeriousBug& exception) {
         std::ostringstream buf;
-        buf << "GribJumpExtractor::extractInto: " << exception.what();
+        buf << "GribJumpExtractor::extractInto: " << exception.what() << ". Request was: " << request;
         throw GribJumpExtractorException(buf.str());
-    }
-    catch (GribJumpExtractorException& exception) {
-        std::ostringstream ss;
-        ss << "GribJumpExtractor::extractInto: ";
-        ss << exception.what();
-        ss << "Request was: " << request << std::endl;
-        throw GribJumpExtractorException(ss.str());
     }
 }
 

@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <memory>
+#include <mutex>
 #include <ostream>
 #include <sstream>
 
@@ -133,7 +134,7 @@ size_t GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iter
         while ((msg = reader.next())) {
             if (const auto size = msg.getSize("values"); size != ctx.layout.countChunkValues) {
                 std::ostringstream ss;
-                ss << "GribExractor: Unexpected field size found in GRIB message for key: " << key
+                ss << "GribExtractor: Unexpected field size found in GRIB message for key: " << key
                    << " expected: " << ctx.layout.countChunkValues << " found: " << size
                    << ". All fields in your view need to be of equal size.";
                 throw eckit::Exception(ss.str());
@@ -141,7 +142,7 @@ size_t GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iter
             msg.getFloatArray("values", copyInto, ctx.layout.countChunkValues);
             if (msg.getLong("bitmapPresent") != 0) {
                 const auto gribMissing = static_cast<float>(msg.getDouble("missingValue"));
-                std::replace(copyInto, copyInto + ctx.layout.countValues, gribMissing, fillValue_);
+                std::replace(copyInto, copyInto + ctx.layout.countChunkValues, gribMissing, fillValue_);
             }
             messagesWritten++;
         }
@@ -167,6 +168,10 @@ size_t GribExtractor::extractInto(const ViewPart& part, const ChunkBoundingBox& 
     const PartBoundingBox& partRelativeBoundingBox = intersectionBoundingBox.subtract(part.boundingBox().lower());
 
     const auto& request = part.at(partRelativeBoundingBox);
+
+    // fdb_ is shared mutable state; see mutex_ in the header.
+    const std::lock_guard<std::mutex> lock(mutex_);
+
     auto listIterator = fdb_->inspect(request);
 
     const BufferBoundingBox& bufferRelativBoundingBox = intersectionBoundingBox.subtract(chunkPartBoundingBox.lower());
@@ -180,7 +185,7 @@ size_t GribExtractor::extractInto(const ViewPart& part, const ChunkBoundingBox& 
     }
     catch (GribExtractorException& exception) {
         std::ostringstream ss;
-        ss << "GribJumpExtractor::extractInto: ";
+        ss << "GribExtractor::extractInto: ";
         ss << exception.what();
         ss << "Request was: " << part.at(partRelativeBoundingBox) << std::endl;
         throw GribExtractorException(ss.str());

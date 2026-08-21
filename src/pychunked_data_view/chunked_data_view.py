@@ -1,14 +1,21 @@
 # SPDX-FileCopyrightText: 2025 European Centre for Medium-Range Weather Forecasts (ECMWF)
 # SPDX-License-Identifier: Apache-2.0
 
-from collections.abc import Collection, Mapping
-from dataclasses import dataclass
 import enum
 import pathlib
+import warnings
+from collections.abc import Collection, Mapping
 from typing import TypeAlias
 
-from pychunked_data_view.exceptions import MarsRequestFormattingError, InternalError
+import numpy
+
 import chunked_data_view_bindings as pdv
+from chunked_data_view_bindings import (  # noqa: E402
+    GribExtractorError as GribExtractorError,
+    GribJumpExtractorError as GribJumpExtractorError,
+    has_gribjump_extractor as has_gribjump_extractor,
+)
+from pychunked_data_view.exceptions import InternalError, MarsRequestFormattingError
 
 MarsSelection: TypeAlias = Mapping[str, str | int | float | Collection[str | int | float]]
 
@@ -46,9 +53,10 @@ class Chunking(enum.Enum):
     SINGLE_VALUE = enum.auto()
 
     @enum.nonmember
-    @dataclass(frozen=True)
     class FixedSizeChunk:
-        chunk_shape: int
+        def __init__(self, chunk_shape: int) -> None:
+            assert chunk_shape > 0, "The supplied chunk shape needs to be positive"
+            self.chunk_shape = chunk_shape
 
 
 class AxisDefinition:
@@ -65,7 +73,8 @@ class AxisDefinition:
         """Convert a Python :class:`Chunking` value to the corresponding C++ binding type.
 
         Args:
-            chunking (Chunking | Chunking.FixedSizeChunk): Chunking strategy to translate.
+            chunking (~pychunked_data_view.Chunking | ~pychunked_data_view.Chunking.FixedSizeChunk):
+                Chunking strategy to translate.
 
         Returns:
             The matching ``pdv.AxisDefinition`` chunking object.
@@ -95,11 +104,20 @@ class AxisDefinition:
 
         Args:
             keys (list[str]): MARS keys that form this axis.
-            chunking (Chunking | Chunking.FixedSizeChunk): How this axis shall be chunked.
+            chunking (~pychunked_data_view.Chunking | ~pychunked_data_view.Chunking.FixedSizeChunk):
+                How this axis shall be chunked.
             name (str | None): Zarr dimension name. Defaults to the keys joined by ``"_"``.
         """
         self._obj = pdv.AxisDefinition(keys=keys, chunking=self._translate_chunking(chunking), name=name)
-        self.name = name
+
+    @property
+    def name(self) -> str | None:
+        """The zarr dimension name for this axis, or None to derive it from the keys."""
+        return self._obj.name
+
+    @name.setter
+    def name(self, name: str | None) -> None:
+        self._obj.name = name
 
     @property
     def keys(self) -> list[str]:
@@ -115,7 +133,8 @@ class AxisDefinition:
         """The chunking strategy for this axis.
 
         Raises:
-            InternalError: If the underlying C++ chunking type is unrecognised.
+            ~pychunked_data_view.exceptions.InternalError: If the underlying C++ chunking
+                type is unrecognised.
         """
         chunking = self._obj.chunking
         if isinstance(chunking, pdv.AxisDefinition.WholeAxisChunking):
@@ -123,7 +142,7 @@ class AxisDefinition:
         elif isinstance(chunking, pdv.AxisDefinition.SingleValueChunking):
             return Chunking.SINGLE_VALUE
         elif isinstance(chunking, pdv.AxisDefinition.FixedSizeChunking):
-            return Chunking.FixedSizeChunk(chunking.chunk_shape())
+            return Chunking.FixedSizeChunk(chunking.chunk_shape)
         else:
             raise InternalError()
 
@@ -142,27 +161,41 @@ class ChunkedDataView:
     def __init__(self, obj: pdv.ChunkedDataView):
         self._obj = obj
 
-    def at(self, index: list[int] | tuple[int, ...]) -> bytes:
-        """Return the raw float32 buffer for the chunk at *index*.
+    def at(self, index: list[int] | tuple[int, ...]) -> "numpy.ndarray":
+        """Return the values of the chunk at *index*.
 
         Args:
-            index (list[int] | tuple[int, ...]): Per-dimension chunk coordinates.
+            index (list[int] | tuple[int, ...]): Per-dimension chunk coordinates, including
+                the implicit grid-point dimension.
 
         Returns:
-            bytes: Raw little-endian float32 values for the requested chunk.
+            numpy.ndarray: 1-D ``float32`` array of ``chunk_shape()`` values, C-order.
 
         Raises:
-            KeyError: If *index* is out of bounds.
+            RuntimeError: If *index* is out of bounds or the FDB retrieval fails.
         """
         return self._obj.at(index)
 
-    def chunkShape(self) -> tuple[int, ...]:
+    def chunk_shape(self) -> tuple[int, ...]:
         """Return the per-dimension element count of one chunk.
 
         Returns:
             tuple[int, ...]: Number of elements along each dimension within a single chunk.
         """
         return self._obj.chunk_shape()
+
+    def chunkShape(self) -> tuple[int, ...]:
+        """Deprecated alias of :meth:`chunk_shape`.
+
+        Kept so existing callers keep working; every other method on this class is
+        snake_case.
+        """
+        warnings.warn(
+            "ChunkedDataView.chunkShape() is deprecated, use chunk_shape() instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.chunk_shape()
 
     def chunks(self) -> tuple[int, ...]:
         """Return the per-dimension number of chunks.
@@ -196,7 +229,11 @@ class ExtractorType:
     * :class:`ExtractorType.GribJump` - partial-field extraction via GribJump.
 
     Each class wraps the matching C++ ``ExtractorDefinition``, which is what
-    :meth:`ChunkedDataViewBuilder.add_part` consumes.
+    :meth:`ChunkedDataViewBuilder.add_part` takes.
+
+    One instance may be reused across as many parts and builders as you like:
+    ``add_part`` stores a copy, so defaults the builder applies (e.g. its
+    ``fdb_config``) are never written back into your object.
     """
 
     class Grib:
@@ -221,21 +258,24 @@ class ExtractorType:
                 ``None`` (default) uses the builder's FDB config.
             gribjump_config (pathlib.Path | None): Path to the GribJump configuration YAML.
                 ``None`` (default) reads the ``GRIBJUMP_CONFIG_FILE`` environment variable.
-            chunking        (Chunking | Chunking.FixedSizeChunk | None):
+            field_chunking  (~pychunked_data_view.Chunking | ~pychunked_data_view.Chunking.FixedSizeChunk | None):
                 How to sub-divide the implicit (grid-point) dimension into Zarr chunks.
-                ``None`` (default) produces a single chunk covering the full field.
+                ``None`` (default) produces a single chunk covering the full field. The size
+                must divide the grid exactly -- that dimension cannot be left ragged.
         """
 
         def __init__(
             self,
             fdb_config: pathlib.Path | None = None,
             gribjump_config: pathlib.Path | None = None,
-            chunking: "Chunking | Chunking.FixedSizeChunk | None" = None,
+            field_chunking: "Chunking | Chunking.FixedSizeChunk | None" = None,
         ):
             self._obj = pdv.ExtractorType.GribJump(
                 fdb_config=fdb_config,
                 gribjump_config=gribjump_config,
-                field_chunking=(AxisDefinition._translate_chunking(chunking) if chunking is not None else None),
+                field_chunking=(
+                    AxisDefinition._translate_chunking(field_chunking) if field_chunking is not None else None
+                ),
             )
 
 
@@ -273,6 +313,11 @@ class ChunkedDataViewBuilder:
 
         Raises:
             ValueError: If any axis key is not present in *mars_request*.
+
+        Note:
+            Only the axis-key check happens here. Everything that needs FDB -- field sizes,
+            axis mapping, whether the parts fit together -- is validated by :meth:`build`,
+            which raises ``RuntimeError`` on any of it.
         """
         for ax in axes:
             missing = [k for k in ax.keys if k not in mars_request]
@@ -333,7 +378,8 @@ class ChunkedDataViewBuilder:
             ChunkedDataView: The assembled view, ready for chunk-level data access.
 
         Raises:
-            MarsRequestFormattingError: If the MARS request string is malformed
+            ~pychunked_data_view.exceptions.MarsRequestFormattingError: If the MARS request
+                string is malformed
                 (trailing comma, missing comma between keys, or misspelled key).
         """
         try:

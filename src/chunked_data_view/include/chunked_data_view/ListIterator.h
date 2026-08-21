@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "eckit/io/DataHandle.h"
 #include "fdb5/api/helpers/ListIterator.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
@@ -17,7 +18,10 @@ struct ListElement {
     fdb5::Key key;
     std::shared_ptr<const fdb5::FieldLocation> location;
 
-    auto dataHandle() { return location->dataHandle(); }
+    /// Opens a new DataHandle for this field.
+    std::unique_ptr<eckit::DataHandle> dataHandle() const {
+        return std::unique_ptr<eckit::DataHandle>(location->dataHandle());
+    }
 };
 
 /// Abstract iterator over FDB fields matching a MARS request.

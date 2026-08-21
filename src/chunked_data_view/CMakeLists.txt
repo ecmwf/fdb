@@ -19,8 +19,6 @@ add_library(chunked_data_view STATIC
     extractors/grib/GribExtractor.h
     extractors/grib/GribExtractorDefinition.cc
     extractors/grib/GribExtractorDefinition.h
-    extractors/gribjump/GribJumpExtractor.cc
-    extractors/gribjump/GribJumpExtractor.h
     extractors/gribjump/GribJumpExtractorDefinition.cc
     extractors/gribjump/GribJumpExtractorDefinition.h
     LibChunkedDataView.cc
@@ -63,10 +61,22 @@ target_include_directories(chunked_data_view
         ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+# GribJumpExtractor is the only part of this library that needs gribjump headers. The
+# definition (GribJumpExtractorDefinition) and its exception are gribjump-free and stay
+# unconditional, so the type remains complete — and bindable from Python — in every build.
+if(HAVE_ZARR_GRIBJUMP_EXTRACTOR)
+    target_sources(chunked_data_view PRIVATE
+        extractors/gribjump/GribJumpExtractor.cc
+        extractors/gribjump/GribJumpExtractor.h
+    )
+    target_link_libraries(chunked_data_view PRIVATE gribjump)
+    # PUBLIC: GribJumpExtractorDefinition.cc and chunked_data_view_bindings both switch on this.
+    target_compile_definitions(chunked_data_view PUBLIC HAVE_ZARR_GRIBJUMP_EXTRACTOR)
+endif()
+
 target_link_libraries(chunked_data_view
     PRIVATE
         eckit
         metkit
         fdb5
-        gribjump
 )

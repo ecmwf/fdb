@@ -83,6 +83,21 @@ public:
 
     virtual ~ExtractorDefinition() = default;
 
+    /// Adopts @p fdbConfigPath as this definition's FDB config unless one was set explicitly.
+    ///
+    /// Called by ChunkedDataViewBuilder::addPart() so that a definition which names no FDB
+    /// config inherits the builder's, without the builder having to know which backend it
+    /// is holding. An empty path on both sides leaves FDB to resolve its own configuration
+    /// from the environment (FDB5_CONFIG / FDB_HOME).
+    virtual void setDefaultIfUnset(const std::optional<std::filesystem::path>& fdbConfigPath) = 0;
+
+    /// Returns an independent copy of this definition.
+    ///
+    /// ChunkedDataViewBuilder::addPart() stores a copy rather than the caller's object, so one
+    /// configuration can be registered on several parts (and several builders) without the
+    /// builder's own defaults leaking back into it.
+    virtual std::unique_ptr<ExtractorDefinition> copy() const = 0;
+
     /// Construct the concrete Extractor for the given MARS request.
     /// Called exactly once per part by ChunkedDataViewBuilder::build().
     virtual std::unique_ptr<Extractor> buildExtractor(const metkit::mars::MarsRequest& request) const = 0;

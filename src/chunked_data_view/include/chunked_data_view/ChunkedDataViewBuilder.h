@@ -56,10 +56,14 @@ public:
     /// fields) and are stitched together along the extension axis specified by extendOnAxis().
     ///
     /// @p definition is an ExtractorDefinition whose buildExtractor() is called once per part
-    /// inside build() after the MARS request string has been parsed. The builder takes
-    /// exclusive ownership of the definition.
+    /// inside build() after the MARS request string has been parsed.
+    ///
+    /// The builder stores a *copy* of @p definition, so the caller keeps ownership of its
+    /// object and may register the same configuration on several parts, or on several
+    /// builders: the per-part defaults the builder applies (see setDefaultIfUnset) are written
+    /// to the copy only.
     ChunkedDataViewBuilder& addPart(std::string marsRequestKeyValues, std::vector<AxisDefinition> axes,
-                                    std::unique_ptr<ExtractorDefinition> definition);
+                                    const ExtractorDefinition& definition);
 
     /// Sets the axis index along which multiple parts are concatenated.
     ///
@@ -76,9 +80,6 @@ public:
     /// Validates all parts, checks axis compatibility, and returns the assembled view.
     /// @throws eckit::UserError on misconfiguration (missing parts, axis mismatch, etc.).
     std::unique_ptr<ChunkedDataView> build();
-
-    /// Returns the FDB config path supplied at construction, if any.
-    std::optional<std::filesystem::path> getFdbConfigPath() const { return configPath_; }
 
 private:
 
@@ -100,5 +101,23 @@ private:
     ///
     /// Note: extension (adding parts) is supported for all three chunking types.
     static bool chunkingConsistencyCheck(const std::vector<std::pair<ViewPart, std::unique_ptr<Extractor>>>& viewParts);
+
+    /// Throws unless every part agrees about the implicit (grid-point) dimension.
+    ///
+    /// That dimension is never the extension axis, so — like every other non-extension axis —
+    /// all parts must match on it. Unlike the others it is not derived from the AxisDefinitions
+    /// but from each extractor's DataLayout, and ChunkedDataViewImpl takes both of its values
+    /// from the first part alone:
+    ///   - countValues      the array's last extent. Differing grids have no representation in
+    ///                      one zarr array (the last dimension would have to be ragged).
+    ///   - countChunkValues the chunk's last extent. Differing field chunking means a part
+    ///                      writes a differently sized block than the buffer is laid out for.
+    ///
+    /// Both are unchecked anywhere else, and both fail *silently* at read time: each extractor
+    /// sizes its writes from its own layout, so a part with a larger field overruns its slots
+    /// and still reports the expected message count.
+    ///
+    /// @throws eckit::UserError naming the offending part and both values.
+    static void validateLayouts(const std::vector<std::pair<ViewPart, std::unique_ptr<Extractor>>>& viewParts);
 };
 }  // namespace chunked_data_view

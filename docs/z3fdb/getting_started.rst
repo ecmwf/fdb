@@ -11,7 +11,7 @@ understand how to index into it.
 Prerequisites
 -------------
 
-* Z3FDB installed — see :ref:`Z3FDB_Introduction` for build instructions.
+* Z3FDB installed. See :ref:`Z3FDB_Introduction` for build instructions.
 * An FDB instance containing GRIB data accessible from your environment.
 * ``zarr`` installed.
 
@@ -19,7 +19,7 @@ Your First Store
 ----------------
 
 The example below creates a 3-dimensional Zarr array from two dates, four
-time steps, and one surface parameter. Read it top to bottom — each step is
+time steps, and one surface parameter. Read it top to bottom. Each step is
 explained immediately after the code block.
 
 .. code-block:: python
@@ -82,9 +82,9 @@ After ``build()``, ``data`` is a 3-dimensional array:
 
    data.shape  ->  (2, 4, N)
 
-   Dim 0 — date:        2 entries  (2020-01-01, 2020-01-02)
-   Dim 1 — time:        4 entries  (0000, 0600, 1200, 1800)
-   Dim 2 — grid points: N float32 values decoded from the GRIB field  [implicit]
+   Dim 0 (date):        2 entries  (2020-01-01, 2020-01-02)
+   Dim 1 (time):        4 entries  (0000, 0600, 1200, 1800)
+   Dim 2 (grid pts): N float32 values decoded from the GRIB field  [implicit]
 
 The **implicit final dimension** always holds the decoded grid-point values
 for one field. Its size ``N`` is determined by the GRIB grid.
@@ -103,9 +103,11 @@ is typically retrieved as a slice:
    # date index 1 (2020-01-02), time index 0 (0000)
    field = data[1, 0, :]
 
-**No data is fetched from FDB until you index.** Building the store is cheap —
-it validates your MARS request and pre-fetches layout metadata but does not
+**No data is fetched from FDB until you index.** Building the store is cheap.
+It validates your MARS request and pre-fetches layout metadata, but does not
 retrieve field values.
+
+.. _z3fdb_missing_values:
 
 Missing Data and Fill Values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -125,7 +127,7 @@ detectable with :func:`numpy.isnan`:
    field = data[0, 2, :]
    missing = np.isnan(field)
 
-To use a different sentinel — for example ``-999.0`` — call
+To use a different sentinel, for example ``-999.0``, call
 :meth:`~z3fdb.SimpleStoreBuilder.fill_missing_value` on the builder before calling
 ``build()``:
 
@@ -203,7 +205,7 @@ dimension grows across the two ``parts``.
 
    builder = SimpleStoreBuilder()
 
-   # Part 1 — surface parameters (levtype=sfc): 2 params
+   # Part 1: surface parameters (levtype=sfc): 2 params
    builder.add_part(
        {
            "class": "ea",
@@ -218,13 +220,13 @@ dimension grows across the two ``parts``.
            "param": [165, 166],               # 2 surface params
        },
        [
-           AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),  # Dim 0 — 8 entries
-           AxisDefinition(["param"],        Chunking.SINGLE_VALUE),  # Dim 1 — 2 entries
+           AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),  # Dim 0: 8 entries
+           AxisDefinition(["param"],        Chunking.SINGLE_VALUE),  # Dim 1: 2 entries
        ],
        ExtractorType.Grib(),
    )
 
-   # Part 2 — pressure-level parameters (levtype=pl): 2 params × 3 levels = 6 entries
+   # Part 2: pressure-level parameters (levtype=pl): 2 params × 3 levels = 6 entries
    builder.add_part(
        {
            "class": "ea",
@@ -240,20 +242,20 @@ dimension grows across the two ``parts``.
            "levelist": [500, 850, 1000],       # 3 levels
        },
        [
-           AxisDefinition(["date", "time"],       Chunking.SINGLE_VALUE),  # Dim 0 — must match Part 1
-           AxisDefinition(["param", "levelist"],  Chunking.SINGLE_VALUE),  # Dim 1 — 6 entries
+           AxisDefinition(["date", "time"],       Chunking.SINGLE_VALUE),  # Dim 0: must match Part 1
+           AxisDefinition(["param", "levelist"],  Chunking.SINGLE_VALUE),  # Dim 1: 6 entries
        ],
        ExtractorType.Grib(),
    )
 
-   # Dim 1 (param) grows: Part 1 contributes indices 0–1, Part 2 contributes 2–7
+   # Dim 1 (param) grows: Part 1 contributes indices 0 to 1, Part 2 contributes 2 to 7
    builder.extend_on_axis(1)
 
    store = builder.build()
    data = zarr.open_array(store)
 
-The resulting array has shape ``(8, 8, N)`` — 8 datetime steps and 8 entries on the
-param dimension (2 sfc + 6 pl).
+The resulting array has shape ``(8, 8, N)``. That is 8 datetime steps, and 8 entries
+on the param dimension (2 sfc + 6 pl).
 
 .. code-block:: python
 
@@ -274,8 +276,8 @@ Common Pitfalls
 ---------------
 
 **MARS request ends with a comma**
-   ``"...,param=167,"`` — the trailing comma causes a parse error.
-   Omit the comma on the last key–value pair.
+   ``"...,param=167,"``. The trailing comma causes a parse error.
+   Omit the comma on the last key-value pair.
 
 **Multi-valued keyword not covered by any AxisDefinition**
    Every MARS keyword that has more than one value **must** appear in exactly one
@@ -283,7 +285,7 @@ Common Pitfalls
 
 **Wrong array shape**
    If ``data.shape`` does not match what you expect, check the order of your
-   ``AxisDefinition`` list — position in the list is the dimension index.
+   ``AxisDefinition`` list. Position in the list is the dimension index.
 
 **Large chunk memory use**
    ``Chunking.WHOLE_AXIS`` on several axes can produce chunks of many gigabytes.

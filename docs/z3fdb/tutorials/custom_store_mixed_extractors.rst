@@ -9,9 +9,16 @@ Mixed-Extractor Custom Store
 This tutorial shows how to use :class:`~z3fdb.CustomStoreBuilder` to create
 a single Zarr store that contains multiple named arrays, each backed by a
 different extraction strategy. You will build a store with two arrays holding
-the same 10 m u-wind field -- one using the standard ``Grib`` extractor for
-efficient full-field access, and one using ``GribJump`` -- then plot the field
+the same 10 m u-wind field. One uses the standard ``Grib`` extractor for
+efficient full-field access, the other uses ``GribJump``. You then plot the field
 as a global map.
+
+.. note::
+
+   This tutorial uses ``ExtractorType.GribJump``, which is built only when fdb is configured
+   with ``-DENABLE_ZARR_GRIBJUMP_EXTRACTOR=ON``, off by default. On a build without it,
+   ``build()`` raises and names the flag. Check with
+   ``pychunked_data_view.has_gribjump_extractor``, and see :ref:`z3fdb_gribjump_availability`.
 
 .. contents:: On this page
    :local:
@@ -29,7 +36,7 @@ This is useful when:
 
 * You want to expose multiple parameters or level types through one store
   object.
-* Different arrays in the store benefit from different extractors -- for
+* Different arrays in the store benefit from different extractors. For
   example, surface fields used for map visualisation work well with a
   ``Grib`` extractor (one FDB retrieve returns the full field), while the
   same field accessed at individual grid points is better served by
@@ -91,7 +98,7 @@ Building the Custom Store
    # Best choice for sparse access (e.g. time series at a station).
    builder.add_part("gribjump/u10", _REQUEST, axes=_AXES,
                     extractor=ExtractorType.GribJump(
-                        chunking=Chunking.FixedSizeChunk(chunk_shape=1)
+                        field_chunking=Chunking.FixedSizeChunk(chunk_shape=1)
                     ))
 
    store = builder.build()
@@ -105,10 +112,10 @@ Building the Custom Store
 ``ExtractorType.Grib()``
    Standard extraction: one FDB retrieve per chunk, returning a full GRIB
    field decoded to float32. With ``SINGLE_VALUE`` chunking on every explicit
-   axis, each chunk holds one complete field -- ideal for reading all grid
+   axis, each chunk holds one complete field. That is ideal for reading all grid
    points at once.
 
-``ExtractorType.GribJump(chunking=Chunking.FixedSizeChunk(chunk_shape=1))``
+``ExtractorType.GribJump(field_chunking=Chunking.FixedSizeChunk(chunk_shape=1))``
    GribJump jumps to the bytes inside each GRIB message that correspond to
    the requested grid points, without decoding the rest. ``FixedSizeChunk(1)``
    makes every grid point its own chunk: reading ``arr[..., k]`` extracts
@@ -172,7 +179,7 @@ or ``cfgrib``.
    fig.colorbar(img, ax=ax, label="10 m u-wind (m/s)")
    ax.set_xlabel("Longitude (deg)")
    ax.set_ylabel("Latitude (deg)")
-   ax.set_title(f"10 m u-wind -- {_REQUEST['date']} {_REQUEST['time'][0]}, step 0, member 1")
+   ax.set_title(f"10 m u-wind, {_REQUEST['date']} {_REQUEST['time'][0]}, step 0, member 1")
    plt.tight_layout()
    plt.savefig("u10_map.png", dpi=150)
    plt.show()
@@ -187,7 +194,7 @@ or ``cfgrib``.
 Next Steps
 ----------
 
-* :doc:`ensemble_timeseries` -- use ``GribJump`` with ``FixedSizeChunk(1)``
+* :doc:`ensemble_timeseries` for using ``GribJump`` with ``FixedSizeChunk(1)``
   across a full ensemble and plot time series.
-* :doc:`/z3fdb/dimension_mapping` -- complete reference on axis mapping,
+* :doc:`../dimension_mapping` for the complete reference on axis mapping,
   chunking strategies, and multi-part views.
