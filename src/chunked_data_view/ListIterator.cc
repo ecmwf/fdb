@@ -2,25 +2,18 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "chunked_data_view/ListIterator.h"
 
-#include "eckit/io/DataHandle.h"
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/ListIterator.h"
-#include "fdb5/database/Key.h"
 
-#include <memory>
 #include <optional>
-#include <tuple>
-#include <utility>
 
 namespace chunked_data_view {
 
-std::optional<std::tuple<fdb5::Key, std::unique_ptr<eckit::DataHandle>>> ListIteratorWrapperImpl::next() {
+std::optional<ListElement> ListIteratorWrapperImpl::next() {
     fdb5::ListElement elem;
 
-    auto has_next = listIterator_.next(elem);
-
-    if (has_next) {
-        return std::make_tuple(elem.combinedKey(), std::unique_ptr<eckit::DataHandle>(elem.location().dataHandle()));
+    if (listIterator_.next(elem)) {
+        return ListElement{elem.combinedKey(), elem.sharedLocation()};
     }
 
     return std::nullopt;

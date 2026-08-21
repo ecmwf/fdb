@@ -28,8 +28,8 @@ ChunkedDataViewBuilder::ChunkedDataViewBuilder(const std::optional<std::filesyst
 
 ChunkedDataViewBuilder& ChunkedDataViewBuilder::addPart(std::string marsRequestKeyValues,
                                                         std::vector<AxisDefinition> axes,
-                                                        std::shared_ptr<Extractor> extractor) {
-    parts_.emplace_back(std::move(marsRequestKeyValues), std::move(axes), std::move(extractor));
+                                                        std::unique_ptr<ExtractorDefinition> definition) {
+    parts_.emplace_back(std::move(marsRequestKeyValues), std::move(axes), std::move(definition));
     return *this;
 }
 
@@ -44,7 +44,7 @@ ChunkedDataViewBuilder& ChunkedDataViewBuilder::fillMissingValue(float fillValue
 }
 
 bool ChunkedDataViewBuilder::chunkingConsistencyCheck(
-    const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& viewParts) {
+    const std::vector<std::pair<ViewPart, std::unique_ptr<Extractor>>>& viewParts) {
 
     if (viewParts.size() <= 1) {
         return true;
@@ -54,9 +54,9 @@ bool ChunkedDataViewBuilder::chunkingConsistencyCheck(
     const size_t numAxes = refChunks.size();
 
     for (size_t axisIdx = 0; axisIdx < numAxes; ++axisIdx) {
-        // WholeAxisChunking axes are extensible: their single chunk grows when parts are
-        // stitched together, so differing extents per part are expected and correct.
-        if (refChunks[axisIdx].isExtensible()) {
+        // WholeAxisChunking axes have one chunk whose size grows across parts;
+        // differing extents per part are expected and correct, so skip the check.
+        if (refChunks[axisIdx].isSingleGrowingChunk()) {
             continue;
         }
 
@@ -71,7 +71,7 @@ bool ChunkedDataViewBuilder::chunkingConsistencyCheck(
 }
 
 bool ChunkedDataViewBuilder::doPartsAlign(
-    const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& viewParts) {
+    const std::vector<std::pair<ViewPart, std::unique_ptr<Extractor>>>& viewParts) {
     const ViewPart& first = std::get<0>(viewParts[0]);
     bool extensible = true;
     for (const auto& [viewPart, _] : viewParts) {
@@ -96,15 +96,13 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
         }
     }
 
-    std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>> viewParts{};
+    std::vector<std::pair<ViewPart, std::unique_ptr<Extractor>>> viewParts{};
     viewParts.reserve(parts_.size());
 
     // Offset is one-dimensional along the extension axis
     std::vector<size_t> part_offsets = {0};
 
-    for (auto& [req, defs, ext] : parts_) {
-        ext->setFillValue(fillValue_);
-
+    for (auto& [req, defs, extDef] : parts_) {
         const auto requests = fdb5::FDBToolRequest::requestsFromString(req);
 
         if (requests.size() > 1) {
@@ -116,17 +114,19 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
         const auto request = requests.at(0).request();
 
         try {
-            const auto layout = ext->layout(request);
+            auto ext = extDef->buildExtractor(request);
+            ext->setFillValue(fillValue_);
+
             const auto axes = AxisMapper::mapRequestToAxis(request, defs);
 
             // Create offset vector
             std::vector<size_t> offsetInChunkedDataView(axes.size(), 0);
             offsetInChunkedDataView[extensionAxisIndex_.value_or(0)] = part_offsets[part_offsets.size() - 1];
 
-            ViewPart vp(std::move(request), layout, axes, offsetInChunkedDataView);
+            ViewPart vp(std::move(request), axes, offsetInChunkedDataView);
             part_offsets.push_back(part_offsets.back() + vp.extension()[extensionAxisIndex_.value_or(0)]);
 
-            viewParts.emplace_back(std::move(vp), ext);
+            viewParts.emplace_back(std::move(vp), std::move(ext));
         }
         catch (const std::exception& e) {
             std::ostringstream ss;
@@ -147,7 +147,7 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
             "boundaries coincide with Zarr chunk boundaries.");
     }
 
-    return std::make_unique<ChunkedDataViewImpl>(viewParts, fillValue_, extensionAxisIndex_.value_or(0));
+    return std::make_unique<ChunkedDataViewImpl>(std::move(viewParts), fillValue_, extensionAxisIndex_.value_or(0));
 }
 
 };  // namespace chunked_data_view

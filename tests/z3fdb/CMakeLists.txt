@@ -43,16 +43,28 @@ function(add_py_online_test test)
 endfunction()
 
 
-set(unit_tests
-  unit/test_store_v3.py
-  unit/test_store_v3_errors.py
-  unit/test_u_v_vo_d_retrieval.py
+set(store_tests
+  interface/store/test_store_v3_simple_builder.py
+  interface/store/test_store_v3_errors_simple_builder.py
+  interface/store/test_u_v_vo_d_retrieval_simple_builder.py
+  interface/store/test_custom_store_builder.py
+)
+
+set(integration_tests
+  integration/test_gribjump_extractor.py
+  integration/test_mixed_extractors.py
 )
 
 set(zarr_interface_conformity_tests
-  zarr_interface_conformity/test_z3fdb_store_interface.py
-  zarr_interface_conformity/test_z3fdb_store_path_correctness.py
-  zarr_interface_conformity/test_z3fdb_consolidated_metadata.py
+  interface/zarr_interface_conformity/test_z3fdb_store_interface.py
+  interface/zarr_interface_conformity/test_z3fdb_store_path_correctness.py
+  interface/zarr_interface_conformity/test_z3fdb_consolidated_metadata.py
+)
+
+set(user_tests
+  interface/user_tests/test_dask_access.py
+  interface/user_tests/test_xarray_access.py
+  interface/user_tests/test_metadata_mapping.py
 )
 
 set(permutation_tests
@@ -60,14 +72,14 @@ set(permutation_tests
   permutation_tests/test_axis_definition_ordering.py
   permutation_tests/test_axis_definition_permutations.py
   permutation_tests/test_store_fixed_size_chunking.py
+  permutation_tests/test_builder_extension.py
   permutation_tests/test_store_multiple_parts.py
 )
 
-foreach(test_file ${unit_tests} ${zarr_interface_conformity_tests} ${permutation_tests})
+foreach(test_file ${store_tests} ${integration_tests} ${zarr_interface_conformity_tests} ${user_tests} ${permutation_tests})
   add_py_test(${test_file})
 endforeach()
 
 # Online tests: require network access to ECMWF open data.
 # Run with: ctest -L z3fdb_online
-add_py_online_test(test_store_v3_online.py)
 add_py_online_test(permutation_tests/test_store_missing_values.py)

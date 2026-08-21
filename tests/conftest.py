@@ -28,6 +28,11 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "online: tests that require network access to ECMWF open data"
     )
+    config.addinivalue_line(
+        "markers",
+        "zfdb_user_tests: end-to-end user-facing tests showing how to consume a z3fdb store "
+        "(e.g. via dask, xarray) without FDB internals knowledge",
+    )
 
 
 def create_fdb(root: pathlib.Path, schema_src: pathlib.Path) -> pathlib.Path:

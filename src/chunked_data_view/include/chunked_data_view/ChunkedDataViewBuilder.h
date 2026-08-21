@@ -34,8 +34,17 @@ class ChunkedDataViewBuilder {
 public:
 
     /// @param configPath  Optional path to an FDB config file. Passed through to the FDB
-    ///                    instance created when building with ExtractorType::GRIB.
+    ///                    instance created when building with ExtractorType::Grib.
     explicit ChunkedDataViewBuilder(const std::optional<std::filesystem::path>& configPath = std::nullopt);
+
+
+    // Deleted to make the ChunkedDataViewBuilder non-copyable. This is also needed by pybind11 layer.
+    ChunkedDataViewBuilder(const ChunkedDataViewBuilder&) = delete;
+    ChunkedDataViewBuilder& operator=(const ChunkedDataViewBuilder&) = delete;
+
+    // declaring the deleted copy suppresses implicit moves, so restore them:
+    ChunkedDataViewBuilder(ChunkedDataViewBuilder&&) = default;
+    ChunkedDataViewBuilder& operator=(ChunkedDataViewBuilder&&) = default;
 
     /// Registers one data region (part) of the view.
     ///
@@ -46,13 +55,11 @@ public:
     /// Multiple parts can cover different variable types (e.g. surface and pressure-level
     /// fields) and are stitched together along the extension axis specified by extendOnAxis().
     ///
-    /// @p extractor is taken as a shared_ptr because the assembled ChunkedDataViewImpl pairs
-    /// each ViewPart with its Extractor and multiple ViewParts may legally share one Extractor
-    /// instance (e.g. when two parts draw from the same FDB store). Shared ownership avoids
-    /// copying the (potentially stateful, non-copyable) extractor while guaranteeing its
-    /// lifetime extends at least as long as the built ChunkedDataView.
+    /// @p definition is an ExtractorDefinition whose buildExtractor() is called once per part
+    /// inside build() after the MARS request string has been parsed. The builder takes
+    /// exclusive ownership of the definition.
     ChunkedDataViewBuilder& addPart(std::string marsRequestKeyValues, std::vector<AxisDefinition> axes,
-                                    std::shared_ptr<Extractor> extractor);
+                                    std::unique_ptr<ExtractorDefinition> definition);
 
     /// Sets the axis index along which multiple parts are concatenated.
     ///
@@ -76,19 +83,22 @@ public:
 private:
 
     std::optional<std::filesystem::path> configPath_{};
-    std::vector<std::tuple<std::string, std::vector<AxisDefinition>, std::shared_ptr<Extractor>>> parts_{};
+    std::vector<std::tuple<std::string, std::vector<AxisDefinition>, std::unique_ptr<ExtractorDefinition>>> parts_{};
     std::optional<size_t> extensionAxisIndex_ = std::nullopt;
     float fillValue_ = std::numeric_limits<float>::quiet_NaN();
 
-    bool doPartsAlign(const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& viewParts);
+    bool doPartsAlign(const std::vector<std::pair<ViewPart, std::unique_ptr<Extractor>>>& viewParts);
 
-    /// Returns true if all parts use the same chunk size on every non-extensible axis.
+    /// Returns true if all parts use the same chunk size on every axis that is not
+    /// WholeAxisChunking.
     ///
     /// For FixedSizeChunking axes the chunk size must be identical across all parts so
     /// that part boundaries coincide with Zarr chunk boundaries.  WholeAxisChunking axes
-    /// (extensible=true) grow when parts are stitched together and are therefore exempt
-    /// from this check.  SingleValueChunking always produces chunk size 1 and is trivially
-    /// consistent.
-    static bool chunkingConsistencyCheck(const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& viewParts);
+    /// (isSingleGrowingChunk=true) have one chunk per part whose size grows with the
+    /// combined extent, so differing sizes are expected and exempt from this check.
+    /// SingleValueChunking always produces chunk size 1 and is trivially consistent.
+    ///
+    /// Note: extension (adding parts) is supported for all three chunking types.
+    static bool chunkingConsistencyCheck(const std::vector<std::pair<ViewPart, std::unique_ptr<Extractor>>>& viewParts);
 };
 }  // namespace chunked_data_view

@@ -17,9 +17,9 @@ except ImportError:
 
     Buffer = Union[bytes, bytearray, memoryview]
 
-from typing import AsyncIterator, Iterable, Literal
+from typing import AsyncIterator, Iterable, Iterator, Literal
 
-import numpy as np
+import math
 import itertools
 
 from zarr.abc import store
@@ -29,7 +29,6 @@ from zarr.core.buffer.core import BufferPrototype
 from zarr.core.buffer.cpu import Buffer as CpuBuffer
 from zarr.core.common import BytesLike
 
-from functools import cache
 from typing import Self
 
 from pychunked_data_view import (
@@ -42,15 +41,19 @@ from typing import Any, Optional, Sequence
 
 
 def to_cpu_buffer(d: dict) -> CpuBuffer:
+    """Serialise *d* to JSON and wrap it in a zarr CPU buffer."""
     return CpuBuffer.from_bytes(json.dumps(d).encode("utf-8"))
 
 
 def from_cpu_buffer(buf: CpuBuffer) -> dict:
+    """Deserialise a zarr CPU buffer to a dict."""
     return json.loads(buf.to_bytes().decode("utf-8"))
 
 
 @dataclass(frozen=True)
 class DotZarrAttributes:
+    """Zarr v3 node attributes attached to every group and array node."""
+
     _: KW_ONLY
     copyright: str = "ecmwf"
     zarr_format: int = 3
@@ -78,13 +81,10 @@ class ChunkGridMetadata(MetadataConfiguration):
 
 @dataclass
 class DotZarrArrayJson:
-    """
-    Generates the .zarr metadata for an array.
+    """Zarr v3 array metadata written to ``zarr.json`` at each array node.
 
-    If additional fields are introduced, read the documentation about must_understand
+    If you add fields, check the ``must_understand`` rules in the spec:
     https://zarr-specs.readthedocs.io/en/latest/v3/core/v3.0.html#id13
-
-    Most of what happens here has been reverse-engineered from the zarr-python code.
     """
 
     _: KW_ONLY
@@ -107,13 +107,10 @@ class DotZarrArrayJson:
 
 @dataclass()
 class DotZarrGroupJson:
-    """
-    Generates the .zarr metadata for a group.
+    """Zarr v3 group metadata written to ``zarr.json`` at each group node.
 
-    If additional fields are introduced, read the documentation about must_understand
+    If you add fields, check the ``must_understand`` rules in the spec:
     https://zarr-specs.readthedocs.io/en/latest/v3/core/v3.0.html#id13
-
-    Most of what happens here has been reverse-engineered from the zarr-python code.
     """
 
     _: KW_ONLY
@@ -125,16 +122,19 @@ class DotZarrGroupJson:
 
 
 class FdbSource:
-    """
-    Uses FDB as a backend.
-    Data is retrieved from FDB and assembled on each access.
+    """Bridge between the C++ ``ChunkedDataView`` and zarr's array protocol.
+
+    Caches shape and chunk-count metadata from the view at construction;
+    serves raw chunk buffers on demand via :meth:`__getitem__`.
     """
 
     def __init__(
         self,
         chunked_data_view: ChunkedDataView,
+        dim_names: list[str] | None = None,
     ) -> None:
         self._chunked_data_view = chunked_data_view
+        self._dim_names = dim_names
 
         self._shape = self._chunked_data_view.shape()
         self._chunks = self._chunked_data_view.chunkShape()
@@ -142,6 +142,7 @@ class FdbSource:
         self._fill_value = self._chunked_data_view.fill_missing_value()
 
     def create_dot_zarr_json(self) -> CpuBuffer:
+        """Return the ``zarr.json`` metadata buffer for this array."""
         return to_cpu_buffer(
             asdict(
                 DotZarrArrayJson(
@@ -149,21 +150,26 @@ class FdbSource:
                     chunk_grid=ChunkGridMetadata(chunks=self._chunks),
                     data_type="float32",
                     fill_value=self._fill_value,
+                    dimension_names=self._dim_names,
                 )
             )
         )
 
+    def contains_chunk(self, coords: tuple[int, ...]) -> bool:
+        """Return True if *coords* is a valid chunk index for this array."""
+        if len(coords) != len(self._chunks_per_dimension):
+            return False
+        return all(0 <= c < limit for c, limit in zip(coords, self._chunks_per_dimension))
+
     def __contains__(self, key: tuple[int, ...]) -> bool:
-        if len(key) != len(self._shape):
-            return False
-        if any(k < 0 or k >= limit for k, limit in zip(key, self._chunks_per_dimension)):
-            return False
-        return True
+        return self.contains_chunk(key)
 
     def chunks(self) -> tuple[int, ...]:
+        """Return the per-dimension chunk counts."""
         return self._chunks_per_dimension
 
     def __getitem__(self, key: tuple[int, ...]) -> CpuBuffer:
+        """Fetch and return chunk *key* as a CPU buffer."""
         if len(key) != len(self._shape):
             raise KeyError
         if any(k < 0 or k >= limit for k, limit in zip(key, self._chunks_per_dimension)):
@@ -172,12 +178,15 @@ class FdbSource:
 
 
 class FdbZarrArray:
+    """Zarr v3 array node backed by an :class:`FdbSource`."""
+
     def __init__(self, *, name: str = "", datasource: FdbSource):
         self._name = name
         self._datasource = datasource
         self._metadata = self._datasource.create_dot_zarr_json()
 
     def __getitem__(self, key: str) -> AbstractBuffer | None:
+        """Route ``zarr.json`` to metadata and ``c/<i>/...`` keys to chunk data."""
         if key == "zarr.json":
             return self._metadata
         if key.startswith("c/"):
@@ -189,25 +198,14 @@ class FdbZarrArray:
     def name(self) -> str:
         return self._name
 
-    @cache
     def paths(self) -> list[str]:
-        """
-        Zarr paths associated to this array, this includes .zarray, .zattrs and all chunks.
-
-        Returns
-        -------
-        list[str]
-            A list of paths belonging to this group
-        """
-        files = ["zarr.json"]
-        if len(chunks_per_axis := self._datasource.chunks()) > 0:
-            tuples = itertools.product(*[np.arange(0, x) for x in chunks_per_axis])
-            chunk_names = ["/".join([str(i) for i in ["c", *t]]) for t in tuples]
-            files += chunk_names
-        return files
+        """Return ``['zarr.json']``; chunk keys are not enumerated here."""
+        return ["zarr.json"]
 
 
 class FdbZarrGroup:
+    """Zarr v3 group node; delegates key lookups to its named children."""
+
     def __init__(
         self,
         *,
@@ -243,27 +241,62 @@ class FdbZarrGroup:
         return list(self._children.values())
 
     def paths(self) -> list[str]:
-        """
-        Zarr paths associated to this group, excluding child groups or arrays.
-
-        Returns
-        -------
-        list[str]
-            A list of paths belonging to this group
-        """
+        """Return ``['zarr.json']`` for this group (children contribute their own paths)."""
         return ["zarr.json"]
 
 
 class FdbZarrStore(store.Store):
-    """Provide access to FDB."""
+    """Read-only zarr v3 store that virtualises an arbitrary group/array hierarchy.
+
+    ``_known_paths`` holds metadata keys only (one ``zarr.json`` per node).
+    Chunk keys are validated O(1) via :meth:`_chunk_key_exists` and generated
+    lazily by :meth:`_iter_chunk_paths` - they are never stored.
+    """
 
     def __init__(self, child: FdbZarrGroup | FdbZarrArray):
         super().__init__(read_only=True)
         self._child = child
+        # Metadata paths only - chunk keys are generated on demand.
         self._known_paths = self._build_paths(self._child)
+        # Flat map: absolute array path -> FdbZarrArray, for chunk operations.
+        self._arrays: dict[str, FdbZarrArray] = self._collect_arrays(self._child)
         self._root_zarr_json = self._build_root_zarr_json()
 
+    def _collect_arrays(
+        self,
+        item: "FdbZarrGroup | FdbZarrArray",
+        parent_path: str = "",
+    ) -> "dict[str, FdbZarrArray]":
+        """Return a flat dict mapping each array's absolute path to its node."""
+        path = f"{parent_path}/{item.name}" if parent_path else item.name
+        if isinstance(item, FdbZarrArray):
+            return {path: item}
+        result: dict[str, FdbZarrArray] = {}
+        for c in item.children:
+            result.update(self._collect_arrays(c, path))
+        return result
+
+    def _chunk_key_exists(self, key: str) -> bool:
+        """Return True if *key* is a valid chunk key for any array, without enumeration."""
+        for arr_path, arr in self._arrays.items():
+            chunk_prefix = (arr_path + "/c/") if arr_path else "c/"
+            if key.startswith(chunk_prefix):
+                try:
+                    coords = tuple(int(c) for c in key[len(chunk_prefix) :].split("/"))
+                except ValueError:
+                    return False
+                return arr._datasource.contains_chunk(coords)
+        return False
+
+    def _iter_chunk_paths(self) -> Iterator[str]:
+        """Yield every chunk key for every array, built at call time."""
+        for arr_path, arr in self._arrays.items():
+            prefix = (arr_path + "/c/") if arr_path else "c/"
+            for coords in itertools.product(*[range(n) for n in arr._datasource.chunks()]):
+                yield prefix + "/".join(str(c) for c in coords)
+
     def _build_paths(self, item, parent_path=None) -> list[str]:
+        """Collect metadata paths for *item* and all its descendants."""
         path = f"{parent_path}/{item.name}" if parent_path else item.name
         files = [f"{path}/{f}" if path != "" else f for f in item.paths()]
 
@@ -274,6 +307,7 @@ class FdbZarrStore(store.Store):
         return files
 
     def _build_root_zarr_json(self) -> CpuBuffer:
+        """Build the root ``zarr.json`` with inline ``consolidated_metadata`` for the full hierarchy."""
         # Only root groups can carry consolidated metadata in zarr v3.
         # Root arrays are terminal nodes; no consolidated_metadata concept applies.
         if not isinstance(self._child, FdbZarrGroup):
@@ -309,7 +343,7 @@ class FdbZarrStore(store.Store):
 
         # Build the flat metadata dict.  Every group gets a consolidated_metadata
         # whose metadata contains all its descendants with relative paths and plain
-        # (no consolidated_metadata) values — groups within are raw group JSON only.
+        # (no consolidated_metadata) values - groups within are raw group JSON only.
         flat: dict[str, dict] = {}
         for abs_path, meta in raw.items():
             if not abs_path:
@@ -340,10 +374,12 @@ class FdbZarrStore(store.Store):
         return self._child[key]
 
     def __iter__(self):
-        yield from iter(self._known_paths)
+        yield from self._known_paths
+        yield from self._iter_chunk_paths()
 
     def __len__(self):
-        return len(self._known_paths)
+        chunk_total = sum(math.prod(arr._datasource.chunks()) for arr in self._arrays.values())
+        return len(self._known_paths) + chunk_total
 
     def __setitem__(self, _k, _v):
         raise Z3fdbError("Views into FDB are not writable")
@@ -352,7 +388,7 @@ class FdbZarrStore(store.Store):
         raise Z3fdbError("Views into FDB are not writable")
 
     def __contains__(self, key) -> bool:
-        return key in self._known_paths
+        return key in self._known_paths or self._chunk_key_exists(key)
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, FdbZarrStore):
@@ -414,11 +450,16 @@ class FdbZarrStore(store.Store):
         return True
 
     async def list(self) -> AsyncIterator[str]:
-        for i in self._known_paths:
-            yield i
+        for path in self._known_paths:
+            yield path
+        for path in self._iter_chunk_paths():
+            yield path
 
     async def list_prefix(self, prefix: str) -> AsyncIterator[str]:
         for path in self._known_paths:
+            if path.startswith(prefix):
+                yield path
+        for path in self._iter_chunk_paths():
             if path.startswith(prefix):
                 yield path
 
@@ -427,6 +468,12 @@ class FdbZarrStore(store.Store):
         scan_prefix = (prefix.rstrip("/") + "/") if prefix else ""
         seen: set[str] = set()
         for path in self._known_paths:
+            if path.startswith(scan_prefix):
+                child = path[len(scan_prefix) :].split("/")[0]
+                if child and child not in seen:
+                    seen.add(child)
+                    yield child
+        for path in self._iter_chunk_paths():
             if path.startswith(scan_prefix):
                 child = path[len(scan_prefix) :].split("/")[0]
                 if child and child not in seen:

@@ -23,34 +23,47 @@ def test_axis_check_merge(read_only_fdb_setup_for_sfc_pl_example) -> None:
     builder = SimpleStoreBuilder(read_only_fdb_setup_for_sfc_pl_example)
     builder.add_part(
         {
-            "type": "an", "class": "ea", "domain": "g", "expver": "0001",
-            "stream": "oper", "date": ["2020-01-01", "2020-01-02"],
-            "levtype": "sfc", "step": 0, "param": [165, 166],
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": ["2020-01-01", "2020-01-02"],
+            "levtype": "sfc",
+            "step": 0,
+            "param": [165, 166],
             "time": "0/to/21/by/3",
         },
         [
             AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.add_part(
         {
-            "type": "an", "class": "ea", "domain": "g", "expver": "0001",
-            "stream": "oper", "date": ["2020-01-01", "2020-01-02"],
-            "levtype": "pl", "step": 0, "param": [131, 132],
-            "levelist": [50, 100], "time": "0/to/21/by/3",
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": ["2020-01-01", "2020-01-02"],
+            "levtype": "pl",
+            "step": 0,
+            "param": [131, 132],
+            "levelist": [50, 100],
+            "time": "0/to/21/by/3",
         },
         [
             AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
             AxisDefinition(["param", "levelist"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.extend_on_axis(1)
     store = builder.build()
 
-    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+    data = zarr.open_array(store)
 
     assert data
 
@@ -66,34 +79,47 @@ def test_axis_check_merge_no_chunking(read_only_fdb_setup_for_sfc_pl_example) ->
     builder = SimpleStoreBuilder(read_only_fdb_setup_for_sfc_pl_example)
     builder.add_part(
         {
-            "type": "an", "class": "ea", "domain": "g", "expver": "0001",
-            "stream": "oper", "date": ["2020-01-01", "2020-01-02"],
-            "levtype": "sfc", "step": 0, "param": [165, 166],
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": ["2020-01-01", "2020-01-02"],
+            "levtype": "sfc",
+            "step": 0,
+            "param": [165, 166],
             "time": "0/to/21/by/3",
         },
         [
             AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
             AxisDefinition(["param"], Chunking.WHOLE_AXIS),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.add_part(
         {
-            "type": "an", "class": "ea", "domain": "g", "expver": "0001",
-            "stream": "oper", "date": ["2020-01-01", "2020-01-02"],
-            "levtype": "pl", "step": 0, "param": [131, 132],
-            "levelist": [50, 100], "time": "0/to/21/by/3",
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "date": ["2020-01-01", "2020-01-02"],
+            "levtype": "pl",
+            "step": 0,
+            "param": [131, 132],
+            "levelist": [50, 100],
+            "time": "0/to/21/by/3",
         },
         [
             AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
             AxisDefinition(["param", "levelist"], Chunking.WHOLE_AXIS),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.extend_on_axis(1)
     store = builder.build()
 
-    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+    data = zarr.open_array(store)
 
     assert data
 
@@ -106,17 +132,30 @@ def test_axis_check_merge_no_chunking(read_only_fdb_setup_for_sfc_pl_example) ->
 
 
 SFC_REQUEST = {
-    "type": "an", "class": "ea", "domain": "g", "expver": "0001",
-    "stream": "oper", "date": ["2020-01-01", "2020-01-02"],
-    "levtype": "sfc", "step": 0, "param": [165, 166],
+    "type": "an",
+    "class": "ea",
+    "domain": "g",
+    "expver": "0001",
+    "stream": "oper",
+    "date": ["2020-01-01", "2020-01-02"],
+    "levtype": "sfc",
+    "step": 0,
+    "param": [165, 166],
     "time": "0/to/21/by/3",
 }
 
 PL_REQUEST = {
-    "type": "an", "class": "ea", "domain": "g", "expver": "0001",
-    "stream": "oper", "date": ["2020-01-01", "2020-01-02"],
-    "levtype": "pl", "step": 0, "param": [131, 132],
-    "levelist": [50, 100], "time": "0/to/21/by/3",
+    "type": "an",
+    "class": "ea",
+    "domain": "g",
+    "expver": "0001",
+    "stream": "oper",
+    "date": ["2020-01-01", "2020-01-02"],
+    "levtype": "pl",
+    "step": 0,
+    "param": [131, 132],
+    "levelist": [50, 100],
+    "time": "0/to/21/by/3",
 }
 
 
@@ -129,7 +168,7 @@ def test_extend_on_axis_0(read_only_fdb_setup_for_sfc_pl_example) -> None:
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
             AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.add_part(
         PL_REQUEST,
@@ -137,12 +176,12 @@ def test_extend_on_axis_0(read_only_fdb_setup_for_sfc_pl_example) -> None:
             AxisDefinition(["param", "levelist"], Chunking.SINGLE_VALUE),
             AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.extend_on_axis(0)
     store = builder.build()
 
-    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+    data = zarr.open_array(store)
 
     assert data
 
@@ -164,7 +203,7 @@ def test_extend_on_axis_0_no_chunking(read_only_fdb_setup_for_sfc_pl_example) ->
             AxisDefinition(["param"], Chunking.WHOLE_AXIS),
             AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.add_part(
         PL_REQUEST,
@@ -172,12 +211,12 @@ def test_extend_on_axis_0_no_chunking(read_only_fdb_setup_for_sfc_pl_example) ->
             AxisDefinition(["param", "levelist"], Chunking.WHOLE_AXIS),
             AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.extend_on_axis(0)
     store = builder.build()
 
-    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+    data = zarr.open_array(store)
 
     assert data
 
@@ -199,7 +238,7 @@ def test_non_extension_axis_no_chunking(read_only_fdb_setup_for_sfc_pl_example) 
             AxisDefinition(["date", "time"], Chunking.WHOLE_AXIS),
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.add_part(
         PL_REQUEST,
@@ -207,12 +246,12 @@ def test_non_extension_axis_no_chunking(read_only_fdb_setup_for_sfc_pl_example) 
             AxisDefinition(["date", "time"], Chunking.WHOLE_AXIS),
             AxisDefinition(["param", "levelist"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.extend_on_axis(1)
     store = builder.build()
 
-    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+    data = zarr.open_array(store)
 
     assert data
 
@@ -236,7 +275,7 @@ def test_single_key_axes(read_only_fdb_setup_for_sfc_pl_example) -> None:
             AxisDefinition(["time"], Chunking.SINGLE_VALUE),
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.add_part(
         PL_REQUEST,
@@ -245,12 +284,12 @@ def test_single_key_axes(read_only_fdb_setup_for_sfc_pl_example) -> None:
             AxisDefinition(["time"], Chunking.SINGLE_VALUE),
             AxisDefinition(["param", "levelist"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.extend_on_axis(2)
     store = builder.build()
 
-    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+    data = zarr.open_array(store)
 
     assert data
 
@@ -274,7 +313,7 @@ def test_all_no_chunking(read_only_fdb_setup_for_sfc_pl_example) -> None:
             AxisDefinition(["date", "time"], Chunking.WHOLE_AXIS),
             AxisDefinition(["param"], Chunking.WHOLE_AXIS),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.add_part(
         PL_REQUEST,
@@ -282,12 +321,12 @@ def test_all_no_chunking(read_only_fdb_setup_for_sfc_pl_example) -> None:
             AxisDefinition(["date", "time"], Chunking.WHOLE_AXIS),
             AxisDefinition(["param", "levelist"], Chunking.WHOLE_AXIS),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.extend_on_axis(1)
     store = builder.build()
 
-    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+    data = zarr.open_array(store)
 
     assert data
 

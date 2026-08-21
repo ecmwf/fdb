@@ -46,7 +46,7 @@ def test_extend_on_invalid_axis_raises(
             AxisDefinition(["time"], Chunking.SINGLE_VALUE),
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.extend_on_axis(invalid_axis)
 
@@ -80,8 +80,31 @@ def test_wrong_key(
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
             AxisDefinition(["date"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
 
     with pytest.raises(MarsRequestFormattingError):
         builder.build()
+
+
+@pytest.mark.parametrize(
+    ("bad_keys", "match"),
+    [
+        (["steps"],          "steps"),          # single typo
+        (["date", "times"],  "times"),          # one correct, one typo
+    ],
+)
+def test_axis_key_absent_from_request_raises(bad_keys, match) -> None:
+    """AxisDefinition keys that are not present in the MARS request must raise
+    ValueError at add_part time — before any FDB connection is attempted."""
+    builder = SimpleStoreBuilder()
+    with pytest.raises(ValueError, match=match):
+        builder.add_part(
+            {
+                "type": "an", "class": "ea", "domain": "g",
+                "expver": "0001", "stream": "oper", "levtype": "sfc",
+                "date": "2020-01-01", "time": 0, "step": 0, "param": 167,
+            },
+            [AxisDefinition(bad_keys, Chunking.SINGLE_VALUE)],
+            ExtractorType.Grib(),
+        )

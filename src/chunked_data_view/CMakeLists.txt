@@ -15,8 +15,14 @@ add_library(chunked_data_view STATIC
     ChunkedDataViewImpl.cc
     ChunkedDataViewImpl.h
     Fdb.cc
-    GribExtractor.cc
-    GribExtractor.h
+    extractors/grib/GribExtractor.cc
+    extractors/grib/GribExtractor.h
+    extractors/grib/GribExtractorDefinition.cc
+    extractors/grib/GribExtractorDefinition.h
+    extractors/gribjump/GribJumpExtractor.cc
+    extractors/gribjump/GribJumpExtractor.h
+    extractors/gribjump/GribJumpExtractorDefinition.cc
+    extractors/gribjump/GribJumpExtractorDefinition.h
     LibChunkedDataView.cc
     ListIterator.cc
     RequestManipulation.cc
@@ -28,6 +34,7 @@ add_library(chunked_data_view STATIC
     mapping/IndexMapper.cc
     mapping/IndexMapper.h
     exception/GribExtractorException.cc
+    exception/GribJumpExtractorException.cc
     exception/UnknownExtractorException.cc
     exception/BoundingBoxException.cc
     exception/RequestManipulationException.cc
@@ -42,6 +49,7 @@ add_library(chunked_data_view STATIC
     include/chunked_data_view/ListIterator.h
     include/chunked_data_view/Types.h
     include/chunked_data_view/exception/GribExtractorException.h
+    include/chunked_data_view/exception/GribJumpExtractorException.h
     include/chunked_data_view/exception/UnknownExtractorException.h
     include/chunked_data_view/exception/BoundingBoxException.h
     include/chunked_data_view/exception/RequestManipulationException.h
@@ -60,4 +68,5 @@ target_link_libraries(chunked_data_view
         eckit
         metkit
         fdb5
+        gribjump
 )

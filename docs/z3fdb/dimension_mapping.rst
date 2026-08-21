@@ -149,7 +149,7 @@ a dimension are grouped into a single Zarr chunk:
    * - :attr:`~pychunked_data_view.Chunking.WHOLE_AXIS`
      - The entire axis is stored in a single chunk
      - Full axis length
-   * - :class:`~pychunked_data_view.Chunking.FixedSizeChunk` ``(chunkShape=k)``
+   * - :class:`~pychunked_data_view.Chunking.FixedSizeChunk` ``(chunk_shape=k)``
      - Groups every ``k`` consecutive values along the axis into one chunk.
        ``k`` must divide the axis length evenly.
      - ``k`` (user-specified)
@@ -167,7 +167,7 @@ values:
    # Chunk shape:  (4, 1, N)
 
    [
-       AxisDefinition(["date"], Chunking.FixedSizeChunk(chunkShape=2)),  # chunk size = 2
+       AxisDefinition(["date"], Chunking.FixedSizeChunk(chunk_shape=2)),  # chunk size = 2
        AxisDefinition(["param"], Chunking.SINGLE_VALUE),                  # chunk size = 1
    ]
    # Array shape:  (4, 3, N)
@@ -191,7 +191,7 @@ chunked. Each chunk index ``ci`` maps to an axis range:
      - ``[ci, ci]`` — exactly one slot
    * - ``WHOLE_AXIS``
      - ``[0, size_i − 1]`` — the full axis (``ci`` is always 0)
-   * - ``FixedSizeChunk(chunkShape=k)``
+   * - ``FixedSizeChunk(chunk_shape=k)``
      - ``[ci × k, (ci + 1) × k − 1]`` — a window of ``k`` consecutive values
 
 The chunk's **bounding box** is the Cartesian product of these per-axis
@@ -249,7 +249,7 @@ three axes reduces each chunk to a single field
      - Use when you always read the full axis in one go and want to
        reduce the number of FDB round-trips (e.g. a small ``step`` axis
        you always load entirely).
-   * - ``FixedSizeChunk(chunkShape=k)``
+   * - ``FixedSizeChunk(chunk_shape=k)``
      - Use when you need a middle ground — for example, batching a
        365-day date axis into weekly (``k=7``) or monthly (``k=30``)
        windows. ``k`` must divide the axis length exactly.

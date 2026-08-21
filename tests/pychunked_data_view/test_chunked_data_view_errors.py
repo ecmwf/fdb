@@ -34,7 +34,7 @@ def test_malformed_mars_string_raises(read_only_fdb_setup, malformed_request, ex
     builder = ChunkedDataViewBuilder(read_only_fdb_setup)
     # Inject the malformed MARS string at the bindings level — addPart() stores it
     # without parsing, so no error fires here; it fires in build().
-    builder._obj.add_part(malformed_request, [], ExtractorType.GRIB.value)
+    builder._obj.add_part(malformed_request, [], ExtractorType.Grib()._obj)
     with pytest.raises(MarsRequestFormattingError, match=expected_hint):
         builder.build()
 
@@ -62,7 +62,7 @@ def test_misspelled_mars_key_raises(read_only_fdb_setup) -> None:
             "klasse": "ea",  # 'klasse' is not a valid MARS key
         },
         [AxisDefinition(["param"], Chunking.SINGLE_VALUE)],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     with pytest.raises(MarsRequestFormattingError, match="Did you misspell a MARS key"):
         builder.build()

@@ -17,6 +17,7 @@
 #include <type_traits>
 #include <vector>
 #include "chunked_data_view/ListIterator.h"
+#include "chunked_data_view/Types.h"
 #include "chunked_data_view/ViewPart.h"
 #include "eckit/io/DataHandle.h"
 #include "fdb5/database/FieldLocation.h"
@@ -48,14 +49,14 @@ struct MockListIterator final : public chunked_data_view::ListIteratorInterface 
 
     MockListIterator(vec2 data) : data_(std::move(data)), iter_(std::begin(data_)) {};
 
-    std::optional<std::tuple<fdb5::Key, std::unique_ptr<eckit::DataHandle>>> next() {
+    std::optional<chunked_data_view::ListElement> next() override {
         iter_++;
 
         if (std::end(data_) == iter_) {
             return std::nullopt;
         }
 
-        return std::make_tuple(std::get<0>(*iter_), makeHandle(std::get<1>(*iter_)));
+        return chunked_data_view::ListElement{std::get<0>(*iter_), nullptr};
     };
 };
 
@@ -94,20 +95,19 @@ struct FakeExtractor : public cdv::Extractor {
 
     std::shared_ptr<chunked_data_view::FdbInterface> mock_;
 
-    explicit FakeExtractor(std::shared_ptr<chunked_data_view::FdbInterface> mock_fdb) : mock_(mock_fdb) {}
-
-    cdv::DataLayout layout(const metkit::mars::MarsRequest& mars_request) const override {
-        const auto handle = mock_->retrieve(mars_request);
-        cdv::DataLayout layout{};
+    explicit FakeExtractor(std::shared_ptr<chunked_data_view::FdbInterface> mock_fdb) : mock_(mock_fdb) {
+        // The mock's retrieve() ignores the request, so a default-constructed one suffices.
+        const auto handle = mock_->retrieve(metkit::mars::MarsRequest{});
         handle->openForRead();
-        EXPECT_EQUAL(handle->read(&layout.countValues, sizeof(layout.countValues)), sizeof(layout.countValues));
-        EXPECT_EQUAL(handle->read(&layout.bytesPerValue, sizeof(layout.bytesPerValue)), sizeof(layout.bytesPerValue));
+        EXPECT_EQUAL(handle->read(&layout_.countValues, sizeof(layout_.countValues)), sizeof(layout_.countValues));
+        EXPECT_EQUAL(handle->read(&layout_.bytesPerValue, sizeof(layout_.bytesPerValue)),
+                     sizeof(layout_.bytesPerValue));
         handle->close();
-        return layout;
+        layout_.countChunkValues = layout_.countValues;  // full field = single implicit chunk
     }
 
     size_t extractInto(const chunked_data_view::ViewPart& part,
-                       const chunked_data_view::ChunkedDataViewPartBoundingBox& chunkBoundingBox,
+                       const chunked_data_view::ChunkBoundingBox& chunkBoundingBox,
                        const chunked_data_view::ChunkedDataViewPartBoundingBox& intersectionBoundingBox, float* ptr,
                        size_t len) const override {
 
@@ -125,4 +125,19 @@ struct FakeExtractor : public cdv::Extractor {
 
         return written;
     };
+};
+
+/// ExtractorDefinition backed by a shared mock FDB.
+/// buildExtractor() creates a fresh FakeExtractor each call (satisfying unique_ptr
+/// ownership), while all copies share the same mock FDB instance so multi-part tests
+/// can share a single createMockFDB() result across several addPart() calls.
+struct FakeExtractorDefinition : public cdv::ExtractorDefinition {
+    std::shared_ptr<chunked_data_view::FdbInterface> mock_fdb_;
+
+    explicit FakeExtractorDefinition(std::shared_ptr<chunked_data_view::FdbInterface> mock_fdb)
+        : mock_fdb_(std::move(mock_fdb)) {}
+
+    std::unique_ptr<cdv::Extractor> buildExtractor(const metkit::mars::MarsRequest&) const override {
+        return std::make_unique<FakeExtractor>(mock_fdb_);
+    }
 };

@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2025 European Centre for Medium-Range Weather Forecasts (ECMWF)
 // SPDX-License-Identifier: Apache-2.0
 
-#include <memory>
-#include <sstream>
+#include <cstdlib>
+#include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -15,32 +16,45 @@
 #include "chunked_data_view/ChunkedDataView.h"
 #include "chunked_data_view/ChunkedDataViewBuilder.h"
 #include "chunked_data_view/Extractor.h"
-#include "chunked_data_view/Fdb.h"
-#include "chunked_data_view/GribExtractor.h"
 #include "chunked_data_view/LibChunkedDataView.h"
-#include "chunked_data_view/exception/UnknownExtractorException.h"
+#include "chunked_data_view/extractors/grib/GribExtractorDefinition.h"
+#include "chunked_data_view/extractors/gribjump/GribJumpExtractorDefinition.h"
 
 namespace py = pybind11;
 namespace cdv = chunked_data_view;
 
+namespace docs {
+
+inline constexpr auto chunked_data_view_module_doc = R"doc(
+Low-level pybind11 bindings for the chunked_data_view C++ library.
+This module exposes the core types needed to build a Zarr-compatible N-dimensional
+view over FDB data. It is not part of the public API; users should import from
+``pychunked_data_view`` or ``z3fdb`` instead.
+Typical call sequence::
+    init_bindings()
+    builder = ChunkedDataViewBuilder(fdb_config_path)
+    builder.add_part(mars_request_string, [AxisDefinition(...)], ExtractorType.Grib())
+    view = builder.build()
+    chunk = view.at([0, 1, 0])  # numpy array of float32
+)doc";
+};
+
+/// Empty tag type used as the pybind11 handle for the ExtractorType namespace object.
+/// cdv::ExtractorType itself has no data members
+struct ExtractorTypeNamespace {};
+
 PYBIND11_MODULE(chunked_data_view_bindings, m) {
-    m.doc() =
-        "Low-level pybind11 bindings for the chunked_data_view C++ library.\n\n"
-        "This module exposes the core types needed to build a Zarr-compatible N-dimensional\n"
-        "view over FDB data. It is not part of the public API; users should import from\n"
-        "``pychunked_data_view`` or ``z3fdb`` instead.\n\n"
-        "Typical call sequence::\n\n"
-        "    init_bindings()\n"
-        "    builder = ChunkedDataViewBuilder(fdb_config_path)\n"
-        "    builder.add_part(mars_request_string, [AxisDefinition(...)], ExtractorType.GRIB)\n"
-        "    view = builder.build()\n"
-        "    chunk = view.at([0, 1, 0])  # numpy array of float32\n";
+    m.doc() = docs::chunked_data_view_module_doc;
 
     m.def(
         "init_bindings", []() { cdv::init_eckit_main(); },
         "Initialise the eckit main singleton.\n\n"
         "Must be called exactly once before any other function or class in this module is\n"
         "used. Subsequent calls are safe but have no effect.");
+
+    // Exception registration
+    py::register_local_exception<chunked_data_view::GribJumpExtractorException>(m, "GribJumpExtractortException");
+    py::register_local_exception<chunked_data_view::GribExtractorException>(m, "GribExtractortException");
 
     // Axis Definition and subclasses
     auto axis_definition = py::class_<cdv::AxisDefinition>(
@@ -76,9 +90,9 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
         axis_definition, "FixedSizeChunking",
         "Chunking strategy where the axis is divided into chunks of a fixed size.\n\n"
         "The chunk size must be a valid trailing-product divisor of the combined axis\n"
-        "size; see ``AxisMapper::chunkSizeCheck`` for the exact rule. Use this when\n"
-        "a tuned chunk size is needed to balance read amplification against request\n"
         "count (e.g. grouping every 3 time steps into one chunk).\n\n"
+        "size. Use this when"
+        "a tuned chunk size is needed to balance read amplification against request\n"
         "Args:\n"
         "    chunk_size: Number of axis elements per chunk.")
         .def(py::init<>([](size_t& chunkExtension) {
@@ -93,22 +107,26 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
             "int: Number of axis elements per chunk.");
 
     axis_definition
-        .def(py::init([](std::vector<std::string> keys, cdv::AxisDefinition::ChunkingType chunking) {
-                 return cdv::AxisDefinition{std::move(keys), chunking};
+        .def(py::init([](std::vector<std::string> keys, cdv::AxisDefinition::ChunkingType chunking,
+                         std::optional<std::string> name) {
+                 return cdv::AxisDefinition{std::move(keys), chunking, std::move(name)};
              }),
-             py::kw_only(), py::arg("keys"), py::arg("chunking"))
-        .def(py::init([](std::vector<std::string> keys, cdv::AxisDefinition::FixedSizeChunking chunking) {
-                 return cdv::AxisDefinition{std::move(keys), chunking};
+             py::kw_only(), py::arg("keys"), py::arg("chunking"), py::arg("name") = py::none())
+        .def(py::init([](std::vector<std::string> keys, cdv::AxisDefinition::FixedSizeChunking chunking,
+                         std::optional<std::string> name) {
+                 return cdv::AxisDefinition{std::move(keys), chunking, std::move(name)};
              }),
-             py::kw_only(), py::arg("keys"), py::arg("chunking"))
-        .def(py::init([](std::vector<std::string> keys, cdv::AxisDefinition::WholeAxisChunking chunking) {
-                 return cdv::AxisDefinition{std::move(keys), chunking};
+             py::kw_only(), py::arg("keys"), py::arg("chunking"), py::arg("name") = py::none())
+        .def(py::init([](std::vector<std::string> keys, cdv::AxisDefinition::WholeAxisChunking chunking,
+                         std::optional<std::string> name) {
+                 return cdv::AxisDefinition{std::move(keys), chunking, std::move(name)};
              }),
-             py::kw_only(), py::arg("keys"), py::arg("chunking"))
+             py::kw_only(), py::arg("keys"), py::arg("chunking"), py::arg("name") = py::none())
         .def_readwrite("keys", &cdv::AxisDefinition::keys, "list[str]: Ordered MARS keyword names that form this axis.")
         .def_readwrite("chunking", &cdv::AxisDefinition::chunking,
                        "WholeAxisChunking | SingleValueChunking | FixedSizeChunking: "
-                       "Chunking strategy applied to this axis.");
+                       "Chunking strategy applied to this axis.")
+        .def_readwrite("name", &cdv::AxisDefinition::name, "str | None: Optional zarr dimension name.");
 
     // ChunkedDataView
     py::class_<cdv::ChunkedDataView>(m, "ChunkedDataView",
@@ -126,7 +144,11 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
                 const auto len = view->countChunkValues();
                 py::array_t<float> arr(len);
                 float* p = arr.mutable_data();
-                view->at(index, p, len);
+                {
+                    py::gil_scoped_release release;
+                    view->at(index, p, len);
+                }
+                py::gil_scoped_acquire acquire;
                 return arr;
             },
             py::arg("index"),
@@ -142,40 +164,114 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
             "    RuntimeError: If the FDB retrieval fails or the index is out of bounds.")
         .def(
             "chunk_shape", [](const cdv::ChunkedDataView* view) { return view->chunkShape(); },
+            py::call_guard<py::gil_scoped_release>(),
             "tuple[int, ...]: Number of elements per chunk in each dimension (Zarr chunk shape).")
         .def(
             "chunks", [](const cdv::ChunkedDataView* view) { return view->chunks(); },
+            py::call_guard<py::gil_scoped_release>(),
             "tuple[int, ...]: Number of chunks along each dimension of the chunk grid.")
         .def(
             "shape", [](const cdv::ChunkedDataView* view) { return view->shape(); },
+            py::call_guard<py::gil_scoped_release>(),
             "tuple[int, ...]: Total number of elements along each dimension of the full array.")
         .def(
             "fill_missing_value", [](const cdv::ChunkedDataView* view) { return view->fillMissingValue(); },
+            py::call_guard<py::gil_scoped_release>(),
             "float: Value written for array positions not covered by any data part\n"
             "       (default: ``float('nan')``).");
 
-    // ExtractorType
-    py::enum_<cdv::ExtractorType>(m, "ExtractorType",
-                                  "Selects the data format expected in FDB.\n\n"
-                                  "Passed to :meth:`ChunkedDataViewBuilder.add_part` to control which\n"
-                                  ":class:`Extractor` implementation is instantiated for a data part.")
-        .value("GRIB", cdv::ExtractorType::GRIB,
-               "Data is stored as GRIB messages. The extractor reads each message,\n"
-               "validates the returned paramIds against the request, and copies the\n"
-               "``values`` array into the chunk buffer.");
+    // Extractor definitions. These *are* the user-facing configuration objects: the abstract
+    // base is registered so that pybind11 knows the hierarchy, and each concrete definition is
+    // exposed under the ExtractorType namespace object.
+    py::class_<cdv::ExtractorDefinition>(
+        m, "ExtractorDefinition",
+        "Base class of every extractor configuration.\n\n"
+        "Not instantiable — use :class:`ExtractorType.Grib` or :class:`ExtractorType.GribJump`.");
 
-    // ChunkedDataViewBuilder
+    auto extractor_type_ns = py::class_<ExtractorTypeNamespace>(
+        m, "ExtractorType",
+        "Namespace for extractor configuration types.\n\n"
+        "* :class:`ExtractorType.Grib`     — standard full-field GRIB extraction.\n"
+        "* :class:`ExtractorType.GribJump` — partial-field extraction via GribJump.");
+
+    py::class_<cdv::GribExtractorDefinition, cdv::ExtractorDefinition>(
+        extractor_type_ns, "Grib",
+        "Configuration for full-field GRIB extraction.\n\n"
+        "Args:\n"
+        "    fdb_config (pathlib.Path | None): Path to the FDB configuration YAML.\n"
+        "        ``None`` (default) uses the builder's FDB config.")
+        .def(py::init([](std::optional<std::filesystem::path> fdbConfig) {
+                 cdv::GribExtractorDefinition definition{};
+                 definition.fdbConfig = std::move(fdbConfig);
+                 return definition;
+             }),
+             py::kw_only(), py::arg("fdb_config") = py::none())
+        .def_readwrite("fdb_config", &cdv::GribExtractorDefinition::fdbConfig,
+                       "pathlib.Path | None: Path to the FDB configuration YAML.");
+
+    py::class_<cdv::GribJumpExtractorDefinition, cdv::ExtractorDefinition>(
+        extractor_type_ns, "GribJump",
+        "Configuration for partial-field extraction via GribJump.\n\n"
+        "GribJump avoids a full GRIB decode by jumping directly to the grid-point\n"
+        "values inside each message. The implicit (grid-point) dimension can be\n"
+        "split into equal-sized Zarr sub-chunks via *field_chunking*::\n\n"
+        "    ExtractorType.GribJump(\n"
+        "        field_chunking=FixedSizeChunking(1312),   # splits 5248 values into 4 chunks\n"
+        "    )\n\n"
+        "Args:\n"
+        "    fdb_config (pathlib.Path | None): Path to the FDB configuration YAML.\n"
+        "        ``None`` (default) uses the builder's FDB config.\n"
+        "    gribjump_config (pathlib.Path | None): Path to the GribJump configuration YAML.\n"
+        "        ``None`` (default) reads the ``GRIBJUMP_CONFIG_FILE`` environment variable.\n"
+        "    field_chunking (WholeAxisChunking | SingleValueChunking | FixedSizeChunking | None):\n"
+        "        How to sub-divide the implicit (grid-point) dimension into Zarr chunks.\n"
+        "        ``None`` or :class:`WholeAxisChunking` (default) produces a single chunk\n"
+        "        covering the full field. :class:`FixedSizeChunking` splits it into\n"
+        "        equal-sized pieces.")
+        .def(py::init([](std::optional<std::filesystem::path> fdbConfig,
+                         std::optional<std::filesystem::path> gribjumpConfig,
+                         std::optional<cdv::AxisDefinition::ChunkingType> fieldChunking) {
+                 cdv::GribJumpExtractorDefinition definition{};
+                 definition.fdbConfig = std::move(fdbConfig);
+                 definition.gribjumpConfig = std::move(gribjumpConfig);
+                 // The variant caster rejects anything that is not a chunking type, so no
+                 // per-type checking is needed here.
+                 if (fieldChunking.has_value()) {
+                     definition.fieldChunking = std::move(*fieldChunking);
+                 }
+                 return definition;
+             }),
+             py::kw_only(), py::arg("fdb_config") = py::none(), py::arg("gribjump_config") = py::none(),
+             py::arg("field_chunking") = py::none())
+        .def_readwrite("fdb_config", &cdv::GribJumpExtractorDefinition::fdbConfig,
+                       "pathlib.Path | None: Path to the FDB configuration YAML.")
+        .def_readwrite("gribjump_config", &cdv::GribJumpExtractorDefinition::gribjumpConfig,
+                       "pathlib.Path | None: Path to the GribJump configuration YAML.")
+        .def_readwrite("field_chunking", &cdv::GribJumpExtractorDefinition::fieldChunking,
+                       "WholeAxisChunking | SingleValueChunking | FixedSizeChunking: "
+                       "Chunking of the implicit grid-point dimension.");
+
     py::class_<cdv::ChunkedDataViewBuilder>(
         m, "ChunkedDataViewBuilder",
         "Fluent builder that constructs a :class:`ChunkedDataView` from one or more\n"
         "MARS data parts.\n\n"
-        "Usage::\n\n"
+        "**Standard GRIB extraction** (full field, one chunk per field)::\n\n"
         "    builder = ChunkedDataViewBuilder(fdb_config_path)\n"
         "    builder.add_part(\n"
         "        'class=ea,type=an,...,param=167/131',\n"
         "        [AxisDefinition(keys=['date','time'], chunking=SingleValueChunking()),\n"
         "         AxisDefinition(keys=['param'],      chunking=SingleValueChunking())],\n"
-        "        ExtractorType.GRIB,\n"
+        "        ExtractorType.Grib(),\n"
+        "    )\n"
+        "    view = builder.build()\n\n"
+        "**GribJump extraction with implicit-axis chunking** — splits the grid-point\n"
+        "dimension into fixed-size Zarr chunks::\n\n"
+        "    builder = ChunkedDataViewBuilder(fdb_config_path)\n"
+        "    builder.add_part(\n"
+        "        'class=ea,type=an,...,param=167/131',\n"
+        "        [AxisDefinition(keys=['date','time'], chunking=FixedSizeChunking(8)),\n"
+        "         AxisDefinition(keys=['param'],      chunking=SingleValueChunking())],\n"
+        "        ExtractorType.GribJump(field_chunking=FixedSizeChunking(1312)),\n"
         "    )\n"
         "    view = builder.build()\n\n"
         "When more than one part is added (e.g. surface and pressure-level fields),\n"
@@ -184,46 +280,40 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
         .def(py::init([](std::optional<std::filesystem::path> fdbConfigPath) {
                  return cdv::ChunkedDataViewBuilder(fdbConfigPath);
              }),
-             py::arg("fdb_config_path") = py::none(),
+             py::arg("fdb_config_path") = py::none(), py::return_value_policy::reference,
              "Args:\n"
              "    fdb_config_path (pathlib.Path | None): Path to an FDB configuration file.\n"
              "        ``None`` (default) lets FDB resolve its configuration from the\n"
              "        environment (``FDB5_CONFIG`` / ``FDB_HOME``).")
-        .def(
-            "add_part",
-            [](cdv::ChunkedDataViewBuilder& builder, std::string marsRequestKeyValues,
-               std::vector<cdv::AxisDefinition> axes, const cdv::ExtractorType extractorType) {
-                switch (extractorType) {
-                    case chunked_data_view::ExtractorType::GRIB: {
-                        auto fdb = cdv::makeFdb(builder.getFdbConfigPath());
-                        auto extractor = std::make_shared<chunked_data_view::GribExtractor>(
-                            chunked_data_view::GribExtractor(std::move(fdb)));
-                        builder.addPart(std::move(marsRequestKeyValues), std::move(axes), std::move(extractor));
-                        break;
-                    }
-                    default:
-                        std::stringstream buf;
-                        buf << "ChunkedDataViewBuidler::add_part: Unknown Extractor of type " << std::endl;
-                        throw cdv::UnknownExtractorException(buf.str());
-                }
-            },
-            py::arg("mars_request"), py::arg("axes"), py::arg("extractor_type"),
-            "Register one data region (part) of the view.\n\n"
-            "Each MARS keyword in *mars_request* that carries more than one value must\n"
-            "appear in exactly one :class:`AxisDefinition` in *axes*. Multiple keywords\n"
-            "may share one axis and are combined as a Cartesian product.\n\n"
-            "Args:\n"
-            "    mars_request  (str):              Comma-separated ``key=value[/value...]``\n"
-            "                                      MARS request string, e.g.\n"
-            "                                      ``'class=ea,param=167/131,date=20200101/20200102'``.\n"
-            "    axes (list[AxisDefinition]):       Axis definitions covering every\n"
-            "                                      multi-valued key in the request.\n"
-            "    extractor_type (ExtractorType):   Format of the data in FDB.\n\n"
-            "Raises:\n"
-            "    RuntimeError: If FDB cannot retrieve a sample field for the request, or if\n"
-            "                  a returned paramId does not match the requested params (which\n"
-            "                  indicates unsupported on-the-fly field derivation).")
+        .def("add_part", &cdv::ChunkedDataViewBuilder::addPart, py::arg("mars_request"), py::arg("axes"),
+             py::arg("extractor"), py::return_value_policy::reference,
+             "Register one part of the view.\n\n"
+             "Each MARS keyword in *mars_request* that carries more than one value must\n"
+             "appear in exactly one :class:`AxisDefinition` in *axes*. Multiple keywords\n"
+             "may share one axis and are combined as a Cartesian product.\n\n"
+             "Args:\n"
+             "    mars_request (str):                         Comma-separated ``key=value[/value...]``\n"
+             "                                                MARS request string, e.g.\n"
+             "                                                ``'class=ea,param=167/131,date=20200101/20200102'``.\n"
+             "    axes (list[AxisDefinition]):                 Axis definitions covering every\n"
+             "                                                multi-valued key in the request.\n"
+             "    extractor (ExtractorType.Grib | ExtractorType.GribJump):\n"
+             "                                                Extractor configuration object.\n"
+             "                                                ``ExtractorType.Grib`` reads the full GRIB field.\n"
+             "                                                ``ExtractorType.GribJump`` supports splitting\n"
+             "                                                the implicit grid-point axis into Zarr sub-chunks\n"
+             "                                                (``field_chunking``).\n\n"
+             "                                                NOTE: ownership of *extractor* transfers to the\n"
+             "                                                builder; the object must not be used again\n"
+             "                                                afterwards. Construct a new one per call (the\n"
+             "                                                ``pychunked_data_view`` wrapper does this for you).\n\n"
+             "Raises:\n"
+             "    RuntimeError: If FDB cannot retrieve a sample field for the request, or if\n"
+             "                  a returned paramId does not match the requested params.\n"
+             "    TypeError: If *extractor* is not an ``ExtractorType.Grib`` or\n"
+             "               ``ExtractorType.GribJump`` instance.")
         .def("extend_on_axis", &cdv::ChunkedDataViewBuilder::extendOnAxis, py::arg("axis"),
+             py::return_value_policy::reference,
              "Declare the axis index along which multiple parts are concatenated.\n\n"
              "Required when more than one part is added; ignored for single-part views.\n"
              "All parts must have identical extents on every axis except this one.\n\n"
@@ -232,6 +322,7 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
              "Raises:\n"
              "    RuntimeError: If *axis* is out of range for the first part's axis list.")
         .def("fill_missing_value", &cdv::ChunkedDataViewBuilder::fillMissingValue, py::arg("value"),
+             py::return_value_policy::reference,
              "Set the fill value for array positions not covered by any data part.\n\n"
              "Args:\n"
              "    value (float): Fill value (default: ``float('nan')``).")

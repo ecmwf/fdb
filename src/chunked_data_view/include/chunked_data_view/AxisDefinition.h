@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include <optional>
 #include <string>
 #include <variant>
 #include <vector>
@@ -41,6 +42,9 @@ struct AxisDefinition {
 
     /// Chunking strategy applied to this axis.
     ChunkingType chunking{};
+
+    /// Optional label used as the zarr dimension name.
+    std::optional<std::string> name = std::nullopt;
 };
 
 }  // namespace chunked_data_view

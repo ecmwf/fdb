@@ -1,12 +1,13 @@
-// SPDX-FileCopyrightText: 2025 European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-FileCopyrightText: 2026 European Centre for Medium-Range Weather Forecasts (ECMWF)
 // SPDX-License-Identifier: Apache-2.0
-#include "GribExtractor.h"
+#include "chunked_data_view/extractors/grib/GribExtractor.h"
 
 #include "chunked_data_view/DataLayout.h"
 #include "chunked_data_view/Extractor.h"
 #include "chunked_data_view/Fdb.h"
 #include "chunked_data_view/ListIterator.h"
 #include "chunked_data_view/RequestManipulation.h"
+#include "chunked_data_view/Types.h"
 #include "chunked_data_view/ViewPart.h"
 #include "chunked_data_view/exception/GribExtractorException.h"
 #include "chunked_data_view/mapping/IndexMapper.h"
@@ -14,6 +15,7 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/message/Reader.h"
 #include "fdb5/database/Key.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -23,15 +25,14 @@
 
 namespace chunked_data_view {
 
-GribExtractor::GribExtractor(const std::shared_ptr<FdbInterface> fdb) : fdb_(fdb) {}
-
-DataLayout GribExtractor::layout(const metkit::mars::MarsRequest& mars_request) const {
+GribExtractor::GribExtractor(std::unique_ptr<FdbInterface> fdb, const metkit::mars::MarsRequest& marsRequest) :
+    fdb_(std::move(fdb)) {
 
     // Use a minimal sample request: all requested params but only the first value of every
     // other key. This lets us verify every param the user asked for without retrieving the
     // full data volume.
     const metkit::mars::MarsRequest sampleRequest =
-        mars_request.has("param") ? RequestManipulation::allParamRequest(mars_request) : mars_request;
+        marsRequest.has("param") ? RequestManipulation::allParamRequest(marsRequest) : marsRequest;
 
     const auto& handle = fdb_->retrieve(sampleRequest);
     eckit::message::Reader reader(*handle);
@@ -50,12 +51,13 @@ DataLayout GribExtractor::layout(const metkit::mars::MarsRequest& mars_request) 
     // the request exactly. Checking all messages (not just the first) catches cases where
     // the mismatch only appears for certain parameters.
     //
-    // Note: mars_request was produced by FDBToolRequest::requestsFromString() which runs
-    // metkit's TypeParam expansion pass. Short param names (e.g. "v", "vo") are resolved
-    // to numeric paramId strings (e.g. "132", "138") before this point, so the comparison
-    // against std::to_string(msg.getLong("paramId")) is always numeric-vs-numeric.
-    if (mars_request.has("param")) {
-        const auto& requestedParams = mars_request.values("param");
+    // Note: marsRequest has already been passed through FDBToolRequest::requestsFromString()
+    // by ChunkedDataViewBuilder::build(), which runs metkit's TypeParam expansion pass.
+    // Short param names (e.g. "v", "vo") are resolved to numeric paramId strings (e.g. "132",
+    // "138") before this point, so the comparison against std::to_string(msg.getLong("paramId"))
+    // is always numeric-vs-numeric.
+    if (marsRequest.has("param")) {
+        const auto& requestedParams = marsRequest.values("param");
         do {
             const std::string returnedParam = std::to_string(msg.getLong("paramId"));
             if (std::find(requestedParams.begin(), requestedParams.end(), returnedParam) == requestedParams.end()) {
@@ -74,8 +76,7 @@ DataLayout GribExtractor::layout(const metkit::mars::MarsRequest& mars_request) 
         } while ((msg = reader.next()));
     }
 
-
-    return {countValues, 4};
+    layout_ = {countValues, 4, countValues};
 }
 
 
@@ -117,27 +118,27 @@ size_t GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iter
         }
         iterator_empty = false;
 
-        const auto& key = std::get<0>(*res);
-        auto& data_handle = std::get<1>(*res);
+        const auto& key = res->key;
+        auto data_handle = res->dataHandle();
         const size_t msgIndex =
             index_mapping::computeBufferIndex(ctx.axes, key, ctx.partAxisOffset, ctx.bufferOffset, ctx.bufferExtent);
 
         eckit::message::Reader reader(*data_handle);
         eckit::message::Message msg{};
 
-        auto copyInto = ptr + msgIndex * ctx.layout.countValues;
-        const auto end = copyInto + ctx.layout.countValues;
+        auto copyInto = ptr + msgIndex * ctx.layout.countChunkValues;
+        const auto end = copyInto + ctx.layout.countChunkValues;
         ASSERT(end - ptr <= len);
 
         while ((msg = reader.next())) {
-            if (const auto size = msg.getSize("values"); size != ctx.layout.countValues) {
+            if (const auto size = msg.getSize("values"); size != ctx.layout.countChunkValues) {
                 std::ostringstream ss;
                 ss << "GribExractor: Unexpected field size found in GRIB message for key: " << key
-                   << " expected: " << ctx.layout.countValues << " found: " << size
+                   << " expected: " << ctx.layout.countChunkValues << " found: " << size
                    << ". All fields in your view need to be of equal size.";
                 throw eckit::Exception(ss.str());
             }
-            msg.getFloatArray("values", copyInto, ctx.layout.countValues);
+            msg.getFloatArray("values", copyInto, ctx.layout.countChunkValues);
             if (msg.getLong("bitmapPresent") != 0) {
                 const auto gribMissing = static_cast<float>(msg.getDouble("missingValue"));
                 std::replace(copyInto, copyInto + ctx.layout.countValues, gribMissing, fillValue_);
@@ -154,10 +155,13 @@ size_t GribExtractor::writeInto(std::unique_ptr<ListIteratorInterface> list_iter
     return messagesWritten;
 }
 
-size_t GribExtractor::extractInto(const ViewPart& part, const ChunkedDataViewPartBoundingBox& chunkBoundingBox,
+size_t GribExtractor::extractInto(const ViewPart& part, const ChunkBoundingBox& chunkBoundingBox,
                                   const ChunkedDataViewPartBoundingBox& intersectionBoundingBox, float* ptr,
                                   size_t len) const {
-    ASSERT(chunkBoundingBox.contains(intersectionBoundingBox));
+
+    const auto& chunkPartBoundingBox = chunkBoundingBox.dropLastDimension();
+
+    ASSERT(chunkPartBoundingBox.contains(intersectionBoundingBox));
     ASSERT(part.boundingBox().contains(intersectionBoundingBox));
 
     const PartBoundingBox& partRelativeBoundingBox = intersectionBoundingBox.subtract(part.boundingBox().lower());
@@ -165,10 +169,10 @@ size_t GribExtractor::extractInto(const ViewPart& part, const ChunkedDataViewPar
     const auto& request = part.at(partRelativeBoundingBox);
     auto listIterator = fdb_->inspect(request);
 
-    const BufferBoundingBox& bufferRelativBoundingBox = intersectionBoundingBox.subtract(chunkBoundingBox.lower());
+    const BufferBoundingBox& bufferRelativBoundingBox = intersectionBoundingBox.subtract(chunkPartBoundingBox.lower());
 
-    const WriteContext ctx{part.axes(), part.layout(), partRelativeBoundingBox.lower(),
-                           bufferRelativBoundingBox.lower(), chunkBoundingBox.extent()};
+    const WriteContext ctx{part.axes(), layout_, partRelativeBoundingBox.lower(), bufferRelativBoundingBox.lower(),
+                           chunkPartBoundingBox.extent()};
 
     try {
         size_t written = writeInto(std::move(listIterator), ctx, ptr, len);
@@ -176,6 +180,7 @@ size_t GribExtractor::extractInto(const ViewPart& part, const ChunkedDataViewPar
     }
     catch (GribExtractorException& exception) {
         std::ostringstream ss;
+        ss << "GribJumpExtractor::extractInto: ";
         ss << exception.what();
         ss << "Request was: " << part.at(partRelativeBoundingBox) << std::endl;
         throw GribExtractorException(ss.str());

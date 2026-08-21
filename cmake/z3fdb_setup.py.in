@@ -45,9 +45,11 @@ setup(
         "z3fdb._internal",
         "pychunked_data_view",
         "chunked_data_view_bindings",
+        "chunked_data_view_bindings-stubs",
     ],
     package_data={
-        "chunked_data_view_bindings": ["*.so", "*.pyd", "*.pyi", "py.typed"],
+        "chunked_data_view_bindings": ["*.so", "*.pyd"],
+        "chunked_data_view_bindings-stubs": ["*.pyi", "py.typed"],
     },
     license="Apache 2.0",
     license_files=["LICENSE"],

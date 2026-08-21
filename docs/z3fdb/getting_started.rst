@@ -46,11 +46,11 @@ explained immediately after the code block.
            AxisDefinition(["date"], Chunking.SINGLE_VALUE),  # → Dim 0, size 2
            AxisDefinition(["time"], Chunking.SINGLE_VALUE),  # → Dim 1, size 4
        ],
-       ExtractorType.GRIB,
+       ExtractorType.Grib(),
    )
 
    store = builder.build()
-   data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+   data = zarr.open_array(store)
 
 **What each piece does:**
 
@@ -59,10 +59,10 @@ explained immediately after the code block.
    Call :meth:`~z3fdb.SimpleStoreBuilder.add_part` once per MARS request,
    then :meth:`~z3fdb.SimpleStoreBuilder.build` to produce a Zarr store.
 
-``add_part(mars_request, axes, ExtractorType.GRIB)``
+``add_part(mars_request, axes, ExtractorType.Grib())``
    Registers one MARS request. The ``axes`` list controls how MARS keywords
-   become Zarr dimensions. ``ExtractorType.GRIB`` tells Z3FDB the data is
-   encoded as GRIB.
+   become Zarr dimensions. ``ExtractorType.Grib()`` tells Z3FDB to decode the
+   GRIB fields in full using eccodes.
 
 ``AxisDefinition(keys, chunking)``
    Maps one or more MARS keywords to **exactly one** Zarr dimension.
@@ -168,7 +168,7 @@ Pass both keys to one :class:`~pychunked_data_view.AxisDefinition`:
        [
            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),  # -> Dim 0, size 8
        ],
-       ExtractorType.GRIB,
+       ExtractorType.Grib(),
    )
 
 This produces shape ``(8, N)``. The **rightmost key varies fastest** (C / NumPy
@@ -221,7 +221,7 @@ dimension grows across the two ``parts``.
            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),  # Dim 0 — 8 entries
            AxisDefinition(["param"],        Chunking.SINGLE_VALUE),  # Dim 1 — 2 entries
        ],
-       ExtractorType.GRIB,
+       ExtractorType.Grib(),
    )
 
    # Part 2 — pressure-level parameters (levtype=pl): 2 params × 3 levels = 6 entries
@@ -243,14 +243,14 @@ dimension grows across the two ``parts``.
            AxisDefinition(["date", "time"],       Chunking.SINGLE_VALUE),  # Dim 0 — must match Part 1
            AxisDefinition(["param", "levelist"],  Chunking.SINGLE_VALUE),  # Dim 1 — 6 entries
        ],
-       ExtractorType.GRIB,
+       ExtractorType.Grib(),
    )
 
    # Dim 1 (param) grows: Part 1 contributes indices 0–1, Part 2 contributes 2–7
    builder.extend_on_axis(1)
 
    store = builder.build()
-   data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+   data = zarr.open_array(store)
 
 The resulting array has shape ``(8, 8, N)`` — 8 datetime steps and 8 entries on the
 param dimension (2 sfc + 6 pl).

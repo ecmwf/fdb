@@ -31,7 +31,7 @@ class SimpleStoreBuilder:
         self,
         mars_request: MarsSelection,
         axes: list[AxisDefinition],
-        extractor_type: ExtractorType,
+        extractor: ExtractorType.Grib | ExtractorType.GribJump,
     ) -> None:
         """Add a MARS request to the view.
 
@@ -61,10 +61,11 @@ class SimpleStoreBuilder:
             axes(:obj:`list` of :obj:`AxisDefinition`):  List of
                 AxisDefinitions that describe how axis in the MARS request are
                 mapped to axis in the Zarr array.
-            extractor_type: Defines how to extract data from FDB. Currently
-                only ExtractorType.GRIB is supported.
+            extractor: Extractor configuration object. Use
+                ``ExtractorType.Grib()`` for full-field GRIB extraction or
+                ``ExtractorType.GribJump(...)`` for partial-field extraction.
         """
-        self._builder.add_part(mars_request, axes, extractor_type)
+        self._builder.add_part(mars_request, axes, extractor)
 
     def fill_missing_value(self, value: float) -> None:
         """Set the fill value used for missing / bitmap-masked grid points.
@@ -79,21 +80,23 @@ class SimpleStoreBuilder:
         """Defines the extension axis when multiple parts are added.
 
         Args:
-            axis(int): Index of the axis that is extendet when multiple parts
+            axis(int): Index of the axis that is extended when multiple parts
                 have been added.
-
         """
         self._builder.extend_on_axis(axis)
 
     def build(self) -> FdbZarrStore:
-        """Build the store from the inputs.
+        """Build the store from the registered parts.
+
+        Returns:
+            :class:`~z3fdb._internal.zarr.FdbZarrStore` ready to pass to
+            ``zarr.open_array()``.
 
         Raises:
-            Z3fdbError if store cannot be created.
-
+            Z3fdbError: if the store cannot be created.
         """
         return FdbZarrStore(
             FdbZarrArray(
-                datasource=FdbSource(self._builder.build()),
+                datasource=FdbSource(self._builder.build(), dim_names=self._builder.dim_names()),
             )
         )

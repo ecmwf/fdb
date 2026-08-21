@@ -26,17 +26,27 @@ pytestmark = pytest.mark.offline
 #   pl_value(d, t, p, l)  = 36 + d*36 + t*9 + p*3 + l
 
 SFC_REQUEST = {
-    "type": "an", "class": "ea", "domain": "g", "expver": "0001", "stream": "oper",
+    "type": "an",
+    "class": "ea",
+    "domain": "g",
+    "expver": "0001",
+    "stream": "oper",
     "date": ["2020-01-01", "2020-01-02", "2020-01-03"],
-    "levtype": "sfc", "step": 0,
+    "levtype": "sfc",
+    "step": 0,
     "param": [165, 166, 167],
     "time": [0, 600, 1200, 1800],
 }
 
 PL_REQUEST = {
-    "type": "an", "class": "ea", "domain": "g", "expver": "0001", "stream": "oper",
+    "type": "an",
+    "class": "ea",
+    "domain": "g",
+    "expver": "0001",
+    "stream": "oper",
     "date": ["2020-01-01", "2020-01-02", "2020-01-03"],
-    "levtype": "pl", "step": 0,
+    "levtype": "pl",
+    "step": 0,
     "param": [131, 132, 133],
     "levelist": [50, 100, 150],
     "time": [0, 600, 1200, 1800],
@@ -70,23 +80,23 @@ def test_individual_chunking_combined_datetime_axis(
     builder.add_part(
         SFC_REQUEST,
         [
-            AxisDefinition(["date", "time"], Chunking.FixedSizeChunk(chunkShape=4)),
-            AxisDefinition(["param"], Chunking.FixedSizeChunk(chunkShape=3)),
+            AxisDefinition(["date", "time"], Chunking.FixedSizeChunk(chunk_shape=4)),
+            AxisDefinition(["param"], Chunking.FixedSizeChunk(chunk_shape=3)),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.add_part(
         PL_REQUEST,
         [
-            AxisDefinition(["date", "time"], Chunking.FixedSizeChunk(chunkShape=4)),
-            AxisDefinition(["param", "levelist"], Chunking.FixedSizeChunk(chunkShape=3)),
+            AxisDefinition(["date", "time"], Chunking.FixedSizeChunk(chunk_shape=4)),
+            AxisDefinition(["param", "levelist"], Chunking.FixedSizeChunk(chunk_shape=3)),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.extend_on_axis(1)
     store = builder.build()
 
-    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+    data = zarr.open_array(store)
 
     # Shape: combined date*time = 12; SFC param (3) + PL param*levelist (9) = 12
     assert data.shape[:2] == (12, 12)
@@ -152,24 +162,24 @@ def test_individual_chunking_separate_time_axis(
         SFC_REQUEST,
         [
             AxisDefinition(["date"], Chunking.SINGLE_VALUE),
-            AxisDefinition(["time"], Chunking.FixedSizeChunk(chunkShape=2)),
-            AxisDefinition(["param"], Chunking.FixedSizeChunk(chunkShape=3)),
+            AxisDefinition(["time"], Chunking.FixedSizeChunk(chunk_shape=2)),
+            AxisDefinition(["param"], Chunking.FixedSizeChunk(chunk_shape=3)),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.add_part(
         PL_REQUEST,
         [
             AxisDefinition(["date"], Chunking.SINGLE_VALUE),
-            AxisDefinition(["time"], Chunking.FixedSizeChunk(chunkShape=2)),
-            AxisDefinition(["param", "levelist"], Chunking.FixedSizeChunk(chunkShape=3)),
+            AxisDefinition(["time"], Chunking.FixedSizeChunk(chunk_shape=2)),
+            AxisDefinition(["param", "levelist"], Chunking.FixedSizeChunk(chunk_shape=3)),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.extend_on_axis(2)
     store = builder.build()
 
-    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+    data = zarr.open_array(store)
 
     # Shape: date=3, time=4; SFC param (3) + PL param*levelist (9) = 12
     assert data.shape[:3] == (3, 4, 12)
@@ -235,25 +245,25 @@ def test_individual_chunking_reordered_axes(
     builder.add_part(
         SFC_REQUEST,
         [
-            AxisDefinition(["param"], Chunking.FixedSizeChunk(chunkShape=3)),
-            AxisDefinition(["time"], Chunking.FixedSizeChunk(chunkShape=2)),
+            AxisDefinition(["param"], Chunking.FixedSizeChunk(chunk_shape=3)),
+            AxisDefinition(["time"], Chunking.FixedSizeChunk(chunk_shape=2)),
             AxisDefinition(["date"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.add_part(
         PL_REQUEST,
         [
-            AxisDefinition(["param", "levelist"], Chunking.FixedSizeChunk(chunkShape=3)),
-            AxisDefinition(["time"], Chunking.FixedSizeChunk(chunkShape=2)),
+            AxisDefinition(["param", "levelist"], Chunking.FixedSizeChunk(chunk_shape=3)),
+            AxisDefinition(["time"], Chunking.FixedSizeChunk(chunk_shape=2)),
             AxisDefinition(["date"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.extend_on_axis(0)
     store = builder.build()
 
-    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+    data = zarr.open_array(store)
 
     # Shape: SFC param (3) + PL param*levelist (9) = 12; time=4; date=3
     assert data.shape[:3] == (12, 4, 3)
@@ -316,9 +326,7 @@ _FOUR_KEY_VALID_CHUNK_SIZES = [1, 3, 9, 18]
 
 
 @pytest.mark.parametrize("chunk_size", _FOUR_KEY_VALID_CHUNK_SIZES)
-def test_individual_chunking_four_key_single_axis(
-    read_only_fdb_pattern_setup, chunk_size: int
-) -> None:
+def test_individual_chunking_four_key_single_axis(read_only_fdb_pattern_setup, chunk_size: int) -> None:
     """Mixed-levtype view: Part 1 is PL (four-key axis), Part 2 is SFC (three-key axis).
 
       Part 1 (PL):  date=[2020-01-01],                             1 x 4 x 3 x 3 = 36 values
@@ -352,8 +360,12 @@ def test_individual_chunking_four_key_single_axis(
     assert PART2_SIZE % chunk_size == 0
 
     COMMON = {
-        "type": "an", "class": "ea", "domain": "g", "expver": "0001",
-        "stream": "oper", "step": 0,
+        "type": "an",
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "step": 0,
     }
 
     builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
@@ -369,10 +381,10 @@ def test_individual_chunking_four_key_single_axis(
         [
             AxisDefinition(
                 ["date", "time", "param", "levelist"],
-                Chunking.FixedSizeChunk(chunkShape=chunk_size),
+                Chunking.FixedSizeChunk(chunk_shape=chunk_size),
             )
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.add_part(
         {
@@ -385,32 +397,32 @@ def test_individual_chunking_four_key_single_axis(
         [
             AxisDefinition(
                 ["date", "time", "param"],
-                Chunking.FixedSizeChunk(chunkShape=chunk_size),
+                Chunking.FixedSizeChunk(chunk_shape=chunk_size),
             )
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.extend_on_axis(0)
     store = builder.build()
 
-    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+    data = zarr.open_array(store)
 
     assert data.shape[0] == PART1_SIZE + PART2_SIZE  # = 54
     assert data.chunks[0] == chunk_size
 
     # Part 1 (i in [0, 36)): i = t*9 + p*3 + l, data[i] = pl_value(0,t,p,l) = 36 + i
-    assert np.all(data[0] == 36)   # t=0,    p=131, l=50  -> pl_value(0,0,0,0) = 36
-    assert np.all(data[1] == 37)   # t=0,    p=131, l=100
-    assert np.all(data[3] == 39)   # t=0,    p=132, l=50
-    assert np.all(data[9] == 45)   # t=600,  p=131, l=50  -> pl_value(0,1,0,0) = 45
+    assert np.all(data[0] == 36)  # t=0,    p=131, l=50  -> pl_value(0,0,0,0) = 36
+    assert np.all(data[1] == 37)  # t=0,    p=131, l=100
+    assert np.all(data[3] == 39)  # t=0,    p=132, l=50
+    assert np.all(data[9] == 45)  # t=600,  p=131, l=50  -> pl_value(0,1,0,0) = 45
     assert np.all(data[35] == 71)  # t=1800, p=133, l=150 -> pl_value(0,3,2,2) = 71
 
     # Part 1 -> Part 2 boundary at index 36 (chunk-aligned: PART1_SIZE % chunk_size == 0)
     assert PART1_SIZE % chunk_size == 0
     # Part 2 (i in [36, 54)): i = 36 + d*9 + t*3 + p, data[i] = sfc_value(d,t,p) = d*12 + t*3 + p
-    assert np.all(data[36] == 0)   # d=0, t=0,    p=165 -> sfc_value(0,0,0) = 0
-    assert np.all(data[37] == 1)   # d=0, t=0,    p=166
-    assert np.all(data[44] == 8)   # d=0, t=1200, p=167 -> sfc_value(0,2,2) = 8
+    assert np.all(data[36] == 0)  # d=0, t=0,    p=165 -> sfc_value(0,0,0) = 0
+    assert np.all(data[37] == 1)  # d=0, t=0,    p=166
+    assert np.all(data[44] == 8)  # d=0, t=1200, p=167 -> sfc_value(0,2,2) = 8
     assert np.all(data[45] == 12)  # d=1, t=0,    p=165 -> sfc_value(1,0,0) = 12
     assert np.all(data[53] == 20)  # d=1, t=1200, p=167 -> sfc_value(1,2,2) = 20
 
@@ -422,9 +434,7 @@ _FOUR_KEY_INVALID_CHUNK_SIZES = [2, 4, 5, 6, 7, 8, 10, 12]
 
 
 @pytest.mark.parametrize("invalid_chunk_size", _FOUR_KEY_INVALID_CHUNK_SIZES)
-def test_individual_chunking_rejects_invalid_chunk_size(
-    read_only_fdb_pattern_setup, invalid_chunk_size: int
-) -> None:
+def test_individual_chunking_rejects_invalid_chunk_size(read_only_fdb_pattern_setup, invalid_chunk_size: int) -> None:
     """build() raises when the chunk size violates the key-hierarchy alignment rule.
 
     Uses the PL axis ["date","time","param","levelist"] with cardinalities [1,4,3,3].
@@ -433,8 +443,12 @@ def test_individual_chunking_rejects_invalid_chunk_size(
     re-raises it as a RuntimeError whose message contains "AxisMapper::mapAxisToChunks".
     """
     COMMON = {
-        "type": "an", "class": "ea", "domain": "g", "expver": "0001",
-        "stream": "oper", "step": 0,
+        "type": "an",
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "step": 0,
     }
     builder = SimpleStoreBuilder(read_only_fdb_pattern_setup)
     builder.add_part(
@@ -449,10 +463,10 @@ def test_individual_chunking_rejects_invalid_chunk_size(
         [
             AxisDefinition(
                 ["date", "time", "param", "levelist"],
-                Chunking.FixedSizeChunk(chunkShape=invalid_chunk_size),
+                Chunking.FixedSizeChunk(chunk_shape=invalid_chunk_size),
             )
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     with pytest.raises(RuntimeError, match="AxisMapper::mapAxisToChunks"):
         builder.build()

@@ -9,6 +9,8 @@
 
 #include "ChunkedDataViewImpl.h"
 
+#include "chunked_data_view/Extractor.h"
+#include "chunked_data_view/Types.h"
 #include "chunked_data_view/ViewPart.h"
 #include "eckit/exception/Exceptions.h"
 
@@ -16,15 +18,16 @@
 namespace chunked_data_view {
 
 namespace {}  // namespace
-bool checkForEqualChunking(const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& parts) {
+bool checkForEqualChunking(const std::vector<std::pair<ViewPart, std::unique_ptr<Extractor>>>& parts) {
 
     const auto reference_chunks = parts[0].first.chunks();
 
     for (const auto& [part, _] : parts) {
         for (size_t i = 0; i < part.axes().size(); ++i) {
             if (part.chunks()[i].representativeExtent() != reference_chunks[i].representativeExtent()) {
-                // If the axis is extensible along this axis, skip as we are fetching
-                if (!reference_chunks[i].isExtensible()) {
+                // WholeAxisChunking axes have one growing chunk per part; differing extents
+                // are expected and correct, so skip the consistency check for those.
+                if (!reference_chunks[i].isSingleGrowingChunk()) {
                     return false;
                 }
             }
@@ -35,7 +38,7 @@ bool checkForEqualChunking(const std::vector<std::pair<ViewPart, std::shared_ptr
 }
 
 std::vector<size_t> ChunkedDataViewImpl::chunkShape(
-    const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& parts) {
+    const std::vector<std::pair<ViewPart, std::unique_ptr<Extractor>>>& parts) {
     const ViewPart& reference_part = (parts[0].first);
 
     std::vector<size_t> reference_extensions;
@@ -43,10 +46,11 @@ std::vector<size_t> ChunkedDataViewImpl::chunkShape(
     for (size_t i = 0; i < reference_part.axes().size(); ++i) {
         reference_extensions.push_back(reference_part.chunks()[i].representativeExtent());
     }
-    reference_extensions.push_back(reference_part.layout().countValues);  // Add the size of the fields
+    reference_extensions.push_back(parts[0].second->layout().countChunkValues);  // Add the size of the (sub)fields
 
-    // Check for merging in case of extension axis
-    if (reference_part.isExtensible(extensionAxisIndex_)) {
+    // WholeAxisChunking: merge all parts' extents into one growing chunk.
+    // SingleValueChunking / FixedSizeChunking: chunk size is fixed; the number of chunks grows.
+    if (reference_part.isSingleGrowingChunk(extensionAxisIndex_)) {
         reference_extensions[extensionAxisIndex_] = 0;
         for (const auto& [part, extractor] : parts) {
             reference_extensions[extensionAxisIndex_] += part.extension()[extensionAxisIndex_];
@@ -56,7 +60,7 @@ std::vector<size_t> ChunkedDataViewImpl::chunkShape(
     return reference_extensions;
 }
 
-ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& parts,
+ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::unique_ptr<Extractor>>> parts,
                                          float fillValue, size_t extensionAxisIndex) :
     parts_(std::move(parts)), extensionAxisIndex_(extensionAxisIndex), fillValue_(fillValue) {
 
@@ -88,7 +92,7 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::sh
         chunkedDataViewShape_[extensionAxisIndex_] = extensionOnExtensionAxis;
     }
     // Add the implicit dimension
-    chunkedDataViewShape_.push_back(first_part.layout().countValues);
+    chunkedDataViewShape_.push_back(parts_[0].second->layout().countValues);
 
     if (!checkForEqualChunking(parts_)) {
         throw eckit::UserError("ChunkedDataViewImpl::constructor: view parts need to have same chunking extensions.");
@@ -97,14 +101,11 @@ ChunkedDataViewImpl::ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::sh
     chunkShape_ = chunkShape(parts_);
     chunks_ = std::vector<size_t>(chunkShape_.size(), 0);
 
-    // The last dimension is implicitly created for the number of values in a field, i.e. there is no representation in
-    // the axes. And the dimension of fields is never chunked I.e. fields are always returned whole.
-    for (size_t index = 0; index < chunkShape_.size() - 1; ++index) {
+    for (size_t index = 0; index < chunkShape_.size(); ++index) {
         // Integer ceil
         chunks_[index] = chunkedDataViewShape_[index] / chunkShape_[index] +
                          ((chunkedDataViewShape_[index] % chunkShape_[index]) != 0);
     }
-    chunks_.back() = 1;  // Make the implicit dimension always single chunked
 }
 
 
@@ -126,19 +127,19 @@ void ChunkedDataViewImpl::at(const std::vector<size_t>& chunkIndex, float* ptr, 
         }
     }
 
-    std::vector<size_t> chunkLower(chunkShape_.size() - 1, 0);
-    std::vector<size_t> chunkUpper(chunkShape_.size() - 1, 0);
+    std::vector<size_t> chunkLower(chunkShape_.size(), 0);
+    std::vector<size_t> chunkUpper(chunkShape_.size(), 0);
 
-    for (size_t i = 0; i < chunkShape_.size() - 1; ++i) {
+    for (size_t i = 0; i < chunkShape_.size(); ++i) {
         chunkLower[i] = chunkShape_[i] * chunkIndex[i];
         chunkUpper[i] = chunkLower[i] + chunkShape_[i] - 1;
     }
 
-    ChunkedDataViewPartBoundingBox chunkBoundingBox{chunkLower, chunkUpper};
+    ChunkBoundingBox chunkBoundingBox{chunkLower, chunkUpper};
 
     for (const auto& [part, extractor] : parts_) {
         const std::optional<ChunkedDataViewPartBoundingBox> intersectionBoundingBox =
-            part.boundingBox().intersect(chunkBoundingBox);
+            part.boundingBox().intersect(chunkBoundingBox.dropLastDimension());
 
         // Skip the part if it doesn't contribute to the buffer
         if (!intersectionBoundingBox.has_value()) {

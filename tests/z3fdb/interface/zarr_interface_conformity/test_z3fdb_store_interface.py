@@ -51,7 +51,7 @@ class TestFdbZarrStore(StoreTests[FdbZarrStore, Buffer]):
     @pytest.fixture
     def store(self, read_only_fdb_setup) -> FdbZarrStore:
         builder = SimpleStoreBuilder(read_only_fdb_setup)
-        builder.add_part(_MARS_REQUEST, _AXES, ExtractorType.GRIB)
+        builder.add_part(_MARS_REQUEST, _AXES, ExtractorType.Grib())
         store = builder.build()
         log.debug("store fixture: %s, known_paths=%d", type(store).__name__, len(store._known_paths))
         return store
