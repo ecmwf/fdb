@@ -689,6 +689,9 @@ eckit::LocalPathName TocHandler::parseSubTocRecord(const TocRecord& r, bool read
                 absPath = currentDirectory() / path.baseName();
             }
             else {
+                eckit::Log::error()
+                    << "Skipping an FDB overlay database that is no longer available. Original path was: " << path
+                    << std::endl;
                 absPath = "";
             }
         }
