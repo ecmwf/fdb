@@ -9,9 +9,19 @@
  */
 
 #include "fdb5/rados/RadosFieldLocation.h"
-#include "eckit/io/rados/RadosReadHandle.h"
-#include "fdb5/LibFdb5.h"
-#include "fdb5/io/SingleGribMungePartFileHandle.h"
+
+#include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/Key.h"
+
+#include "eckit/filesystem/URIManager.h"
+#include "eckit/io/Length.h"
+#include "eckit/io/Offset.h"
+#include "eckit/io/rados/RadosObject.h"
+#include "eckit/serialisation/Reanimator.h"
+#include "eckit/serialisation/Stream.h"
+
+#include <memory>
+#include <ostream>
 
 namespace fdb5 {
 
@@ -23,31 +33,31 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RadosFieldLocation::RadosFieldLocation(const eckit::PathName path, eckit::Offset offset, eckit::Length length) :
-    FieldLocation(eckit::URI("rados", path), offset, length) {}
+static FieldLocationBuilder<RadosFieldLocation> builder("rados");
+
+RadosFieldLocation::RadosFieldLocation(const RadosFieldLocation& rhs) :
+    FieldLocation(rhs.uri_, rhs.offset_, rhs.length_, rhs.remapKey_) {}
 
 RadosFieldLocation::RadosFieldLocation(const eckit::URI& uri) : FieldLocation(uri) {}
 
 RadosFieldLocation::RadosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length) :
-    FieldLocation(uri, offset, length) {}
+    FieldLocation(uri, offset, length, Key{}) {}
 
-RadosFieldLocation::RadosFieldLocation(const RadosFieldLocation& rhs) : FieldLocation(rhs.uri_) {}
+// Kept for FieldLocationBuilder factory compatibility; `remapKey` is unused because the RADOS
+// backend does not support key remapping.
+RadosFieldLocation::RadosFieldLocation(const eckit::URI& uri, eckit::Offset offset, eckit::Length length,
+                                       const Key& /* remapKey */) :
+    RadosFieldLocation(uri, offset, length) {}
 
 RadosFieldLocation::RadosFieldLocation(eckit::Stream& s) : FieldLocation(s) {}
 
-
 std::shared_ptr<const FieldLocation> RadosFieldLocation::make_shared() const {
-    return std::make_shared<RadosFieldLocation>(std::move(*this));
+    return std::make_shared<RadosFieldLocation>(*this);
 }
 
 eckit::DataHandle* RadosFieldLocation::dataHandle() const {
-    eckit::RadosReadHandle* g = new eckit::RadosReadHandle(uri_.name(), offset(), length());
 
-    return g;
-}
-
-eckit::DataHandle* RadosFieldLocation::dataHandle(const Key& remapKey) const {
-    return new SingleGribMungePartFileHandle(path(), offset(), length(), remapKey);
+    return eckit::RadosObject(uri_).multipartRangeReadHandle(offset(), length());
 }
 
 void RadosFieldLocation::print(std::ostream& out) const {
@@ -57,12 +67,6 @@ void RadosFieldLocation::print(std::ostream& out) const {
 void RadosFieldLocation::visit(FieldLocationVisitor& visitor) const {
     visitor(*this);
 }
-
-eckit::URI RadosFieldLocation::uri(const eckit::PathName& path) {
-    return eckit::URI("rados", path);
-}
-
-static FieldLocationBuilder<RadosFieldLocation> builder("rados");
 
 //----------------------------------------------------------------------------------------------------------------------
 

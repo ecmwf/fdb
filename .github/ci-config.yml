@@ -2,7 +2,7 @@ dependencies: |
   ecmwf/ecbuild
   Deutsches-Klimarechenzentrum/libaec@refs/tags/v1.1.6
   ecmwf/eccodes
-  ecmwf/eckit
+  ecmwf/eckit@feature/ECKIT-684-ceph-backend
   ecmwf/metkit
 dependency_branch: develop
 cmake_options: -DENABLE_MEMFS=ON -DENABLE_DUMMY_DAOS=ON -DENABLE_FAMFDB=ON

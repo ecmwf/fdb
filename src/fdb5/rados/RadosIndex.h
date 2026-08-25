@@ -1,0 +1,97 @@
+/*
+ * (C) Copyright 1996- ECMWF.
+ *
+ * This software is licensed under the terms of the Apache Licence Version 2.0
+ * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+ * In applying this licence, ECMWF does not waive the privileges and immunities
+ * granted to it by virtue of its status as an intergovernmental organisation nor
+ * does it submit to any jurisdiction.
+ */
+
+/// @author Nicolau Manubens
+/// @date Jun 2024
+
+#pragma once
+
+#include "fdb5/database/EntryVisitMechanism.h"
+#include "fdb5/database/Field.h"
+#include "fdb5/database/Index.h"
+#include "fdb5/database/IndexStats.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/rados/RadosIndexLocation.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/rados/RadosKeyValue.h"
+#include "eckit/io/rados/RadosNamespace.h"
+
+#include <map>
+#include <ostream>
+#include <string>
+#include <vector>
+
+namespace fdb5 {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+
+class RadosIndex : public IndexBase {
+
+public:  // methods
+
+    // Creates a new index KV under `name`.
+    RadosIndex(const Key& key, const eckit::RadosNamespace& name);
+    // Wraps an already-existing index KV.
+    RadosIndex(const Key& key, const eckit::RadosKeyValue& name, bool readAxes = true);
+
+    void flock() const override { NOTIMP; }
+    void funlock() const override { NOTIMP; }
+
+    // Exposed so RadosCatalogueWriter can persist axis metadata into idx_kv_ / axis_kvs_.
+    void putAxisValue(const std::string& axis, const std::string& value);
+
+    // Exposed so RadosCatalogueReader can enumerate field entries directly for stats.
+    const eckit::RadosKeyValue& idx_kv() const { return idx_kv_; }
+
+private:  // methods
+
+    const IndexLocation& location() const override { return location_; }
+    std::vector<eckit::URI> dataURIs() const override;
+
+    bool dirty() const override { NOTIMP; }
+
+    void open() override { NOTIMP; };
+    // The RADOS KV index holds no open file/handle state, so closing is a no-op.
+    // Must not throw: invoked during normal read/list flows via eckit::AutoCloser.
+    void close() override {}
+    void reopen() override { NOTIMP; }
+
+    void visit(IndexLocationVisitor& visitor) const override { NOTIMP; }
+
+    bool get(const Key& key, const Key& remapKey, Field& field) const override;
+    void add(const Key& key, const Field& field) override;
+    void flush() override { NOTIMP; }
+    void encode(eckit::Stream& s, const int version) const override { NOTIMP; }
+    void entries(EntryVisitor& visitor) const override;
+
+    void print(std::ostream& out) const override { NOTIMP; }
+    void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const override {
+        NOTIMP;
+    }
+
+    IndexStats statistics() const override { NOTIMP; }
+
+    // Rehydrates the complete axis info from RADOS.
+    void updateAxes();
+
+private:  // members
+
+    fdb5::RadosIndexLocation location_;
+
+    eckit::RadosKeyValue idx_kv_;
+    std::map<std::string, eckit::RadosKeyValue> axis_kvs_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+}  // namespace fdb5
