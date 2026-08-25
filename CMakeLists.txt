@@ -130,6 +130,10 @@ ecbuild_add_option( FEATURE FAMFDB
                     DEFAULT ON
                     DESCRIPTION "Enables the FAM support for FDB via OpenFAM API" )
 
+if(ENABLE_PYTHON_ZARR_INTERFACE OR ENABLE_PYTHON_FDB_INTERFACE)
+    find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
+endif()
+
 ecbuild_add_option( FEATURE PYTHON_ZARR_INTERFACE
                     DESCRIPTION "Build python Zarr interface layer"
                     DEFAULT OFF
@@ -146,9 +150,6 @@ ecbuild_add_option( FEATURE PYTHON_FDB_INTERFACE
                     DEFAULT OFF
                     REQUIRED_PACKAGES "NAME pybind11 VERSION 3.0.1" )
 
-if(HAVE_PYTHON_ZARR_INTERFACE OR HAVE_PYTHON_FDB_INTERFACE)
-    find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
-endif()
 
 ecbuild_add_option( FEATURE PYTHON_EXTENDED_FDB_TOOL_TESTS
                     DESCRIPTION "Build extended fdb tool tests"
