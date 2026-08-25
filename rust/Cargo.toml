@@ -21,8 +21,10 @@ eckit-sys = { git = "ssh://git@github.com/ecmwf/eckit.git", branch = "develop", 
 eckit = { git = "ssh://git@github.com/ecmwf/eckit.git", branch = "develop" }
 metkit-sys = { git = "ssh://git@github.com/ecmwf/metkit.git", branch = "develop", default-features = false }
 metkit = { git = "ssh://git@github.com/ecmwf/metkit.git", branch = "develop" }
-# Pinned: playground HEAD (e46c4d3b) moved eckit-sys back to the rust-bindings
-# branch, which conflicts with our eckit-sys develop dependency (links collision)
+# Pinned to match metkit develop: the playground HEAD and the eccodes-repo
+# crate both consume eckit-sys from the rust-bindings branch, which conflicts
+# with our eckit-sys develop dependency (links collision). Drop the pin and
+# switch to eccodes.git once its eckit-sys dependency moves to develop.
 eccodes-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", rev = "d6b582fd", default-features = false, features = ["vendored", "eccodes-threads"] }
 
 # Build tools
