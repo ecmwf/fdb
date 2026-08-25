@@ -21,6 +21,5 @@ ecbuild_add_test(
     ENVIRONMENT "${test_environment}"
     ENVIRONMENT "TSAN_OPTIONS=suppressions=${CMAKE_CURRENT_BINARY_DIR}/tsan_suppressions.txt"
     TEST_PROPERTIES
-    RESOURCE_LOCK fdb_remote_fdb419
     LABELS remotefdb
 )

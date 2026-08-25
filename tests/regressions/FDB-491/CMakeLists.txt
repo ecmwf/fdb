@@ -18,6 +18,5 @@ ecbuild_add_test(
                    "FDB_WIPE_ENABLED=1"
     TEST_PROPERTIES
     TIMEOUT 600
-    RESOURCE_LOCK fdb_remote_fdb491
     LABELS remotefdb
 )

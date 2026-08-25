@@ -24,6 +24,5 @@ ecbuild_add_test(
     ENVIRONMENT    "${test_environment}"
     TEST_PROPERTIES
     TIMEOUT 600
-    RESOURCE_LOCK fdb_remote_fdb610
     LABELS remotefdb
 )
