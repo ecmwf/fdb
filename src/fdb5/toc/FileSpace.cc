@@ -14,8 +14,6 @@
 #include "eckit/utils/StringTools.h"
 
 #include "eckit/exception/Exceptions.h"
-#include "eckit/filesystem/FileSpaceStrategies.h"
-#include "eckit/os/BackTrace.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Key.h"
@@ -31,13 +29,54 @@ struct VectorPrintSelector<fdb5::Root> {
 };
 }  // namespace eckit
 
+//----------------------------------------------------------------------------------------------------------------------
+
 namespace fdb5 {
+
+namespace {
+
+metkit::mars::Matcher buildMatcher(const eckit::LocalConfiguration& match) {
+    std::map<std::string, eckit::Regex> regexMap;
+    for (const auto& keyword : match.keys()) {
+        std::string pattern;
+        if (match.isList(keyword)) {
+            auto values = match.getStringVector(keyword);
+            if (values.empty()) {
+                std::ostringstream oss;
+                oss << "FileSpace match: keyword '" << keyword << "' has no values";
+                throw eckit::UserError(oss.str(), Here());
+            }
+            pattern = "^(";
+            const char* sep = "";
+            for (const auto& v : values) {
+                pattern += sep;
+                pattern += v;
+                sep = "|";
+            }
+            pattern += ")$";
+        }
+        else {
+            pattern = "^(" + match.getString(keyword) + ")$";
+        }
+        regexMap.emplace(keyword, eckit::Regex(pattern));
+    }
+
+    return metkit::mars::Matcher(std::move(regexMap), metkit::mars::Matcher::Policy::All);
+}
+
+std::variant<RegexSelector, MatchSelector> makeSelector(const eckit::LocalConfiguration& space) {
+    if (space.has("match")) {
+        return MatchSelector{buildMatcher(space.getSubConfiguration("match"))};
+    }
+    return RegexSelector{eckit::Regex{space.getString("regex", ".*")}};
+}
+
+}  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FileSpace::FileSpace(const std::string& name, const std::string& re, const std::string& handler,
-                     const std::vector<Root>& roots) :
-    name_(name), handler_(handler), re_(re), roots_(roots) {}
+FileSpace::FileSpace(const std::string& name, const eckit::LocalConfiguration& space, const std::vector<Root>& roots) :
+    name_{name}, handler_{space.getString("handler", "Default")}, selector_{makeSelector(space)}, roots_{roots} {}
 
 TocPath FileSpace::filesystem(const Config& config, const Key& key, const eckit::PathName& db) const {
     // check that the database isn't present already
@@ -49,7 +88,6 @@ TocPath FileSpace::filesystem(const Config& config, const Key& key, const eckit:
         return existingDB;
     }
 
-    LOG_DEBUG_LIB(LibFdb5) << "FDB for key " << key << " not found, selecting a root" << std::endl;
     LOG_DEBUG_LIB(LibFdb5) << "FDB for key " << key << " not found, selecting a root" << std::endl;
 
     return TocPath{FileSpaceHandler::lookup(handler_, config).selectFileSystem(key, *this) / db, ControlIdentifiers{}};
@@ -81,12 +119,11 @@ void FileSpace::enabled(const ControlIdentifier& controlIdentifier, eckit::Strin
     }
 }
 
-bool FileSpace::match(const std::string& s) const {
-    return re_.match(s);
+bool FileSpace::match(const Key& key) const {
+    return std::visit([&](const auto& selector) { return selector.match(key); }, selector_);
 }
 
 eckit::PathName getFullDB(const eckit::PathName& path, const std::string& db) {
-
     static bool searchCaseSensitiveDB =
         eckit::Resource<bool>("fdbSearchCaseSensitiveDB;$FDB_SEARCH_CASESENSITIVE_DB", true);
 
@@ -158,7 +195,9 @@ bool FileSpace::existsDB(const Key& key, const eckit::PathName& db, TocPath& exi
 
 void FileSpace::print(std::ostream& out) const {
     out << "FileSpace("
-        << "name=" << name_ << ",handler=" << handler_ << ",regex=" << re_ << ",roots=" << roots_ << ")";
+        << "name=" << name_ << ",handler=" << handler_;
+    std::visit([&out](const auto& s) { out << ",selector=" << s; }, selector_);
+    out << ",roots=" << roots_ << ")";
 }
 
 std::vector<eckit::PathName> FileSpace::roots() const {
