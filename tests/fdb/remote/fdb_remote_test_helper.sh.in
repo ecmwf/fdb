@@ -47,12 +47,9 @@ fdb_remote_reap_parent() {
     local parent_pid=$1
     local process_group=$2
 
-    c=0
     while kill -0 "$parent_pid" 2>/dev/null; do
-        ((c++)) && ((c==20)) && { echo "Unable to start fdb-server $parent_pid in $c seconds" >&2; exit -1; }
         sleep 1
     done
-    unset c
 
     fdb_remote_stop_group "$process_group"
     sleep 1
