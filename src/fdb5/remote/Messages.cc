@@ -17,6 +17,22 @@
 
 namespace fdb5::remote {
 
+uint64_t toMask(const Message msg) {
+    uint16_t offset = static_cast<uint16_t>(msg) - static_cast<uint16_t>(Message::Flush);
+    ASSERT(offset < 64U);  // Ensure the offset does not exceed the 64-bit mask limit
+    return static_cast<uint64_t>(1) << offset;
+}
+
+std::string messageMask2String(uint64_t mm) {
+    std::string binary;
+    uint16_t offset = static_cast<uint16_t>(Message::DoWipeURIs) - static_cast<uint16_t>(Message::Flush);
+    for (size_t j = 0; j < offset; j++) {
+        binary = ((mm & 1) ? '1' : ' ') + binary;
+        mm >>= 1;
+    }
+    return binary;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 std::ostream& operator<<(std::ostream& s, const Message& m) {

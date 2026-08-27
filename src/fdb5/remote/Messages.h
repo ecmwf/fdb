@@ -87,6 +87,10 @@ enum class Message : uint16_t {
 
 std::ostream& operator<<(std::ostream& s, const Message& m);
 
+uint64_t toMask(const Message msg);
+
+std::string messageMask2String(uint64_t mm);
+
 //----------------------------------------------------------------------------------------------------------------------
 
 // Header used for all messages

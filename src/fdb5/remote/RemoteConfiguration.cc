@@ -1,8 +1,10 @@
 #include "fdb5/remote/RemoteConfiguration.h"
 
 #include <algorithm>
+#include <array>
 
 #include "eckit/config/Configuration.h"
+#include "eckit/config/Resource.h"
 #include "eckit/log/Log.h"
 #include "eckit/serialisation/Stream.h"
 #include "eckit/value/Value.h"
@@ -11,9 +13,10 @@
 
 namespace {
 
-std::vector<int> intersection(std::vector<int>& v1, std::vector<int>& v2) {
+template <class T>
+std::vector<T> intersection(std::vector<T>& v1, std::vector<T>& v2) {
 
-    std::vector<int> v3;
+    std::vector<T> v3;
 
     std::sort(v1.begin(), v1.end());
     std::sort(v2.begin(), v2.end());
@@ -22,9 +25,16 @@ std::vector<int> intersection(std::vector<int>& v1, std::vector<int>& v2) {
     return v3;
 }
 
+constexpr std::array defaultFeatures = {fdb5::remote::Message::Flush,    fdb5::remote::Message::Archive,
+                                        fdb5::remote::Message::Retrieve, fdb5::remote::Message::List,
+                                        fdb5::remote::Message::Stats,    fdb5::remote::Message::Inspect,
+                                        fdb5::remote::Message::Read,     fdb5::remote::Message::Store,
+                                        fdb5::remote::Message::Axes,     fdb5::remote::Message::Exists};
+
 }  // namespace
 
 namespace fdb5::remote {
+
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -47,6 +57,14 @@ RemoteConfiguration::RemoteConfiguration(const eckit::Configuration& config) {
     }
     else {
         preferSingleConnection_ = std::nullopt;
+    }
+
+    for (const auto& msg : defaultFeatures) {
+        enabledFeatures_ |= toMask(msg);
+    }
+    static bool wipeEnabled = eckit::Resource<bool>("fdbWipeEnabled;$FDB_WIPE_ENABLED", true);
+    if (wipeEnabled) {
+        enabledFeatures_ |= toMask(Message::Wipe);
     }
 }
 
@@ -91,6 +109,16 @@ RemoteConfiguration::RemoteConfiguration(eckit::Stream& s) {
     else {
         preferSingleConnection_ = std::nullopt;
     }
+    singleConnection_ = numberOfConnections_.size() == 1 && numberOfConnections_[0] == 1;
+
+    if (v.contains("EnabledFeatures")) {
+        enabledFeatures_ = v["EnabledFeatures"];
+    }
+    else {
+        for (const auto& msg : defaultFeatures) {
+            enabledFeatures_ |= toMask(msg);
+        }
+    }
 }
 
 bool RemoteConfiguration::singleConnection() const {
@@ -104,7 +132,16 @@ eckit::Stream& operator<<(eckit::Stream& s, const RemoteConfiguration& r) {
     if (r.preferSingleConnection_) {
         val["PreferSingleConnection"] = eckit::toValue(r.preferSingleConnection_.value());
     }
+    val["EnabledFeatures"] = eckit::toValue(r.enabledFeatures_);
     s << val;
+    return s;
+}
+
+std::ostream& operator<<(std::ostream& s, const RemoteConfiguration& r) {
+    s << "RemoteConfiguration[remoteFieldLocationVersions=" << r.remoteFieldLocationVersions_
+      << ", numberOfConnections=" << r.numberOfConnections_ << ", preferSingleConnection="
+      << (r.preferSingleConnection_ ? std::to_string(*r.preferSingleConnection_) : "nullopt")
+      << ", singleConnection=" << r.singleConnection_ << ", enabledFeatures=" << r.enabledFeatures_ << "]";
     return s;
 }
 
@@ -159,7 +196,11 @@ RemoteConfiguration RemoteConfiguration::common(RemoteConfiguration& clientConf,
         }
     }
 
-    LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - NumberOfConnections " << ncSelected << std::endl;
+    agreedConf.enabledFeatures_ = clientConf.enabledFeatures_ & serverConf.enabledFeatures_;
+
+    LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation" << std::endl
+                           << "  EnabledFeatures     " << messageMask2String(agreedConf.enabledFeatures_) << std::endl
+                           << "  NumberOfConnections " << ncSelected << std::endl;
     agreedConf.numberOfConnections_ = {ncSelected};
     agreedConf.singleConnection_ = (ncSelected == 1);
 
