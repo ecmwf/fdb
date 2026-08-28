@@ -212,7 +212,6 @@ private:  // methods
 
     void close() const;
 
-    /// Cached result of onNFS() for this DB directory: -1 unknown, 0 no, 1 yes.
     bool onNFS() const;
 
     void appendRaw(const void* data, size_t size);

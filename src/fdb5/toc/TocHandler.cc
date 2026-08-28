@@ -14,11 +14,19 @@
 #include <cstddef>
 #include <utility>
 
+#if defined(__linux__)
+#include <sys/vfs.h>
+#elif defined(__APPLE__)
+#include <sys/mount.h>
+#include <sys/param.h>
+#include <cstring>
+#endif
+
 #include "eckit/config/Resource.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/StdDir.h"
 #include "eckit/io/FileDescHandle.h"
 #include "eckit/io/FileHandle.h"
-#include "eckit/log/BigNum.h"
 #include "eckit/log/Log.h"
 #include "eckit/maths/Functions.h"
 #include "eckit/serialisation/MemoryStream.h"
@@ -31,7 +39,6 @@
 #include "fdb5/database/Index.h"
 #include "fdb5/io/LustreSettings.h"
 #include "fdb5/toc/TocCommon.h"
-#include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
@@ -63,6 +70,20 @@ const std::map<ControlIdentifier, const char*> controlfile_lookup{
     {ControlIdentifier::UniqueRoot, allow_duplicates_file}};
 
 //----------------------------------------------------------------------------------------------------------------------
+
+namespace {
+
+/// Acquire/release file lock; no-op on filesystems without lock support.
+void tocFileLock(int fd, short type) {
+    struct flock lock;
+    lock.l_type = type;
+    lock.l_whence = SEEK_SET;
+    lock.l_start = 0;
+    lock.l_len = 0;  // whole file
+    ::fcntl(fd, F_SETLKW, &lock);
+}
+
+}  // namespace
 
 class TocHandlerCloser {
     const TocHandler& handler_;
@@ -222,6 +243,31 @@ bool TocHandler::exists() const {
     return tocPath_.exists();
 }
 
+bool TocHandler::onNFS(const eckit::PathName& path) {
+#if defined(__linux__)
+    struct statfs buf;
+    if (::statfs(path.localPath(), &buf) != 0) {
+        return false;  // fail-open: treat as local filesystem
+    }
+    return buf.f_type == 0x6969;  // NFS_SUPER_MAGIC
+#elif defined(__APPLE__)
+    struct statfs buf;
+    if (::statfs(path.localPath(), &buf) != 0) {
+        return false;  // fail-open: treat as local filesystem
+    }
+    return ::strcmp(buf.f_fstypename, "nfs") == 0;
+#else
+    return false;
+#endif
+}
+
+bool TocHandler::onNFS() const {
+    if (isNFS_ == -1) {
+        isNFS_ = onNFS(directory_) ? 1 : 0;
+    }
+    return isNFS_ == 1;
+}
+
 void TocHandler::openForAppend() {
 
     checkUID();  // n.b. may openForRead
@@ -245,6 +291,12 @@ void TocHandler::openForAppend() {
     }
 #endif
     SYSCALL2((fd_ = ::open(tocPath_.localPath(), iomode, (mode_t)0777)), tocPath_);
+
+    // On NFS O_APPEND is not atomic
+    // serialize with a lock (released automatically on close)
+    if (onNFS() && !isSubToc_) {
+        tocFileLock(fd_, F_WRLCK);
+    }
 }
 
 void TocHandler::openForRead() const {
@@ -279,10 +331,17 @@ void TocHandler::openForRead() const {
     numSubtocsRaw_ = 0;
     maskedEntries_.clear();
 
+    const bool nfsLock = onNFS() && !isSubToc_;
+
     if (fdbCacheTocsOnRead) {
 
         FileDescHandle toc(fd_, true);  // closes the file descriptor
         AutoClose closer1(toc);
+
+        if (nfsLock) {
+            tocFileLock(fd_, F_RDLCK);
+        }
+
         fd_ = -1;
 
 
@@ -292,6 +351,9 @@ void TocHandler::openForRead() const {
         long buffersize = 4_MiB;
         toc.copyTo(*cachedToc_, buffersize, tocSize, tocReadStats_);
         cachedToc_->openForRead();
+    }
+    else if (nfsLock) {
+        tocFileLock(fd_, F_RDLCK);  // released on close()
     }
 }
 
@@ -616,6 +678,11 @@ void TocHandler::close() const {
         SYSCALL2(::close(fd_), tocPath_);
         fd_ = -1;
         writeMode_ = false;
+
+        // if NFS, flush the parent directory so other clients can resolve the subtoc immediately
+        if (onNFS() && !isSubToc_) {
+            tocPath_.syncParentDirectory();
+        }
     }
 }
 
@@ -1026,10 +1093,31 @@ void TocHandler::writeInitRecord(const Key& key) {
 
     ASSERT(fd_ == -1);
 
+    const bool nfs = onNFS() && !isSubToc_;
+
+    // refresh the cached directory and file attributes
+    if (nfs) {
+        { eckit::StdDir dir(directory_); }  // refresh DB directory handle cache
+        int rfd = ::open(tocPath_.localPath(), O_RDONLY);
+        if (rfd < 0) {
+            if (errno != ENOENT) {
+                SYSCALL2(rfd, tocPath_);
+            }
+        }
+        else {
+            SYSCALL2(::close(rfd), tocPath_);
+        }
+    }
+
     int iomode = O_CREAT | O_RDWR;
     SYSCALL2(fd_ = ::open(tocPath_.localPath(), iomode, mode_t(0777)), tocPath_);
 
     TocHandlerCloser closer(*this);
+
+    // Hold a lock to serialise racing creators. Released on close().
+    if (nfs) {
+        tocFileLock(fd_, F_RDLCK);
+    }
 
     auto r = std::make_unique<TocRecord>(
         serialisationVersion_.used());  // allocate (large) TocRecord on heap not stack (MARS-779)
@@ -1071,8 +1159,17 @@ void TocHandler::writeInitRecord(const Key& key) {
         eckit::MemoryStream s(&r2->payload_[0], r2->maxPayloadSize);
         s << key;
         s << isSubToc_;
+
+        if (nfs) {
+            tocFileLock(fd_, F_WRLCK);
+        }
+
         append(*r2, s.position());
         dbUID_ = r2->header_.uid_;
+
+        if (nfs) {
+            tocPath_.syncParentDirectory();
+        }
     }
     else {
         ASSERT(r->header_.tag_ == TocRecord::TOC_INIT);
@@ -1122,6 +1219,11 @@ void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
     s << path;
     s << off_t{0};
     append(*r, s.position());
+
+    if (onNFS() && !isSubToc_) {
+        SYSCALL2(eckit::fdatasync(fd_), tocPath_);
+        tocPath_.syncParentDirectory();
+    }
 
     LOG_DEBUG_LIB(LibFdb5) << "Write TOC_SUB_TOC " << path << std::endl;
 }
