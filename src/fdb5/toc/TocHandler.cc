@@ -675,12 +675,13 @@ void TocHandler::close() const {
             SYSCALL2(eckit::fdatasync(fd_), tocPath_);
             dirty_ = false;
         }
+        const bool wasWriteMode = writeMode_;
         SYSCALL2(::close(fd_), tocPath_);
         fd_ = -1;
         writeMode_ = false;
 
-        // if NFS, flush the parent directory so other clients can resolve the subtoc immediately
-        if (onNFS() && !isSubToc_) {
+        // if NFS, publish namespace changes by flushing the parent directory
+        if (wasWriteMode && onNFS() && !isSubToc_) {
             tocPath_.syncParentDirectory();
         }
     }
