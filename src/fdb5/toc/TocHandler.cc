@@ -11,8 +11,10 @@
 #include <fcntl.h>
 #include <pwd.h>
 #include <sys/types.h>
+#include <cerrno>
 #include <cstddef>
 #include <utility>
+#include "eckit/io/DataHandle.h"
 
 #if defined(__linux__)
 #include <sys/vfs.h>
@@ -23,6 +25,7 @@
 #endif
 
 #include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/StdDir.h"
 #include "eckit/io/FileDescHandle.h"
@@ -73,14 +76,39 @@ const std::map<ControlIdentifier, const char*> controlfile_lookup{
 
 namespace {
 
-/// Acquire/release file lock; no-op on filesystems without lock support.
-void tocFileLock(int fd, short type) {
+/// Blocking whole-file advisory lock. Prefers open-file-description locks
+/// (F_OFD_*) so the lock is bound to this descriptor; falls back to classic
+/// POSIX locks if OFD is unavailable.
+void tocFileLock(int fd, short type, const eckit::PathName& path) {
     struct flock lock;
     lock.l_type = type;
     lock.l_whence = SEEK_SET;
     lock.l_start = 0;
     lock.l_len = 0;  // whole file
-    ::fcntl(fd, F_SETLKW, &lock);
+
+    int cmd = F_SETLKW;
+#if defined(F_OFD_SETLKW)
+    cmd = F_OFD_SETLKW;
+#endif
+
+    for (;;) {
+        if (::fcntl(fd, cmd, &lock) == 0) {
+            return;
+        }
+        if (errno == EINTR) {
+            continue;  // interrupted by a signal, retry
+        }
+#if defined(F_OFD_SETLKW)
+        if (cmd == F_OFD_SETLKW && (errno == EINVAL || errno == ENOTSUP)) {
+            cmd = F_SETLKW;  // OFD unsupported at runtime, degrade to classic locks
+            continue;
+        }
+#endif
+        const int err = errno;
+        throw eckit::FailedSystemCall(
+            std::string("advisory lock on TOC ") + path.asString() + " (ensure NFS file locking is enabled)", Here(),
+            err);
+    }
 }
 
 }  // namespace
@@ -295,7 +323,7 @@ void TocHandler::openForAppend() {
     // On NFS O_APPEND is not atomic
     // serialize with a lock (released automatically on close)
     if (onNFS() && !isSubToc_) {
-        tocFileLock(fd_, F_WRLCK);
+        tocFileLock(fd_, F_WRLCK, tocPath_);
     }
 }
 
@@ -339,7 +367,7 @@ void TocHandler::openForRead() const {
         AutoClose closer1(toc);
 
         if (nfsLock) {
-            tocFileLock(fd_, F_RDLCK);
+            tocFileLock(fd_, F_RDLCK, tocPath_);
         }
 
         fd_ = -1;
@@ -353,7 +381,7 @@ void TocHandler::openForRead() const {
         cachedToc_->openForRead();
     }
     else if (nfsLock) {
-        tocFileLock(fd_, F_RDLCK);  // released on close()
+        tocFileLock(fd_, F_RDLCK, tocPath_);  // released on close()
     }
 }
 
@@ -1117,7 +1145,7 @@ void TocHandler::writeInitRecord(const Key& key) {
 
     // Hold a lock to serialise racing creators. Released on close().
     if (nfs) {
-        tocFileLock(fd_, F_RDLCK);
+        tocFileLock(fd_, F_RDLCK, tocPath_);
     }
 
     auto r = std::make_unique<TocRecord>(
@@ -1162,7 +1190,7 @@ void TocHandler::writeInitRecord(const Key& key) {
         s << isSubToc_;
 
         if (nfs) {
-            tocFileLock(fd_, F_WRLCK);
+            tocFileLock(fd_, F_WRLCK, tocPath_);
         }
 
         append(*r2, s.position());
