@@ -10,13 +10,12 @@
 
 #pragma once
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
 
 #include "eckit/exception/Exceptions.h"
-
-#include "fdb5/remote/Messages.h"
 
 namespace eckit {
 

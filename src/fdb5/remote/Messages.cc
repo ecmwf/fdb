@@ -27,7 +27,7 @@ std::string messageMask2String(uint64_t mm) {
     std::string binary;
     uint16_t offset = static_cast<uint16_t>(Message::DoWipeURIs) - static_cast<uint16_t>(Message::Flush);
     for (size_t j = 0; j < offset; j++) {
-        binary = ((mm & 1) ? '1' : ' ') + binary;
+        binary = ((mm & 1) ? 'O' : '.') + binary;
         mm >>= 1;
     }
     return binary;

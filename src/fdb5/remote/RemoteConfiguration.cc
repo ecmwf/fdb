@@ -10,6 +10,7 @@
 #include "eckit/value/Value.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/remote/Messages.h"
 
 namespace {
 
@@ -34,7 +35,6 @@ constexpr std::array defaultFeatures = {fdb5::remote::Message::Flush,    fdb5::r
 }  // namespace
 
 namespace fdb5::remote {
-
 
 //----------------------------------------------------------------------------------------------------------------------
 
