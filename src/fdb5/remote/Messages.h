@@ -94,7 +94,7 @@ class MessageHeader {
 
 public:  // types
 
-    constexpr static uint16_t currentVersion = 13;
+    constexpr static uint16_t currentVersion = 12;
 
     constexpr static const auto hashBytes = 16;
 
