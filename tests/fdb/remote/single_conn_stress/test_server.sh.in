@@ -29,7 +29,7 @@ cleanup() {
   local exit_code=$?
 
   fdb_remote_cleanup "$exit_code"
-    rm -rf "$catalogue_rootdir" "$store_rootdir"
+  rm -rf "$catalogue_rootdir" "$store_rootdir"
   return "$exit_code"
 }
 
