@@ -46,6 +46,8 @@ fdb_remote_reap_parent() {
     local parent_pid=$1
     local process_group=$2
 
+    sleep 2
+
     while kill -0 "$parent_pid" 2>/dev/null; do
         sleep 1
     done

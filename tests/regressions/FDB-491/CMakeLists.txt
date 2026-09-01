@@ -17,6 +17,6 @@ ecbuild_add_test(
     ENVIRONMENT    "${test_environment}"
                    "FDB_WIPE_ENABLED=1"
     TEST_PROPERTIES
-    TIMEOUT 600
+    TIMEOUT 300
     LABELS remotefdb
 )

@@ -23,7 +23,7 @@ if (HAVE_FDB_BUILD_TOOLS)
         TEST_DEPENDS   fdb_test_remote_multi_store
         ENVIRONMENT    "${test_environment}"
         TEST_PROPERTIES
-        TIMEOUT 600
+        TIMEOUT 300
         RESOURCE_LOCK fdb_remote_multi_store_api
         LABELS remotefdb
     )
@@ -39,7 +39,7 @@ if (HAVE_FDB_BUILD_TOOLS)
         TEST_DEPENDS   fdb_test_remote_multi_store fdb_test_get_data
         ENVIRONMENT    "${test_environment}"
         TEST_PROPERTIES
-        TIMEOUT 600
+        TIMEOUT 300
         RESOURCE_LOCK fdb_remote_multi_store_tools
         LABELS remotefdb
     )
