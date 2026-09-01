@@ -1,5 +1,5 @@
 type: store
-serverPort: 8001
+serverPort: 8003
 store: file
 spaces:
 - handler: Default
