@@ -48,8 +48,10 @@ fdb_remote_reap_parent() {
 
     sleep 2
 
-    while kill -0 "$parent_pid" 2>/dev/null; do
+    local c=0
+    while kill -0 "$parent_pid" 2>/dev/null && ((c < 20)); do
         sleep 1
+        ((c++))
     done
 
     fdb_remote_stop_group "$process_group"
