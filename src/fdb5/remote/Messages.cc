@@ -17,11 +17,23 @@
 
 namespace fdb5::remote {
 
-uint64_t toMask(const Message msg) {
-    uint16_t offset = static_cast<uint16_t>(msg) - static_cast<uint16_t>(Message::Flush);
-    ASSERT(offset < 64U);  // Ensure the offset does not exceed the 64-bit mask limit
-    return static_cast<uint64_t>(1) << offset;
+namespace {
+
+/// Ancillary messages are governed by the feature they belong to, rather than by their own bit.
+constexpr Message governingFeature(const Message msg) {
+    switch (msg) {
+        case Message::DoWipeURIs:
+        case Message::DoWipeUnknowns:
+        case Message::DoWipeFinish:
+        case Message::DoMaskIndexEntries:
+        case Message::DoUnsafeFullWipe:
+            return Message::Wipe;
+        default:
+            return msg;
+    }
 }
+
+}  // namespace
 
 std::string messageMask2String(uint64_t mm) {
     std::string binary;
@@ -31,6 +43,14 @@ std::string messageMask2String(uint64_t mm) {
         mm >>= 1;
     }
     return binary;
+}
+
+bool enabled(const uint64_t enabledFeatures, const Message msg) {
+    const Message aux = governingFeature(msg);
+    // Check if the message is enabled - we are only interested in messages within the range [Flush, DoWipeURIs)
+    // The others are assumed to be always enabled since are required to establish the connection
+    // n.b. the range checks must come first, toMask() would throw for messages outside it
+    return (aux < Message::Flush || Message::DoWipeURIs <= aux || (enabledFeatures & toMask(aux)));
 }
 
 //----------------------------------------------------------------------------------------------------------------------

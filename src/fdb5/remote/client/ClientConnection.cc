@@ -202,9 +202,7 @@ RemoteConfiguration ClientConnection::availableFunctionality(const Configuration
 //----------------------------------------------------------------------------------------------------------------------
 
 void ClientConnection::checkEnabled(Message msg) const {
-    // Check if the message is enabled by the server - we are only interested in messages within the range [Flush,
-    // DoWipeURIs) the others are assumed to be always enabled since are required to establish the connection
-    if (Message::Flush <= msg && msg < Message::DoWipeURIs && !(agreedFeatures_ & toMask(msg))) {
+    if (!enabled(agreedFeatures_, msg)) {
         std::ostringstream ss;
         ss << "Message " << msg << " not enabled by server: " << controlEndpoint_ << std::endl;
         ss << "  mask:    " << messageMask2String(toMask(msg)) << std::endl;

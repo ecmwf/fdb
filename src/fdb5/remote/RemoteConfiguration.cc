@@ -26,12 +26,6 @@ std::vector<T> intersection(std::vector<T>& v1, std::vector<T>& v2) {
     return v3;
 }
 
-constexpr std::array defaultFeatures = {fdb5::remote::Message::Flush,    fdb5::remote::Message::Archive,
-                                        fdb5::remote::Message::Retrieve, fdb5::remote::Message::List,
-                                        fdb5::remote::Message::Stats,    fdb5::remote::Message::Inspect,
-                                        fdb5::remote::Message::Read,     fdb5::remote::Message::Store,
-                                        fdb5::remote::Message::Axes,     fdb5::remote::Message::Exists};
-
 }  // namespace
 
 namespace fdb5::remote {
@@ -59,11 +53,9 @@ RemoteConfiguration::RemoteConfiguration(const eckit::Configuration& config) {
         preferSingleConnection_ = std::nullopt;
     }
 
-    for (const auto& msg : defaultFeatures) {
-        enabledFeatures_ |= toMask(msg);
-    }
-    static bool wipeEnabled = eckit::Resource<bool>("fdbWipeEnabled;$FDB_WIPE_ENABLED", true);
-    if (wipeEnabled) {
+    enabledFeatures_ = maskOfDefaultFeatures;
+
+    if (config.getBool("wipe", true)) {
         enabledFeatures_ |= toMask(Message::Wipe);
     }
 }
@@ -115,9 +107,7 @@ RemoteConfiguration::RemoteConfiguration(eckit::Stream& s) {
         enabledFeatures_ = v["EnabledFeatures"];
     }
     else {
-        for (const auto& msg : defaultFeatures) {
-            enabledFeatures_ |= toMask(msg);
-        }
+        enabledFeatures_ = maskOfDefaultFeatures;
     }
 }
 
