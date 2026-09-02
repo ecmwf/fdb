@@ -28,6 +28,7 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace eckit {
 
@@ -96,6 +97,9 @@ private:  // methods
     // do not hang forever once the connection is known to be dead.
     void failPendingRequests(const std::exception_ptr& eptr);
 
+    // fail any waiting flush data barriers
+    void failDataBarriers(const std::exception_ptr& eptr);
+
     void dataWriteThreadLoop();
     void closeConnection();
 
@@ -134,6 +138,8 @@ private:  // members
     std::mutex dataWriteMutex_;
     std::unique_ptr<eckit::Queue<DataWriteRequest>> dataWriteQueue_;
     std::thread dataWriteThread_;
+
+    std::vector<std::shared_ptr<std::promise<void>>> dataBarriers_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

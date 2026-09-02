@@ -23,6 +23,7 @@
 
 #include <unistd.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
@@ -273,42 +274,67 @@ void ClientConnection::dataWriteThreadLoop() {
     Timer timer;
     DataWriteRequest element;
 
+    auto* queue = dataWriteQueue_.get();
+    ASSERT(queue);
+
     try {
 
-        ASSERT(dataWriteQueue_);
-        while (dataWriteQueue_->pop(element) != -1) {
+        while (queue->pop(element) != -1) {
             if (element.barrier_) {
-                element.barrier_->set_value();  // unblock the waiting thread
+                std::lock_guard lock(dataWriteMutex_);
+                element.barrier_->set_value();
+                dataBarriers_.erase(std::remove(dataBarriers_.begin(), dataBarriers_.end(), element.barrier_),
+                                    dataBarriers_.end());
                 continue;
             }
             dataWrite(element);
         }
 
+        std::lock_guard lock(dataWriteMutex_);
         dataWriteQueue_.reset();
     }
     catch (...) {
-        dataWriteQueue_->interrupt(std::current_exception());
-        throw;
+        // we must not rethrow in thread (that would std::terminate)
+        // propagate and unblock any waiting flushDataWrites()
+        queue->interrupt(std::current_exception());
+        failDataBarriers(std::current_exception());
     }
-
-    // We are inside an async, so don't need to worry about exceptions escaping.
-    // They will be released when flush() is called.
 }
 
 void ClientConnection::flushDataWrites() {
-    std::shared_ptr<std::promise<void>> barrier;
     std::future<void> written;
     {
         std::lock_guard lock(dataWriteMutex_);
         if (!dataWriteQueue_) {
             return;
         }
-        barrier = std::make_shared<std::promise<void>>();
+        auto barrier = std::make_shared<std::promise<void>>();
         written = barrier->get_future();
-        dataWriteQueue_->emplace(barrier);
+        dataBarriers_.push_back(barrier);
+        try {
+            dataWriteQueue_->emplace(barrier);
+        }
+        catch (...) {
+            LOG_DEBUG_LIB(LibFdb5) << "flushDataWrites - failed to enqueue barrier!" << std::endl;
+            dataBarriers_.pop_back();
+            throw;
+        }
     }
-    // block the thread!
+    // block until the writer reaches the barrier (or the connection fails)
     written.get();
+}
+
+void ClientConnection::failDataBarriers(const std::exception_ptr& eptr) {
+    std::lock_guard lock(dataWriteMutex_);
+    for (auto& barrier : dataBarriers_) {
+        try {
+            barrier->set_exception(eptr);
+        }
+        catch (...) {
+            Log::warning() << "failDataBarriers - barrier already satisfied." << std::endl;
+        }
+    }
+    dataBarriers_.clear();
 }
 
 void ClientConnection::writeControlStartupMessage(const Configuration& config) {
