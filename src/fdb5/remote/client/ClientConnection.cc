@@ -117,8 +117,11 @@ bool ClientConnection::remove(uint32_t clientID) {
 }
 
 ClientConnection::~ClientConnection() {
-    if (dataWriteQueue_) {
-        dataWriteQueue_->close();
+    {
+        std::lock_guard lock(dataWriteMutex_);
+        if (dataWriteQueue_) {
+            dataWriteQueue_->close();
+        }
     }
 
     disconnect();
