@@ -13,8 +13,8 @@
 #include "eckit/io/Buffer.h"
 #include "eckit/serialisation/MemoryStream.h"
 
+#include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/remote/RemoteFieldLocation.h"
 
 #include <cstdint>
 #include <deque>

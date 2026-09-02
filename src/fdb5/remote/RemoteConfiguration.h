@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
@@ -56,8 +57,10 @@ public:
     static RemoteConfiguration common(RemoteConfiguration& clientConf, RemoteConfiguration& serverConf);
 
     bool singleConnection() const;
+    uint64_t enabledFeatures() const { return enabledFeatures_; }
 
     friend eckit::Stream& operator<<(eckit::Stream& s, const RemoteConfiguration& r);
+    friend std::ostream& operator<<(std::ostream& s, const RemoteConfiguration& r);
 
 private:
 
@@ -65,6 +68,8 @@ private:
     std::vector<int> numberOfConnections_;
 
     std::optional<bool> preferSingleConnection_;
+
+    uint64_t enabledFeatures_{0};
 
     bool singleConnection_{false};
 };

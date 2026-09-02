@@ -22,7 +22,6 @@ if (HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB)
         ENVIRONMENT    "${test_environment}"
                        "TEST_FDB_THREAD_COUNT=8"
                        "TEST_FDB_STRESS_ITERATIONS=20"
-                       "FDB_WIPE_ENABLED=1"
         TEST_PROPERTIES
         TIMEOUT 300
         RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests

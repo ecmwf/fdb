@@ -2,6 +2,7 @@
 
 #include "fdb5/remote/client/ClientConnection.h"
 
+#include "eckit/config/Configuration.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
 #include "eckit/net/Endpoint.h"

@@ -48,7 +48,6 @@ fdb_remote_start_server catalogue "$bindir/catalogue.yaml" "$(fdb_remote_config_
 fdb_remote_start_server store "$bindir/store.yaml" "$(fdb_remote_config_port "$bindir/store.yaml")" -- "$fdbserver"
 fdb_remote_wait_for_servers
 
-
 FDB5_CONFIG_FILE="$bindir/client.yaml" "$fdbwrite" levtypes.grib
 
 FDB5_CONFIG_FILE="$bindir/client.yaml" "$fdblist" --all --minimum-keys="" --porcelain | tee out
