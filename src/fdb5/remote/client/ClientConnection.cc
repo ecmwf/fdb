@@ -54,15 +54,19 @@ class DataWriteRequest {
 
 public:
 
-    DataWriteRequest() : client_(nullptr), msg_(Message::None), id_(0), data_(Buffer(0)) {}
+    DataWriteRequest() = default;
 
     DataWriteRequest(Client* client, Message msg, uint32_t id, Buffer&& data) :
         client_(client), msg_(msg), id_(id), data_(std::move(data)) {}
 
-    Client* client_;
-    Message msg_;
-    uint32_t id_;
-    Buffer data_;
+    /// @param barrier: no payload, signals when all writes are finished
+    explicit DataWriteRequest(std::shared_ptr<std::promise<void>> barrier) : barrier_{std::move(barrier)} {}
+
+    Client* client_{nullptr};
+    Message msg_{Message::None};
+    uint32_t id_{0};
+    Buffer data_{Buffer(0)};
+    std::shared_ptr<std::promise<void>> barrier_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -270,7 +274,10 @@ void ClientConnection::dataWriteThreadLoop() {
 
         ASSERT(dataWriteQueue_);
         while (dataWriteQueue_->pop(element) != -1) {
-
+            if (element.barrier_) {
+                element.barrier_->set_value();  // unblock the waiting thread
+                continue;
+            }
             dataWrite(element);
         }
 
@@ -283,6 +290,22 @@ void ClientConnection::dataWriteThreadLoop() {
 
     // We are inside an async, so don't need to worry about exceptions escaping.
     // They will be released when flush() is called.
+}
+
+void ClientConnection::flushDataWrites() {
+    std::shared_ptr<std::promise<void>> barrier;
+    std::future<void> written;
+    {
+        std::lock_guard lock(dataWriteMutex_);
+        if (!dataWriteQueue_) {
+            return;
+        }
+        barrier = std::make_shared<std::promise<void>>();
+        written = barrier->get_future();
+        dataWriteQueue_->emplace(barrier);
+    }
+    // block the thread!
+    written.get();
 }
 
 void ClientConnection::writeControlStartupMessage(const Configuration& config) {

@@ -56,6 +56,9 @@ public:  // methods
 
     void dataWrite(Client& client, Message msg, uint32_t requestID, PayloadList payloads = {});
 
+    // blocks until all queued data writes are finished
+    void flushDataWrites();
+
     void add(Client& client);
     bool remove(uint32_t clientID);
 
