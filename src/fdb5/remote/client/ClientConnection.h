@@ -56,7 +56,7 @@ public:  // methods
 
     void dataWrite(Client& client, Message msg, uint32_t requestID, PayloadList payloads = {});
 
-    // blocks until all queued data writes are finished
+    // Blocks until the data-writer thread has processed all data writes queued before this call.
     void flushDataWrites();
 
     void add(Client& client);
