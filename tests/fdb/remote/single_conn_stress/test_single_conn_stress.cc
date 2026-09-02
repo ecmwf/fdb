@@ -97,16 +97,22 @@ KeyList archive_flush_keys() {
 
 int archive_flush_worker(size_t worker) {
     try {
-        FDB fdb{};
-        const std::string data(archive_flush_field_size, static_cast<char>('a' + worker));
+        {
+            FDB fdb{};
+            const std::string data(archive_flush_field_size, static_cast<char>('a' + worker));
 
-        for (size_t batch = 0; batch < archive_flush_batches_per_worker; ++batch) {
-            for (size_t field = 0; field < archive_flush_fields_per_batch; ++field) {
-                const auto key = archive_flush_key(worker, batch, field);
-                fdb.archive(key, data.data(), data.size());
+            for (size_t batch = 0; batch < archive_flush_batches_per_worker; ++batch) {
+                for (size_t field = 0; field < archive_flush_fields_per_batch; ++field) {
+                    const auto key = archive_flush_key(worker, batch, field);
+                    fdb.archive(key, data.data(), data.size());
+                }
+                eckit::Log::info() << "[CLIENT][archive-flush worker " << worker << "] flushing batch " << batch
+                                   << '\n';
+                fdb.flush();
+                eckit::Log::info() << "[CLIENT][archive-flush worker " << worker << "] flushed batch " << batch << '\n';
             }
-            fdb.flush();
         }
+        eckit::Log::info() << "[CLIENT][archive-flush worker " << worker << "] FDB destroyed" << '\n';
         return 0;
     }
     catch (const std::exception& e) {
