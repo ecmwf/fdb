@@ -149,6 +149,10 @@ void RemoteCatalogue::flush(size_t archivedFields) {
 
         LOG_DEBUG_LIB(LibFdb5) << " RemoteCatalogue::flush - flushing " << numLocations_ << " fields" << std::endl;
 
+        // Ensure the (field-location) "Blob" arrive before the blocking "Flush"!
+        // (may deadlock server on a single connection)
+        connection_->flushDataWrites();
+
         // The flush call is blocking
         controlWriteCheckResponse(Message::Flush, generateRequestID(), false, sendBuf, s.position());
 
