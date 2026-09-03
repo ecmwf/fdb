@@ -18,6 +18,8 @@
 #include "metkit/mars/MarsRequest.h"
 
 #include "eckit/log/Log.h"
+#include "eckit/runtime/Main.h"
+#include "eckit/testing/ProcessFork.h"
 #include "eckit/testing/Test.h"
 
 #include <algorithm>
@@ -25,6 +27,8 @@
 #include <cstddef>
 #include <cstdlib>
 #include <exception>
+#include <map>
+#include <ostream>
 #include <set>
 #include <string>
 #include <thread>
@@ -51,6 +55,11 @@ namespace {
 using StringList = std::vector<std::string>;
 using KeyList = std::vector<Key>;
 
+constexpr size_t archive_flush_worker_count = 4;
+constexpr size_t archive_flush_batches_per_worker = 24;
+constexpr size_t archive_flush_fields_per_batch = 8;
+constexpr size_t archive_flush_field_size = static_cast<size_t>(32) * 1024;
+
 Key key_common() {
     Key k;
     k.set("class", "od");
@@ -61,6 +70,49 @@ Key key_common() {
     k.set("levtype", "sfc");
     k.set("param", "167");
     return k;
+}
+
+Key archive_flush_key(size_t worker, size_t batch, size_t field) {
+    auto key = key_common();
+    key.set("date", "20000101");
+    key.set("type", "fc");
+    const size_t sequence =
+        (((worker * archive_flush_batches_per_worker) + batch) * archive_flush_fields_per_batch) + field;
+    key.set("step", std::to_string(sequence + 1));
+    return key;
+}
+
+KeyList archive_flush_keys() {
+    KeyList keys;
+    keys.reserve(archive_flush_worker_count * archive_flush_batches_per_worker * archive_flush_fields_per_batch);
+    for (size_t worker = 0; worker < archive_flush_worker_count; ++worker) {
+        for (size_t batch = 0; batch < archive_flush_batches_per_worker; ++batch) {
+            for (size_t field = 0; field < archive_flush_fields_per_batch; ++field) {
+                keys.push_back(archive_flush_key(worker, batch, field));
+            }
+        }
+    }
+    return keys;
+}
+
+int archive_flush_worker(size_t worker) {
+    try {
+        FDB fdb{};
+        const std::string data(archive_flush_field_size, static_cast<char>('a' + worker));
+
+        for (size_t batch = 0; batch < archive_flush_batches_per_worker; ++batch) {
+            for (size_t field = 0; field < archive_flush_fields_per_batch; ++field) {
+                const auto key = archive_flush_key(worker, batch, field);
+                fdb.archive(key, data.data(), data.size());
+            }
+            fdb.flush();
+        }
+        return 0;
+    }
+    catch (const std::exception& e) {
+        eckit::Log::error() << "[CLIENT][archive-flush worker " << worker << "] " << e.what() << '\n';
+        return 1;
+    }
 }
 
 KeyList write_data(FDB& fdb, const std::string& data, const StringList& dates, const StringList& types,
@@ -270,10 +322,37 @@ CASE("Remote protocol (single connection): concurrent List/Inspect/Stats/Axes/Wi
     }
 }
 
+CASE("Remote protocol (single connection): concurrent clients archive and flush are ordered") {
+
+    EXPECT(eckit::testing::fork_and_exec(static_cast<int>(archive_flush_worker_count), {"--fn=archive-flush"}));
+
+    const auto keys = archive_flush_keys();
+    FDB fdb{};
+    auto list = fdb.list(FDBToolRequest{make_request(keys)}, true);
+    EXPECT_EQUAL(count_elements<ListElement>(list), keys.size());
+
+    wipe_dry_run_stable("class=od");
+
+    eckit::Log::info() << "[CLIENT] Wiping concurrent archive and flush test data. --doit" << std::endl;
+    auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString("class=od")[0], true);
+    WipeElement wipe_elem;
+    while (wipeit.next(wipe_elem)) {
+        eckit::Log::info() << "[CLIENT]" << wipe_elem;
+    }
+}
+
 }  // namespace fdb5::test
 
 //----------------------------------------------------------------------------------------------------------------------
 
 int main(int argc, char** argv) {
+    const auto args = eckit::testing::parse_worker_args(argc, argv);
+    if (!args.empty()) {
+        eckit::Main::initialise(argc, argv);
+        if (eckit::testing::get_worker_arg(args, "fn") == "archive-flush") {
+            return fdb5::test::archive_flush_worker(std::stoul(eckit::testing::get_worker_arg(args, "worker-id")));
+        }
+        return 1;
+    }
     return eckit::testing::run_tests(argc, argv);
 }

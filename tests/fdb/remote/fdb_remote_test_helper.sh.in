@@ -1,0 +1,187 @@
+#!/usr/bin/env bash
+
+# Shared lifecycle helpers for FDB remote tests
+
+FDB_REMOTE_STATE_DIR=
+FDB_REMOTE_PARENT_PID=
+FDB_REMOTE_SERVER_LABELS=()
+FDB_REMOTE_SERVER_PORTS=()
+FDB_REMOTE_SERVER_PIDS=()
+FDB_REMOTE_SERVER_PGIDS=()
+FDB_REMOTE_SERVER_LOGS=()
+FDB_REMOTE_REAPER_PIDS=()
+
+fdb_remote_init() {
+    FDB_REMOTE_STATE_DIR=$1
+    FDB_REMOTE_PARENT_PID=$$
+    FDB_REMOTE_SERVER_LABELS=()
+    FDB_REMOTE_SERVER_PORTS=()
+    FDB_REMOTE_SERVER_PIDS=()
+    FDB_REMOTE_SERVER_PGIDS=()
+    FDB_REMOTE_SERVER_LOGS=()
+    FDB_REMOTE_REAPER_PIDS=()
+
+    rm -rf "$FDB_REMOTE_STATE_DIR"
+    mkdir -p "$FDB_REMOTE_STATE_DIR"
+}
+
+fdb_remote_stop_group() {
+    local process_group=$1
+    kill -TERM -- "-$process_group" 2>/dev/null || true
+}
+
+fdb_remote_config_port() {
+    local config=$1
+    local port
+
+    port=$(awk '/^[[:space:]]*serverPort:[[:space:]]*/ { print $2; exit }' "$config")
+    if [[ ! "$port" =~ ^[0-9]+$ ]]; then
+        echo "Unable to determine server port from $config" >&2
+        return 1
+    fi
+    printf '%s\n' "$port"
+}
+
+fdb_remote_reap_parent() {
+    local parent_pid=$1
+    local process_group=$2
+
+    while kill -0 "$parent_pid" 2>/dev/null; do
+        sleep 1
+    done
+
+    fdb_remote_stop_group "$process_group"
+    sleep 1
+    kill -KILL -- "-$process_group" 2>/dev/null || true
+}
+
+fdb_remote_start_server() {
+    local label=$1
+    local config=$2
+    local port=$3
+    local environment=()
+    local command
+
+    shift 3
+    while [[ $# -gt 0 && $1 != "--" ]]; do
+        environment+=("$1")
+        shift
+    done
+    if [[ $# -eq 0 ]]; then
+        echo "Missing -- before fdb-server command for $label" >&2
+        return 1
+    fi
+    shift
+    if [[ $# -eq 0 ]]; then
+        echo "Missing fdb-server command for $label" >&2
+        return 1
+    fi
+    command=$1
+    shift
+
+    local log="$FDB_REMOTE_STATE_DIR/$label.log"
+    local server_pid
+    local server_pgid
+    local reaper_pid
+    local monitor_was_enabled=false
+
+    [[ $- == *m* ]] && monitor_was_enabled=true
+    set -m
+    env "FDB5_CONFIG_FILE=$config" "${environment[@]}" "$command" "$@" >"$log" 2>&1 &
+    server_pid=$!
+    "$monitor_was_enabled" || set +m
+
+    server_pgid=$(ps -o pgid= -p "$server_pid" 2>/dev/null | tr -d '[:space:]')
+    if [[ ! "$server_pgid" =~ ^[0-9]+$ || "$server_pgid" != "$server_pid" ]]; then
+        echo "Unable to create an isolated process group for $label fdb-server" >&2
+        kill -TERM "$server_pid" 2>/dev/null || true
+        return 1
+    fi
+
+    "$monitor_was_enabled" || set -m
+    fdb_remote_reap_parent "$FDB_REMOTE_PARENT_PID" "$server_pgid" &
+    reaper_pid=$!
+    "$monitor_was_enabled" || set +m
+
+    FDB_REMOTE_SERVER_LABELS+=("$label")
+    FDB_REMOTE_SERVER_PORTS+=("$port")
+    FDB_REMOTE_SERVER_PIDS+=("$server_pid")
+    FDB_REMOTE_SERVER_PGIDS+=("$server_pgid")
+    FDB_REMOTE_SERVER_LOGS+=("$log")
+    FDB_REMOTE_REAPER_PIDS+=("$reaper_pid")
+}
+
+fdb_remote_dump_logs() {
+    local index
+
+    for ((index = 0; index < ${#FDB_REMOTE_SERVER_LABELS[@]}; ++index)); do
+        echo "--- ${FDB_REMOTE_SERVER_LABELS[index]} fdb-server log ---" >&2
+        cat "${FDB_REMOTE_SERVER_LOGS[index]}" >&2 || true
+    done
+}
+
+fdb_remote_wait_for_servers() {
+    local timeout=${1:-10}
+    local deadline=$((SECONDS + timeout))
+    local index
+    local ready
+
+    while ((SECONDS < deadline)); do
+        ready=true
+        for ((index = 0; index < ${#FDB_REMOTE_SERVER_LABELS[@]}; ++index)); do
+            if ! kill -0 "${FDB_REMOTE_SERVER_PIDS[index]}" 2>/dev/null; then
+                echo "${FDB_REMOTE_SERVER_LABELS[index]} fdb-server exited before becoming ready" >&2
+                fdb_remote_dump_logs
+                return 1
+            fi
+            if ! grep -Eq "Listening on socket .* port: ${FDB_REMOTE_SERVER_PORTS[index]}([[:space:]]|$)" \
+                "${FDB_REMOTE_SERVER_LOGS[index]}"; then
+                ready=false
+                break
+            fi
+        done
+
+        "$ready" && return 0
+        sleep 0.1
+    done
+
+    echo "Timed out waiting for remote test servers" >&2
+    fdb_remote_dump_logs
+    return 1
+}
+
+fdb_remote_cleanup() {
+    local exit_code=${1:-0}
+    local reaper_pid
+    local process_group
+
+    for reaper_pid in "${FDB_REMOTE_REAPER_PIDS[@]}"; do
+        kill -TERM "$reaper_pid" 2>/dev/null || true
+    done
+
+    for process_group in "${FDB_REMOTE_SERVER_PGIDS[@]}"; do
+        fdb_remote_stop_group "$process_group"
+    done
+    if ((${#FDB_REMOTE_SERVER_PGIDS[@]})); then
+        sleep 1
+        for process_group in "${FDB_REMOTE_SERVER_PGIDS[@]}"; do
+            kill -KILL -- "-$process_group" 2>/dev/null || true
+        done
+    fi
+
+    for reaper_pid in "${FDB_REMOTE_REAPER_PIDS[@]}"; do
+        wait "$reaper_pid" 2>/dev/null || true
+    done
+
+    FDB_REMOTE_SERVER_LABELS=()
+    FDB_REMOTE_SERVER_PORTS=()
+    FDB_REMOTE_SERVER_PIDS=()
+    FDB_REMOTE_SERVER_PGIDS=()
+    FDB_REMOTE_SERVER_LOGS=()
+    FDB_REMOTE_REAPER_PIDS=()
+    if ((exit_code == 0)); then
+        rm -rf "$FDB_REMOTE_STATE_DIR"
+    else
+        echo "Remote server logs preserved in $FDB_REMOTE_STATE_DIR" >&2
+    fi
+}

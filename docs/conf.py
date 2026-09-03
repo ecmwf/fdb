@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023 European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
+
 # Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:
@@ -8,7 +11,7 @@ import os
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 
-project = "Fields DataBase - FDB"
+project = "FDB"
 copyright = f"{datetime.datetime.today().year}, ECMWF"
 author = "ECMWF"
 version = "local-dev"
@@ -79,8 +82,8 @@ html_theme_options = {
     "check_switcher": False,
     "content_footer_items": [],
     "footer_start": ["copyright"],
-    "footer_center": [],
-    "footer_end": [],
+    "footer_center": ["sphinx-version"],
+    "footer_end": ["theme-version"],
 }
 html_sidebars = {"**": ["sidebar-nav-bs"]}
 html_static_path = ["_static"]

@@ -8,16 +8,20 @@
 
 set -exo pipefail
 
+source "@FDB_REMOTE_TEST_HELPER@"
+
 export FDB_HOME=@CMAKE_CURRENT_BINARY_DIR@
 export FDB_DEBUG=1
 
 cleanup() {
     local exit_code=$?
     echo "Shutting down..."
-    kill -9 $PID_STORE $PID_CATALOGUE 2>/dev/null || true
-    exit $exit_code
+
+    fdb_remote_cleanup "$exit_code"
+    return "$exit_code"
 }
-trap cleanup SIGINT SIGTERM EXIT
+trap cleanup EXIT
+trap 'exit 1' INT TERM
 
 TEST_ROOT=@CMAKE_CURRENT_SOURCE_DIR@
 LOGS_DIR="logs"
@@ -25,16 +29,14 @@ FDB_SERVER="$<TARGET_FILE:fdb-server>"
 mkdir -p "$LOGS_DIR"
 
 echo "Starting Store..."
-STORE_LOG="$LOGS_DIR/store.log"
-FDB5_CONFIG_FILE="$TEST_ROOT/fdb_config_store.yaml" "$FDB_SERVER" > "$STORE_LOG" 2>&1 &
-PID_STORE=$!
+fdb_remote_init "$LOGS_DIR/remote_servers"
+fdb_remote_start_server STORE "$TEST_ROOT/fdb_config_store.yaml" \
+    "$(fdb_remote_config_port "$TEST_ROOT/fdb_config_store.yaml")" -- "$FDB_SERVER"
 
 echo "Starting Catalogue..."
-CATALOGUE_LOG="$LOGS_DIR/catalogue.log"
-FDB5_CONFIG_FILE="$TEST_ROOT/fdb_config_catalogue.yaml" "$FDB_SERVER" > "$CATALOGUE_LOG" 2>&1 &
-PID_CATALOGUE=$!
-
-sleep 5
+fdb_remote_start_server CATALOGUE "$TEST_ROOT/fdb_config_catalogue.yaml" \
+    "$(fdb_remote_config_port "$TEST_ROOT/fdb_config_catalogue.yaml")" -- "$FDB_SERVER"
+fdb_remote_wait_for_servers
 
 fdbread="$<TARGET_FILE:fdb-read>"
 fdbwrite="$<TARGET_FILE:fdb-write>"
@@ -51,5 +53,3 @@ if [[ $actual_size -ne $expected_size ]]; then
     echo "Error: Did not read 2 messages!" >&2
     exit 1
 fi
-
-cleanup

@@ -25,4 +25,5 @@ endif()
 
 if (HAVE_PYTHON_FDB_INTERFACE)
     add_subdirectory( pyfdb )
+    add_subdirectory( fdb_e2e )
 endif()

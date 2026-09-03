@@ -8,7 +8,9 @@ if [[ $# -lt 4 ]]; then
     exit 1
 fi
 
-set -ux
+set -eux
+
+source "@FDB_REMOTE_TEST_HELPER@"
 
 #  --- Variables
 testdir=$1
@@ -17,76 +19,38 @@ catalogue_config="$testdir/$3"
 store_config="$testdir/$4"
 catalogue_rootdir=$testdir/catalogue_root
 store_rootdir=$testdir/store_root
-server_pidfile=$testdir/servers.pid
 
-fdbwrite="$<TARGET_FILE:fdb-write>"
 server="$<TARGET_FILE:fdb-server>"
 # Optional 5th arg: path to the client test binary to run. Defaults to fdb_test_remote_api_bin
 # for backward compatibility with callers that only pass 4 args.
 test="${5:-$<TARGET_FILE:fdb_test_remote_api_bin>}"
 
-# If test exceeds this time, the servers will be killed. Required to ensure servers are eventually killed when ctest is SIGKILL'd
-SERVER_LIFETIME=300
-
 # --- Cleanup and setup
 cleanup() {
-    if [[ -f $server_pidfile ]]; then
-        while read -r SERVER_PID; do
-            kill -TERM $SERVER_PID || true
-            sleep 0.2
-            kill -KILL $SERVER_PID || true
-        done < $server_pidfile
-        rm $server_pidfile
-    fi
+  local exit_code=$?
 
-    rm -rf $catalogue_rootdir
-    rm -rf $store_rootdir
+  fdb_remote_cleanup "$exit_code"
+  rm -rf "$catalogue_rootdir" "$store_rootdir"
+  return "$exit_code"
 }
 
-run_server() {
-  # Usage: run_server LABEL CONFIG SERVER_CMD...
-  # - Starts a catalogue/store server
-  # - Prepends [LABEL] to each line of output
-  # - Appends the server's PID to the pidfile for cleanup.
-  local label="$1"; shift
-  local config="$1"; shift
-  (
-    FDB5_CONFIG_FILE="$config" \
-    FDB5_SUB_TOCS=1 \
-    FDB_DEBUG=1 \
-    FDB_WIPE_SECRET="123" \
-    timeout "$SERVER_LIFETIME" "$@" 2>&1 \
-    | awk -v label="$label" -v pidfile="$server_pidfile" '
-        BEGIN { found=0 }
-        {
-          print "[" label "] " $0
-          fflush()
-          if (!found && $0 ~ /pid is [0-9]+/) {
-            pid = $0
-            sub(/.*pid is /, "", pid)
-            sub(/\..*/, "", pid)
-            print pid >> pidfile
-            close(pidfile)
-            found=1
-          }
-        }
-      '
-  ) &
-}
-
-trap cleanup EXIT # Ensure cleanup is called when the script exits
+trap cleanup EXIT
+trap 'exit 1' INT TERM
 
 #  -- Start fresh
-cleanup
-mkdir $catalogue_rootdir $store_rootdir
+rm -rf "$catalogue_rootdir" "$store_rootdir"
+mkdir -p "$catalogue_rootdir" "$store_rootdir"
+fdb_remote_init "$testdir/remote_servers"
 
 # --- Start the servers in the background.
 
-run_server "CATALOGUE" "$catalogue_config" "$server"
-run_server "STORE" "$store_config" "$server"
+fdb_remote_start_server CATALOGUE "$catalogue_config" "$(fdb_remote_config_port "$catalogue_config")" \
+  FDB5_SUB_TOCS=1 FDB_DEBUG=1 FDB_WIPE_SECRET=123 -- "$server"
+fdb_remote_start_server STORE "$store_config" "$(fdb_remote_config_port "$store_config")" \
+  FDB5_SUB_TOCS=1 FDB_DEBUG=1 FDB_WIPE_SECRET=123 -- "$server"
 
-sleep 0.5
+fdb_remote_wait_for_servers
 
 # --- Run the client test
-FDB5_CONFIG_FILE=$client_config $test
+FDB5_CONFIG_FILE="$client_config" "$test"
 exit $?

@@ -21,6 +21,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <stdexcept>
 
 #include "eckit/types/FixedString.h"
 
@@ -87,6 +88,23 @@ enum class Message : uint16_t {
 
 std::ostream& operator<<(std::ostream& s, const Message& m);
 
+constexpr uint64_t toMask(const Message msg) {
+    uint16_t offset = static_cast<uint16_t>(msg) - static_cast<uint16_t>(Message::Flush);
+    if (offset >= 64U) {
+        throw std::out_of_range("Message offset exceeds 64-bit mask limit");
+    }
+    return static_cast<uint64_t>(1) << offset;
+}
+
+inline constexpr uint64_t maskOfDefaultFeatures =
+    toMask(Message::Flush) | toMask(Message::Archive) | toMask(Message::Retrieve) | toMask(Message::List) |
+    toMask(Message::Stats) | toMask(Message::Inspect) | toMask(Message::Read) | toMask(Message::Store) |
+    toMask(Message::Axes) | toMask(Message::Exists);
+
+std::string messageMask2String(uint64_t mm);
+
+bool enabled(const uint64_t enabledFeatures, const Message msg);
+
 //----------------------------------------------------------------------------------------------------------------------
 
 // Header used for all messages
@@ -94,7 +112,7 @@ class MessageHeader {
 
 public:  // types
 
-    constexpr static uint16_t currentVersion = 13;
+    constexpr static uint16_t currentVersion = 12;
 
     constexpr static const auto hashBytes = 16;
 

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
+
 
 #include "chunked_data_view/ViewPart.h"
 #include "chunked_data_view/exception/BoundingBoxException.h"
