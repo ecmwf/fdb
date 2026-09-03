@@ -60,7 +60,7 @@ public:
     DataWriteRequest(Client* client, Message msg, uint32_t id, Buffer&& data) :
         client_(client), msg_(msg), id_(id), data_(std::move(data)) {}
 
-    /// @param barrier: no payload, signals when all writes are finished
+    /// @param barrier: no payload, signals when all queued writes before this barrier have been processed
     explicit DataWriteRequest(std::shared_ptr<std::promise<void>> barrier) : barrier_{std::move(barrier)} {}
 
     Client* client_{nullptr};
