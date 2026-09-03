@@ -211,7 +211,7 @@ private:  // methods
 
     void close() const;
 
-    bool isNFS() const;
+    bool needsNFSLock() const;
 
     void appendRaw(const void* data, size_t size);
     void appendRound(TocRecord& r, size_t payloadSize);
@@ -282,7 +282,7 @@ private:  // members
 
     mutable bool dirty_;
 
-    mutable std::optional<bool> isNFSCached_;
+    mutable std::optional<bool> isNFSCached_;              ///< cached as it is expensive
     mutable std::unique_ptr<TocProcessLock> processLock_;  ///< lock for the toc file, if on NFS
 };
 

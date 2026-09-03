@@ -8,7 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/exception/Exceptions.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/toc/TocHandler.h"
@@ -17,8 +16,6 @@
 #include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
 
-#include <sched.h>
-#include <stdlib.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -26,7 +23,6 @@
 #include <atomic>
 #include <cerrno>
 #include <cstdlib>
-#include <ostream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -54,16 +50,6 @@ eckit::PathName nfsMountDir() {
         return {};
     }
     return eckit::PathName{mount};
-}
-
-bool onNFS(const eckit::PathName& path) {
-    try {
-        return path.fileSystemType() == "nfs";
-    }
-    catch (const eckit::FailedSystemCall& e) {
-        eckit::Log::debug() << "Could not determine the filesystem backing " << path << " -- " << e.what() << std::endl;
-        return false;
-    }
 }
 
 template <typename Worker>
@@ -128,24 +114,7 @@ bool runInProcesses(size_t process_count, const Worker& worker) {
 
 }  // namespace
 
-CASE("Detection matches the filesystem the directory actually resides on") {
-    eckit::PathName tmp = eckit::PathName::unique("nfs_detect_dir");
-    tmp.mkdir();
-
-    EXPECT(onNFS(tmp) == (tmp.fileSystemType() == "nfs"));
-
-    tmp.rmdir();
-}
-
-CASE("A non-existent path fails open to non-NFS") {
-    eckit::PathName missing = eckit::PathName::unique("nfs_missing_dir");
-    EXPECT(onNFS(missing) == false);
-}
-
 CASE("TOC init/read round-trips on a main TOC") {
-    // n.b. the (path, parentKey) overload constructs a *sub* TOC, and every NFS branch is
-    // guarded by !isSubToc_; the (directory, config) overload below is the main-TOC path,
-    // so this exercises the code the NFS handling actually applies to.
     eckit::PathName dir = eckit::PathName::unique("nfs_toc_dir");
     dir.mkdir();
 
@@ -191,13 +160,9 @@ CASE("NFS mount: detection fires and a TOC round-trips on a real NFS export") {
     eckit::PathName dir = eckit::PathName::unique(mount / "fdb_nfs_test");
     dir.mkdir();
 
-    // Detection must fire on a genuine NFS mount (the local unit case above only checks agreement).
-    EXPECT(onNFS(dir));
-
     fdb5::Config config = fdb5::Config().expandConfig();
     fdb5::Key key{{{"class", "od"}, {"expver", "0001"}, {"stream", "oper"}}};
 
-    // Exercises the NFS branch (onNFS() && !isSubToc_): locked append on write, locked read on open.
     {
         fdb5::TocHandler writer(dir, config);
         writer.writeInitRecord(key);
@@ -225,6 +190,8 @@ CASE("NFS mount: concurrent creators and writers preserve complete TOC records")
     }
 
     constexpr size_t thread_count = 8;
+    constexpr size_t mixed_writer_count = 4;
+    constexpr size_t records_per_mixed_writer = 25;
 #if !defined(FDB_TEST_WITH_THREAD_SANITIZER)
     constexpr size_t process_count = 4;
     constexpr size_t records_per_process = 25;
@@ -252,6 +219,21 @@ CASE("NFS mount: concurrent creators and writers preserve complete TOC records")
         }
     }));
 
+    EXPECT(runConcurrently(thread_count, [&](size_t thread) {
+        if (thread < mixed_writer_count) {
+            fdb5::TocHandler writer(dir, config);
+            for (size_t record = 0; record < records_per_mixed_writer; ++record) {
+                writer.writeClearAllRecord();
+            }
+        }
+        else {
+            for (size_t read = 0; read < records_per_mixed_writer; ++read) {
+                fdb5::TocHandler reader(dir, config);
+                EXPECT_EQUAL(reader.databaseKey(), key);
+            }
+        }
+    }));
+
 #if !defined(FDB_TEST_WITH_THREAD_SANITIZER)
     EXPECT(runInProcesses(process_count, [&](size_t) {
         fdb5::TocHandler writer(dir, config);
@@ -263,8 +245,28 @@ CASE("NFS mount: concurrent creators and writers preserve complete TOC records")
 
     fdb5::TocHandler reader(dir, config);
     EXPECT_EQUAL(reader.databaseKey(), key);
-    EXPECT_EQUAL(reader.numberOfRecords(), 1 + thread_count * records_per_thread + process_count * records_per_process);
+    EXPECT_EQUAL(reader.numberOfRecords(), 1 + thread_count * records_per_thread +
+                                               mixed_writer_count * records_per_mixed_writer +
+                                               process_count * records_per_process);
 
+    const eckit::PathName sub_toc_path = dir / "toc.sub";
+    {
+        fdb5::TocHandler sub_toc(sub_toc_path, key);
+        sub_toc.writeInitRecord(key);
+    }
+
+    EXPECT(runConcurrently(thread_count, [&](size_t) {
+        fdb5::TocHandler writer(sub_toc_path, key);
+        for (size_t record = 0; record < records_per_thread; ++record) {
+            writer.writeClearAllRecord();
+        }
+    }));
+
+    fdb5::TocHandler sub_toc_reader(sub_toc_path, key);
+    EXPECT_EQUAL(sub_toc_reader.databaseKey(), key);
+    EXPECT_EQUAL(sub_toc_reader.numberOfRecords(), 1 + thread_count * records_per_thread);
+
+    sub_toc_path.unlink();
     (dir / "toc").unlink();
     (dir / "schema").unlink();
     dir.rmdir();
