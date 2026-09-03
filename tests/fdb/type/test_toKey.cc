@@ -20,6 +20,8 @@
 #include "fdb5/rules/Rule.h"
 #include "fdb5/rules/Schema.h"
 #include "fdb5/types/TypeYearMonth.h"
+#include "fdb5/types/TypeParam.h"
+#include "fdb5/types/TypesFactory.h"
 
 using namespace eckit::testing;
 using namespace eckit;
@@ -400,6 +402,30 @@ CASE("YearMonth - string ctor - expansion") {
 
     EXPECT_EQUAL(key["date"], "202006");
     EXPECT_EQUAL(key.valuesToString(), "ea:0001:wamo:g:an:sfc:202006:0000:0:140254");
+}
+
+CASE("Param multivalue") {
+
+    fdb5::Type* param = fdb5::TypesFactory::build("Param", "param");
+    ASSERT(param != nullptr);
+
+    EXPECT(param->match("param", "140254", "140254"));
+    EXPECT(param->match("param", "228228|228", "228"));
+    EXPECT(param->match("param", "228228|228", "228228"));
+    EXPECT(param->match("param", "228.228", "228"));
+    EXPECT(param->match("param", "228", "228.228"));
+    EXPECT(param->match("param", "228.228", "228228"));
+
+    fdb5::Type* paramId = fdb5::TypesFactory::build("ParamID", "param");
+    ASSERT(paramId != nullptr);
+
+    EXPECT(paramId->match("param", "140254", "140254"));
+    EXPECT(paramId->match("param", "228228|228", "228"));
+    EXPECT(paramId->match("param", "228228|228", "228228"));
+    EXPECT(!paramId->match("param", "228", "228228"));
+    EXPECT(!paramId->match("param", "228.228", "228"));
+    EXPECT(!paramId->match("param", "228", "228.228"));
+    EXPECT(paramId->match("param", "228.228", "228228"));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
