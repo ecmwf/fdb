@@ -71,21 +71,33 @@ bool TypeParam::match(const std::string&, const std::string& value1, const std::
         return true;
     }
 
-    Param p1(value1);
+    eckit::Tokenizer parse("|");
+    std::vector<std::string> vv;
+    parse(value1, vv);
+
+    for (const auto& v : vv) {
+        if (v == value2) {
+            return true;
+        }
+    }
+
     Param p2(value2);
 
-    if ((p1.value() == p2.value()) && (p1.table() == 0 || p2.table() == 0)) {
-        return true;
-    }
+    for (const auto& v : vv) {
+        Param p1(v);
 
-    if (p1.table() * 1000 + p1.value() == p2.value()) {
-        return true;
+        if (p1.paramId() == p2.paramId()) {
+            return true;
+        }
+        if (!strictMatching_) {
+            if ((p1.paramId() == p2.value()) || (p2.paramId() == p1.value())) {
+                return true;
+            }
+            if ((p1.value() == p2.value()) && (p1.table() == 0 || p2.table() == 0)) {
+                return true;
+            }
+        }
     }
-
-    if (p2.table() * 1000 + p2.value() == p1.value()) {
-        return true;
-    }
-
     return false;
 }
 
