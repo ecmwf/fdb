@@ -13,6 +13,7 @@ FDB documentation
    fdb/index
    pyfdb/index
    z3fdb/index
+   indices_and_tables
 
 The :ref:`FDB <FDB_Introduction>` is part of `ECMWF <https://www.ecmwf.int>`__’s high‑performance data infrastructure and stores
 different file formats, such as GRIB, ODB, BUFR. In case of GRIB, it stores
@@ -37,11 +38,4 @@ described via a MARS request and can be used to create a virtual Zarr store
 containing the data of the MARS request. For further information, see
 :ref:`Z3FDB <Z3FDB_Introduction>` or visit the `Zarr project
 <https://github.com/zarr-developers/zarr-python>`__.
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 

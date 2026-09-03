@@ -17,11 +17,12 @@ namespace fdb5::remote {
 Connection::Connection() : single_(false) {}
 
 void Connection::teardown() {
+    const bool wasValid = isValid_.exchange(false);
     if (closingSocket_.exchange(true)) {
         return;
     }
 
-    if (!valid()) {
+    if (!wasValid) {
         return;
     }
 

@@ -74,9 +74,14 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
 
 Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
 
-    static bool wipeEnabled = Resource<bool>("fdbWipeEnabled;$FDB_WIPE_ENABLED", false);
-
     try {
+        if (!enabled(agreedConf_.enabledFeatures(), message)) {
+            std::ostringstream ss;
+            ss << "Unauthorized message: " << message;
+            unauthorised(ss.str(), clientID, requestID);
+            return Handled::Replied;
+        }
+
         switch (message) {
 
             case Message::Read:  // notification that the client is starting to send data location for read
@@ -92,42 +97,22 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
                 return Handled::Replied;
 
             case Message::Wipe:  // Initial wipe request
-                if (!wipeEnabled) {
-                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::Replied;
-                }
                 finaliseWipeState(clientID, requestID, payload);
                 return Handled::Replied;
 
             case Message::DoWipeURIs:  // request to delete data marked for wipe
-                if (!wipeEnabled) {
-                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::Replied;
-                }
                 doWipeURIs(clientID, requestID, payload);
                 return Handled::Yes;
 
             case Message::DoWipeFinish:  // request to delete empty databases and finish the wipe.
-                if (!wipeEnabled) {
-                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::Replied;
-                }
                 doWipeFinish(clientID, requestID, payload);
                 return Handled::Yes;
 
             case Message::DoWipeUnknowns:  // request to delete unknown URIs as part of a wipe
-                if (!wipeEnabled) {
-                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::Replied;
-                }
                 doWipeUnknowns(clientID, requestID, payload);
                 return Handled::Yes;
 
             case Message::DoUnsafeFullWipe:  // request to delete full database and content
-                if (!wipeEnabled) {
-                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::Replied;
-                }
                 doUnsafeFullWipe(clientID, requestID, payload);
                 return Handled::Replied;
 

@@ -7,6 +7,11 @@ ecbuild_add_executable(
     NOINSTALL
 )
 
+if (HAVE_FDB_BUILD_TOOLS)
+    ecbuild_configure_file( fdb_remote_test_helper.sh.in fdb_remote_test_helper.sh @ONLY )
+    set(FDB_REMOTE_TEST_HELPER "${CMAKE_CURRENT_BINARY_DIR}/fdb_remote_test_helper.sh" CACHE INTERNAL "")
+endif()
+
 if (HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB)
     ecbuild_configure_file( test_server.sh.in fdb_test_server.sh @ONLY )
     set(FDB_TEST_SERVER_SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/fdb_test_server.sh" CACHE INTERNAL "")
@@ -23,7 +28,6 @@ if (HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB)
         ARGS           ${CMAKE_CURRENT_BINARY_DIR} client.yaml catalogue.yaml store.yaml
         TEST_DEPENDS   fdb_test_remote_api_bin
         ENVIRONMENT    "${test_environment}"
-                       "FDB_WIPE_ENABLED=1"
         TEST_PROPERTIES
         TIMEOUT 300
         RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests

@@ -12,6 +12,7 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/remote/Messages.h"
 
 #include "metkit/mars/MarsRequest.h"
 
@@ -573,6 +574,40 @@ CASE("Remote protocol: concurrent blocking control RPCs are not serialised") {
     }
 
     // This is the final case; no wipe.
+}
+
+CASE("Remote protocol: check enabled features") {
+    uint64_t defaultMask = fdb5::remote::maskOfDefaultFeatures;
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Flush));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Archive));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Retrieve));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::List));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Stats));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Inspect));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Read));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Store));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Axes));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Exists));
+
+    EXPECT(!enabled(defaultMask, fdb5::remote::Message::Wipe));
+    EXPECT(!enabled(defaultMask, fdb5::remote::Message::DoWipeURIs));
+    EXPECT(!enabled(defaultMask, fdb5::remote::Message::DoWipeUnknowns));
+    EXPECT(!enabled(defaultMask, fdb5::remote::Message::DoWipeFinish));
+    EXPECT(!enabled(defaultMask, fdb5::remote::Message::DoMaskIndexEntries));
+    EXPECT(!enabled(defaultMask, fdb5::remote::Message::DoUnsafeFullWipe));
+
+    uint64_t wipeMask = toMask(fdb5::remote::Message::Wipe) | defaultMask;
+    EXPECT(enabled(wipeMask, fdb5::remote::Message::Wipe));
+    EXPECT(enabled(wipeMask, fdb5::remote::Message::DoWipeURIs));
+    EXPECT(enabled(wipeMask, fdb5::remote::Message::DoWipeUnknowns));
+    EXPECT(enabled(wipeMask, fdb5::remote::Message::DoWipeFinish));
+    EXPECT(enabled(wipeMask, fdb5::remote::Message::DoMaskIndexEntries));
+    EXPECT(enabled(wipeMask, fdb5::remote::Message::DoUnsafeFullWipe));
+
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Schema));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Received));
+    EXPECT(enabled(wipeMask, fdb5::remote::Message::Schema));
+    EXPECT(enabled(wipeMask, fdb5::remote::Message::Received));
 }
 
 }  // namespace fdb5::test

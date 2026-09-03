@@ -1,0 +1,28 @@
+# SPDX-FileCopyrightText: 2026 European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
+
+[pytest]
+# This is needed to resolve the correct paths in test module for pytest
+# Otherwise the test folder (which carry the same names as the modules) clash
+# due to the prepending nature of pytests import
+addopts = ["-p no:doctest", "--import-mode=importlib"]
+
+markers = [
+    "files: Test the files setup of FDB tool.",
+    "simple: Test the simple setup of FDB tool.",
+    "yaml: Test the yaml config setup of FDB tool.",
+    "yaml_mars_disks: Test the yaml mars disks config setup of FDB tool.",
+    "yaml_tools: Test the yaml tools config setup of FDB tool.",
+    "json: Test the json config setup of FDB tool.",
+    "json_tools: Test the json tools config setup of FDB tool.",
+    "info: Test the corresponding FDB tool.",
+    "hide: Test the corresponding FDB tool.",
+    "list: Test the corresponding FDB tool.",
+    "read: Test the corresponding FDB tool.",
+    "root: Test the corresponding FDB tool.",
+    "wipe: Test the corresponding FDB tool.",
+    "purge: Test the corresponding FDB tool.",
+    "write: Test the corresponding FDB tool.",
+    "overlay: Test the corresponding FDB tool.",
+    "grib2fdb: Test the corresponding FDB tool."
+]

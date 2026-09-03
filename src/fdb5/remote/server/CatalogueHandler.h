@@ -17,6 +17,7 @@
 #include "fdb5/remote/server/ServerConnection.h"
 
 #include <memory>
+#include <mutex>
 
 namespace fdb5::remote {
 
@@ -108,6 +109,7 @@ private:  // member
     };
 
     std::map<Key, WipeInProgress> wipesInProgress_;
+    mutable std::mutex wipesMutex_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

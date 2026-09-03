@@ -9,7 +9,7 @@
  */
 
 #include "fdb5/remote/server/CatalogueHandler.h"
-#include "eckit/serialisation/ResizableMemoryStream.h"
+
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -24,6 +24,7 @@
 #include "eckit/net/NetMask.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/serialisation/ResizableMemoryStream.h"
 #include "eckit/utils/Literals.h"
 
 #include <future>
@@ -100,9 +101,14 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
 Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint32_t requestID,
                                         eckit::Buffer&& payload) {
 
-    static bool wipeEnabled = Resource<bool>("fdbWipeEnabled;$FDB_WIPE_ENABLED", false);
-
     try {
+        if (!enabled(agreedConf_.enabledFeatures(), message)) {
+            std::ostringstream ss;
+            ss << "Unauthorized message: " << message;
+            unauthorised(ss.str(), clientID, requestID);
+            return Handled::Replied;
+        }
+
         switch (message) {
 
             case Message::Schema:  // request catalogue schema
@@ -134,51 +140,27 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 return Handled::Replied;
 
             case Message::Wipe:  // Initial wipe request
-                if (!wipeEnabled) {
-                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::Replied;
-                }
                 wipe(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoMaskIndexEntries:
-                if (!wipeEnabled) {
-                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::Replied;
-                }
                 // doit! We expect DoMaskIndexEntries, doWipeURIs, DoWipeUnknowns and doWipeEmptyDatabase in succession
                 doMaskIndexEntries(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoWipeURIs:  // Do the wipe on our currentWipeState
-                if (!wipeEnabled) {
-                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::Replied;
-                }
                 doWipeURIs(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoWipeFinish:  // Finish wipe by deleting empty DBs
-                if (!wipeEnabled) {
-                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::Replied;
-                }
                 doWipeEmptyDatabase(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoWipeUnknowns:  // Wipe a set of unknown URIs
-                if (!wipeEnabled) {
-                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::Replied;
-                }
                 doWipeUnknowns(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoUnsafeFullWipe:  // wipe a full database including its content
-                if (!wipeEnabled) {
-                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::Replied;
-                }
                 doUnsafeFullWipe(clientID, requestID, std::move(payload));
                 return Handled::Replied;
 
@@ -269,6 +251,7 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
         s << state;
 
         const Key& dbKey = state.dbKey();
+        std::lock_guard lock(handler.wipesMutex_);
 
         if (doit_) {
             // Keep a local copy of the catalogue wipe state, awaiting an explicit doWipeURIs command from the client
@@ -623,6 +606,7 @@ void CatalogueHandler::doMaskIndexEntries(uint32_t clientID, uint32_t requestID,
     ASSERT(payload.size() > 0);
     MemoryStream s(payload);
     Key dbKey(s);
+    std::lock_guard lock(wipesMutex_);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
     currentWipe.catalogue->maskIndexEntries(currentWipe.state.indexesToMask());
 }
@@ -631,6 +615,7 @@ void CatalogueHandler::doWipeURIs(uint32_t clientID, uint32_t requestID, eckit::
     ASSERT(payload.size() > 0);
     MemoryStream s(payload);
     Key dbKey(s);
+    std::lock_guard lock(wipesMutex_);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
     currentWipe.catalogue->doWipeURIs(currentWipe.state);
 }
@@ -639,6 +624,7 @@ void CatalogueHandler::doWipeUnknowns(uint32_t clientID, uint32_t requestID, eck
     ASSERT(payload.size() > 0);
     MemoryStream s(payload);
     Key dbKey(s);
+    std::lock_guard lock(wipesMutex_);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
 
     std::set<eckit::URI> rec_unknownURIs{s};
@@ -669,6 +655,7 @@ void CatalogueHandler::doWipeEmptyDatabase(uint32_t clientID, uint32_t requestID
     ASSERT(payload.size() > 0);
     MemoryStream s(payload);
     Key dbKey(s);
+    std::lock_guard lock(wipesMutex_);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
 
     // Cleanup empty DBs and reset wipe state
@@ -680,6 +667,7 @@ void CatalogueHandler::doUnsafeFullWipe(uint32_t clientID, uint32_t requestID, e
     ASSERT(payload.size() > 0);
     MemoryStream s(payload);
     Key dbKey(s);
+    std::lock_guard lock(wipesMutex_);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
 
     bool fullWipeSupported = currentWipe.catalogue->doUnsafeFullWipe();

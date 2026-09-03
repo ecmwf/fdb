@@ -201,12 +201,25 @@ RemoteConfiguration ClientConnection::availableFunctionality(const Configuration
 
 //----------------------------------------------------------------------------------------------------------------------
 
+void ClientConnection::checkEnabled(Message msg) const {
+    if (!enabled(agreedFeatures_, msg)) {
+        std::ostringstream ss;
+        ss << "Message " << msg << " not enabled by server: " << controlEndpoint_ << std::endl;
+        ss << "  mask:    " << messageMask2String(toMask(msg)) << std::endl;
+        ss << "  enabled: " << messageMask2String(agreedFeatures_) << std::endl;
+
+        throw RemoteFDBException(ss.str(), controlEndpoint_);
+    }
+}
+
 std::future<Buffer> ClientConnection::controlWrite(const Client& client, const Message msg, const uint32_t requestID,
                                                    const bool /*dataListener*/, const PayloadList payloads) const {
     if (!valid()) {
         throw RemoteFDBException("Connection to " + std::string(controlEndpoint_) + " is no longer valid",
                                  controlEndpoint_);
     }
+
+    checkEnabled(msg);
 
     std::future<Buffer> f;
     {
@@ -220,6 +233,9 @@ std::future<Buffer> ClientConnection::controlWrite(const Client& client, const M
 }
 
 void ClientConnection::dataWrite(DataWriteRequest& request) const {
+
+    checkEnabled(request.msg_);
+
     Connection::write(request.msg_, false, request.client_->clientId(), request.id_, request.data_.data(),
                       request.data_.size());
 }
@@ -323,12 +339,12 @@ SessionID ClientConnection::verifyServerStartupResponse() {
     SessionID clientSession(s);
     SessionID serverSession(s);
     net::Endpoint dataEndpoint(s);
-    LocalConfiguration serverFunctionality(s);
+    RemoteConfiguration agreedConf{s};
 
     dataEndpoint_ = dataEndpoint;
 
     LOG_DEBUG_LIB(LibFdb5) << "verifyServerStartupResponse - Received from server " << clientSession << " "
-                           << serverSession << " " << dataEndpoint << std::endl;
+                           << serverSession << " " << agreedConf << " " << dataEndpoint << std::endl;
     if (dataEndpoint_.hostname() != controlEndpoint_.hostname()) {
         Log::warning() << "Data and control interface hostnames do not match. " << dataEndpoint_.hostname()
                        << " /= " << controlEndpoint_.hostname() << std::endl;
@@ -339,9 +355,8 @@ SessionID ClientConnection::verifyServerStartupResponse() {
         ss << "Session ID does not match session received from server: " << sessionID_ << " != " << clientSession;
         throw BadValue(ss.str(), Here());
     }
-    if (serverFunctionality.has("NumberOfConnections") && serverFunctionality.getInt("NumberOfConnections") == 1) {
-        single_ = true;
-    }
+    single_ = agreedConf.singleConnection();
+    agreedFeatures_ = agreedConf.enabledFeatures();
 
     if (single_ && !(dataEndpoint_ == controlEndpoint_)) {
         Log::warning() << "Returned control interface does not match. " << dataEndpoint_ << " /= " << controlEndpoint_
