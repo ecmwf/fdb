@@ -12,6 +12,7 @@
 
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
+#include "fdb5/remote/RemoteConfiguration.h"
 
 #include "eckit/container/Queue.h"
 #include "eckit/io/Buffer.h"
@@ -41,7 +42,6 @@ namespace fdb5::remote {
 class Client;
 class ClientConnectionRouter;
 class DataWriteRequest;
-class RemoteConfiguration;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -107,6 +107,8 @@ private:  // methods
 
     const eckit::net::TCPSocket& dataSocket() const override { return dataClient_; }
 
+    void checkEnabled(Message msg) const;
+
 private:  // members
 
     eckit::SessionID sessionID_;
@@ -138,6 +140,8 @@ private:  // members
     std::mutex dataWriteMutex_;
     std::unique_ptr<eckit::Queue<DataWriteRequest>> dataWriteQueue_;
     std::thread dataWriteThread_;
+
+    uint64_t agreedFeatures_{0};
 
     std::vector<std::shared_ptr<std::promise<void>>> dataBarriers_;
 };
