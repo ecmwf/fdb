@@ -1,0 +1,193 @@
+#!/usr/bin/env bash
+
+# This tests how FDB behaves when we fdb-reindex into the same FDB.
+# The use case is to create more compact index files, facilitating faster reads.
+# This is not what fdb-reindex was designed to do (it was designed for creating new indexes in a new FDB).
+# This test does the following:
+# 1. Inefficiently write data to FDB such that we create one index file per field.
+# 2. Attempt to reindex to a new FDB, confirm that we have reduced the number of index files.
+# 3. Attempt to reindex within the same FDB. This should produce new index files, masking the old ones.
+# 4. Test how this interacts with fdb purge and fdb wipe.
+
+set -euxo pipefail
+
+fdbread="$<TARGET_FILE:fdb-read>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+fdbwipe="$<TARGET_FILE:fdb-wipe>"
+fdbreindex="$<TARGET_FILE:fdb-reindex>"
+fdbpurge="$<TARGET_FILE:fdb-purge>"
+gribcount="$<TARGET_FILE:grib_count>"
+gribset="$<TARGET_FILE:grib_set>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+export FDB_HOME=$bindir
+
+export FDB_DEBUG=0
+export ECKIT_DEBUG=0
+
+for f in config.yaml config2.yaml schema seed.grib
+do
+    cp $srcdir/$f $bindir
+done
+
+
+years=(2026 2027)
+months=(1 2 3)
+days=(1 2 3)
+
+# create the array of yyyymmdd from all permutations
+hdates=()
+for y in "${years[@]}"; do
+    for m in "${months[@]}"; do
+        for d in "${days[@]}"; do
+            hdates+=($(printf "%04d%02d%02d" "$y" "$m" "$d"))
+        done
+    done
+done
+nfields=$(( ${#hdates[@]} ))
+
+# cleanup and start fresh
+rm -rf ${bindir}/root ${bindir}/root2
+mkdir -p ${bindir}/root ${bindir}/root2
+
+
+# write the data as individual writes, to maximise the number of files.
+for hdate in "${hdates[@]}"; do
+    $gribset -s hdate=$hdate seed.grib tmp.grib
+    $fdbwrite --config=$bindir/config.yaml tmp.grib
+    rm tmp.grib
+done
+
+# -------
+
+# Ensure initial layout of the FDB is as expected.
+# expect one .index per field.
+request="class=ce,type=sfo,stream=efcl,levtype=sfc,origin=ecmf,date=20230101,time=0000,expver=xxxx,domain=g,param=228141,model=lisflood"
+
+nlist=$($fdblist --config=$bindir/config.yaml --minimum-keys="" $request --porcelain | wc -l)
+[[ $nlist -ne $nfields ]] && { echo "Error: expected $nfields items in list, got $nlist"; exit 1; }
+
+index_files=($bindir/root/*/*.index)
+[[ ${#index_files[@]} -ne $nfields ]] && { echo "Error: expected $nfields index files, got ${#index_files[@]}"; exit 1; }
+
+#  --- confirm that reindexing into a new FDB reduces number of index files ---
+# reindex to the new FDB
+$fdbreindex --all --minimum-keys="" --sink-config=$bindir/config2.yaml --source-config=$bindir/config.yaml
+
+#  fdb list should give the same number of fields, but now we should have only one index file per month in the new FDB
+nlist2=$($fdblist --config=$bindir/config2.yaml --minimum-keys="" $request --porcelain | wc -l)
+[[ $nlist2 -ne $nfields ]] && { echo "Error: expected $nfields items in list, got $nlist2"; exit 1; }
+
+# list all the .index files in the new FDB
+index_files2=($bindir/root2/*/*.index)
+expected_nindex_files=$(( ${#years[@]} * ${#months[@]} ))
+[[ ${#index_files2[@]} -ne $expected_nindex_files ]] && { echo "Error: expected $expected_nindex_files index files in the new FDB, got ${#index_files2[@]}"; exit 1; }
+
+# confirmed. We are done with this new FDB.
+rm -rf ${bindir}/root2
+
+# --- confirm that reindexing into the same FDB produces compact indicies ---
+
+# same source and sink.
+$fdbreindex --all --minimum-keys="" --sink-config=$bindir/config.yaml --source-config=$bindir/config.yaml
+
+# List should be unaffected.
+nlist_after_reindex=$($fdblist --config=$bindir/config.yaml --minimum-keys="" $request --porcelain | wc -l)
+[[ $nlist_after_reindex -ne $nlist ]] && { echo "Error: expected $nfields items in list, got $nlist_after_reindex"; exit 1; }
+echo "Found $nlist_after_reindex items in list after reindexing into the same FDB"
+
+
+# Find the newly created .index files.
+index_files_after_reindex=($bindir/root/*/*.index)
+n_index_files_after_reindex=${#index_files_after_reindex[@]}
+
+# check which of these index files are new.
+new_index_files=()
+for f in "${index_files_after_reindex[@]}"; do
+    if [[ ! " ${index_files[@]} " =~ " $f " ]]; then
+        new_index_files+=("$f")
+    fi
+done
+echo "Found ${#new_index_files[@]} new index files after reindexing into the same FDB"
+
+# there should be as many new index files as there are months, since we should have merged the index files for each month.
+n_expected_new_index_files=$(( ${#years[@]} * ${#months[@]} ))
+[[ ${#new_index_files[@]} -ne $n_expected_new_index_files ]] && { echo "Error: expected $n_expected_new_index_files new index files after reindexing into the same FDB, got ${#new_index_files[@]}"; exit 1; }
+
+# --- WIPE ---
+# --- Can I wipe a single month? ---
+
+$fdbwipe --minimum-keys="" --config=$bindir/config.yaml "year=2026,month=1" --doit
+
+# Expect to have removed 4 index files (the 3 original, and the new indexed one for that month)
+index_files_after_wipe=($bindir/root/*/*.index)
+expected_nindex_files_after_wipe=$(( n_index_files_after_reindex - 4 ))
+[[ ${#index_files_after_wipe[@]} -ne $expected_nindex_files_after_wipe ]] && { echo "Error: expected $expected_nindex_files_after_wipe index files after wiping one month, got ${#index_files_after_wipe[@]}"; exit 1; }
+
+# 1 month of data is 3 fields, so nlist should have reduced by 3.
+nlist_after_wipe=$($fdblist --config=$bindir/config.yaml --minimum-keys="" $request --porcelain | wc -l)
+[[ $nlist_after_wipe -ne $(( nfields - 3 )) ]] && { echo "Error: expected $(( nfields - 3 )) items in list after wiping one month, got $nlist_after_wipe"; exit 1; }
+
+
+# --- Can I wipe a year that contains these duplicates? ---
+
+# ensure 2026 directory exists before wiping
+if ! compgen -G "$bindir/root/*2026*/" > /dev/null; then
+    echo "Error: expected 2026 directory to exist before wiping year 2026"
+    exit 1
+fi
+
+$fdbwipe --minimum-keys="" --config=$bindir/config.yaml "year=2026" --doit
+
+# ensure 2026 directory no longer exists after wiping the year
+if compgen -G "$bindir/root/*2026*/" > /dev/null; then
+    echo "Error: expected 2026 directory to be removed after wiping year 2026"
+    exit 1
+fi
+
+
+# --- PURGE ---
+
+# --- Can I purge the duplicate indexes for a specific month? ---
+# $fdbpurge --minimum-keys="" --config=$bindir/config.yaml "month=1" # NO! Purge is only supported at level 1.
+
+# --- Can I purge the duplicate indexes for a specific year? ---
+$fdbpurge --minimum-keys="" --config=$bindir/config.yaml "year=2027" --doit
+
+# list still behaves
+nlist_after_purge=$($fdblist --config=$bindir/config.yaml --minimum-keys="" $request --porcelain | wc -l)
+[[ $nlist_after_purge -ne $(( ${#months[@]} * ${#days[@]} )) ]] && { echo "Error: expected $(( ${#months[@]} * ${#days[@]} )) items in list after purging year 2027, got $nlist_after_purge"; exit 1; }
+
+# We should now have one index file per month, but still one data file per day.
+index_files_after_purge=($bindir/root/*/*.index)
+expected_nindex_files_after_purge=$(( ${#months[@]}))
+[[ ${#index_files_after_purge[@]} -ne $expected_nindex_files_after_purge ]] && { echo "Error: expected $expected_nindex_files_after_purge index files after purging year 2027, got ${#index_files_after_purge[@]}"; exit 1; }
+
+data_files_after_purge=($bindir/root/*/*.data)
+expected_ndata_files_after_purge=$(( ${#months[@]} * ${#days[@]}))
+[[ ${#data_files_after_purge[@]} -ne $expected_ndata_files_after_purge ]] && { echo "Error: expected $expected_ndata_files_after_purge data files after purging year 2027, got ${#data_files_after_purge[@]}"; exit 1; }
+
+
+# Ensure we can still read all the data after purging.
+r="retrieve,class=ce,expver=xxxx,stream=efcl,date=20230101,model=lisflood,domain=g,year=2027,month=1,type=sfo,levtype=sfc,origin=ecmf,hdate=20270101/20270102/20270103/20270201/20270202/20270203/20270301/20270302/20270303,param=228141,step=6,time=0000"
+echo $r > request.txt
+$fdbread --config=$bindir/config.yaml "request.txt" out.grib
+
+gribcount_out=$($gribcount out.grib)
+[[ $gribcount_out -ne 9 ]] && { echo "Error: expected 9 in gribcount after purging year 2027, got $gribcount_out"; exit 1; }
+
+# ---
+
+# Everything seems well. Wipe remaining data.
+
+# Wipe the remaining data.
+$fdbwipe --minimum-keys="" --all --config=$bindir/config.yaml --doit
+
+# ensure the root directory is empty after wiping the whole FDB.
+if compgen -G "$bindir/root/*" > /dev/null; then
+    echo "Error: expected root directory to be empty after wiping the whole FDB"
+    exit 1
+fi

@@ -1,0 +1,12 @@
+param:      Param;
+step:       Step;
+date:       Date;
+hdate:      Date;
+expver:     Expver;
+time:       Time;
+
+# EFAS/GloFAS Medium Range Forecasts
+[ class=ce, expver=xxxx, stream=efcl, date, model, domain, hdate: Year
+    [ hdate:Month, type, levtype, origin
+        [ hdate:Date, levelist?, time, step, param ]]
+]
