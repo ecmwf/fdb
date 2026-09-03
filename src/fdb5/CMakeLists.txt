@@ -23,6 +23,8 @@ list( APPEND fdb5_srcs
     api/FDBFactory.h
     api/FDBStats.cc
     api/FDBStats.h
+    api/exceptions/SchemaError.cc
+    api/exceptions/SchemaError.h
     api/LocalFDB.cc
     api/LocalFDB.h
     api/RandomFDB.cc
