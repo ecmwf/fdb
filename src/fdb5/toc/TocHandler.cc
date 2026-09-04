@@ -11,14 +11,21 @@
 #include <fcntl.h>
 #include <pwd.h>
 #include <sys/types.h>
+#include <cerrno>
 #include <cstddef>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <string>
 #include <utility>
 
 #include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/StdDir.h"
+#include "eckit/io/DataHandle.h"
 #include "eckit/io/FileDescHandle.h"
 #include "eckit/io/FileHandle.h"
-#include "eckit/log/BigNum.h"
 #include "eckit/log/Log.h"
 #include "eckit/maths/Functions.h"
 #include "eckit/serialisation/MemoryStream.h"
@@ -31,7 +38,6 @@
 #include "fdb5/database/Index.h"
 #include "fdb5/io/LustreSettings.h"
 #include "fdb5/toc/TocCommon.h"
-#include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
@@ -61,6 +67,75 @@ const std::map<ControlIdentifier, const char*> controlfile_lookup{
     {ControlIdentifier::List, list_lock_file},
     {ControlIdentifier::Wipe, wipe_lock_file},
     {ControlIdentifier::UniqueRoot, allow_duplicates_file}};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+namespace {
+
+/// Blocking whole-file advisory lock. Prefers open-file-description locks
+/// (F_OFD_*) so the lock is bound to this descriptor; falls back to classic
+/// POSIX locks if OFD is unavailable.
+void tocFileLock(int fd, short type, const eckit::PathName& path) {
+    struct flock lock{};
+    lock.l_type = type;
+    lock.l_whence = SEEK_SET;
+    lock.l_start = 0;
+    lock.l_len = 0;  // whole file
+
+    int cmd = F_SETLKW;
+#if defined(F_OFD_SETLKW)
+    cmd = F_OFD_SETLKW;
+#endif
+
+    for (;;) {
+        if (::fcntl(fd, cmd, &lock) == 0) {
+            return;
+        }
+        if (errno == EINTR) {
+            continue;  // interrupted by a signal, retry
+        }
+#if defined(F_OFD_SETLKW)
+        if (cmd == F_OFD_SETLKW && (errno == EINVAL || errno == ENOTSUP)) {
+            cmd = F_SETLKW;  // OFD unsupported at runtime, degrade to classic locks
+            continue;
+        }
+#endif
+        const int err = errno;
+        throw eckit::FailedSystemCall(
+            std::string("advisory lock on TOC ") + path.asString() + " (ensure NFS file locking is enabled)", Here(),
+            err);
+    }
+}
+
+}  // namespace
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class TocProcessLock {
+
+    static std::shared_ptr<std::mutex> mutex(const eckit::PathName& path) {
+        static std::mutex registry_mutex;
+        static std::map<std::string, std::weak_ptr<std::mutex>> registry;
+
+        const std::lock_guard lock{registry_mutex};
+        auto& entry = registry[path.asString()];
+        auto mutex = entry.lock();
+        if (!mutex) {
+            mutex = std::make_shared<std::mutex>();
+            entry = mutex;
+        }
+        return mutex;
+    }
+
+public:
+
+    explicit TocProcessLock(const eckit::PathName& path) : mutex_{mutex(path)}, lock_{*mutex_} {}
+
+private:
+
+    std::shared_ptr<std::mutex> mutex_;
+    std::unique_lock<std::mutex> lock_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -222,6 +297,13 @@ bool TocHandler::exists() const {
     return tocPath_.exists();
 }
 
+bool TocHandler::isNFS() const {
+    if (!isNFSCached_) {
+        isNFSCached_ = directory_.fileSystemType() == "nfs";
+    }
+    return *isNFSCached_;
+}
+
 void TocHandler::openForAppend() {
 
     checkUID();  // n.b. may openForRead
@@ -245,6 +327,21 @@ void TocHandler::openForAppend() {
     }
 #endif
     SYSCALL2((fd_ = ::open(tocPath_.localPath(), iomode, (mode_t)0777)), tocPath_);
+
+    if (isNFS() && !isSubToc_) {
+        // On NFS O_APPEND is not atomic, so serialize with a lock (released on close)
+        auto lock = std::make_unique<TocProcessLock>(tocPath_);
+        try {
+            tocFileLock(fd_, F_WRLCK, tocPath_);
+        }
+        catch (...) {
+            ::close(fd_);
+            fd_ = -1;
+            writeMode_ = false;
+            throw;
+        }
+        processLock_ = std::move(lock);
+    }
 }
 
 void TocHandler::openForRead() const {
@@ -272,19 +369,29 @@ void TocHandler::openForRead() const {
     }
 #endif
     SYSCALL2((fd_ = ::open(tocPath_.localPath(), iomode)), tocPath_);
-    eckit::Length tocSize = tocPath_.size();
 
     // The masked subtocs and indexes could be updated each time, so reset this.
     enumeratedMaskedEntries_ = false;
     numSubtocsRaw_ = 0;
     maskedEntries_.clear();
 
+    const bool nfs_lock = isNFS() && !isSubToc_;
+
     if (fdbCacheTocsOnRead) {
 
-        FileDescHandle toc(fd_, true);  // closes the file descriptor
-        AutoClose closer1(toc);
+        const auto toc_fd = fd_;
         fd_ = -1;
 
+        FileDescHandle toc(toc_fd, true);  // closes the file descriptor
+        AutoClose closer1(toc);
+
+        if (nfs_lock) {
+            auto proc_lock = std::make_unique<TocProcessLock>(tocPath_);
+            tocFileLock(toc_fd, F_RDLCK, tocPath_);
+        }
+
+        // n.b. the size must be taken *after* the lock is held
+        eckit::Length tocSize = tocPath_.size();
 
         bool grow = true;
         cachedToc_.reset(new eckit::MemoryHandle(tocSize, grow));
@@ -292,6 +399,18 @@ void TocHandler::openForRead() const {
         long buffersize = 4_MiB;
         toc.copyTo(*cachedToc_, buffersize, tocSize, tocReadStats_);
         cachedToc_->openForRead();
+    }
+    else if (nfs_lock) {
+        auto proc_lock = std::make_unique<TocProcessLock>(tocPath_);
+        try {
+            tocFileLock(fd_, F_RDLCK, tocPath_);  // released on close()
+        }
+        catch (...) {
+            ::close(fd_);
+            fd_ = -1;
+            throw;
+        }
+        processLock_ = std::move(proc_lock);
     }
 }
 
@@ -613,9 +732,17 @@ void TocHandler::close() const {
             SYSCALL2(eckit::fdatasync(fd_), tocPath_);
             dirty_ = false;
         }
+        const bool wasWriteMode = writeMode_;
+        const bool publishDirectory = wasWriteMode && processLock_ && !isSubToc_;
         SYSCALL2(::close(fd_), tocPath_);
         fd_ = -1;
         writeMode_ = false;
+        processLock_.reset();
+
+        // if NFS, publish namespace changes by flushing the parent directory
+        if (publishDirectory) {
+            tocPath_.syncParentDirectory();
+        }
     }
 }
 
@@ -1026,10 +1153,33 @@ void TocHandler::writeInitRecord(const Key& key) {
 
     ASSERT(fd_ == -1);
 
+    const bool nfs = isNFS() && !isSubToc_;
+
+    // refresh the cached directory and file attributes
+    if (nfs) {
+        { eckit::StdDir dir(directory_); }  // refresh DB directory handle cache
+        int rfd = ::open(tocPath_.localPath(), O_RDONLY);
+        if (rfd < 0) {
+            if (errno != ENOENT) {
+                SYSCALL2(rfd, tocPath_);
+            }
+        }
+        else {
+            SYSCALL2(::close(rfd), tocPath_);
+        }
+    }
+
     int iomode = O_CREAT | O_RDWR;
     SYSCALL2(fd_ = ::open(tocPath_.localPath(), iomode, mode_t(0777)), tocPath_);
 
     TocHandlerCloser closer(*this);
+
+    if (nfs) {
+        // hold a lock *before* the TOC is inspected. Released on close().
+        auto proc_lock = std::make_unique<TocProcessLock>(tocPath_);
+        tocFileLock(fd_, F_WRLCK, tocPath_);
+        processLock_ = std::move(proc_lock);
+    }
 
     auto r = std::make_unique<TocRecord>(
         serialisationVersion_.used());  // allocate (large) TocRecord on heap not stack (MARS-779)
@@ -1071,8 +1221,15 @@ void TocHandler::writeInitRecord(const Key& key) {
         eckit::MemoryStream s(&r2->payload_[0], r2->maxPayloadSize);
         s << key;
         s << isSubToc_;
+
         append(*r2, s.position());
         dbUID_ = r2->header_.uid_;
+
+        if (nfs) {
+            SYSCALL2(eckit::fdatasync(fd_), tocPath_);
+            dirty_ = false;
+            tocPath_.syncParentDirectory();
+        }
     }
     else {
         ASSERT(r->header_.tag_ == TocRecord::TOC_INIT);
@@ -1122,6 +1279,11 @@ void TocHandler::writeSubTocRecord(const TocHandler& subToc) {
     s << path;
     s << off_t{0};
     append(*r, s.position());
+
+    if (isNFS() && !isSubToc_) {
+        SYSCALL2(eckit::fdatasync(fd_), tocPath_);
+        tocPath_.syncParentDirectory();
+    }
 
     LOG_DEBUG_LIB(LibFdb5) << "Write TOC_SUB_TOC " << path << std::endl;
 }

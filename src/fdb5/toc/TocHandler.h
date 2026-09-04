@@ -16,6 +16,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <utility>
 
 #include "eckit/filesystem/LocalPathName.h"
@@ -41,6 +42,7 @@ namespace fdb5 {
 
 class Key;
 class Index;
+class TocProcessLock;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -209,6 +211,8 @@ private:  // methods
 
     void close() const;
 
+    bool isNFS() const;
+
     void appendRaw(const void* data, size_t size);
     void appendRound(TocRecord& r, size_t payloadSize);
 
@@ -277,6 +281,9 @@ private:  // members
     mutable bool writeMode_;
 
     mutable bool dirty_;
+
+    mutable std::optional<bool> isNFSCached_;
+    mutable std::unique_ptr<TocProcessLock> processLock_;  ///< lock for the toc file, if on NFS
 };
 
 
