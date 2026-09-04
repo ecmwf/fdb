@@ -23,7 +23,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use clap::Parser;
-use fdb::{Fdb, Request};
+use fdb::Fdb;
 
 /// `fdb-read`-style retrieval tool. Reimplements a sensible subset of
 /// the upstream `fdb-read` CLI on top of the Rust `fdb` binding.
@@ -38,24 +38,24 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
-    let request: Request = args.request.parse()?;
+    eckit::init();
+    let parsed = metkit::parse(&args.request, false)?;
+    let request = parsed.at(0)?;
     let fdb = Fdb::open_default()?;
 
-    // `retrieve` hands back a `DataReader` (which implements
-    // `std::io::Read`) — exactly the streaming retrieval path the
-    // reviewer redesign was meant to enable.
-    let mut reader = fdb.retrieve(&request)?;
+    let handle = fdb.retrieve(&request)?;
+    let (mut handle, _len) = handle.open_for_read()?;
 
     // Open the target. `-` means stdout, matching the convention of
     // `fdb-read`'s sibling tools and most Unix utilities.
     let bytes_copied = if args.target == Path::new("-") {
         let stdout = io::stdout();
         let mut out = stdout.lock();
-        io::copy(&mut reader, &mut out)?
+        io::copy(&mut handle, &mut out)?
     } else {
         let file = File::create(&args.target)?;
         let mut out = BufWriter::new(file);
-        let n = io::copy(&mut reader, &mut out)?;
+        let n = io::copy(&mut handle, &mut out)?;
         out.flush()?;
         n
     };

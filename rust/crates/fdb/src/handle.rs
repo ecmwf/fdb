@@ -1,13 +1,12 @@
 //! FDB handle wrapper.
 
 use std::collections::HashMap;
-use std::sync::{LazyLock, Once};
+use std::sync::Once;
 
 use fdb_sys::UniquePtr;
 use fdb_sys::{ControlAction, ControlIdentifier};
 use parking_lot::Mutex;
 
-use crate::datareader::DataReader;
 use crate::error::Result;
 use crate::iterator::{
     ControlIterator, DumpIterator, ListIterator, PurgeIterator, StatsIterator, StatusIterator,
@@ -15,38 +14,14 @@ use crate::iterator::{
 };
 use crate::key::Key;
 use crate::options::{DumpOptions, ListOptions, PurgeOptions, WipeOptions};
-use crate::request::Request;
+use eckit::DataHandle;
 
 static INIT: Once = Once::new();
-
-/// Process-global mutex serializing GRIB ingest across `Fdb`
-/// instances.
-///
-/// Running `archive_raw` / `archive_reader` from two separate
-/// instances on different threads crashes the process with `fatal
-/// flex scanner internal error — end of buffer missed` + SIGSEGV —
-/// non-reentrant state somewhere inside `libeccodes`' GRIB decoding
-/// path. This lock serializes those two methods' FFI hops, which
-/// empirically eliminates the crash. MARS-request methods
-/// (`list`, `retrieve`, etc.) were confirmed safe under parallel
-/// test pressure and remain lock-free.
-static LEXER_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
 /// Initialize the FDB library.
 /// Called automatically when creating any FDB handle.
 fn initialize() {
-    INIT.call_once(fdb_sys::fdb_init);
-}
-
-/// Convert a path to a `&str`, returning a typed `UserError` if it isn't
-/// valid UTF-8 (which the cxx bridge can't accept).
-fn path_to_str(path: &std::path::Path) -> Result<&str> {
-    path.to_str().ok_or_else(|| {
-        crate::Error::UserError(format!(
-            "FDB config path is not valid UTF-8: {}",
-            path.display()
-        ))
-    })
+    INIT.call_once(fdb_sys::Library::initialise);
 }
 
 // Private wrapper to make UniquePtr Send-safe for use with Mutex
@@ -68,16 +43,18 @@ unsafe impl Send for HandleInner {}
 /// # Example
 ///
 /// ```no_run
-/// use fdb::{Fdb, Request};
+/// use fdb::Fdb;
 /// use std::sync::Arc;
 /// use std::thread;
 ///
+/// eckit::init();
 /// let fdb = Arc::new(Fdb::open_default().expect("failed to create FDB handle"));
 ///
 /// let handles: Vec<_> = (0..4).map(|_| {
 ///     let fdb = Arc::clone(&fdb);
 ///     thread::spawn(move || {
-///         let request = Request::new().with("class", "od");
+///         let mut request = metkit::MarsRequest::new("list");
+///         request.set("class", "od");
 ///         let _ = fdb.list(&request, fdb::ListOptions::default());
 ///     })
 /// }).collect();
@@ -90,136 +67,60 @@ pub struct Fdb {
     handle: Mutex<HandleInner>,
 }
 
-/// One of the shapes the main FDB config can take when opening an `Fdb`.
-///
-/// You generally don't construct this directly — [`Fdb::open`] accepts any
-/// `Option<impl Into<FdbConfig>>`, and the standard `From` impls let you
-/// pass `&str`/`&String` (interpreted as inline YAML) or `&Path`/`&PathBuf`
-/// (interpreted as a path to a config file on disk) directly.
-///
-/// Mirrors the shape of pyfdb's `config: str | Path | None` argument.
-///
-/// Note that this enum is for the *main* config only. The user config
-/// (second argument of [`Fdb::open`]) takes only YAML strings — upstream
-/// `fdb5::Config` does not have a path-based user-config entry point.
-#[derive(Debug, Clone)]
-pub enum FdbConfig<'a> {
-    /// Inline YAML. Goes through `eckit::YAMLConfiguration` on the C++ side.
-    Yaml(&'a str),
-    /// Path to a YAML/JSON config file. Goes through `fdb5::Config::make`,
-    /// which also expands `~fdb`/`fdb_home` references and resolves
-    /// transitive sub-configurations.
-    Path(&'a std::path::Path),
-}
-
-impl<'a> From<&'a str> for FdbConfig<'a> {
-    fn from(s: &'a str) -> Self {
-        FdbConfig::Yaml(s)
-    }
-}
-
-impl<'a> From<&'a String> for FdbConfig<'a> {
-    fn from(s: &'a String) -> Self {
-        FdbConfig::Yaml(s.as_str())
-    }
-}
-
-impl<'a> From<&'a std::path::Path> for FdbConfig<'a> {
-    fn from(p: &'a std::path::Path) -> Self {
-        FdbConfig::Path(p)
-    }
-}
-
-impl<'a> From<&'a std::path::PathBuf> for FdbConfig<'a> {
-    fn from(p: &'a std::path::PathBuf) -> Self {
-        FdbConfig::Path(p.as_path())
-    }
-}
-
 impl Fdb {
     /// Open an FDB.
     ///
-    /// `config` is the main FDB configuration. It accepts anything
-    /// convertible to [`FdbConfig`]: a `&str`/`&String` (inline YAML), a
-    /// `&Path`/`&PathBuf` (config file on disk), or `None` to use the
-    /// upstream's environment-driven defaults (`FDB_HOME` /
-    /// `FDB_CONFIG_FILE` / `~/.fdb`).
+    /// Matches C++ `fdb5::FDB(fdb5::Config)` / `fdb5::FDB(fdb5::Config(config, user_config))`.
     ///
-    /// `user_config` is an optional per-instance YAML overlay (e.g.
-    /// `useSubToc: true`, `preloadTocBTree: false`). It accepts only a
-    /// YAML string because upstream `fdb5::Config` itself only takes the
-    /// user config as an in-memory `eckit::Configuration`, never as a
-    /// path. A user config without a main config is rejected — there's
-    /// nothing for the overlay to apply to.
+    /// - `None, None` — use environment defaults (`FDB_HOME` / `FDB_CONFIG_FILE` / `~/.fdb`)
+    /// - `Some(config), None` — use the given config
+    /// - `Some(config), Some(user_config)` — config + per-instance overlay
     ///
-    /// Mirrors pyfdb's `FDB(config, user_config)` constructor shape, with
-    /// two improvements: (1) `(None, Some(user_config))` is rejected
-    /// instead of silently dropping the user config like pyfdb does, and
-    /// (2) the unsupported `Path` user-config shape is forbidden at the
-    /// type level rather than at runtime.
+    /// Build the `eckit::Config` however you want: `Config::from_path()`,
+    /// `"yaml".parse()`, or `Config::new()` + `.set()`.
     ///
     /// # Examples
     ///
     /// ```no_run
-    /// use fdb::Fdb;
-    /// use std::path::Path;
+    /// use fdb::{Fdb, UserConfig};
     ///
-    /// // Inline YAML, no user config:
-    /// let fdb = Fdb::open(Some("type: local\nschema: /tmp/schema\nspaces: []"), None)?;
+    /// // Default config from environment:
+    /// let fdb = Fdb::open(None, None)?;
     ///
-    /// // Config file on disk:
-    /// let fdb = Fdb::open(Some(Path::new("/etc/fdb/config.yaml")), None)?;
+    /// // From a YAML file:
+    /// let cfg = eckit::Config::from_path("/etc/fdb/config.yaml")?;
+    /// let fdb = Fdb::open(Some(&cfg), None)?;
     ///
-    /// // Path config + inline user config to enable sub-tocs:
+    /// // Inline YAML:
+    /// let cfg: eckit::Config = "type: local\nspaces: []".parse()?;
+    /// let fdb = Fdb::open(Some(&cfg), None)?;
+    ///
+    /// // With user config:
+    /// let cfg = eckit::Config::from_path("/etc/fdb/config.yaml")?;
     /// let fdb = Fdb::open(
-    ///     Some(Path::new("/etc/fdb/config.yaml")),
-    ///     Some("useSubToc: true"),
+    ///     Some(&cfg),
+    ///     Some(UserConfig { use_sub_toc: true, ..Default::default() }),
     /// )?;
     /// # Ok::<(), fdb::Error>(())
     /// ```
-    ///
-    /// For the "use defaults from environment" case where neither argument
-    /// is supplied, prefer [`Self::open_default`] — it avoids Rust's
-    /// type-inference annoyance with `Fdb::open(None, None)`.
-    ///
-    /// # Errors
-    ///
-    /// - `UserError` if a non-UTF-8 path is supplied (the cxx bridge can't
-    ///   accept it).
-    /// - `UserError` if `user_config` is supplied without a `config`.
-    /// - Whatever `eckit`/`fdb5` raises if the configuration can't be
-    ///   parsed or the FDB instance can't be constructed.
-    pub fn open<'a, C>(config: Option<C>, user_config: Option<&str>) -> Result<Self>
-    where
-        C: Into<FdbConfig<'a>>,
-    {
+    pub fn open(
+        config: Option<&eckit::Config>,
+        user_config: Option<crate::UserConfig>,
+    ) -> Result<Self> {
         initialize();
-        let config = config.map(Into::into);
 
-        // Map (config, user_config) to one of the existing cxx-bridge
-        // entry points. The arms below cover exactly the combinations
-        // upstream `fdb5::Config` supports — there are no invented arms.
-        let handle = match (config, user_config) {
-            (None, None) => fdb_sys::new_fdb()?,
-            (Some(FdbConfig::Yaml(yaml)), None) => fdb_sys::new_fdb_from_yaml(yaml)?,
-            (Some(FdbConfig::Path(path)), None) => {
-                let path_str = path_to_str(path)?;
-                fdb_sys::new_fdb_from_path(path_str)?
+        let user_eckit = user_config.map(eckit::Config::from);
+
+        let handle = match (config, user_eckit.as_ref()) {
+            (None, None) => fdb_sys::FdbHandle::create()?,
+            (Some(cfg), None) => fdb_sys::FdbHandle::from_config(cfg.as_sys())?,
+            (Some(cfg), Some(user)) => {
+                fdb_sys::FdbHandle::from_config_with_user(cfg.as_sys(), user.as_sys())?
             }
-            (Some(FdbConfig::Yaml(yaml)), Some(user)) => {
-                fdb_sys::new_fdb_from_yaml_with_user_config(yaml, user)?
-            }
-            (Some(FdbConfig::Path(path)), Some(user)) => {
-                let path_str = path_to_str(path)?;
-                fdb_sys::new_fdb_from_path_with_user_config(path_str, user)?
-            }
-            // pyfdb silently drops `user_config` here. We don't — there's
-            // no upstream entry point that says "env-default config plus
-            // this user overlay", and silently dropping is a footgun.
             (None, Some(_)) => {
-                return Err(crate::Error::UserError(
+                return Err(crate::Error::Eckit(eckit::Error::UserError(
                     "Fdb::open: user_config requires a main config".to_string(),
-                ));
+                )));
             }
         };
 
@@ -228,12 +129,11 @@ impl Fdb {
         })
     }
 
-    /// Open an FDB using the upstream's default configuration discovery
-    /// (`FDB_HOME` / `FDB_CONFIG_FILE` / `~/.fdb`). Equivalent to
-    /// `Fdb::open(None::<&str>, None)`, but avoids the type-inference
-    /// annoyance with the bare `Fdb::open(None, None)` form.
+    /// Open an FDB using environment defaults.
+    ///
+    /// Equivalent to `Fdb::open(None, None)`.
     pub fn open_default() -> Result<Self> {
-        Self::open(None::<&str>, None)
+        Self::open(None, None)
     }
 
     #[inline]
@@ -281,46 +181,49 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if listing fails.
-    pub fn list(&self, request: &Request, options: ListOptions) -> Result<ListIterator> {
+    pub fn list<S: metkit::RequestState>(
+        &self,
+        request: &metkit::MarsRequest<S>,
+        options: ListOptions,
+    ) -> Result<ListIterator> {
         let ListOptions { depth, deduplicate } = options;
-        let it = self.with_handle(|h| h.list(&request.to_request_string(), deduplicate, depth))?;
+        let it = self.with_handle(|h| h.list(request.as_sys(), deduplicate, depth))?;
         Ok(ListIterator::new(it))
     }
 
-    /// Retrieve data from FDB.
+    /// Retrieve data from FDB using a `MarsRequest`.
     ///
-    /// # Arguments
-    ///
-    /// * `request` - The request specifying which data to retrieve
+    /// Returns an unopened `eckit::DataHandle`. Call
+    /// [`DataHandle::open_for_read`](eckit::DataHandle::open_for_read) before
+    /// reading, or wrap it in a reader type that does so.
     ///
     /// # Errors
     ///
     /// Returns an error if retrieval fails.
-    pub fn retrieve(&self, request: &Request) -> Result<DataReader> {
-        let handle = self.with_handle(|h| h.retrieve(&request.to_request_string()))?;
-        DataReader::new(handle)
+    pub fn retrieve<S: metkit::RequestState>(
+        &self,
+        request: &metkit::MarsRequest<S>,
+    ) -> Result<DataHandle> {
+        let handle = self.with_handle(|h| h.retrieve(request.as_sys()))?;
+        Ok(DataHandle::from_raw(handle))
     }
 
     /// Read data from a single URI location.
     ///
-    /// This is more efficient than `retrieve()` when you already have
+    /// More efficient than `retrieve()` when you already have
     /// the field location from a previous `list()` operation.
-    ///
-    /// # Arguments
-    ///
-    /// * `uri` - The URI to read from
     ///
     /// # Errors
     ///
     /// Returns an error if reading fails.
-    pub fn read_uri(&self, uri: &str) -> Result<DataReader> {
+    pub fn read_uri(&self, uri: &str) -> Result<DataHandle> {
         let handle = self.with_handle(|h| h.read_uri(uri))?;
-        DataReader::new(handle)
+        Ok(DataHandle::from_raw(handle))
     }
 
     /// Read data from multiple URI locations.
     ///
-    /// This is more efficient than `retrieve()` when you already have
+    /// More efficient than `retrieve()` when you already have
     /// the field locations from a previous `list()` operation.
     ///
     /// # Arguments
@@ -332,21 +235,16 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if reading fails.
-    pub fn read_uris(&self, uris: &[String], in_storage_order: bool) -> Result<DataReader> {
+    pub fn read_uris(&self, uris: &[String], in_storage_order: bool) -> Result<DataHandle> {
         let uris_vec: Vec<String> = uris.to_vec();
         let handle = self.with_handle(|h| h.read_uris(&uris_vec, in_storage_order))?;
-        DataReader::new(handle)
+        Ok(DataHandle::from_raw(handle))
     }
 
     /// Read data directly from a list iterator (most efficient).
     ///
-    /// This consumes the iterator and reads all matched fields.
+    /// Consumes the iterator and reads all matched fields.
     /// More efficient than `read_uris()` as it avoids URI string conversion.
-    ///
-    /// # Arguments
-    ///
-    /// * `list` - `ListIterator` to read from (consumed)
-    /// * `in_storage_order` - If true, data is returned in storage order
     ///
     /// # Errors
     ///
@@ -355,10 +253,10 @@ impl Fdb {
         &self,
         mut list: ListIterator,
         in_storage_order: bool,
-    ) -> Result<DataReader> {
+    ) -> Result<DataHandle> {
         let handle =
             self.with_handle(|h| h.read_list_iterator(list.inner_mut(), in_storage_order))?;
-        DataReader::new(handle)
+        Ok(DataHandle::from_raw(handle))
     }
 
     /// Flush any pending writes to FDB.
@@ -414,7 +312,6 @@ impl Fdb {
     ///
     /// Returns an error if archiving fails.
     pub fn archive_raw(&self, data: &[u8]) -> Result<()> {
-        let _lexer = LEXER_LOCK.lock();
         self.with_handle(|h| h.archive_raw(data))?;
         Ok(())
     }
@@ -438,7 +335,6 @@ impl Fdb {
     where
         R: std::io::Read + Send + 'static,
     {
-        let _lexer = LEXER_LOCK.lock();
         let boxed = fdb_sys::make_reader_box(reader);
         self.with_handle(|h| h.archive_reader(boxed))?;
         Ok(())
@@ -456,8 +352,12 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if the query fails.
-    pub fn axes(&self, request: &Request, depth: i32) -> Result<HashMap<String, Vec<String>>> {
-        let axes = self.with_handle(|h| h.axes(&request.to_request_string(), depth))?;
+    pub fn axes<S: metkit::RequestState>(
+        &self,
+        request: &metkit::MarsRequest<S>,
+        depth: i32,
+    ) -> Result<HashMap<String, Vec<String>>> {
+        let axes = self.with_handle(|h| h.axes(request.as_sys(), depth))?;
         Ok(axes.into_iter().map(|a| (a.key, a.values)).collect())
     }
 
@@ -472,9 +372,13 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if the dump fails.
-    pub fn dump(&self, request: &Request, options: DumpOptions) -> Result<DumpIterator> {
+    pub fn dump<S: metkit::RequestState>(
+        &self,
+        request: &metkit::MarsRequest<S>,
+        options: DumpOptions,
+    ) -> Result<DumpIterator> {
         let DumpOptions { simple } = options;
-        let it = self.with_handle(|h| h.dump(&request.to_request_string(), simple))?;
+        let it = self.with_handle(|h| h.dump(request.as_sys(), simple))?;
         Ok(DumpIterator::new(it))
     }
 
@@ -487,8 +391,11 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if the status query fails.
-    pub fn status(&self, request: &Request) -> Result<StatusIterator> {
-        let it = self.with_handle(|h| h.status(&request.to_request_string()))?;
+    pub fn status<S: metkit::RequestState>(
+        &self,
+        request: &metkit::MarsRequest<S>,
+    ) -> Result<StatusIterator> {
+        let it = self.with_handle(|h| h.status(request.as_sys()))?;
         Ok(StatusIterator::new(it))
     }
 
@@ -504,20 +411,18 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if the wipe fails.
-    pub fn wipe(&self, request: &Request, options: WipeOptions) -> Result<WipeIterator> {
+    pub fn wipe<S: metkit::RequestState>(
+        &self,
+        request: &metkit::MarsRequest<S>,
+        options: WipeOptions,
+    ) -> Result<WipeIterator> {
         let WipeOptions {
             doit,
             porcelain,
             unsafe_wipe_all,
         } = options;
-        let it = self.with_handle(|h| {
-            h.wipe(
-                &request.to_request_string(),
-                doit,
-                porcelain,
-                unsafe_wipe_all,
-            )
-        })?;
+        let it =
+            self.with_handle(|h| h.wipe(request.as_sys(), doit, porcelain, unsafe_wipe_all))?;
         Ok(WipeIterator::new(it))
     }
 
@@ -533,9 +438,13 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if the purge fails.
-    pub fn purge(&self, request: &Request, options: PurgeOptions) -> Result<PurgeIterator> {
+    pub fn purge<S: metkit::RequestState>(
+        &self,
+        request: &metkit::MarsRequest<S>,
+        options: PurgeOptions,
+    ) -> Result<PurgeIterator> {
         let PurgeOptions { doit, porcelain } = options;
-        let it = self.with_handle(|h| h.purge(&request.to_request_string(), doit, porcelain))?;
+        let it = self.with_handle(|h| h.purge(request.as_sys(), doit, porcelain))?;
         Ok(PurgeIterator::new(it))
     }
 
@@ -548,8 +457,11 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if the stats query fails.
-    pub fn stats_iter(&self, request: &Request) -> Result<StatsIterator> {
-        let it = self.with_handle(|h| h.stats_iterator(&request.to_request_string()))?;
+    pub fn stats_iter<S: metkit::RequestState>(
+        &self,
+        request: &metkit::MarsRequest<S>,
+    ) -> Result<StatsIterator> {
+        let it = self.with_handle(|h| h.stats_iterator(request.as_sys()))?;
         Ok(StatsIterator::new(it))
     }
 
@@ -565,14 +477,13 @@ impl Fdb {
     /// # Errors
     ///
     /// Returns an error if the control operation fails.
-    pub fn control(
+    pub fn control<S: metkit::RequestState>(
         &self,
-        request: &Request,
+        request: &metkit::MarsRequest<S>,
         action: ControlAction,
         identifiers: &[ControlIdentifier],
     ) -> Result<ControlIterator> {
-        let it =
-            self.with_handle(|h| h.control(&request.to_request_string(), action, identifiers))?;
+        let it = self.with_handle(|h| h.control(request.as_sys(), action, identifiers))?;
         Ok(ControlIterator::new(it))
     }
 
@@ -625,3 +536,70 @@ pub struct FdbStats {
 
 /// Re-export callback data type.
 pub use fdb_sys::ArchiveCallbackData;
+
+/// Wrapper for `fdb5::MessageArchiver`.
+///
+/// This is the same class used by mars-client-cpp's `FDBBase::archive`. Use
+/// this when you want a literal port of the C++ archiving call path (filters,
+/// modifiers, etc.) rather than going through `Fdb::archive_raw` /
+/// `Fdb::archive_reader` which use `fdb5::FDB::archive`.
+pub struct MessageArchiver {
+    inner: Mutex<UniquePtr<fdb_sys::MessageArchiverWrapper>>,
+}
+
+impl MessageArchiver {
+    /// Construct an archiver. `key` is the modifier key applied to every
+    /// message (use `Key::new()` for none, matching C++ `FDBBase`).
+    /// `complete_transfers` and `verbose` map directly to the
+    /// `fdb5::MessageArchiver` ctor flags (mars-client-cpp uses `false`).
+    pub fn new(
+        key: &Key,
+        complete_transfers: bool,
+        verbose: bool,
+        config: &eckit::Config,
+    ) -> Result<Self> {
+        initialize();
+        let inner = fdb_sys::MessageArchiverWrapper::create(
+            key.to_cxx(),
+            complete_transfers,
+            verbose,
+            config.as_sys(),
+        )?;
+        Ok(Self {
+            inner: Mutex::new(inner),
+        })
+    }
+
+    /// `fdb5::MessageArchiver::archive(eckit::DataHandle&)` — streams
+    /// messages from a Rust [`Read`](std::io::Read) + [`Seek`](std::io::Seek)
+    /// source and returns total bytes archived.
+    ///
+    /// The source is wrapped in an `eckit::DataHandle` that calls back into
+    /// the Rust reader on each `read()`/`seek()`, so nothing is buffered up
+    /// front.
+    pub fn archive<R>(&self, source: R) -> Result<i64>
+    where
+        R: std::io::Read + std::io::Seek + Send + 'static,
+    {
+        let mut handle =
+            eckit_sys::DataHandleWrapper::from_reader(eckit_sys::make_reader_box(source))?;
+        let mut guard = self.inner.lock();
+        let bytes = guard.pin_mut().archive(handle.pin_mut())?;
+        drop(guard);
+        Ok(bytes)
+    }
+
+    /// `fdb5::MessageArchiver::flush()`.
+    pub fn flush(&self) -> Result<()> {
+        let mut guard = self.inner.lock();
+        guard.pin_mut().flush()?;
+        drop(guard);
+        Ok(())
+    }
+}
+
+// SAFETY: cxx UniquePtr is `!Send` by default; the Mutex serialises every
+// access to the underlying C++ object so moving the wrapper between threads
+// is safe.
+#[allow(clippy::non_send_fields_in_send_ty)]
+unsafe impl Send for MessageArchiver {}

@@ -6,7 +6,7 @@
 //! Some benchmarks require FDB setup and will be skipped if setup fails.
 
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use fdb::{Fdb, Key, ListOptions, Request};
+use fdb::{Fdb, Key, ListOptions};
 use std::sync::OnceLock;
 
 // FDB setup for benchmarks that need data
@@ -60,7 +60,8 @@ mod fdb_setup {
             env::set_var("FDB5_CONFIG", &config);
         }
 
-        let fdb = Fdb::open(Some(&config), None).ok()?;
+        let eckit_config: eckit::Config = config.parse().ok()?;
+        let fdb = Fdb::open(Some(&eckit_config), None).ok()?;
 
         // Read test GRIB data
         let grib_path = fixtures_dir.join("synth11.grib");
@@ -114,31 +115,31 @@ fn bench_key_creation(c: &mut Criterion) {
     });
 }
 
-/// Benchmark Request creation with builder pattern.
+/// Benchmark `MarsRequest` creation with builder.
 fn bench_request_creation(c: &mut Criterion) {
+    eckit::init();
     c.bench_function("fdb_request_creation", |b| {
         b.iter(|| {
-            black_box(
-                Request::new()
-                    .with("class", "rd")
-                    .with("expver", "xxxx")
-                    .with("stream", "oper")
-                    .with("date", "20230508")
-                    .with("time", "1200"),
-            );
+            let mut request = metkit::MarsRequest::new("retrieve");
+            request.set("class", "rd");
+            request.set("expver", "xxxx");
+            request.set("stream", "oper");
+            request.set("date", "20230508");
+            request.set("time", "1200");
+            black_box(request);
         });
     });
 }
 
-/// Benchmark Request creation with multiple values.
+/// Benchmark `MarsRequest` creation with multiple values.
 fn bench_request_multi_values(c: &mut Criterion) {
+    eckit::init();
     c.bench_function("fdb_request_multi_values", |b| {
         b.iter(|| {
-            black_box(
-                Request::new()
-                    .with("class", "rd")
-                    .with_values("step", &["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]),
-            );
+            let mut request = metkit::MarsRequest::new("retrieve");
+            request.set("class", "rd");
+            request.set("step", ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
+            black_box(request);
         });
     });
 }
@@ -150,11 +151,12 @@ fn bench_list(c: &mut Criterion) {
         return;
     };
 
+    eckit::init();
     let fdb = Fdb::open_default().expect("failed to create FDB handle");
-    let request = Request::new()
-        .with("class", "rd")
-        .with("expver", "xxxx")
-        .with("stream", "oper");
+    let mut request = metkit::MarsRequest::new("retrieve");
+    request.set("class", "rd");
+    request.set("expver", "xxxx");
+    request.set("stream", "oper");
 
     c.bench_function("fdb_list", |b| {
         b.iter(|| {
@@ -180,11 +182,12 @@ fn bench_axes(c: &mut Criterion) {
         return;
     };
 
+    eckit::init();
     let fdb = Fdb::open_default().expect("failed to create FDB handle");
-    let request = Request::new()
-        .with("class", "rd")
-        .with("expver", "xxxx")
-        .with("stream", "oper");
+    let mut request = metkit::MarsRequest::new("retrieve");
+    request.set("class", "rd");
+    request.set("expver", "xxxx");
+    request.set("stream", "oper");
 
     c.bench_function("fdb_axes", |b| {
         b.iter(|| {

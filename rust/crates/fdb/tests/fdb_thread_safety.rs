@@ -12,28 +12,42 @@
 //!
 //! Run with `cargo test --test fdb_thread_safety`.
 
-use std::env;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::thread;
 
-use fdb::{Fdb, Key, ListOptions, Request};
+use fdb::{Fdb, Key, ListOptions};
+
+// =============================================================================
+// Test fixtures
+// =============================================================================
 
 fn fixtures_dir() -> PathBuf {
-    PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"))
-        .join("tests/fixtures")
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
+    PathBuf::from(manifest_dir).join("tests/fixtures")
 }
 
-fn create_test_config(tmpdir: &std::path::Path) -> String {
+/// Build a tempdir-backed FDB config so tests don't depend on `FDB_HOME` /
+/// `FDB_CONFIG_FILE`.
+fn create_test_config(tmpdir: &Path) -> eckit::Config {
     let schema_src = fixtures_dir().join("schema");
     let schema_dst = tmpdir.join("schema");
-    fs::copy(&schema_src, &schema_dst).expect("copy schema");
-    format!(
-        "---\ntype: local\nengine: toc\nschema: {}/schema\nspaces:\n- handler: Default\n  roots:\n  - path: {}\n",
+    fs::copy(&schema_src, &schema_dst).expect("failed to copy schema");
+
+    let yaml = format!(
+        r"---
+type: local
+engine: toc
+schema: {}/schema
+spaces:
+  - roots:
+      - path: {}
+",
         tmpdir.display(),
         tmpdir.display()
-    )
+    );
+    yaml.parse().expect("failed to parse test config")
 }
 
 // =============================================================================
@@ -64,24 +78,15 @@ fn test_key_traits() {
     assert_sync::<Key>();
 }
 
-/// Test: `Request` is Send + Sync
-#[test]
-fn test_request_traits() {
-    fn assert_send<T: Send>() {}
-    fn assert_sync<T: Sync>() {}
-
-    assert_send::<Request>();
-    assert_sync::<Request>();
-}
-
 // =============================================================================
-// Runtime tests (require FDB libraries and configuration)
+// Runtime tests (use a tempdir-backed config)
 // =============================================================================
 
 /// Test: `Fdb` handle can be created
 #[test]
 fn test_handle_creation() {
-    let tmpdir = tempfile::tempdir().expect("tmpdir");
+    eckit::init();
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
     let fdb = Fdb::open(Some(&config), None);
     assert!(fdb.is_ok(), "Failed to create Fdb: {:?}", fdb.err());
@@ -90,7 +95,8 @@ fn test_handle_creation() {
 /// Test: `Fdb` can be shared via Arc for concurrent access
 #[test]
 fn test_arc_sharing_readonly() {
-    let tmpdir = tempfile::tempdir().expect("tmpdir");
+    eckit::init();
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
     let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create handle"));
 
@@ -116,7 +122,8 @@ fn test_arc_sharing_readonly() {
 /// Test: Concurrent read-only operations (id, name, dirty, stats)
 #[test]
 fn test_concurrent_readonly_methods() {
-    let tmpdir = tempfile::tempdir().expect("tmpdir");
+    eckit::init();
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
     let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create handle"));
 
@@ -142,7 +149,8 @@ fn test_concurrent_readonly_methods() {
 /// Test: `Fdb` can be used for concurrent list operations
 #[test]
 fn test_concurrent_list_operations() {
-    let tmpdir = tempfile::tempdir().expect("tmpdir");
+    eckit::init();
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
     let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create handle"));
 
@@ -150,7 +158,8 @@ fn test_concurrent_list_operations() {
         .map(|_| {
             let fdb = Arc::clone(&fdb);
             thread::spawn(move || {
-                let request = Request::new().with("class", "rd");
+                let mut request = metkit::MarsRequest::new("retrieve");
+                request.set("class", "rd");
                 for _ in 0..10 {
                     let _ = fdb.list(
                         &request,
@@ -172,7 +181,8 @@ fn test_concurrent_list_operations() {
 /// Test: Concurrent axes queries
 #[test]
 fn test_concurrent_axes() {
-    let tmpdir = tempfile::tempdir().expect("tmpdir");
+    eckit::init();
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
     let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create handle"));
 
@@ -180,7 +190,8 @@ fn test_concurrent_axes() {
         .map(|_| {
             let fdb = Arc::clone(&fdb);
             thread::spawn(move || {
-                let request = Request::new().with("class", "rd");
+                let mut request = metkit::MarsRequest::new("retrieve");
+                request.set("class", "rd");
                 for _ in 0..10 {
                     let _ = fdb.axes(&request, 1);
                 }
@@ -196,7 +207,8 @@ fn test_concurrent_axes() {
 /// Test: Stress test with many threads
 #[test]
 fn test_stress_concurrent_access() {
-    let tmpdir = tempfile::tempdir().expect("tmpdir");
+    eckit::init();
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
     let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create handle"));
     let iterations = 50;
@@ -206,7 +218,8 @@ fn test_stress_concurrent_access() {
         .map(|i| {
             let fdb = Arc::clone(&fdb);
             thread::spawn(move || {
-                let request = Request::new().with("class", "rd");
+                let mut request = metkit::MarsRequest::new("retrieve");
+                request.set("class", "rd");
                 for j in 0..iterations {
                     if (i + j) % 2 == 0 {
                         // Read-only operations
@@ -232,6 +245,47 @@ fn test_stress_concurrent_access() {
     }
 }
 
+/// Note: FDB has a documented caveat about `flush()`:
+/// "`flush()` has global semantics - it flushes ALL archived messages from
+/// ALL threads, not just the calling thread. For finer control, instantiate
+/// one FDB object per thread."
+///
+/// This test verifies the basic behavior but users should be aware of
+/// this limitation when using FDB in multi-threaded contexts with archiving.
+#[test]
+fn test_concurrent_errors_no_crash() {
+    eckit::init();
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+    let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create handle"));
+
+    let handles: Vec<_> = (0..8)
+        .map(|i| {
+            let fdb = Arc::clone(&fdb);
+            thread::spawn(move || {
+                // Use invalid requests to trigger errors
+                let value = format!("value_{i}");
+                let mut request = metkit::MarsRequest::new("retrieve");
+                request.set("INVALID_KEY", &value);
+                for _ in 0..20 {
+                    // Ignore the error - testing that concurrent errors don't crash
+                    let _ = fdb.list(
+                        &request,
+                        ListOptions {
+                            depth: 1,
+                            deduplicate: false,
+                        },
+                    );
+                }
+            })
+        })
+        .collect();
+
+    for h in handles {
+        h.join().expect("Thread panicked");
+    }
+}
+
 // =============================================================================
 // Concurrent write tests (M15)
 // =============================================================================
@@ -243,17 +297,14 @@ fn test_stress_concurrent_access() {
 /// archive operations don't crash, but users should be aware of this behavior.
 #[test]
 fn test_concurrent_archive_operations() {
-    use std::fs;
-    use std::path::PathBuf;
-
+    eckit::init();
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
     let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create handle"));
 
     // Read GRIB data for archiving
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
-    let grib_path = PathBuf::from(manifest_dir).join("tests/fixtures/template.grib");
+    let grib_path = fixtures_dir().join("template.grib");
     let grib_data = Arc::new(fs::read(&grib_path).expect("failed to read template.grib"));
 
     let thread_count = 4;
@@ -297,7 +348,9 @@ fn test_concurrent_archive_operations() {
     fdb.flush().expect("flush failed");
 
     // Verify data was archived by listing
-    let request = Request::new().with("class", "rd").with("expver", "xxxx");
+    let mut request = metkit::MarsRequest::new("retrieve");
+    request.set("class", "rd");
+    request.set("expver", "xxxx");
     let items: Vec<_> = fdb
         .list(
             &request,
@@ -322,17 +375,14 @@ fn test_concurrent_archive_operations() {
 /// Test: Mixed concurrent read and write operations.
 #[test]
 fn test_concurrent_read_write_mix() {
-    use std::fs;
-    use std::path::PathBuf;
-
+    eckit::init();
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
     let fdb = Arc::new(Fdb::open(Some(&config), None).expect("failed to create handle"));
 
     // Pre-archive some data first
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string());
-    let grib_path = PathBuf::from(manifest_dir).join("tests/fixtures/template.grib");
+    let grib_path = fixtures_dir().join("template.grib");
     let grib_data = Arc::new(fs::read(&grib_path).expect("failed to read template.grib"));
 
     // Archive initial data
@@ -359,7 +409,9 @@ fn test_concurrent_read_write_mix() {
             let fdb = Arc::clone(&fdb);
             let grib_data = Arc::clone(&grib_data);
             thread::spawn(move || {
-                let request = Request::new().with("class", "rd").with("expver", "xxxx");
+                let mut request = metkit::MarsRequest::new("retrieve");
+                request.set("class", "rd");
+                request.set("expver", "xxxx");
 
                 for i in 0..iterations {
                     if thread_id % 2 == 0 {
