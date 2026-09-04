@@ -85,14 +85,14 @@ public:  // methods
     ///
     /// Due to the message being self describing no key needs to be supplied.
     /// Any callback set with registerArchiveCallback will be invoked.
-    /// @param handle eckit::message::Message to data to archive
+    /// @param msg eckit::message::Message to archive
     void archive(eckit::message::Message msg);
 
     /// Archives a stream of one or more messages.
     ///
-    /// Reads messages from the eckit::DatAaHandle and calls archive() on the corresponding messages.
+    /// Reads messages from the eckit::DataHandle and calls archive() on the corresponding messages.
     /// Any callback set with registerArchiveCallback will be invoked on each message.
-    /// @param handle eckit::DataHandle reference data to archive
+    /// @param handle eckit::DataHandle reference to the data to archive
     void archive(eckit::DataHandle& handle);
 
     /// Archive binary data to a FDB.
@@ -100,29 +100,29 @@ public:  // methods
     /// Internally creates a DataHandle and calls archive().
     /// Any callback set with registerArchiveCallback will be invoked on each message.
     /// @param data Pointer to the binary data to archive
-    /// @param length Size of the data to archive with the given
+    /// @param length Size in bytes of the data to archive
     void archive(const void* data, size_t length);
 
-    /// Archives data from Datahandle and ensures all keys exactly match the provided MarsRequest.
+    /// Archives data from a DataHandle and ensures all keys exactly match the provided MarsRequest.
     ///
     /// Any callback set with registerArchiveCallback will be invoked on each message.
     /// @param request a mars request
     /// @param handle a data handle pointing to the data
-    /// @throws eckit::UserError if there are more keys in the MarsRequest then in the messages.
+    /// @throws eckit::UserError if there are more keys in the MarsRequest than in the messages.
     /// @throws eckit::UserError if message key not present in MarsRequest.
     void archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& handle);
 
     /// Archive a binary blob into FDB.
     ///
     /// Any callback set with registerArchiveCallback will be invoked.
-    /// @note No constistency checks are applied. The caller needs to ensure the provided key matches metadata present
+    /// @note No consistency checks are applied. The caller needs to ensure the provided key matches metadata present
     /// in data.
     /// @param key Key used for indexing and archiving the data
     /// @param data Pointer to the binary blob to archive
     /// @param length Size in bytes of the binary blob to archive
     void archive(const Key& key, const void* data, size_t length);
 
-    /// Generate an new index entry for an existing field location.
+    /// Generate a new index entry for an existing field location.
     ///
     /// Can be used to reindex existing data into a new catalogue (see fdb-reindex tool).
     /// @param key Key used to index the data.
@@ -140,15 +140,15 @@ public:  // methods
     /// @return DataHandle for reading the requested data from
     eckit::DataHandle* read(const eckit::URI& uri);
 
-    /// Read binary data from an list of URI.
-    /// @param vector of uris eckit uris to the data source
+    /// Read binary data from a list of URIs.
+    /// @param uris eckit uris to the data sources
     /// @param inStorageOrder if set data will be returned in the order it is stored. If unset data will be returned in
     /// the order it was requested.
     /// @return DataHandle for reading the requested data
     eckit::DataHandle* read(const std::vector<eckit::URI>& uris, bool inStorageOrder = false);
 
     /// Read binary from a ListIterator.
-    /// @param uris a list iterator which resembles a set of fields which should be read
+    /// @param it a list iterator which resembles a set of fields which should be read
     /// @param inStorageOrder if set data will be returned in the order it is stored. If unset data will be returned in
     /// the order it was requested.
     /// @return DataHandle for reading the requested data from
@@ -159,7 +159,15 @@ public:  // methods
     /// @return DataHandle for reading the requested data from
     eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request);
 
-    // TODO(kkratz): Provide doc!
+    /// Inspect which fields are present in the FDB for a fully qualified request.
+    ///
+    /// Unlike list(), this takes a raw metkit MarsRequest (rather than an FDBToolRequest) and is
+    /// the query step underlying retrieve(): it resolves the request against the catalogues and
+    /// returns the matching fields together with their locations, so that the associated data can
+    /// subsequently be read. The request is expected to be fully qualified (identifying individual
+    /// fields); it is not expanded like a listing request.
+    /// @param request MarsRequest describing the fields to locate
+    /// @return ListIterator for iterating over the matching fields and their locations
     ListIterator inspect(const metkit::mars::MarsRequest& request);
 
     /// List data present at the archive and which can be retrieved.
@@ -169,7 +177,11 @@ public:  // methods
     /// @return ListIterator for iterating over the set of found items
     ListIterator list(const FDBToolRequest& request, ListMode mode, int level = 3);
 
-    /// Backwards-compatible overload using the previous deduplicate flag.
+    /// Backwards-compatible overload of list() using the previous deduplicate flag.
+    /// @param request FDBToolRequest stating which data should be queried
+    /// @param deduplicate if true duplicates are removed (ListMode::Deduplicate), otherwise all entries are returned
+    /// @param level maximum level the visitor should respect
+    /// @return ListIterator for iterating over the set of found items
     ListIterator list(const FDBToolRequest& request, bool deduplicate = false, int level = 3);
 
     /// Dump the structural content of the FDB
@@ -179,12 +191,18 @@ public:  // methods
     /// The dump will include information identifying the data files that are
     /// referenced, and the "Axes" which describe the maximum possible extent of
     /// the data that is contained in the database.
-    /// @param request
-    /// @param simple
+    /// @param request FDBToolRequest stating which databases should be dumped
+    /// @param simple if true produces a more compact dump, omitting the per-record detail
     /// @return DumpIterator for iterating over the set of found items
     DumpIterator dump(const FDBToolRequest& request, bool simple = false);
 
-    // TODO(kkratz): Provide doc!
+    /// Report the control status of the databases matching the request.
+    ///
+    /// For each database visited, returns its key, location and the set of currently enabled
+    /// control identifiers (List, Retrieve, Archive, Wipe, UniqueRoot). This reflects which
+    /// operations are permitted / have been locked on each database (see control()).
+    /// @param request FDBToolRequest stating which databases should be queried
+    /// @return StatusIterator for iterating over the status of each matching database
     StatusIterator status(const FDBToolRequest& request);
 
     /// Wipe data from the database.
@@ -229,23 +247,37 @@ public:  // methods
     /// @return StatsIterator for iterating over the set of found items
     StatsIterator stats(const FDBToolRequest& request);
 
-    // TODO(kkratz): Provide doc!
-    /// @param request FDB tool request
-    /// @param action control action
-    /// @param identifiers identifiers
-    /// @return ControlIterator for iterating over the set of found items
+    /// Enable or disable operations (locking) on the databases matching the request.
+    ///
+    /// Applies the given action to the specified control identifiers on each matching database.
+    /// ControlAction::Disable locks the identified operations (e.g. prevents further archival,
+    /// listing, retrieval or wiping), while ControlAction::Enable removes the lock. The identifiers
+    /// are a combination of List, Retrieve, Archive, Wipe and UniqueRoot. The resulting status of
+    /// each affected database is reported through the returned iterator.
+    /// @param request FDBToolRequest stating which databases should be controlled
+    /// @param action control action to apply (Enable or Disable)
+    /// @param identifiers the set of control identifiers the action applies to
+    /// @return ControlIterator for iterating over the resulting status of each affected database
     ControlIterator control(const FDBToolRequest& request, ControlAction action, ControlIdentifiers identifiers);
 
-    // TODO(kkratz): Provide doc!
-    /// @param request FDB tool request
-    /// @param level maximum level the axis visitor should respect
-    /// @return IndexAxis
+    /// Aggregate the index axes of the databases matching the request.
+    ///
+    /// Visits the matching databases and merges their axes into a single IndexAxis, describing, for
+    /// each keyword, the set of distinct values present across all visited data. This is the
+    /// aggregated counterpart of axesIterator().
+    /// @param request FDBToolRequest stating which data should be queried
+    /// @param level maximum level the axis visitor should descend to
+    /// @return IndexAxis holding the merged set of values per keyword
     IndexAxis axes(const FDBToolRequest& request, int level = 3);
 
-    // TODO(kkratz): Provide doc!
-    /// @param request FDB tool request
-    /// @param level maximum level the axis visitor should respect
-    /// @return AxisIterator
+    /// Query the index axes of the databases matching the request.
+    ///
+    /// Returns an iterator yielding one element per visited database, each holding the database key
+    /// and its axes (the distinct values present for each keyword). Unlike axes(), the results are
+    /// not merged across databases.
+    /// @param request FDBToolRequest stating which data should be queried
+    /// @param level maximum level the axis visitor should descend to
+    /// @return AxesIterator for iterating over the axes of each matching database
     AxesIterator axesIterator(const FDBToolRequest& request, int level = 3);
 
     /// Check whether a specific control identifier is enabled
@@ -262,12 +294,17 @@ public:  // methods
     void registerArchiveCallback(ArchiveCallback callback);
 
     /// Register a flush callback.
-    /// @param callback an flush callback which should be triggered during flushing
+    /// @param callback a flush callback which should be triggered during flushing
     void registerFlushCallback(FlushCallback callback);
 
     // -------------- API management -----------------------------------------------------------------------------------
 
-    // TODO(kkratz): Provide doc!
+    /// Return accumulated usage statistics for this FDB object.
+    ///
+    /// These are the internal counters and timers maintained by this FDB instance over its
+    /// lifetime (e.g. number of archives, retrievals and flushes, bytes transferred and associated
+    /// timings), as opposed to the on-disk statistics reported by stats(const FDBToolRequest&).
+    /// @return a copy of this object's FDBStats
     FDBStats stats() const;
 
     /// Type of FDB, local or remote
