@@ -37,90 +37,50 @@ if (HAVE_PYTHON_ZARR_INTERFACE)
             "Install uv (https://docs.astral.sh/uv/) or point -DUVX_EXECUTABLE=/path/to/uvx at it.")
     endif()
 
-    # Create all staging subdirectories at configure time so build-time copy
-    # commands do not need to worry about missing parent directories.
+    # Create staging subdirectories that cannot be symlinks: the compiled .so is
+    # written directly into chunked_data_view_bindings/ by the linker, and the
+    # stubs are generated there by pybind11-stubgen.
     file(MAKE_DIRECTORY
         "${Z3FDB_STAGING}"
-        "${Z3FDB_STAGING}/z3fdb"
-        "${Z3FDB_STAGING}/z3fdb/_internal"
-        "${Z3FDB_STAGING}/pychunked_data_view"
         "${Z3FDB_STAGING}/chunked_data_view_bindings"
         "${Z3FDB_STAGING}/chunked_data_view_bindings-stubs"
     )
 
-    # ---- Per-file copy commands (tracked: re-copy when source changes) ----
-    # Each add_custom_command pairs one source file with its staging destination.
-    # cmake re-runs the copy whenever the source is newer than the destination.
-    set(_z3fdb_py_sources
-        z3fdb/__init__.py
-        z3fdb/simple_store_builder.py
-        z3fdb/custom_store_builder.py
-        z3fdb/z3fdb_error.py
-        z3fdb/_internal/__init__.py
-        z3fdb/_internal/zarr.py
-        pychunked_data_view/__init__.py
-        pychunked_data_view/chunked_data_view.py
-        pychunked_data_view/exceptions.py
-        chunked_data_view_bindings/__init__.py
-    )
-
-    # A module that exists in src/ but is missing from the list above is silently absent from
-    # the staging tree and the wheel: nothing fails, the import just goes missing at runtime.
-    # Fail at configure time instead.
-    file(GLOB_RECURSE _z3fdb_py_found
-         RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-         "z3fdb/*.py"
-         "pychunked_data_view/*.py"
-         "chunked_data_view_bindings/*.py")
-    foreach(_found IN LISTS _z3fdb_py_found)
-        if(NOT "${_found}" IN_LIST _z3fdb_py_sources)
-            message(FATAL_ERROR
-                "${_found} is not listed in _z3fdb_py_sources (src/CMakeLists.txt), so it "
-                "would never reach the z3fdb staging tree or the wheel. Add it there.")
-        endif()
-    endforeach()
-
-    set(_z3fdb_staged_py_files)
-    foreach(_rel IN LISTS _z3fdb_py_sources)
-        set(_src "${CMAKE_CURRENT_SOURCE_DIR}/${_rel}")
-
-        # The converse of the check above. A listed file that is not on disk yields a copy rule
-        # with no source, which the generator reports only as
-        #   "missing and no known rule to make it"
-        # naming the staging destination. Fail here, where the cause is visible.
-        if(NOT EXISTS "${_src}")
-            message(FATAL_ERROR
-                "${_rel} is listed in _z3fdb_py_sources (src/CMakeLists.txt) but does not exist "
-                "at ${_src}. Restore the file, or drop it from the list.")
-        endif()
-
-        set(_dst "${Z3FDB_STAGING}/${_rel}")
-        add_custom_command(
-            OUTPUT  "${_dst}"
-            COMMAND ${CMAKE_COMMAND} -E copy "${_src}" "${_dst}"
-            DEPENDS "${_src}"
-            COMMENT "Copying ${_rel} to staging..."
+    # ---- Symlinks (configure time) ----
+    # Pure-Python source directories are symlinked so that edits are immediately
+    # visible in the staging tree without a ninja run.
+    foreach(_dir z3fdb pychunked_data_view)
+        file(CREATE_LINK
+            "${CMAKE_CURRENT_SOURCE_DIR}/${_dir}"
+            "${Z3FDB_STAGING}/${_dir}"
+            SYMBOLIC
+            RESULT _ignored  # non-fatal on re-configure when symlink already exists
         )
-        list(APPEND _z3fdb_staged_py_files "${_dst}")
     endforeach()
+    # File symlinks for items that live inside the mixed chunked_data_view_bindings/
+    # dir or at the staging root.
+    file(CREATE_LINK
+        "${CMAKE_CURRENT_SOURCE_DIR}/chunked_data_view_bindings/__init__.py"
+        "${Z3FDB_STAGING}/chunked_data_view_bindings/__init__.py"
+        SYMBOLIC RESULT _ignored)
+    file(CREATE_LINK
+        "${CMAKE_CURRENT_SOURCE_DIR}/z3fdb/README.md"
+        "${Z3FDB_STAGING}/README.md"
+        SYMBOLIC RESULT _ignored)
+    file(CREATE_LINK
+        "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
+        "${Z3FDB_STAGING}/LICENSE"
+        SYMBOLIC RESULT _ignored)
+    file(CREATE_LINK
+        "${Z3FDB_RUNTIME_REQUIREMENTS}"
+        "${Z3FDB_STAGING}/z3fdb-requirements.txt"
+        SYMBOLIC RESULT _ignored)
 
-    # Copy README.md and LICENSE at build time so changes are picked up
-    # without needing to re-run cmake configure
-    add_custom_command(
-        OUTPUT ${Z3FDB_STAGING}/README.md
-        COMMAND ${CMAKE_COMMAND} -E copy
-            "${CMAKE_CURRENT_SOURCE_DIR}/z3fdb/README.md"
-            "${Z3FDB_STAGING}/README.md"
-        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/z3fdb/README.md"
-        COMMENT "Copying z3fdb README.md to staging..."
-    )
-    add_custom_command(
-        OUTPUT ${Z3FDB_STAGING}/LICENSE
-        COMMAND ${CMAKE_COMMAND} -E copy
-            "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
-            "${Z3FDB_STAGING}/LICENSE"
-        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
-        COMMENT "Copying LICENSE to staging..."
+    # Collect source .py files so the wheel target re-fires when they change.
+    file(GLOB_RECURSE _z3fdb_py_src_files
+        "${CMAKE_CURRENT_SOURCE_DIR}/z3fdb/*.py"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pychunked_data_view/*.py"
+        "${CMAKE_CURRENT_SOURCE_DIR}/chunked_data_view_bindings/__init__.py"
     )
 
     configure_file(
@@ -134,15 +94,6 @@ if (HAVE_PYTHON_ZARR_INTERFACE)
         @ONLY
     )
 
-    # setup.py reads install_requires from a file next to itself, so stage a copy.
-    add_custom_command(
-        OUTPUT ${Z3FDB_STAGING}/z3fdb-requirements.txt
-        COMMAND ${CMAKE_COMMAND} -E copy
-                ${Z3FDB_RUNTIME_REQUIREMENTS}
-                ${Z3FDB_STAGING}/z3fdb-requirements.txt
-        DEPENDS ${Z3FDB_RUNTIME_REQUIREMENTS}
-        COMMENT "Copying z3fdb-requirements.txt to staging..."
-    )
     add_subdirectory(chunked_data_view_bindings)
 
     # ---- Stub generation ----
@@ -197,10 +148,10 @@ if (HAVE_PYTHON_ZARR_INTERFACE)
         COMMAND ${CMAKE_COMMAND} -E touch wheel.stamp
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         DEPENDS
-            ${_z3fdb_staged_py_files}
-            ${Z3FDB_STAGING}/README.md
-            ${Z3FDB_STAGING}/LICENSE
-            ${Z3FDB_STAGING}/z3fdb-requirements.txt
+            ${_z3fdb_py_src_files}
+            "${CMAKE_CURRENT_SOURCE_DIR}/z3fdb/README.md"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
+            "${Z3FDB_RUNTIME_REQUIREMENTS}"
             ${CMAKE_BINARY_DIR}/z3fdb.stubs.stamp
         COMMENT "Building Python wheel for z3fdb..."
     )
