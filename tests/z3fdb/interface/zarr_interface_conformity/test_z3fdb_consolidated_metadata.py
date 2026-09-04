@@ -14,7 +14,7 @@ import zarr
 from zarr.core.buffer import default_buffer_prototype
 from zarr.core.sync import sync
 
-from tests.z3fdb.zarr_interface_conformity._mocks import MockChunkedDataView, make_array
+from tests.z3fdb.interface.zarr_interface_conformity._mocks import MockChunkedDataView, make_array
 from z3fdb._internal.zarr import FdbSource, FdbZarrArray, FdbZarrGroup, FdbZarrStore
 
 pytestmark = pytest.mark.offline
@@ -26,11 +26,7 @@ def _flat_metadata(store):
     return json.loads(buf.to_bytes())["consolidated_metadata"]["metadata"]
 
 
-# ---------------------------------------------------------------------------
 # Simple inline stores
-# ---------------------------------------------------------------------------
-
-
 def test_consolidated_metadata_flat_group():
     """Root group with two array children: flat metadata with keys {a, b}."""
     store = FdbZarrStore(FdbZarrGroup(name="", children=[make_array("a"), make_array("b")]))
@@ -90,10 +86,7 @@ def test_zmetadata_key_not_present():
     assert sync(store.get(".zmetadata", prototype=default_buffer_prototype())) is None
 
 
-# ---------------------------------------------------------------------------
 # Deep hierarchy — uses the shared deep_store fixture (see conftest.py)
-# ---------------------------------------------------------------------------
-
 _DEEP_ARRAYS = {
     "arr_root",
     "grp_a/arr_a1",
@@ -147,7 +140,7 @@ def test_consolidated_metadata_deep_group_node(deep_store, path, expected_nested
 
 def test_consolidated_metadata_zarr_api(deep_store):
     """zarr.open_group reads consolidated metadata and navigates nested nodes."""
-    root_group = zarr.open_group(deep_store, mode="r", zarr_format=3)
+    root_group = zarr.open_group(deep_store, mode="r")
     assert root_group.metadata
     array = root_group["grp_a/grp_a_inner/arr_ai1"]
     assert array.metadata

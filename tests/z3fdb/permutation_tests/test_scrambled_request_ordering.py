@@ -29,7 +29,7 @@ _MARS_BASE = {
 
 
 def _open_array(store):
-    return zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+    return zarr.open_array(store)
 
 
 def _scrambled_value_at(param, time, date):
@@ -61,7 +61,7 @@ def test_scrambled_request_canonical_axis_order(read_only_fdb_pattern_setup) -> 
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
             AxisDefinition(["step"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     data = _open_array(builder.build())
     assert data
@@ -94,7 +94,7 @@ def test_scrambled_request_swapped_axis_definitions(read_only_fdb_pattern_setup)
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
             AxisDefinition(["date"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     data = _open_array(builder.build())
     assert data
@@ -122,7 +122,7 @@ def test_scrambled_request_all_axes_merged_non_chunked(read_only_fdb_pattern_set
             "param": [167, 165, 166],
         },
         [AxisDefinition(["time", "step", "param", "date"], Chunking.WHOLE_AXIS)],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     data = _open_array(builder.build())
     assert data

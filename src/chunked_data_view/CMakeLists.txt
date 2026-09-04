@@ -15,8 +15,12 @@ add_library(chunked_data_view STATIC
     ChunkedDataViewImpl.cc
     ChunkedDataViewImpl.h
     Fdb.cc
-    GribExtractor.cc
-    GribExtractor.h
+    extractors/grib/GribExtractor.cc
+    extractors/grib/GribExtractor.h
+    extractors/grib/GribExtractorDefinition.cc
+    extractors/grib/GribExtractorDefinition.h
+    extractors/gribjump/GribJumpExtractorDefinition.cc
+    extractors/gribjump/GribJumpExtractorDefinition.h
     LibChunkedDataView.cc
     ListIterator.cc
     RequestManipulation.cc
@@ -28,6 +32,7 @@ add_library(chunked_data_view STATIC
     mapping/IndexMapper.cc
     mapping/IndexMapper.h
     exception/GribExtractorException.cc
+    exception/GribJumpExtractorException.cc
     exception/UnknownExtractorException.cc
     exception/BoundingBoxException.cc
     exception/RequestManipulationException.cc
@@ -42,6 +47,7 @@ add_library(chunked_data_view STATIC
     include/chunked_data_view/ListIterator.h
     include/chunked_data_view/Types.h
     include/chunked_data_view/exception/GribExtractorException.h
+    include/chunked_data_view/exception/GribJumpExtractorException.h
     include/chunked_data_view/exception/UnknownExtractorException.h
     include/chunked_data_view/exception/BoundingBoxException.h
     include/chunked_data_view/exception/RequestManipulationException.h
@@ -54,6 +60,19 @@ target_include_directories(chunked_data_view
     PRIVATE
         ${CMAKE_CURRENT_BINARY_DIR}
 )
+
+# GribJumpExtractor is the only part of this library that needs gribjump headers. The
+# definition (GribJumpExtractorDefinition) and its exception are gribjump-free and stay
+# unconditional, so the type remains complete — and bindable from Python — in every build.
+if(HAVE_ZARR_GRIBJUMP_EXTRACTOR)
+    target_sources(chunked_data_view PRIVATE
+        extractors/gribjump/GribJumpExtractor.cc
+        extractors/gribjump/GribJumpExtractor.h
+    )
+    target_link_libraries(chunked_data_view PRIVATE gribjump)
+    # PUBLIC: GribJumpExtractorDefinition.cc and chunked_data_view_bindings both switch on this.
+    target_compile_definitions(chunked_data_view PUBLIC HAVE_ZARR_GRIBJUMP_EXTRACTOR)
+endif()
 
 target_link_libraries(chunked_data_view
     PRIVATE

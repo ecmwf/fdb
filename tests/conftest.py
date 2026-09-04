@@ -13,6 +13,7 @@ import pathlib
 import shutil
 
 import eccodes as ec
+import numpy
 import pytest
 import yaml
 from numpy import repeat
@@ -27,6 +28,16 @@ def pytest_configure(config):
     )
     config.addinivalue_line(
         "markers", "online: tests that require network access to ECMWF open data"
+    )
+    config.addinivalue_line(
+        "markers",
+        "zfdb_user_tests: end-to-end user-facing tests showing how to consume a z3fdb store "
+        "(e.g. via dask, xarray) without FDB internals knowledge",
+    )
+    config.addinivalue_line(
+        "markers",
+        "gribjump: tests requiring the GribJump extractor (cmake feature "
+        "ZARR_GRIBJUMP_EXTRACTOR); skipped when the build does not provide it",
     )
 
 
@@ -461,3 +472,205 @@ def build_pattern_grib_messages(data_path, session_tmp) -> pathlib.Path:
 
     ec.codes_release(gid)
     return messages
+
+
+# ---------------------------------------------------------------------------
+# Ramp-pattern data: distinguishes fields *and* grid points
+# ---------------------------------------------------------------------------
+#
+# build_grib_messages sets the values once before its loop, so every field carries the
+# identical ramp -- a test cannot tell whether a field landed in the right buffer slot.
+# build_pattern_grib_messages gives each field a distinct *constant*, so it cannot tell
+# whether a sub-range of the implicit (grid-point) axis was read correctly.
+#
+# This fixture varies along both axes at once:
+#
+#     value(field, i) = field * _RAMP_FIELD_STRIDE + i
+#
+# The per-field term detects field -> slot mis-mapping; the +i ramp detects a wrong
+# grid-point range. field is the index into product(dates, times, params), which for the
+# z3fdb axes [date, time] x [param] is  (dt_idx * len(params)) + param_idx.
+
+_RAMP_FIELD_STRIDE = 10_000  # > grid size, so the two components never alias
+
+
+@pytest.fixture(scope="session")
+def build_ramp_pattern_grib_messages(data_path, session_tmp) -> pathlib.Path:
+    """GRIB messages whose values identify both the field and the grid point.
+
+    Uses the same date/time/param span as :func:`build_grib_messages`, so views built on it
+    keep the same shape and only the values differ.
+
+    bitsPerValue is raised to 32: with simple packing the quantum is
+    ``(max - min) / 2**bitsPerValue``, and the default from the template is too coarse to
+    round-trip values approaching a million. Tests should still compare with ``atol=0.5``
+    rather than exactly -- that absorbs any packing error while staying far below the
+    smallest difference that means anything here (1, one grid point).
+    """
+    tmp = session_tmp / "build_ramp_pattern_grib_messages"
+    tmp.mkdir()
+    template_grib = data_path / "template.grib"
+    assert template_grib.is_file()
+    with open(template_grib, "rb") as template_grib_fd:
+        gid = ec.codes_grib_new_from_file(template_grib_fd)
+
+    count_values = int(ec.codes_get(gid, "numberOfValues"))
+    assert int(ec.codes_get(gid, "numberOfDataPoints")) == count_values
+    assert int(ec.codes_get(gid, "numberOfMissing")) == 0
+    assert count_values < _RAMP_FIELD_STRIDE, "field stride must exceed the grid size"
+
+    ec.codes_set_string(gid, "type", "an")
+    ec.codes_set_string(gid, "class", "ea")
+    ec.codes_set_string(gid, "expver", "0001")
+    ec.codes_set_string(gid, "stream", "oper")
+    ec.codes_set_string(gid, "levtype", "sfc")
+    ec.codes_set(gid, "bitsPerValue", 32)
+
+    dates = [20200101, 20200102, 20200103, 20200104]
+    times = [0, 300, 600, 900, 1200, 1500, 1800, 2100]
+    parameters = [167, 131, 132]
+
+    ramp = numpy.arange(count_values)
+
+    messages = tmp / "test_data_ramp.grib"
+    with open(messages, "wb") as out:
+        for field, (date, time, parameter) in enumerate(
+            itertools.product(dates, times, parameters)
+        ):
+            ec.codes_set(gid, "date", date)
+            ec.codes_set(gid, "time", time)
+            ec.codes_set(gid, "paramId", parameter)
+            ec.codes_set_values(gid, field * _RAMP_FIELD_STRIDE + ramp)
+            ec.codes_write(gid, out)
+
+    ec.codes_release(gid)
+    return messages
+
+
+@pytest.fixture(scope="session")
+def read_only_fdb_ramp_setup(data_path, session_tmp, build_ramp_pattern_grib_messages) -> pathlib.Path:
+    """Read-only FDB holding the ramp-pattern data. See build_ramp_pattern_grib_messages."""
+    fdb_root = session_tmp / "ramp-pattern-fdb"
+    fdb_root.mkdir()
+    cfg = create_fdb(fdb_root, data_path / "schema")
+    populate_fdb(cfg, [build_ramp_pattern_grib_messages])
+    return cfg
+
+
+@pytest.fixture(scope="session")
+def ramp_expected():
+    """Callable giving the expected values of one (datetime, param) slice of the ramp data.
+
+    A fixture rather than a plain function so that tests in any subdirectory can reach it
+    without importing across directories.
+
+        expected = ramp_expected(dt_idx, param_idx, count_params, count_values)
+    """
+
+    def _expected(dt_idx: int, param_idx: int, count_params: int, count_values: int):
+        field = dt_idx * count_params + param_idx
+        return field * _RAMP_FIELD_STRIDE + numpy.arange(count_values, dtype="float64")
+
+    return _expected
+
+
+# ---------------------------------------------------------------------------
+# Bitmap data: exercises the missing-value path
+# ---------------------------------------------------------------------------
+#
+# Every other fixture asserts numberOfMissing == 0, so nothing covers the code that turns
+# GRIB bitmap sentinels into the configured fill value -- neither GribExtractor's
+# std::replace nor GribJumpExtractor's mask[j/64][j%64] bit indexing, which is the most
+# intricate line in the extractor.
+
+_BITMAP_SENTINEL = -9999.0
+
+# Chosen to land in several distinct 64-bit mask words, including both sides of the
+# 1312-value field-chunk boundary used by the GribJump tests, and the very first and last
+# grid point. A word/bit indexing error shows up as a shifted mask.
+_BITMAP_MISSING_INDICES = (0, 1, 63, 64, 65, 127, 1311, 1312, 1313, 2624, 5246, 5247)
+
+
+@pytest.fixture(scope="session")
+def bitmap_missing_indices() -> tuple:
+    """Grid-point indices flagged missing by the bitmap fixture.
+
+    A fixture rather than a plain constant so that tests in any subdirectory can reach it
+    without importing across directories.
+    """
+    return _BITMAP_MISSING_INDICES
+
+
+@pytest.fixture(scope="session")
+def build_bitmap_grib_messages(data_path, session_tmp) -> pathlib.Path:
+    """GRIB messages carrying a bitmap, over the ramp pattern.
+
+    Present points follow the same ``field * stride + i`` ramp as
+    :func:`build_ramp_pattern_grib_messages`, so a test can check that masking did not
+    shift the surviving values. The points in :data:`_BITMAP_MISSING_INDICES` are flagged
+    missing and must read back as the view's fill value, not as the sentinel.
+    """
+    tmp = session_tmp / "build_bitmap_grib_messages"
+    tmp.mkdir()
+    template_grib = data_path / "template.grib"
+    assert template_grib.is_file()
+    with open(template_grib, "rb") as template_grib_fd:
+        gid = ec.codes_grib_new_from_file(template_grib_fd)
+
+    count_values = int(ec.codes_get(gid, "numberOfValues"))
+    assert max(_BITMAP_MISSING_INDICES) < count_values
+
+    ec.codes_set_string(gid, "type", "an")
+    ec.codes_set_string(gid, "class", "ea")
+    ec.codes_set_string(gid, "expver", "0001")
+    ec.codes_set_string(gid, "stream", "oper")
+    ec.codes_set_string(gid, "levtype", "sfc")
+    ec.codes_set(gid, "bitsPerValue", 32)
+
+    # Order matters: the sentinel and the bitmap flag must be set before the values, so
+    # that eccodes builds the bitmap from them.
+    ec.codes_set(gid, "missingValue", _BITMAP_SENTINEL)
+    ec.codes_set(gid, "bitmapPresent", 1)
+
+    dates = [20200101, 20200102, 20200103, 20200104]
+    times = [0, 300, 600, 900, 1200, 1500, 1800, 2100]
+    parameters = [167, 131, 132]
+
+    ramp = numpy.arange(count_values)
+
+    messages = tmp / "test_data_bitmap.grib"
+    with open(messages, "wb") as out:
+        for field, (date, time, parameter) in enumerate(
+            itertools.product(dates, times, parameters)
+        ):
+            ec.codes_set(gid, "date", date)
+            ec.codes_set(gid, "time", time)
+            ec.codes_set(gid, "paramId", parameter)
+
+            values = (field * _RAMP_FIELD_STRIDE + ramp).astype("float64")
+            values[list(_BITMAP_MISSING_INDICES)] = _BITMAP_SENTINEL
+            ec.codes_set_values(gid, values)
+
+            # Without this the whole bitmap test suite passes vacuously: if eccodes did not
+            # actually build a bitmap, every point reads back as present and the assertions
+            # about masked points never get exercised.
+            assert int(ec.codes_get(gid, "bitmapPresent")) != 0, "no bitmap in the message"
+            assert int(ec.codes_get(gid, "numberOfMissing")) == len(_BITMAP_MISSING_INDICES), (
+                f"expected {len(_BITMAP_MISSING_INDICES)} missing values, "
+                f"got {int(ec.codes_get(gid, 'numberOfMissing'))}"
+            )
+
+            ec.codes_write(gid, out)
+
+    ec.codes_release(gid)
+    return messages
+
+
+@pytest.fixture(scope="session")
+def read_only_fdb_bitmap_setup(data_path, session_tmp, build_bitmap_grib_messages) -> pathlib.Path:
+    """Read-only FDB holding bitmapped data. See build_bitmap_grib_messages."""
+    fdb_root = session_tmp / "bitmap-fdb"
+    fdb_root.mkdir()
+    cfg = create_fdb(fdb_root, data_path / "schema")
+    populate_fdb(cfg, [build_bitmap_grib_messages])
+    return cfg

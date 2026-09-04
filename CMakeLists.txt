@@ -139,6 +139,15 @@ ecbuild_add_option( FEATURE PYTHON_ZARR_INTERFACE
                     DEFAULT OFF
                     REQUIRED_PACKAGES "NAME pybind11 VERSION 3.0.1" )
 
+### Enables the GribJump-backed extractor for the Zarr interface.
+### NOTE: gribjump itself depends on fdb5, so this is only satisfiable in a bundle build where
+### gribjump is a sibling project. It can never be satisfied by a standalone fdb build against
+### an installed gribjump, which is why it defaults to OFF.
+ecbuild_add_option( FEATURE ZARR_GRIBJUMP_EXTRACTOR
+                    DESCRIPTION "Build the GribJump-backed extractor (bundle builds only)"
+                    DEFAULT OFF
+                    REQUIRED_PACKAGES "NAME gribjump" )
+
 # We need PyFDB in case z3fdb is enabled
 if(HAVE_PYTHON_ZARR_INTERFACE AND NOT HAVE_PYTHON_FDB_INTERFACE)
     message( WARN "FDB Zarr interface requires python FDB interface. I enable ENABLE_PYTHON_FDB_INTERFACE to build the PyFDB interface" )

@@ -19,7 +19,7 @@ namespace chunked_data_view {
 class ChunkedDataViewImpl : public ChunkedDataView {
 public:
 
-    ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& partialViews, float fillValue,
+    ChunkedDataViewImpl(std::vector<std::pair<ViewPart, std::unique_ptr<Extractor>>> partialViews, float fillValue,
                         size_t extensionAxisIndex);
 
     /// Fills @p ptr with the float values of the chunk at @p chunkIndex.
@@ -57,14 +57,16 @@ private:  // members
     std::vector<size_t> chunkShape_{};
     std::vector<size_t> chunkedDataViewShape_{};
     std::vector<size_t> chunks_{};
-    std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>> parts_{};
+    std::vector<std::pair<ViewPart, std::unique_ptr<Extractor>>> parts_{};
     size_t extensionAxisIndex_{};
     float fillValue_;
 
 private:  // methods
 
-    /// Computes chunkShape_ from the parts, summing extensible-axis extents across all parts.
-    std::vector<size_t> chunkShape(const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& parts);
+    /// Computes chunkShape_ from the parts. For WholeAxisChunking on the extension axis,
+    /// all parts' extents are summed into one growing chunk. For SingleValueChunking and
+    /// FixedSizeChunking the representative chunk size is taken from the first part.
+    std::vector<size_t> chunkShape(const std::vector<std::pair<ViewPart, std::unique_ptr<Extractor>>>& parts);
 };
 
 }  // namespace chunked_data_view

@@ -9,14 +9,24 @@
 
 #include <memory>
 #include <optional>
-#include <tuple>
-#include <utility>
 
 namespace chunked_data_view {
 
+/// A field entry returned by a list/inspect call: the MARS key identifying the field
+/// and a pointer to its storage location (from which a DataHandle can be opened).
+struct ListElement {
+    fdb5::Key key;
+    std::shared_ptr<const fdb5::FieldLocation> location;
+
+    /// Opens a new DataHandle for this field.
+    std::unique_ptr<eckit::DataHandle> dataHandle() const {
+        return std::unique_ptr<eckit::DataHandle>(location->dataHandle());
+    }
+};
+
 /// Abstract iterator over FDB fields matching a MARS request.
 ///
-/// Each call to next() yields the MARS key and a data handle for one matching field,
+/// Each call to next() yields a ListElement for one matching field,
 /// or std::nullopt when the sequence is exhausted.
 class ListIteratorInterface {
 
@@ -24,8 +34,8 @@ public:
 
     virtual ~ListIteratorInterface() = default;
 
-    /// Returns the next (key, data-handle) pair, or std::nullopt if there are no more fields.
-    virtual std::optional<std::tuple<fdb5::Key, std::unique_ptr<eckit::DataHandle>>> next() = 0;
+    /// Returns the next field entry, or std::nullopt if there are no more fields.
+    virtual std::optional<ListElement> next() = 0;
 };
 
 
@@ -37,7 +47,7 @@ class ListIteratorWrapperImpl : public ListIteratorInterface {
 public:
 
     explicit ListIteratorWrapperImpl(fdb5::ListIterator listIterator) : listIterator_(std::move(listIterator)) {};
-    std::optional<std::tuple<fdb5::Key, std::unique_ptr<eckit::DataHandle>>> next() override;
+    std::optional<ListElement> next() override;
 };
 
 /// Wraps @p listIterator in a ListIteratorInterface-compatible heap object.

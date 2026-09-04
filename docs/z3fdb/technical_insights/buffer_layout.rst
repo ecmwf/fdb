@@ -36,8 +36,11 @@ grid-point values ``num_values``:
    * - ``FixedSizeChunk(k)``
      - ``k``
 
-The grid-point dimension (``num_values``) is always the trailing dimension and
-is never chunked.
+The grid-point dimension (``num_values``) is always the trailing dimension. It is a single
+chunk covering the whole field unless the part is served by a ``GribJump`` extractor configured
+with ``field_chunking``, in which case it is split into equally sized chunks and the formulas
+below use that per-chunk size rather than the full field size. See
+:ref:`z3fdb_extractor_backends`.
 
 Buffer Position Formula
 -----------------------
@@ -47,24 +50,24 @@ position along each axis ``i`` is:
 
 .. code-block:: text
 
-    local_i   = axis.index(key_i) − partAxisOffset[i]
+    local_i   = axis.index(key_i) - partAxisOffset[i]
     bufPos_i  = local_i + bufferOffset[i]
 
 Where:
 
 ``axis.index(key_i)``
    Zero-based position of the MARS key value returned by FDB within the
-   ``Part``'s local axis (range: ``0`` to ``axisSize_i − 1``).
+   ``Part``'s local axis (range: ``0`` to ``axisSize_i - 1``).
 
 ``partAxisOffset[i]``
    Start of the intersection within the ``Part``'s own local axis::
 
-       partAxisOffset[i] = intersection.lower[i] − partBoundingBox.lower[i]
+       partAxisOffset[i] = intersection.lower[i] - partBoundingBox.lower[i]
 
 ``bufferOffset[i]``
    Start of the intersection within the chunk buffer::
 
-       bufferOffset[i] = intersection.lower[i] − chunkBoundingBox.lower[i]
+       bufferOffset[i] = intersection.lower[i] - chunkBoundingBox.lower[i]
 
 ``local_i`` is the zero-based position of the field *within the intersection*
 along axis ``i``. Adding ``bufferOffset[i]`` shifts it to the correct slot
@@ -74,7 +77,7 @@ Flat Buffer Index
 -----------------
 
 The per-axis positions are combined into a single flat index using C-order
-(row-major) arithmetic — the rightmost axis varies fastest:
+(row-major) arithmetic. The rightmost axis varies fastest:
 
 .. code-block:: text
 
@@ -86,7 +89,7 @@ The per-axis positions are combined into a single flat index using C-order
     flatIndex = sum(bufPos_i × stride_i  for i in 0..N-1)
 
 Each position in the flat index corresponds to ``num_values`` consecutive
-``float32`` values — the decoded grid-point values for that field.
+``float32`` values, the decoded grid-point values for that field.
 
 .. note::
 

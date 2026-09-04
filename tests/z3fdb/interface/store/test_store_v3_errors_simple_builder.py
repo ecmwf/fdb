@@ -6,12 +6,9 @@ import logging
 import pytest
 
 from pychunked_data_view.exceptions import MarsRequestFormattingError
-from z3fdb import (
-    AxisDefinition,
-    Chunking,
-    ExtractorType,
-    SimpleStoreBuilder,
-)
+from z3fdb import AxisDefinition, Chunking, ExtractorType, SimpleStoreBuilder
+
+from chunked_data_view_bindings import has_gribjump_extractor
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -46,7 +43,7 @@ def test_extend_on_invalid_axis_raises(
             AxisDefinition(["time"], Chunking.SINGLE_VALUE),
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.extend_on_axis(invalid_axis)
 
@@ -80,8 +77,70 @@ def test_wrong_key(
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
             AxisDefinition(["date"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
 
     with pytest.raises(MarsRequestFormattingError):
+        builder.build()
+
+
+@pytest.mark.parametrize(
+    ("bad_keys", "match"),
+    [
+        (["steps"], "steps"),  # single typo
+        (["date", "times"], "times"),  # one correct, one typo
+    ],
+)
+def test_axis_key_absent_from_request_raises(bad_keys, match) -> None:
+    """AxisDefinition keys that are not present in the MARS request must raise
+    ValueError at add_part time — before any FDB connection is attempted."""
+    builder = SimpleStoreBuilder()
+    with pytest.raises(ValueError, match=match):
+        builder.add_part(
+            {
+                "type": "an",
+                "class": "ea",
+                "domain": "g",
+                "expver": "0001",
+                "stream": "oper",
+                "levtype": "sfc",
+                "date": "2020-01-01",
+                "time": 0,
+                "step": 0,
+                "param": 167,
+            },
+            [AxisDefinition(bad_keys, Chunking.SINGLE_VALUE)],
+            ExtractorType.Grib(),
+        )
+
+
+@pytest.mark.skipif(
+    has_gribjump_extractor,
+    reason="build compiled the GribJump extractor",
+)
+def test_gribjump_without_build_support_raises(read_only_fdb_setup) -> None:
+    """Using GribJump in a build without it must fail at build() and name the cmake flag.
+
+    ``ExtractorType.GribJump`` is bound in every build so that user code does not depend on how
+    fdb was compiled — which means the failure has to be actionable. This is the inverse of the
+    ``gribjump`` marker: it runs exactly where integration/gribjump/ is skipped.
+    """
+    builder = SimpleStoreBuilder(read_only_fdb_setup)
+    builder.add_part(
+        {
+            "type": "an",
+            "class": "ea",
+            "domain": "g",
+            "expver": "0001",
+            "stream": "oper",
+            "levtype": "sfc",
+            "date": "2020-01-01",
+            "time": 0,
+            "step": 0,
+            "param": 167,
+        },
+        [AxisDefinition(["param"], Chunking.SINGLE_VALUE)],
+        ExtractorType.GribJump(),
+    )
+    with pytest.raises(RuntimeError, match="ENABLE_ZARR_GRIBJUMP_EXTRACTOR"):
         builder.build()

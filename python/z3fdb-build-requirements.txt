@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: 2026 European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
+#
+# Build-time dependencies for the z3fdb wheel. NOT runtime dependencies: those live in
+# z3fdb-requirements.txt, which cmake/z3fdb_setup.py.in reads into install_requires.
+#
+# Consumed by the cmake targets in src/CMakeLists.txt via
+#     uvx --with-requirements python/z3fdb-build-requirements.txt ...
+# so that a CI runner shipping nothing but a Python interpreter can still build the wheel.
+
+# Wheel construction.
+#
+# NOTE: while `build` runs with isolation, it provisions setuptools and wheel itself in the
+# environment it creates per build, so those two are not strictly required here. They are listed
+# because they are genuine build dependencies of this project (z3fdb_setup.py.in imports
+# wheel.bdist_wheel directly), and so the set stays complete if `--no-isolation` is ever used.
+build
+setuptools
+wheel
+
+# Stub generation for the pybind11 extension module.
+pybind11-stubgen
+
+# pybind11-stubgen imports chunked_data_view_bindings to introspect it, so whatever that
+# import needs has to be available too. These are also runtime dependencies of the wheel;
+# they appear here because stub generation cannot import the module without them.
+#   chunked_data_view_bindings/__init__.py -> findlibs.load("fdb5")
+#   the extension registers py::array_t types -> numpy
+findlibs>=0.1.2
+numpy

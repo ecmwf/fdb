@@ -34,7 +34,7 @@ class MockChunkedDataView(ChunkedDataView):
         return self._shape
 
     @override
-    def chunkShape(self):
+    def chunk_shape(self):
         return self._chunk_shape
 
     @override

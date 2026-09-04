@@ -7,7 +7,7 @@ Dimension Mapping and Data Model
 A MARS request defines which data to retrieve from FDB. Each keyword
 with more than one value defines an axis and **must** be mapped to a
 Zarr dimension via :class:`~pychunked_data_view.AxisDefinition`.
-Keywords with a single value **may** also be mapped — useful when MARS
+Keywords with a single value **may** also be mapped. This is useful when MARS
 restricts a keyword to one value but you still want it as an explicit
 dimension in the resulting array.
 
@@ -119,8 +119,8 @@ Coordinate System
 
 A ChunkedDataView exposes an ``(N+1)``-dimensional integer index space:
 
-* **Axes 0 … N−1** — one per :class:`~pychunked_data_view.AxisDefinition`.
-* **Axis N** — the implicit trailing dimension holding the decoded
+* **Axes 0 to N-1**, one per :class:`~pychunked_data_view.AxisDefinition`.
+* **Axis N**, the implicit trailing dimension holding the decoded
   grid-point float32 values for each field.
 
 The array **shape** is::
@@ -131,8 +131,16 @@ All axis indices are zero-based. Axis sizes are determined by the total
 number of distinct values held across all ``parts`` (see
 `Combining Multiple MARS Requests`_ below).
 
+.. _z3fdb_chunking:
+
 Chunking
 --------
+
+.. note::
+
+   A ``GribJump`` part can also chunk the implicit grid-point axis, via ``field_chunking``. That
+   size must divide the grid exactly, and only the default whole-axis setting can be combined
+   with a ``Grib`` part. See :ref:`z3fdb_extractor_backends`.
 
 :class:`~pychunked_data_view.Chunking` determines how many values along
 a dimension are grouped into a single Zarr chunk:
@@ -149,7 +157,7 @@ a dimension are grouped into a single Zarr chunk:
    * - :attr:`~pychunked_data_view.Chunking.WHOLE_AXIS`
      - The entire axis is stored in a single chunk
      - Full axis length
-   * - :class:`~pychunked_data_view.Chunking.FixedSizeChunk` ``(chunkShape=k)``
+   * - :class:`~pychunked_data_view.Chunking.FixedSizeChunk` ``(chunk_shape=k)``
      - Groups every ``k`` consecutive values along the axis into one chunk.
        ``k`` must divide the axis length evenly.
      - ``k`` (user-specified)
@@ -167,18 +175,18 @@ values:
    # Chunk shape:  (4, 1, N)
 
    [
-       AxisDefinition(["date"], Chunking.FixedSizeChunk(chunkShape=2)),  # chunk size = 2
+       AxisDefinition(["date"], Chunking.FixedSizeChunk(chunk_shape=2)),  # chunk size = 2
        AxisDefinition(["param"], Chunking.SINGLE_VALUE),                  # chunk size = 1
    ]
    # Array shape:  (4, 3, N)
    # Chunk shape:  (2, 1, N)   ← two dates per chunk, four chunks total
 
 :class:`~pychunked_data_view.Chunking.FixedSizeChunk` is useful when
-neither extreme fits — for instance, when you want to batch a temporal
+neither extreme fits. For instance, when you want to batch a temporal
 axis into multi-day windows for efficient I/O while still keeping chunks
 small enough to fit in memory.
 
-A chunk is addressed by a *chunk-index tuple* ``(c0, c1, …, cN-1)`` —
+A chunk is addressed by a *chunk-index tuple* ``(c0, c1, ..., cN-1)``,
 one integer per MARS axis. The implicit values dimension is never
 chunked. Each chunk index ``ci`` maps to an axis range:
 
@@ -188,11 +196,11 @@ chunked. Each chunk index ``ci`` maps to an axis range:
    * - Chunking
      - Axis range covered by chunk index ``ci``
    * - ``SINGLE_VALUE``
-     - ``[ci, ci]`` — exactly one slot
+     - ``[ci, ci]``, exactly one slot
    * - ``WHOLE_AXIS``
-     - ``[0, size_i − 1]`` — the full axis (``ci`` is always 0)
-   * - ``FixedSizeChunk(chunkShape=k)``
-     - ``[ci × k, (ci + 1) × k − 1]`` — a window of ``k`` consecutive values
+     - ``[0, size_i - 1]``, the full axis (``ci`` is always 0)
+   * - ``FixedSizeChunk(chunk_shape=k)``
+     - ``[ci * k, (ci + 1) * k - 1]``, a window of ``k`` consecutive values
 
 The chunk's **bounding box** is the Cartesian product of these per-axis
 ranges. Its flat memory footprint is::
@@ -249,27 +257,33 @@ three axes reduces each chunk to a single field
      - Use when you always read the full axis in one go and want to
        reduce the number of FDB round-trips (e.g. a small ``step`` axis
        you always load entirely).
-   * - ``FixedSizeChunk(chunkShape=k)``
-     - Use when you need a middle ground — for example, batching a
+   * - ``FixedSizeChunk(chunk_shape=k)``
+     - Use when you need a middle ground. For example, batching a
        365-day date axis into weekly (``k=7``) or monthly (``k=30``)
        windows. ``k`` must divide the axis length exactly.
 
 Fill Value
 ----------
 
-When a chunk is accessed and some of its fields are absent from FDB,
-the missing slots are filled with a sentinel value. The default is
-``float('nan')``.
+The fill value is what Z3FDB writes in place of grid points a GRIB message flags as missing
+through its bitmap. It is also written into the zarr array metadata as ``fill_value``. The
+default is ``float('nan')``. See :ref:`z3fdb_missing_values` for what this means when
+reading data.
 
- To override it, call :meth:`~z3fdb.SimpleStoreBuilder.fill_missing_value` (or use
- :class:`~pychunked_data_view.ChunkedDataViewBuilder` directly):
+It is *not* a substitute for absent data: if a request matches fewer fields than the view
+expects, accessing the chunk raises rather than filling the gap. A view describes data that
+exists.
+
+To override it, call :meth:`~z3fdb.SimpleStoreBuilder.fill_missing_value` (or use
+:class:`~pychunked_data_view.ChunkedDataViewBuilder` directly). The call configures an existing
+array, so add a part first:
 
 .. code-block:: python
 
    from pychunked_data_view import ChunkedDataViewBuilder, AxisDefinition, Chunking, ExtractorType
 
    builder = ChunkedDataViewBuilder(fdb_config_file=None)
-   builder.add_part({...}, [...], ExtractorType.GRIB)
+   builder.add_part({...}, [...], ExtractorType.Grib())
    builder.fill_missing_value(-999.0)   # use -999.0 instead of NaN
    view = builder.build()
    print(view.fill_missing_value())  # -999.0
@@ -302,7 +316,7 @@ the same number of values across ``parts``.
            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
            AxisDefinition(["param"], Chunking.SINGLE_VALUE),
        ],
-       ExtractorType.GRIB,
+       ExtractorType.Grib(),
    )
 
    # Part 2: pressure level parameters
@@ -321,7 +335,7 @@ the same number of values across ``parts``.
            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
            AxisDefinition(["param", "levelist"], Chunking.SINGLE_VALUE),
        ],
-       ExtractorType.GRIB,
+       ExtractorType.Grib(),
    )
 
    # Extend on the param dimension (index 1)
@@ -334,7 +348,7 @@ The datetime dimension (index 0) must have the same values in both
 4 pressure-level combinations (2 params × 2 levels) = 6 entries total.
 
 Each ``part`` occupies a rectangular sub-region of the global index space
-described by a closed bounding box — one ``[lower_i, upper_i]`` interval
+described by a closed bounding box, one ``[lower_i, upper_i]`` interval
 per axis (both bounds **inclusive**). ``Parts`` tile the extension axis
 without overlap; their bounding boxes are identical on every other axis.
 
@@ -342,8 +356,8 @@ without overlap; their bounding boxes are identical on every other axis.
 
     Global index space after extend_on_axis(1):
 
-    Axis 0 (date×time) varies along rows (0–3).
-    Axis 1 (param) varies along columns (0–5).
+    Axis 0 (date x time) varies along rows, 0 to 3.
+    Axis 1 (param) varies along columns, 0 to 5.
 
                0   1   2   3   4   5
              ┌───┬───┬───┬───┬───┬───┐
@@ -362,10 +376,10 @@ without overlap; their bounding boxes are identical on every other axis.
 
 .. seealso::
 
-   :doc:`technical_insights/chunk_access` — how the library resolves a chunk
+   :doc:`technical_insights/chunk_access` for how the library resolves a chunk
    access into FDB sub-requests and writes each field into the correct buffer
    slot.
 
-   :doc:`technical_insights/buffer_layout` — the buffer position formula and
+   :doc:`technical_insights/buffer_layout` for the buffer position formula and
    flat-index calculation in full detail.
 

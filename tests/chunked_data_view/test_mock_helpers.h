@@ -12,11 +12,13 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <numeric>
 #include <optional>
 #include <tuple>
 #include <type_traits>
 #include <vector>
 #include "chunked_data_view/ListIterator.h"
+#include "chunked_data_view/Types.h"
 #include "chunked_data_view/ViewPart.h"
 #include "eckit/io/DataHandle.h"
 #include "fdb5/database/FieldLocation.h"
@@ -40,6 +42,22 @@ inline std::unique_ptr<eckit::DataHandle> makeHandle(const std::vector<double>& 
     return handle;
 };
 
+/// Minimal concrete fdb5::FieldLocation serving an in-memory field.
+struct MockFieldLocation final : public fdb5::FieldLocation {
+
+    explicit MockFieldLocation(std::vector<double> values) : values_(std::move(values)) {}
+
+    eckit::DataHandle* dataHandle() const override { return makeHandle(values_).release(); }
+
+    std::shared_ptr<const fdb5::FieldLocation> make_shared() const override {
+        return std::make_shared<const MockFieldLocation>(values_);
+    }
+
+    void visit(fdb5::FieldLocationVisitor&) const override {}
+
+    std::vector<double> values_;
+};
+
 struct MockListIterator final : public chunked_data_view::ListIteratorInterface {
 
     using vec2 = std::vector<std::tuple<fdb5::Key, std::vector<double>>>;
@@ -48,14 +66,15 @@ struct MockListIterator final : public chunked_data_view::ListIteratorInterface 
 
     MockListIterator(vec2 data) : data_(std::move(data)), iter_(std::begin(data_)) {};
 
-    std::optional<std::tuple<fdb5::Key, std::unique_ptr<eckit::DataHandle>>> next() {
+    std::optional<chunked_data_view::ListElement> next() override {
         iter_++;
 
         if (std::end(data_) == iter_) {
             return std::nullopt;
         }
 
-        return std::make_tuple(std::get<0>(*iter_), makeHandle(std::get<1>(*iter_)));
+        return chunked_data_view::ListElement{std::get<0>(*iter_),
+                                              std::make_shared<const MockFieldLocation>(std::get<1>(*iter_))};
     };
 };
 
@@ -80,8 +99,13 @@ struct MockFdb final : public cdv::FdbInterface {
     InsFunc insFn{};
 };
 
-inline std::shared_ptr<MockFdb> createMockFDB(size_t fieldAmount = 1) {
-    const std::vector<double> values = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+/// @param fieldAmount  how many entries the inspect() iterator holds. NOTE: MockListIterator
+///                     pre-increments before returning, so it yields fieldAmount - 1 elements.
+/// @param countValues  values per field, i.e. the extent of the implicit (grid-point) axis.
+///                     Vary it to build parts whose grids disagree.
+inline std::shared_ptr<MockFdb> createMockFDB(size_t fieldAmount = 1, size_t countValues = 10) {
+    std::vector<double> values(countValues);
+    std::iota(values.begin(), values.end(), 1.0);
     return std::make_shared<MockFdb>(
         [values](auto& _) { return makeHandle(values); },
         [fieldAmount, values](auto& _) -> std::unique_ptr<chunked_data_view::ListIteratorInterface> {
@@ -94,20 +118,19 @@ struct FakeExtractor : public cdv::Extractor {
 
     std::shared_ptr<chunked_data_view::FdbInterface> mock_;
 
-    explicit FakeExtractor(std::shared_ptr<chunked_data_view::FdbInterface> mock_fdb) : mock_(mock_fdb) {}
-
-    cdv::DataLayout layout(const metkit::mars::MarsRequest& mars_request) const override {
-        const auto handle = mock_->retrieve(mars_request);
-        cdv::DataLayout layout{};
+    explicit FakeExtractor(std::shared_ptr<chunked_data_view::FdbInterface> mock_fdb) : mock_(mock_fdb) {
+        // The mock's retrieve() ignores the request, so a default-constructed one suffices.
+        const auto handle = mock_->retrieve(metkit::mars::MarsRequest{});
         handle->openForRead();
-        EXPECT_EQUAL(handle->read(&layout.countValues, sizeof(layout.countValues)), sizeof(layout.countValues));
-        EXPECT_EQUAL(handle->read(&layout.bytesPerValue, sizeof(layout.bytesPerValue)), sizeof(layout.bytesPerValue));
+        EXPECT_EQUAL(handle->read(&layout_.countValues, sizeof(layout_.countValues)), sizeof(layout_.countValues));
+        EXPECT_EQUAL(handle->read(&layout_.bytesPerValue, sizeof(layout_.bytesPerValue)),
+                     sizeof(layout_.bytesPerValue));
         handle->close();
-        return layout;
+        layout_.countChunkValues = layout_.countValues;  // full field = single implicit chunk
     }
 
     size_t extractInto(const chunked_data_view::ViewPart& part,
-                       const chunked_data_view::ChunkedDataViewPartBoundingBox& chunkBoundingBox,
+                       const chunked_data_view::ChunkBoundingBox& chunkBoundingBox,
                        const chunked_data_view::ChunkedDataViewPartBoundingBox& intersectionBoundingBox, float* ptr,
                        size_t len) const override {
 
@@ -125,4 +148,26 @@ struct FakeExtractor : public cdv::Extractor {
 
         return written;
     };
+};
+
+/// ExtractorDefinition backed by a shared mock FDB.
+/// buildExtractor() creates a fresh FakeExtractor each call (satisfying unique_ptr
+/// ownership), while all copies share the same mock FDB instance so multi-part tests
+/// can share a single createMockFDB() result across several addPart() calls.
+struct FakeExtractorDefinition : public cdv::ExtractorDefinition {
+    std::shared_ptr<chunked_data_view::FdbInterface> mock_fdb_;
+
+    explicit FakeExtractorDefinition(std::shared_ptr<chunked_data_view::FdbInterface> mock_fdb) :
+        mock_fdb_(std::move(mock_fdb)) {}
+
+    /// No-op: the mock FDB ignores configuration entirely.
+    void setDefaultIfUnset(const std::optional<std::filesystem::path>& fdbConfigPath) override {}
+
+    std::unique_ptr<ExtractorDefinition> copy() const override {
+        return std::make_unique<FakeExtractorDefinition>(*this);
+    }
+
+    std::unique_ptr<cdv::Extractor> buildExtractor(const metkit::mars::MarsRequest&) const override {
+        return std::make_unique<FakeExtractor>(mock_fdb_);
+    }
 };

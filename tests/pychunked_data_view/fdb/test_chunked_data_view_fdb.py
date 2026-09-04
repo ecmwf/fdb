@@ -1,8 +1,8 @@
 # SPDX-FileCopyrightText: 2025 European Centre for Medium-Range Weather Forecasts (ECMWF)
 # SPDX-License-Identifier: Apache-2.0
-import numpy as np
 import itertools
 
+import numpy as np
 
 from pychunked_data_view import (
     AxisDefinition,
@@ -40,7 +40,7 @@ def test_axis_definition_individual_chunk():
     assert obj.chunking == Chunking.FixedSizeChunk(2)
 
 
-def test_builder(read_only_fdb_setup):
+def test_builder_fdb(read_only_fdb_setup):
     builder = ChunkedDataViewBuilder(read_only_fdb_setup)
     builder.add_part(
         {
@@ -59,7 +59,7 @@ def test_builder(read_only_fdb_setup):
             AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.fill_missing_value(-20.0)
     view = builder.build()

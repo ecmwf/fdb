@@ -46,9 +46,9 @@ def test_zarr_use_spec_v2(read_only_fdb_setup) -> None:
 
 def test_access(read_only_fdb_setup) -> None:
     builder = SimpleStoreBuilder(read_only_fdb_setup)
-    builder.add_part(_MARS_REQUEST, _AXES, ExtractorType.GRIB)
+    builder.add_part(_MARS_REQUEST, _AXES, ExtractorType.Grib())
     store = builder.build()
-    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+    data = zarr.open_array(store)
     assert data
     log.debug("shape=%s", data.shape)
     log.debug("data[:, :]=%s", data[:, :])
@@ -77,10 +77,10 @@ def test_axis_check_out_of_bounds(read_only_fdb_setup_for_sfc_pl_example) -> Non
             AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     store = builder.build()
-    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+    data = zarr.open_array(store)
 
     assert data
 
@@ -102,7 +102,7 @@ def test_store_list_chunks_complete(read_only_fdb_setup) -> None:
       - All fields carry identical values: range(0, grid_points) as float32
     """
     builder = SimpleStoreBuilder(read_only_fdb_setup)
-    builder.add_part(_MARS_REQUEST, _AXES, ExtractorType.GRIB)
+    builder.add_part(_MARS_REQUEST, _AXES, ExtractorType.Grib())
     store = builder.build()
 
     # Expected key counts derived from the fixture's data generation
@@ -124,7 +124,7 @@ def test_store_list_chunks_complete(read_only_fdb_setup) -> None:
     assert len(chunk_keys) == EXPECTED_CHUNKS, f"expected {EXPECTED_CHUNKS} chunk keys, got {len(chunk_keys)}"
 
     # Determine grid size from the zarr metadata so we don't hard-code it
-    data = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+    data = zarr.open_array(store)
     grid_points = data.shape[-1]
     expected_bytes = grid_points * 4  # float32 = 4 bytes per value
     log.debug(

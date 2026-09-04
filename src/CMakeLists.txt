@@ -8,37 +8,81 @@ add_subdirectory(chunked_data_view)
 
 if (HAVE_PYTHON_ZARR_INTERFACE)
     # We create the complete python package layout at this location.
-    # This allows us to run python wheel creation at this path and 
+    # This allows us to run python wheel creation at this path and
     # to put this path on the PYTHONPATH to allow direct use of
     # z3fdb, e.g. for testing or local exploration.
     set(Z3FDB_STAGING "${CMAKE_BINARY_DIR}/z3fdb-python-package-staging")
-    file(MAKE_DIRECTORY "${Z3FDB_STAGING}")
+
+    # Python build tooling is run through uvx rather than the build machine's interpreter, so a
+    # CI runner that ships only an interpreter can still build the wheel. uvx resolves each tool
+    # into an ephemeral environment; build-requirements.txt lists what has to be in it.
+    set(Z3FDB_BUILD_REQUIREMENTS "${CMAKE_CURRENT_SOURCE_DIR}/../python/z3fdb-build-requirements.txt")
+    if(NOT EXISTS "${Z3FDB_BUILD_REQUIREMENTS}")
+        message(FATAL_ERROR "Missing ${Z3FDB_BUILD_REQUIREMENTS}, required to build the z3fdb wheel.")
+    endif()
+
+    # Runtime dependencies of the wheel. setup.py reads this into install_requires, so it is
+    # staged next to the generated setup.py below. Kept separate from the build requirements so
+    # that build tooling never reaches the wheel metadata.
+    set(Z3FDB_RUNTIME_REQUIREMENTS "${CMAKE_CURRENT_SOURCE_DIR}/../python/z3fdb-requirements.txt")
+    if(NOT EXISTS "${Z3FDB_RUNTIME_REQUIREMENTS}")
+        message(FATAL_ERROR "Missing ${Z3FDB_RUNTIME_REQUIREMENTS}, required to build the z3fdb wheel.")
+    endif()
+
+    find_program(UVX_EXECUTABLE NAMES uvx
+                 DOC "uv tool runner (uvx), used to run the Python build tooling")
+    if(NOT UVX_EXECUTABLE)
+        message(FATAL_ERROR
+            "uvx not found, but ENABLE_PYTHON_ZARR_INTERFACE=ON needs it to build the wheel. "
+            "Install uv (https://docs.astral.sh/uv/) or point -DUVX_EXECUTABLE=/path/to/uvx at it.")
+    endif()
+
+    # Create staging subdirectories that cannot be symlinks: the compiled .so is
+    # written directly into chunked_data_view_bindings/ by the linker, and the
+    # stubs are generated there by pybind11-stubgen.
+    file(MAKE_DIRECTORY
+        "${Z3FDB_STAGING}"
+        "${Z3FDB_STAGING}/chunked_data_view_bindings"
+        "${Z3FDB_STAGING}/chunked_data_view_bindings-stubs"
+    )
+
+    # ---- Symlinks (configure time) ----
+    # Pure-Python source directories are symlinked so that edits are immediately
+    # visible in the staging tree without a ninja run.
+    foreach(_dir z3fdb pychunked_data_view)
+        file(CREATE_LINK
+            "${CMAKE_CURRENT_SOURCE_DIR}/${_dir}"
+            "${Z3FDB_STAGING}/${_dir}"
+            SYMBOLIC
+            RESULT _ignored  # non-fatal on re-configure when symlink already exists
+        )
+    endforeach()
+    # File symlinks for items that live inside the mixed chunked_data_view_bindings/
+    # dir or at the staging root.
     file(CREATE_LINK
-        "${CMAKE_CURRENT_SOURCE_DIR}/z3fdb"
-        "${Z3FDB_STAGING}/z3fdb" SYMBOLIC
-    )
+        "${CMAKE_CURRENT_SOURCE_DIR}/chunked_data_view_bindings/__init__.py"
+        "${Z3FDB_STAGING}/chunked_data_view_bindings/__init__.py"
+        SYMBOLIC RESULT _ignored)
     file(CREATE_LINK
-        "${CMAKE_CURRENT_SOURCE_DIR}/pychunked_data_view"
-        "${Z3FDB_STAGING}/pychunked_data_view" SYMBOLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/z3fdb/README.md"
+        "${Z3FDB_STAGING}/README.md"
+        SYMBOLIC RESULT _ignored)
+    file(CREATE_LINK
+        "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
+        "${Z3FDB_STAGING}/LICENSE"
+        SYMBOLIC RESULT _ignored)
+    file(CREATE_LINK
+        "${Z3FDB_RUNTIME_REQUIREMENTS}"
+        "${Z3FDB_STAGING}/z3fdb-requirements.txt"
+        SYMBOLIC RESULT _ignored)
+
+    # Collect source .py files so the wheel target re-fires when they change.
+    file(GLOB_RECURSE _z3fdb_py_src_files
+        "${CMAKE_CURRENT_SOURCE_DIR}/z3fdb/*.py"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pychunked_data_view/*.py"
+        "${CMAKE_CURRENT_SOURCE_DIR}/chunked_data_view_bindings/__init__.py"
     )
-    # Copy README.md and LICENSE at build time so changes are picked up
-    # without needing to re-run cmake configure
-    add_custom_command(
-        OUTPUT ${Z3FDB_STAGING}/README.md
-        COMMAND ${CMAKE_COMMAND} -E copy
-            "${CMAKE_CURRENT_SOURCE_DIR}/z3fdb/README.md"
-            "${Z3FDB_STAGING}/README.md"
-        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/z3fdb/README.md"
-        COMMENT "Copying z3fdb README.md to staging..."
-    )
-    add_custom_command(
-        OUTPUT ${Z3FDB_STAGING}/LICENSE
-        COMMAND ${CMAKE_COMMAND} -E copy
-            "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
-            "${Z3FDB_STAGING}/LICENSE"
-        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
-        COMMENT "Copying LICENSE to staging..."
-    )
+
     configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/z3fdb_setup.py.in
         ${Z3FDB_STAGING}/setup.py
@@ -49,64 +93,66 @@ if (HAVE_PYTHON_ZARR_INTERFACE)
         ${Z3FDB_STAGING}/setup.cfg
         @ONLY
     )
-    add_subdirectory(chunked_data_view_bindings)
-    set(_z3fdb_package_files
-        "z3fdb/simple_store_builder.py"
-        "z3fdb/z3fdb_error.py"
-        "z3fdb/__init__.py"
-        "z3fdb/_internal/zarr.py"
-        "pychunked_data_view/__init__.py"
-        "pychunked_data_view/chunked_data_view.py"
-        "pychunked_data_view/exceptions.py"
-        "chunked_data_view_bindings/__init__.py"
-    )
-    list(APPEND _z3fdb_package_files
-        "${Z3FDB_STAGING}/README.md"
-        "${Z3FDB_STAGING}/LICENSE"
-    )
-    # chunked_data_view_bindings/__init__.py calls findlibs.load("fdb5") before
-    # the extension module is imported, and findlibs to locate the library.
-    # FDB5_HOME points findlibs directly at the fdb5 build output directory so
-    # it can find fdb5lib there.
-    #
-    # Stubgen writes into a temporary directory; only chunked_data_view_bindings.pyi
-    # is copied next to the *.so. The temp dir (including any __init__.pyi) is
-    # removed afterwards.
-    # TODO(TKR): Enable this once the isolated build environment for python wheels is in place
-    # add_custom_command(
-    #     OUTPUT ${CMAKE_BINARY_DIR}/stubs.stamp
-    #     COMMAND ${CMAKE_COMMAND} -E env
-    #             "PYTHONPATH=${Z3FDB_STAGING}"
-    #             "FDB5_HOME=${CMAKE_BINARY_DIR}"
-    #             ${Python_EXECUTABLE} -m pybind11_stubgen
-    #                 chunked_data_view_bindings.chunked_data_view_bindings
-    #                 -o ${CMAKE_BINARY_DIR}/stubs_tmp
-    #     COMMAND ${CMAKE_COMMAND} -E copy
-    #             ${CMAKE_BINARY_DIR}/stubs_tmp/chunked_data_view_bindings/chunked_data_view_bindings.pyi
-    #             ${Z3FDB_STAGING}/chunked_data_view_bindings/chunked_data_view_bindings.pyi
-    #     COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_BINARY_DIR}/stubs_tmp
-    #     COMMAND ${CMAKE_COMMAND} -E touch
-    #             ${Z3FDB_STAGING}/chunked_data_view_bindings/py.typed
-    #     COMMAND ${CMAKE_COMMAND} -E touch stubs.stamp
-    #     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    #     DEPENDS
-    #         "chunked_data_view_bindings/__init__.py"
-    #         chunked_data_view_bindings
-    #         fdb5
-    #     COMMENT "Generating stubs and py.typed for chunked_data_view_bindings..."
-    # )
-    # list(APPEND _z3fdb_package_files
-    #     ${CMAKE_BINARY_DIR}/stubs.stamp
-    # )
 
+    add_subdirectory(chunked_data_view_bindings)
+
+    # ---- Stub generation ----
+    # chunked_data_view_bindings/__init__.py calls findlibs.load("fdb5") before
+    # the extension module is imported. FDB5_HOME points findlibs directly at the
+    # fdb5 build output directory so it can find fdb5lib there.
+    #
+    # Stubs are written to a PEP 561 stub-only package directory
+    # (chunked_data_view_bindings-stubs/) in the staging tree. This keeps the
+    # runtime package (chunked_data_view_bindings/) free of .pyi files and lets
+    # type checkers discover stubs via the standard stub-package lookup.
+    add_custom_command(
+        OUTPUT ${CMAKE_BINARY_DIR}/z3fdb.stubs.stamp
+        COMMAND ${CMAKE_COMMAND} -E env
+                "PYTHONPATH=${Z3FDB_STAGING}"
+                "FDB5_HOME=${CMAKE_BINARY_DIR}"
+                ${UVX_EXECUTABLE}
+                    --python ${Python_VERSION}
+                    --from pybind11-stubgen
+                    --with-requirements ${Z3FDB_BUILD_REQUIREMENTS}
+                    --isolated
+                    pybind11-stubgen
+                        chunked_data_view_bindings
+                        -o ${CMAKE_BINARY_DIR}/stubs_tmp
+        COMMAND ${CMAKE_COMMAND} -E copy
+                ${CMAKE_BINARY_DIR}/stubs_tmp/chunked_data_view_bindings/chunked_data_view_bindings.pyi
+                ${Z3FDB_STAGING}/chunked_data_view_bindings-stubs/chunked_data_view_bindings.pyi
+        COMMAND ${CMAKE_COMMAND} -E copy
+                ${CMAKE_BINARY_DIR}/stubs_tmp/chunked_data_view_bindings/__init__.pyi
+                ${Z3FDB_STAGING}/chunked_data_view_bindings-stubs/__init__.pyi
+        COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_BINARY_DIR}/stubs_tmp
+        COMMAND ${CMAKE_COMMAND} -E touch
+                ${Z3FDB_STAGING}/chunked_data_view_bindings-stubs/py.typed
+        COMMAND ${CMAKE_COMMAND} -E touch z3fdb.stubs.stamp
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        DEPENDS
+            ${Z3FDB_STAGING}/chunked_data_view_bindings/__init__.py
+            chunked_data_view_bindings
+            fdb5
+        COMMENT "Generating stubs for chunked_data_view_bindings (-> chunked_data_view_bindings-stubs/)..."
+    )
+
+    # ---- Wheel ----
     add_custom_command(
         OUTPUT ${CMAKE_BINARY_DIR}/wheel.stamp
-        COMMAND ${Python_EXECUTABLE} -m build --wheel ${Z3FDB_STAGING} -o .
+        COMMAND ${UVX_EXECUTABLE}
+                    --python ${Python_VERSION}
+                    --from build
+                    --isolated
+                    --with-requirements ${Z3FDB_BUILD_REQUIREMENTS}
+                    pyproject-build --wheel ${Z3FDB_STAGING} -o .
         COMMAND ${CMAKE_COMMAND} -E touch wheel.stamp
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         DEPENDS
-            ${_z3fdb_package_files}
-            chunked_data_view_bindings
+            ${_z3fdb_py_src_files}
+            "${CMAKE_CURRENT_SOURCE_DIR}/z3fdb/README.md"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
+            "${Z3FDB_RUNTIME_REQUIREMENTS}"
+            ${CMAKE_BINARY_DIR}/z3fdb.stubs.stamp
         COMMENT "Building Python wheel for z3fdb..."
     )
     add_custom_target(z3fdb-wheel ALL DEPENDS ${CMAKE_BINARY_DIR}/wheel.stamp)

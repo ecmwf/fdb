@@ -34,7 +34,7 @@ def test_malformed_mars_string_raises(read_only_fdb_setup, malformed_request, ex
     builder = ChunkedDataViewBuilder(read_only_fdb_setup)
     # Inject the malformed MARS string at the bindings level — addPart() stores it
     # without parsing, so no error fires here; it fires in build().
-    builder._obj.add_part(malformed_request, [], ExtractorType.GRIB.value)
+    builder._obj.add_part(malformed_request, [], ExtractorType.Grib()._obj)
     with pytest.raises(MarsRequestFormattingError, match=expected_hint):
         builder.build()
 
@@ -62,7 +62,7 @@ def test_misspelled_mars_key_raises(read_only_fdb_setup) -> None:
             "klasse": "ea",  # 'klasse' is not a valid MARS key
         },
         [AxisDefinition(["param"], Chunking.SINGLE_VALUE)],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     with pytest.raises(MarsRequestFormattingError, match="Did you misspell a MARS key"):
         builder.build()
@@ -75,3 +75,16 @@ def test_invalid_chunking_type_raises() -> None:
     """
     with pytest.raises(TypeError, match="chunking must be Chunking"):
         AxisDefinition(["param"], object())
+
+
+@pytest.mark.parametrize("chunk_shape", [0], ids=["zero"])
+def test_invalid_fixed_chunk_size_rejected_on_construction(chunk_shape) -> None:
+    """A non-positive chunk size is refused by FixedSizeChunking itself.
+
+    AxisDefinition::FixedSizeChunking asserts chunkSize > 0 in its constructor, so this fails
+    as soon as the chunking object is built — before any AxisDefinition, builder, request or
+    FDB is involved. Placed here rather than with the extractor tests because it is a property
+    of the chunking type, independent of which extractor consumes it.
+    """
+    with pytest.raises(Exception, match="The supplied chunk shape needs to be positive"):
+        Chunking.FixedSizeChunk(chunk_shape=chunk_shape)

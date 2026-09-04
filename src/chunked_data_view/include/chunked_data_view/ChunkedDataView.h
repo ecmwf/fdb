@@ -14,7 +14,10 @@ namespace chunked_data_view {
 /// corresponding field values from FDB.
 ///
 /// The last dimension is always the implicit field-values dimension (one entry per grid
-/// point in a GRIB message); it is never chunked and is always returned as a contiguous block.
+/// point in a GRIB message). It forms a single chunk by default, but a GribJump-backed part
+/// may subdivide it (see ExtractorType::GribJump's field chunking), in which case its chunk
+/// index varies like any other dimension. Its chunk size must divide the grid exactly: that
+/// dimension cannot be left ragged.
 class ChunkedDataView {
 public:
 
