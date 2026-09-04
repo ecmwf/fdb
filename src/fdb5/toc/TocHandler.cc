@@ -674,6 +674,7 @@ eckit::LocalPathName TocHandler::parseSubTocRecord(const TocRecord& r, bool read
     eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
     eckit::LocalPathName path;
     s >> path;
+
     // Handle both path and absPath for compatibility as we move from storing
     // absolute paths to relative paths. Either may exist in either the TOC_SUB_TOC
     // or TOC_CLEAR entries.
@@ -682,7 +683,17 @@ eckit::LocalPathName TocHandler::parseSubTocRecord(const TocRecord& r, bool read
     if (path.path()[0] == '/') {
         absPath = findRealPath(path);
         if (!absPath.exists()) {
-            absPath = currentDirectory() / path.baseName();
+            // the DB may have been moved, so try to find the subtoc in the current directory
+            // except in case of an overlay (subtoc name = "toc")
+            if (path.baseName() != "toc") {
+                absPath = currentDirectory() / path.baseName();
+            }
+            else {
+                eckit::Log::error()
+                    << "Skipping an FDB overlay database that is no longer available. Original path was: " << path
+                    << std::endl;
+                absPath = "";
+            }
         }
     }
     else {
