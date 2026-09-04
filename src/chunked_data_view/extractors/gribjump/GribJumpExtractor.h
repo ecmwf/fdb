@@ -74,6 +74,7 @@ private:  // members
     std::unique_ptr<FdbInterface> fdb_;
     std::unique_ptr<gribjump::GribJump> gj_;
     float fillValue_ = std::numeric_limits<float>::quiet_NaN();
+    std::string gridHash_;  // md5GridSection of the grid; required by gribjump extraction
 
     /// Serialises extractInto(). fdb_ and gj_ are shared mutable backend state, but
     /// extractInto() is const and the pybind11 layer releases the GIL around it, so a threaded

@@ -49,6 +49,7 @@ GribJumpExtractor::GribJumpExtractor(std::unique_ptr<FdbInterface> fdb, std::uni
     }
 
     const size_t countValues = msg.getSize("values");
+    gridHash_ = msg.getString("md5GridSection");
 
     // Same paramId sanity check as GribExtractor constructor.
     if (marsRequest.has("param")) {
@@ -198,7 +199,7 @@ size_t GribJumpExtractor::extractInto(const ViewPart& part, const ChunkBoundingB
 
         gj_requests.emplace_back(location_uri.path(), location_uri.scheme(), fieldOffset, location_uri.host(),
                                  location_uri.port() > 0 ? location_uri.port() : 0,
-                                 std::vector<gribjump::Range>{chunkRange});
+                                 std::vector<gribjump::Range>{chunkRange}, gridHash_);
     }
 
     if (gj_keys.empty()) {

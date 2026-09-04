@@ -123,17 +123,21 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
         .def_readwrite("name", &cdv::AxisDefinition::name, "str | None: Optional zarr dimension name.");
 
     // ChunkedDataView
-    py::class_<cdv::ChunkedDataView>(m, "ChunkedDataView",
-                                     "Read-only N-dimensional chunked array backed by FDB field data.\n\n"
-                                     "Coordinates are expressed as chunk indices: one integer per dimension\n"
-                                     "identifying a chunk's position in the chunk grid. Fetching a chunk\n"
-                                     "triggers one or more FDB retrievals and assembles the field values into\n"
-                                     "a contiguous ``float32`` numpy array.\n\n"
-                                     "The last dimension is the implicit grid-point dimension (number of values\n"
-                                     "per GRIB message). It is a single chunk by default; a GribJump-backed part\n"
-                                     "may subdivide it via field_chunking, in which case its chunk index varies\n"
-                                     "like any other dimension.\n\n"
-                                     "Instances are created exclusively by :meth:`ChunkedDataViewBuilder.build`.")
+    // The view owns an FDB handle, and a GribJump client, per part through its extractors.
+    // Destroying it closes them, which can block, so the GIL is dropped for the destructor.
+    // smart_holder is what makes that option available.
+    py::class_<cdv::ChunkedDataView, py::smart_holder>(
+        m, "ChunkedDataView", py::release_gil_before_calling_cpp_dtor(),
+        "Read-only N-dimensional chunked array backed by FDB field data.\n\n"
+        "Coordinates are expressed as chunk indices: one integer per dimension\n"
+        "identifying a chunk's position in the chunk grid. Fetching a chunk\n"
+        "triggers one or more FDB retrievals and assembles the field values into\n"
+        "a contiguous ``float32`` numpy array.\n\n"
+        "The last dimension is the implicit grid-point dimension (number of values\n"
+        "per GRIB message). It is a single chunk by default; a GribJump-backed part\n"
+        "may subdivide it via field_chunking, in which case its chunk index varies\n"
+        "like any other dimension.\n\n"
+        "Instances are created exclusively by :meth:`ChunkedDataViewBuilder.build`.")
         .def(
             "at",
             [](cdv::ChunkedDataView* view, const cdv::ChunkedDataView::Index index) {
@@ -275,13 +279,14 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
         .def(py::init([](std::optional<std::filesystem::path> fdbConfigPath) {
                  return cdv::ChunkedDataViewBuilder(fdbConfigPath);
              }),
-             py::arg("fdb_config_path") = py::none(),
+             py::arg("fdb_config_path") = py::none(), py::call_guard<py::gil_scoped_release>(),
              "Args:\n"
              "    fdb_config_path (pathlib.Path | None): Path to an FDB configuration file.\n"
              "        ``None`` (default) lets FDB resolve its configuration from the\n"
              "        environment (``FDB5_CONFIG`` / ``FDB_HOME``).")
         .def("add_part", &cdv::ChunkedDataViewBuilder::addPart, py::arg("mars_request"), py::arg("axes"),
              py::arg("extractor_type"), py::return_value_policy::reference_internal,
+             py::call_guard<py::gil_scoped_release>(),
              "Register one part of the view.\n\n"
              "Each MARS keyword in *mars_request* that carries more than one value must\n"
              "appear in exactly one :class:`AxisDefinition` in *axes*. Multiple keywords\n"
@@ -308,7 +313,7 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
              "    TypeError: If *extractor* is not an ``ExtractorType.Grib`` or\n"
              "               ``ExtractorType.GribJump`` instance.")
         .def("extend_on_axis", &cdv::ChunkedDataViewBuilder::extendOnAxis, py::arg("axis"),
-             py::return_value_policy::reference_internal,
+             py::return_value_policy::reference_internal, py::call_guard<py::gil_scoped_release>(),
              "Declare the axis index along which multiple parts are concatenated.\n\n"
              "Required when more than one part is added; ignored for single-part views.\n"
              "All parts must have identical extents on every axis except this one.\n\n"
@@ -317,11 +322,11 @@ PYBIND11_MODULE(chunked_data_view_bindings, m) {
              "Raises:\n"
              "    RuntimeError: If *axis* is out of range for the first part's axis list.")
         .def("fill_missing_value", &cdv::ChunkedDataViewBuilder::fillMissingValue, py::arg("value"),
-             py::return_value_policy::reference_internal,
+             py::return_value_policy::reference_internal, py::call_guard<py::gil_scoped_release>(),
              "Set the fill value for array positions not covered by any data part.\n\n"
              "Args:\n"
              "    value (float): Fill value (default: ``float('nan')``).")
-        .def("build", &cdv::ChunkedDataViewBuilder::build,
+        .def("build", &cdv::ChunkedDataViewBuilder::build, py::call_guard<py::gil_scoped_release>(),
              "Validate all parts and assemble the :class:`ChunkedDataView`.\n\n"
              "Returns:\n"
              "    ChunkedDataView: The assembled view.\n\n"

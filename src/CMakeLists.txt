@@ -83,6 +83,17 @@ if (HAVE_PYTHON_ZARR_INTERFACE)
     set(_z3fdb_staged_py_files)
     foreach(_rel IN LISTS _z3fdb_py_sources)
         set(_src "${CMAKE_CURRENT_SOURCE_DIR}/${_rel}")
+
+        # The converse of the check above. A listed file that is not on disk yields a copy rule
+        # with no source, which the generator reports only as
+        #   "missing and no known rule to make it"
+        # naming the staging destination. Fail here, where the cause is visible.
+        if(NOT EXISTS "${_src}")
+            message(FATAL_ERROR
+                "${_rel} is listed in _z3fdb_py_sources (src/CMakeLists.txt) but does not exist "
+                "at ${_src}. Restore the file, or drop it from the list.")
+        endif()
+
         set(_dst "${Z3FDB_STAGING}/${_rel}")
         add_custom_command(
             OUTPUT  "${_dst}"

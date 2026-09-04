@@ -5,7 +5,7 @@ import enum
 import pathlib
 import warnings
 from collections.abc import Collection, Mapping
-from typing import TypeAlias
+from typing import Self, TypeAlias
 
 import numpy
 
@@ -57,6 +57,11 @@ class Chunking(enum.Enum):
         def __init__(self, chunk_shape: int) -> None:
             assert chunk_shape > 0, "The supplied chunk shape needs to be positive"
             self.chunk_shape = chunk_shape
+
+        def __eq__(self, value: object, /) -> bool:
+            if isinstance(value, Chunking.FixedSizeChunk):
+                return value.chunk_shape == self.chunk_shape
+            return False
 
 
 class AxisDefinition:
