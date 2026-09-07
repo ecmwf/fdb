@@ -28,7 +28,8 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-FDBBase::FDBBase(const Config& config, const std::string& name) : name_(name), config_(config) {
+FDBBase::FDBBase(const Config& config, const std::string& name) :
+    name_(name), config_(config), callbacks_(std::make_shared<Callbacks>()) {
 
     bool writable = config.getBool("writable", true);
     bool visitable = config.getBool("visitable", true);
@@ -58,6 +59,19 @@ const Config& FDBBase::config() const {
 
 bool FDBBase::enabled(const ControlIdentifier& controlIdentifier) const {
     return controlIdentifiers_.enabled(controlIdentifier);
+}
+
+void FDBBase::registerFlushCallback(FlushCallback callback) {
+    callbacks_->flushCallback_ = callback;
+}
+
+void FDBBase::registerArchiveCallback(ArchiveCallback callback) {
+    callbacks_->archiveCallback_ = callback;
+}
+
+void FDBBase::setCallbacks(std::shared_ptr<Callbacks> callbacks) {
+    ASSERT(callbacks);
+    callbacks_ = std::move(callbacks);
 }
 
 FDBFactory& FDBFactory::instance() {

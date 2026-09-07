@@ -236,7 +236,7 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
 
     const Key fullkey(dict);  /// @note: we do not have the third level of the key.
 
-    archiveCallback_(fullkey, charData + s.position(), length - s.position(), promise.get_future());
+    callbacks_.archiveCallback_(fullkey, charData + s.position(), length - s.position(), promise.get_future());
 
     Log::status() << "Archiving done: " << ss_key.str() << std::endl;
 
@@ -265,7 +265,7 @@ void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buf
         ASSERT(it != stores_.end());
         it->second.store->flush();
 
-        flushCallback_();
+        callbacks_.flushCallback_();
     }
 
     Log::info() << "Flush complete" << std::endl;
@@ -497,6 +497,14 @@ void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t req
     if (doit) {
         wipesInProgress_.emplace(dbkey, WipeInProgress{unsafeAll, std::move(storeState)});
     }
+}
+
+void StoreHandler::registerFlushCallback(FlushCallback callback) {
+    callbacks_.flushCallback_ = callback;
+}
+
+void StoreHandler::registerArchiveCallback(ArchiveCallback callback) {
+    callbacks_.archiveCallback_ = callback;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

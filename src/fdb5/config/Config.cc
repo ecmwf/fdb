@@ -56,7 +56,7 @@ Config::Config(const Configuration& config, const eckit::Configuration& userConf
 }
 
 Config::Config(const Config& other) :
-    LocalConfiguration(other), schemaPathInitialised_(false), matcher_(other.matcher_), userConfig_(other.userConfig_) {
+    LocalConfiguration(other), schemaPathInitialised_(false), userConfig_(other.userConfig_), matcher_(other.matcher_) {
     std::lock_guard lock(other.schemaMutex_);
     schemaPath_ = other.schemaPath_;
     schemaPathInitialised_ = other.schemaPathInitialised_;

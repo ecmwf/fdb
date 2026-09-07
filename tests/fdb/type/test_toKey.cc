@@ -26,6 +26,15 @@ using namespace eckit;
 
 namespace fdb::test {
 
+const std::string config_str(R"XX(
+type: local
+engine: toc
+schema: ~fdb/etc/fdb/schema
+spaces:
+- roots:
+    - path: ~fdb/tests/fdb/root
+)XX");
+
 fdb5::Config config;
 
 char data[4];
@@ -131,7 +140,8 @@ CASE("Step & ClimateDaily - expansion") {
         EXPECT_EQUAL(key.valuesToString(), "20210427:dacl:0000:ei:7799:g:pb:pl:2-12:99:100:50:129.128");
     }
 
-    fdb5::Config conf = config.expandConfig();
+    eckit::testing::SetEnv env("FDB_CONFIG", config_str.c_str());
+    fdb5::Config conf = fdb5::Config().expandConfig();
     fdb5::Archiver archiver(conf);
     auto visitor = fdb5::ArchiveVisitor::create(archiver, key, data, 4);
     config.schema().expand(key, *visitor);
@@ -267,7 +277,9 @@ CASE("Expver, Time & ClimateDaily - string ctor - expansion") {
     EXPECT_EQUAL(key.valuesToString(), "ei:0001:dacl:g:pb:pl:20210427:0600:0:99:100:50:129.128");
 
     {
-        fdb5::Archiver archiver;
+        eckit::testing::SetEnv env("FDB_CONFIG", config_str.c_str());
+        fdb5::Config conf = fdb5::Config().expandConfig();
+        fdb5::Archiver archiver(conf);
         auto visitor = fdb5::ArchiveVisitor::create(archiver, key, data, 4);
         config.schema().expand(key, *visitor);
         fdb5::TypedKey tKey(visitor->rule()->registry());
@@ -296,7 +308,9 @@ CASE("ClimateMonthly - string ctor - expansion") {
     EXPECT_EQUAL(key.valuesToString(), "op:0001:mnth:g:cl:pl:20210427:0000:50:129.128");
 
     {
-        fdb5::Archiver archiver;
+        eckit::testing::SetEnv env("FDB_CONFIG", config_str.c_str());
+        fdb5::Config conf = fdb5::Config().expandConfig();
+        fdb5::Archiver archiver(conf);
         auto visitor = fdb5::ArchiveVisitor::create(archiver, key, data, 4);
         config.schema().expand(key, *visitor);
         fdb5::TypedKey tKey(visitor->rule()->registry());
@@ -329,7 +343,9 @@ CASE("Date - string ctor - expansion") {
     EXPECT_EQUAL(key.valuesToString(), "od:0001:oper:ofb:" + t(now.yyyymmdd()) + ":0000:mhs:3001");
 
     {
-        fdb5::Archiver archiver;
+        eckit::testing::SetEnv env("FDB_CONFIG", config_str.c_str());
+        fdb5::Config conf = fdb5::Config().expandConfig();
+        fdb5::Archiver archiver(conf);
         auto visitor = fdb5::ArchiveVisitor::create(archiver, key, data, 4);
         config.schema().expand(key, *visitor);
         fdb5::TypedKey tKey(visitor->rule()->registry());
