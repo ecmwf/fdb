@@ -14,6 +14,8 @@
  */
 
 #include <cstdlib>
+#include <future>
+#include <memory>
 
 #include "eckit/testing/Test.h"
 
@@ -32,8 +34,7 @@ using namespace eckit::testing;
 using namespace eckit;
 
 
-namespace fdb {
-namespace test {
+namespace fdb::test {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -744,8 +745,88 @@ CASE("control_distributed_according_to_select") {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace test
-}  // namespace fdb
+fdb5::Config nestedConfig() {
+
+    // A selectFDB whose 'rd' lane is itself a selectFDB
+
+    LocalConfiguration cfg_od;
+    cfg_od.set("type", "spy");
+    cfg_od.set("select", "class=od");
+
+    LocalConfiguration cfg_rd1;
+    cfg_rd1.set("type", "spy");
+    cfg_rd1.set("select", "class=rd,expver=xx.?.?");
+
+    LocalConfiguration cfg_rd2;
+    cfg_rd2.set("type", "spy");
+    cfg_rd2.set("select", "class=rd,expver=yy.?.?");
+
+    LocalConfiguration cfg_rd;
+    cfg_rd.set("type", "select");
+    cfg_rd.set("select", "class=rd");
+    cfg_rd.set("fdbs", {cfg_rd1, cfg_rd2});
+
+    fdb5::Config cfg;
+    cfg.set("type", "select");
+    cfg.set("fdbs", {cfg_od, cfg_rd});
+
+    return cfg;
+}
+
+
+CASE("user_config_reaches_sub_fdbs") {
+
+    ApiSpy::knownSpies().clear();
+
+    LocalConfiguration userConfig;
+    userConfig.set("useSubToc", true);
+
+    fdb5::FDB fdb(fdb5::Config(nestedConfig(), userConfig));
+
+    fdb5::Key k;
+    k.set("class", "rd");
+    k.set("expver", "yyyy");
+    fdb.archive(k, (const void*)0x4321, 4321);
+
+    EXPECT_EQUAL(ApiSpy::knownSpies().size(), 1);
+    EXPECT(ApiSpy::knownSpies()[0]->config().userConfig().getBool("useSubToc", false));
+}
+
+
+CASE("callbacks_reach_nested_sub_fdbs") {
+
+    ApiSpy::knownSpies().clear();
+
+    fdb5::FDB fdb(nestedConfig());
+
+    size_t archiveCalls = 0;
+    size_t flushCalls = 0;
+
+    fdb.registerArchiveCallback(
+        [&archiveCalls](const fdb5::Key&, const void*, size_t,
+                        std::future<std::shared_ptr<const fdb5::FieldLocation>>) { archiveCalls += 1; });
+    fdb.registerFlushCallback([&flushCalls] { flushCalls += 1; });
+
+    fdb5::Key k;
+    k.set("class", "od");
+    k.set("expver", "xxxx");
+    fdb.archive(k, (const void*)0x1234, 1234);
+
+    // second level of nesting
+    k.set("class", "rd");
+    k.set("expver", "yyyy");
+    fdb.archive(k, (const void*)0x4321, 4321);
+
+    EXPECT_EQUAL(ApiSpy::knownSpies().size(), 2);
+    EXPECT_EQUAL(archiveCalls, 2);
+
+    fdb.flush();
+    EXPECT_EQUAL(flushCalls, 2);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+}  // namespace fdb::test
 
 int main(int argc, char** argv) {
     return run_tests(argc, argv);

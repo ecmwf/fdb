@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include <optional>
 #include <vector>
 
 #include "eckit/config/LocalConfiguration.h"
@@ -46,8 +47,8 @@ private:
 
 private:
 
-    Matcher select_;
-    std::vector<Matcher> excludes_;
+    std::optional<Matcher> select_{std::nullopt};
+    std::vector<Matcher> excludes_{};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

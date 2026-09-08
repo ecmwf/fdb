@@ -34,17 +34,19 @@ static const ConstructorCallback CALLBACK_CONSTRUCTOR_NOOP = [](auto&&...) {};
 
 // -------------------------------------------------------------------------------------------------
 
+struct Callbacks {
+    FlushCallback flushCallback_ = CALLBACK_FLUSH_NOOP;
+    ArchiveCallback archiveCallback_ = CALLBACK_ARCHIVE_NOOP;
+};
+
 // This class provides a common interface for registering callbacks with an FDB object or a Store/Catalogue Handler.
 class CallbackRegistry {
 public:
 
-    void registerFlushCallback(FlushCallback callback) { flushCallback_ = callback; }
-    void registerArchiveCallback(ArchiveCallback callback) { archiveCallback_ = callback; }
+    virtual ~CallbackRegistry() = default;
 
-protected:
-
-    FlushCallback flushCallback_ = CALLBACK_FLUSH_NOOP;
-    ArchiveCallback archiveCallback_ = CALLBACK_ARCHIVE_NOOP;
+    virtual void registerFlushCallback(FlushCallback callback) = 0;
+    virtual void registerArchiveCallback(ArchiveCallback callback) = 0;
 };
 
 }  // namespace fdb5
