@@ -500,11 +500,11 @@ void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t req
 }
 
 void StoreHandler::registerFlushCallback(FlushCallback callback) {
-    callbacks_.flushCallback_ = callback;
+    callbacks_.flushCallback_ = std::move(callback);
 }
 
 void StoreHandler::registerArchiveCallback(ArchiveCallback callback) {
-    callbacks_.archiveCallback_ = callback;
+    callbacks_.archiveCallback_ = std::move(callback);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
