@@ -62,6 +62,9 @@ private:  // methods
     Store& store(uint32_t clientID, const Key& dbKey);
     Store& getStore(uint32_t clientID, const eckit::URI& uri);
 
+    void registerFlushCallback(FlushCallback callback) override;
+    void registerArchiveCallback(ArchiveCallback callback) override;
+
 private:  // members
 
     struct StoreHelper;
@@ -74,6 +77,8 @@ private:  // members
     };
 
     std::map<Key, WipeInProgress> wipesInProgress_;
+
+    Callbacks callbacks_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
