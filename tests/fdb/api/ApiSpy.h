@@ -18,6 +18,7 @@
 #ifndef fdb_testing_ApiSpy_H
 #define fdb_testing_ApiSpy_H
 
+#include <future>
 #include <tuple>
 #include <vector>
 
@@ -89,6 +90,9 @@ public:  // methods
     void archive(const fdb5::Key& key, const void* data, size_t length) override {
         counts_.archive += 1;
         archives_.push_back(std::make_tuple(key, data, length));
+        std::promise<std::shared_ptr<const fdb5::FieldLocation>> promise;
+        promise.set_value(nullptr);
+        callbacks_->archiveCallback_(key, data, length, promise.get_future());
     }
 
     fdb5::ListIterator inspect(const metkit::mars::MarsRequest& request) override {
@@ -145,7 +149,10 @@ public:  // methods
         return fdb5::StatusIterator(0);
     }
 
-    void flush() override { counts_.flush += 1; }
+    void flush() override {
+        counts_.flush += 1;
+        callbacks_->flushCallback_();
+    }
 
     // For diagnostics
 

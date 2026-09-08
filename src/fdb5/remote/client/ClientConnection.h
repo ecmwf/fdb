@@ -29,6 +29,7 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace eckit {
 
@@ -55,6 +56,9 @@ public:  // methods
                                             bool /*dataListener*/, PayloadList payload = {}) const;
 
     void dataWrite(Client& client, Message msg, uint32_t requestID, PayloadList payloads = {});
+
+    // Blocks until the data-writer thread has processed all data writes queued before this call.
+    void flushDataWrites();
 
     void add(Client& client);
     bool remove(uint32_t clientID);
@@ -92,6 +96,9 @@ private:  // methods
 
     // do not hang forever once the connection is known to be dead.
     void failPendingRequests(const std::exception_ptr& eptr);
+
+    // fail any waiting flush data barriers
+    void failDataBarriers(const std::exception_ptr& eptr);
 
     void dataWriteThreadLoop();
     void closeConnection();
@@ -135,6 +142,8 @@ private:  // members
     std::thread dataWriteThread_;
 
     uint64_t agreedFeatures_{0};
+
+    std::vector<std::shared_ptr<std::promise<void>>> dataBarriers_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

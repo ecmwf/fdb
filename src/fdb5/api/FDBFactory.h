@@ -107,6 +107,12 @@ public:  // methods
 
     bool enabled(const ControlIdentifier& controlIdentifier) const;
 
+    void registerFlushCallback(FlushCallback callback) override;
+    void registerArchiveCallback(ArchiveCallback callback) override;
+
+    /// Share a callback registry with this FDB, so that callbacks registered on an owning FDB are seen here.
+    virtual void setCallbacks(std::shared_ptr<Callbacks> callbacks);
+
 private:  // methods
 
     virtual void print(std::ostream& s) const = 0;
@@ -123,6 +129,9 @@ protected:  // members
     Config config_;
 
     ControlIdentifiers controlIdentifiers_;
+
+    /// Never null. Shared with the owning FDB, if any.
+    std::shared_ptr<Callbacks> callbacks_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
