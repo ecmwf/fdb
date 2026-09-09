@@ -283,9 +283,6 @@ mod ffi {
         /// Check if a control identifier is enabled.
         fn enabled(self: &FdbHandle, identifier: ControlIdentifier) -> bool;
 
-        /// Get the FDB configuration ID.
-        fn id(self: &FdbHandle) -> String;
-
         /// Get the FDB type name (e.g., "local", "remote").
         fn name(self: &FdbHandle) -> String;
 

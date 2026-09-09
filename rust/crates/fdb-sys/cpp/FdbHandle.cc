@@ -63,10 +63,6 @@ bool FdbHandle::enabled(fdb5::ControlIdentifier identifier) const {
     return impl_.enabled(identifier);
 }
 
-rust::String FdbHandle::id() const {
-    return rust::String(impl_.id());
-}
-
 rust::String FdbHandle::name() const {
     return rust::String(impl_.name());
 }

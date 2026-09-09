@@ -56,7 +56,6 @@ public:
     void flush();
     FdbStatsData stats() const;
     bool enabled(fdb5::ControlIdentifier identifier) const;
-    rust::String id() const;
     rust::String name() const;
 
     // ============== Archive ==============

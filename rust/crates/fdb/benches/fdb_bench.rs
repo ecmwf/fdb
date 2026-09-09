@@ -197,11 +197,9 @@ fn bench_axes(c: &mut Criterion) {
     });
 }
 
-/// Benchmark id/name/stats (read-only operations).
+/// Benchmark name/stats (read-only operations).
 fn bench_readonly_ops(c: &mut Criterion) {
     let fdb = Fdb::open_default().expect("failed to create FDB handle");
-
-    c.bench_function("fdb_id", |b| b.iter(|| black_box(fdb.id())));
 
     c.bench_function("fdb_name", |b| b.iter(|| black_box(fdb.name())));
 

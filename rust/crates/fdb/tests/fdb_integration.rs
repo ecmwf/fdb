@@ -674,15 +674,14 @@ fn test_fdb_dirty_flag() {
 }
 
 #[test]
-fn test_fdb_id_and_name() {
+fn test_fdb_name() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let config = create_test_config(tmpdir.path());
 
     let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
 
-    let id = fdb.id();
     let name = fdb.name();
-    println!("FDB id={id}, name={name}");
+    println!("FDB name={name}");
     assert!(!name.is_empty(), "expected non-empty FDB name");
 }
 

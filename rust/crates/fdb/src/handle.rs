@@ -275,12 +275,6 @@ impl Fdb {
         self.with_handle_ref(fdb_sys::FdbHandle::dirty)
     }
 
-    /// Get the FDB configuration ID.
-    #[must_use]
-    pub fn id(&self) -> String {
-        self.with_handle_ref(fdb_sys::FdbHandle::id)
-    }
-
     /// Get the FDB type name (e.g., "local", "remote").
     #[must_use]
     pub fn name(&self) -> String {

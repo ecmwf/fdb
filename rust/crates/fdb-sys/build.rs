@@ -158,6 +158,61 @@ fn build_system() {
     unreachable!("build_system called without system feature");
 }
 
+/// Locate the fdb C++ sources: prefer the in-tree checkout when the crate
+/// lives inside the fdb repository (path or git dependency), falling back
+/// to cloning the release tag (packaged crates.io case).
+#[cfg(feature = "vendored")]
+fn resolve_fdb_src(src_dir: &std::path::Path) -> std::path::PathBuf {
+    use std::fs;
+
+    const FDB_REPO: &str = "https://github.com/ecmwf/fdb.git";
+    const FDB_TAG: &str = env!("CARGO_PKG_VERSION");
+
+    let manifest_dir = std::path::PathBuf::from(
+        std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"),
+    );
+    if let Some(root) = manifest_dir.ancestors().nth(3)
+        && root.join("CMakeLists.txt").exists()
+        && root.join("VERSION").exists()
+        && root.join("src/fdb5").is_dir()
+    {
+        eprintln!("fdb-sys: building in-tree sources at {}", root.display());
+
+        // Retrigger on C++ source edits.
+        println!("cargo:rerun-if-changed={}", root.join("src").display());
+        println!(
+            "cargo:rerun-if-changed={}",
+            root.join("CMakeLists.txt").display()
+        );
+        println!("cargo:rerun-if-changed={}", root.join("VERSION").display());
+
+        // Diverging is fine mid-development, but should never go unnoticed.
+        let tree_version = fs::read_to_string(root.join("VERSION"))
+            .map(|s| s.trim().to_string())
+            .unwrap_or_default();
+        if tree_version != FDB_TAG {
+            println!(
+                "cargo:warning=fdb-sys {FDB_TAG} is building in-tree fdb {tree_version} (versions differ)"
+            );
+        }
+
+        return root.to_path_buf();
+    }
+
+    let fdb_src = bindman_utils::git_clone(FDB_REPO, FDB_TAG, &src_dir.join("fdb"));
+
+    // Patch CMakeLists.txt to remove tests subdirectory (buggy when
+    // ENABLE_TESTS=OFF). Only clones are patched; the in-tree checkout
+    // must never be modified.
+    let cmakelists = fdb_src.join("CMakeLists.txt");
+    if let Ok(content) = fs::read_to_string(&cmakelists) {
+        let patched = content.replace("add_subdirectory( tests )", "# add_subdirectory( tests )");
+        fs::write(&cmakelists, patched).expect("failed to patch CMakeLists.txt");
+    }
+
+    fdb_src
+}
+
 /// Build fdb5 from source using ecbuild
 #[cfg(feature = "vendored")]
 #[allow(clippy::too_many_lines)]
@@ -169,9 +224,6 @@ fn build_vendored() {
 
     const ECBUILD_REPO: &str = "https://github.com/ecmwf/ecbuild.git";
     const ECBUILD_TAG: &str = "3.13.1";
-
-    const FDB_REPO: &str = "https://github.com/ecmwf/fdb.git";
-    const FDB_TAG: &str = "5.19.1";
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
     let src_dir = out_dir.join("src");
@@ -189,15 +241,19 @@ fn build_vendored() {
     let eccodes_root = env::var("DEP_ECCODES_SYS_ROOT")
         .expect("DEP_ECCODES_SYS_ROOT not set - eccodes-sys must be a dependency");
 
-    // Clone sources
     let ecbuild_src = bindman_utils::git_clone(ECBUILD_REPO, ECBUILD_TAG, &src_dir.join("ecbuild"));
-    let fdb_src = bindman_utils::git_clone(FDB_REPO, FDB_TAG, &src_dir.join("fdb"));
+    let fdb_src = resolve_fdb_src(&src_dir);
 
-    // Patch CMakeLists.txt to remove tests subdirectory (buggy when ENABLE_TESTS=OFF)
-    let cmakelists = fdb_src.join("CMakeLists.txt");
-    if let Ok(content) = fs::read_to_string(&cmakelists) {
-        let patched = content.replace("add_subdirectory( tests )", "# add_subdirectory( tests )");
-        fs::write(&cmakelists, patched).expect("failed to patch CMakeLists.txt");
+    // cmake hard-errors if the source path recorded in CMakeCache.txt changes
+    // (e.g. cloned <-> in-tree); wipe the build dir when it is stale.
+    if let Ok(cache) = fs::read_to_string(build_dir.join("CMakeCache.txt")) {
+        let cached_src = cache
+            .lines()
+            .find_map(|l| l.strip_prefix("CMAKE_HOME_DIRECTORY:INTERNAL="));
+        if cached_src != fdb_src.to_str() {
+            fs::remove_dir_all(&build_dir).expect("Failed to remove stale fdb build directory");
+            fs::create_dir_all(&build_dir).expect("Failed to create build directory");
+        }
     }
 
     let ecbuild_bin = ecbuild_src.join("bin/ecbuild");

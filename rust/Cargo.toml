@@ -17,7 +17,7 @@ fdb-sys = { path = "crates/fdb-sys" }
 fdb = { path = "crates/fdb" }
 
 # Foundation crates
-eckit-sys = { git = "ssh://git@github.com/ecmwf/eckit.git", branch = "develop", default-features = false }
+eckit-sys = { git = "ssh://git@github.com/ecmwf/eckit.git", branch = "develop", default-features = false, features = ["aio"] }
 eckit = { git = "ssh://git@github.com/ecmwf/eckit.git", branch = "develop" }
 metkit-sys = { git = "ssh://git@github.com/ecmwf/metkit.git", branch = "develop", default-features = false }
 metkit = { git = "ssh://git@github.com/ecmwf/metkit.git", branch = "develop" }

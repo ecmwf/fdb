@@ -105,7 +105,6 @@ fn test_arc_sharing_readonly() {
             let fdb = Arc::clone(&fdb);
             thread::spawn(move || {
                 for _ in 0..100 {
-                    let _ = fdb.id();
                     let _ = fdb.name();
                     let _ = fdb.dirty();
                     let _ = fdb.stats();
@@ -119,7 +118,7 @@ fn test_arc_sharing_readonly() {
     }
 }
 
-/// Test: Concurrent read-only operations (id, name, dirty, stats)
+/// Test: Concurrent read-only operations (name, dirty, stats)
 #[test]
 fn test_concurrent_readonly_methods() {
     eckit::init();
@@ -132,7 +131,6 @@ fn test_concurrent_readonly_methods() {
             let fdb = Arc::clone(&fdb);
             thread::spawn(move || {
                 for _ in 0..100 {
-                    let _ = fdb.id();
                     let _ = fdb.name();
                     let _ = fdb.dirty();
                     let _ = fdb.stats();
@@ -223,7 +221,6 @@ fn test_stress_concurrent_access() {
                 for j in 0..iterations {
                     if (i + j) % 2 == 0 {
                         // Read-only operations
-                        let _ = fdb.id();
                         let _ = fdb.name();
                     } else {
                         // Query operations
