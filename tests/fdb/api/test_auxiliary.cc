@@ -199,7 +199,7 @@ CASE("Ensure wipe fails if extensions are unknown") {
         auto iter = fdb.wipe(request, doit, false, unsafeWipeAll);
         while (iter.next(elem)) {}
     }
-    catch (eckit::Exception) {
+    catch (eckit::Exception&) {
         error_was_thrown = true;
     }
     EXPECT(error_was_thrown);
