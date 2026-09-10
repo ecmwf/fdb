@@ -558,6 +558,7 @@ PYBIND11_MODULE(pyfdb_bindings, m) {
             },
             py::call_guard<py::gil_scoped_release>())
         .def("flush", &fdb5::FDB::flush, py::call_guard<py::gil_scoped_release>())
+        .def("close", &fdb5::FDB::close, py::call_guard<py::gil_scoped_release>())
         .def("retrieve",
              [](fdb5::FDB& fdb, const std::map<std::string, std::vector<std::string>>& selection) {
                  const auto mars_request = mars_request_from_map(selection);

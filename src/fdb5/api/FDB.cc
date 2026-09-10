@@ -367,6 +367,17 @@ void FDB::flush() {
     }
 }
 
+void FDB::close() {
+    std::lock_guard lock(mutex_);
+    if (internal_) {
+        if (dirty_) {
+            internal_->flush();
+            dirty_ = false;
+        }
+        internal_.reset();
+    }
+}
+
 IndexAxis FDB::axes(const FDBToolRequest& request, int level) {
     IndexAxis axes;
     AxesElement elem;
