@@ -18,18 +18,20 @@
 
 #include <iosfwd>
 #include <string>
+#include <variant>
 #include <vector>
 
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/types/Types.h"
-#include "eckit/utils/Regex.h"
-
 #include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/toc/FileSpaceSelector.h"
 #include "fdb5/toc/Root.h"
 
 namespace fdb5 {
 
 class Config;
 class FileSpaceHandler;
+class Key;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -44,8 +46,7 @@ class FileSpace {
 
 public:  // methods
 
-    FileSpace(const std::string& name, const std::string& re, const std::string& handler,
-              const std::vector<Root>& roots);
+    FileSpace(const std::string& name, const eckit::LocalConfiguration& space, const std::vector<Root>& roots);
 
     /// Selects the filesystem from where this Key will be inserted
     /// @note This method must be idempotent -- it returns always the same value after the first call
@@ -57,7 +58,7 @@ public:  // methods
     void enabled(const ControlIdentifier& controlIdentifier, eckit::StringSet&) const;
     std::vector<eckit::PathName> enabled(const ControlIdentifier& controlIdentifier) const;
 
-    bool match(const std::string& s) const;
+    bool match(const Key& key) const;
 
     friend std::ostream& operator<<(std::ostream& s, const FileSpace& x) {
         x.print(s);
@@ -80,7 +81,7 @@ private:  // members
 
     std::string handler_;
 
-    eckit::Regex re_;
+    std::variant<RegexSelector, MatchSelector> selector_;
 
     RootVec roots_;
 };
