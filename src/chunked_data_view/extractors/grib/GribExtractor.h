@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-FileCopyrightText: 2026 European Centre for Medium-Range Weather Forecasts (ECMWF)
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
@@ -7,11 +7,15 @@
 #include "chunked_data_view/Extractor.h"
 #include "chunked_data_view/Fdb.h"
 #include "chunked_data_view/ListIterator.h"
+#include "chunked_data_view/Types.h"
 #include "chunked_data_view/ViewPart.h"
+
+#include "metkit/mars/MarsRequest.h"
 
 #include <cstddef>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <vector>
 
 namespace chunked_data_view {
@@ -23,17 +27,16 @@ namespace chunked_data_view {
 class GribExtractor final : public Extractor {
 public:
 
-    explicit GribExtractor(const std::shared_ptr<FdbInterface> fdb);
+    /// Constructs a GribExtractor and eagerly determines the DataLayout by retrieving
+    /// a representative field from FDB for the given MARS request.
+    explicit GribExtractor(std::unique_ptr<FdbInterface> fdb, const metkit::mars::MarsRequest& marsRequest);
 
     /// Sets the fill value written in place of bitmap-masked (missing) grid points.
     void setFillValue(float v) override { fillValue_ = v; }
 
-    /// Retrieves one representative field to determine countValues and bytesPerValue.
-    DataLayout layout(const metkit::mars::MarsRequest& mars_request) const override;
-
     /// Copies all fields in @p intersectionBoundingBox into @p ptr.
     /// @p chunkBoundingBox defines the origin for computing buffer offsets.
-    size_t extractInto(const ViewPart& part, const ChunkedDataViewPartBoundingBox& chunkBoundingBox,
+    size_t extractInto(const ViewPart& part, const ChunkBoundingBox& chunkBoundingBox,
                        const ChunkedDataViewPartBoundingBox& intersectionBoundingBox, float* ptr,
                        size_t len) const override;
 
@@ -51,8 +54,14 @@ private:  // types
 
 private:  // members
 
-    std::shared_ptr<FdbInterface> fdb_;
+    std::unique_ptr<FdbInterface> fdb_;
     float fillValue_ = std::numeric_limits<float>::quiet_NaN();
+
+    /// Serialises extractInto(). fdb_ is shared mutable backend state, but extractInto() is
+    /// const and the pybind11 layer releases the GIL around it, so a threaded zarr consumer
+    /// (e.g. dask) can enter it concurrently on one view. Reads serialise within a part;
+    /// separate parts own separate extractors and still proceed in parallel.
+    mutable std::mutex mutex_;
 
 private:  // methods
 

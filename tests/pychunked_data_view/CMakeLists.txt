@@ -25,7 +25,7 @@ endfunction()
 
 
 set(test_files
-    test_chunked_data_view.py
+    fdb/test_chunked_data_view_fdb.py
     test_chunked_data_view_errors.py
     test_mars_selection.py
 )

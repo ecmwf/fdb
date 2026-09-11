@@ -41,9 +41,7 @@ def swh_grib_download(tmp_path_factory):
       - missing_mask: boolean array, True where the GRIB bitmap marks the point missing
       - date: the date string used in the MARS request
     """
-    opendata = pytest.importorskip(
-        "ecmwf.opendata", reason="pip install ecmwf-opendata to run online tests"
-    )
+    opendata = pytest.importorskip("ecmwf.opendata", reason="pip install ecmwf-opendata to run online tests")
 
     date = datetime.date.today() - datetime.timedelta(days=2)
     tmp = tmp_path_factory.mktemp("swh_online")
@@ -113,7 +111,7 @@ def test_bitmap_missing_points_become_fill_value(fdb_with_swh_bitmap):
             "param": 140229,
         },
         [AxisDefinition(["step"], Chunking.SINGLE_VALUE)],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.fill_missing_value(-20.0)
     view = builder.build()
@@ -144,12 +142,12 @@ def test_fill_value_propagated_to_zarr_metadata(fdb_with_swh_bitmap):
             "param": 140229,
         },
         [AxisDefinition(["step"], Chunking.SINGLE_VALUE)],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     builder.fill_missing_value(-20.0)
     store = builder.build()
 
-    arr = zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+    arr = zarr.open_array(store)
     assert arr.fill_value == -20.0
 
 
@@ -172,7 +170,7 @@ def test_default_fill_value_replaces_bitmap_sentinel(fdb_with_swh_bitmap):
             "param": 140229,
         },
         [AxisDefinition(["step"], Chunking.SINGLE_VALUE)],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     view = builder.build()
 

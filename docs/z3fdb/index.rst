@@ -17,7 +17,14 @@ Z3FDB
    getting_started
    dimension_mapping
    architecture
-   api
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Tutorials:
+   :hidden:
+
+   tutorials/custom_store_mixed_extractors
+   tutorials/ensemble_timeseries
 
 .. toctree::
    :maxdepth: 1
@@ -28,6 +35,14 @@ Z3FDB
    technical_insights/chunk_access
    technical_insights/buffer_layout
    technical_insights/extractor
+   technical_insights/extractor_backends
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Reference:
+   :hidden:
+
+   api
 
 
 
@@ -50,13 +65,13 @@ data is decoded to float32 in memory.
 When to use Z3FDB
 -----------------
 
-Z3FDB is a good fit when a 2–5× slowdown compared to on-disk Zarr is
+Z3FDB is a good fit when a 2-5x slowdown compared to on-disk Zarr is
 acceptable. That trade-off makes sense in two situations:
 
 **Prototyping with an existing FDB**
    You have GRIB data in FDB and want a Zarr interface without first writing
    everything to disk. Redefining the store is a matter of changing a few lines
-   of Python — no data copy required. Z3FDB stores are cheap to create because
+   of Python, with no data copy required. Z3FDB stores are cheap to create because
    data is only fetched when a chunk is accessed.
 
 **Very large datasets**
@@ -72,7 +87,11 @@ including how to run the test suite.
 Next steps
 ----------
 
-New to Z3FDB? Start with the step-by-step tutorial: :doc:`getting_started`.
+New to Z3FDB? Start with the step-by-step guide: :doc:`getting_started`.
+
+Ready to explore a realistic example? The
+:doc:`tutorials/ensemble_timeseries` tutorial shows how to access ensemble
+forecast data with GribJump and plot a temperature time series.
 
 For a full reference on how MARS keywords map to Zarr dimensions, chunking
 strategies, fill values, and multi-part views, see :doc:`dimension_mapping`.

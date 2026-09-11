@@ -39,14 +39,17 @@ private:
 /// Describes how one axis is divided into Zarr chunks.
 ///
 /// Stores one extent entry per chunk; for uniform chunking all entries are equal.
-/// The extensible flag marks axes using WholeAxisChunking: their single chunk grows when
-/// additional parts are stitched onto the view along this axis.
+/// The singleGrowingChunk flag marks axes using WholeAxisChunking: their single chunk
+/// grows to encompass all parts' extents when multiple parts are stitched together.
+/// SingleValueChunking and FixedSizeChunking use fixed chunk sizes and produce more
+/// chunks (not larger ones) as parts are added — singleGrowingChunk is false for these.
 class AxisChunks {
 
 public:
 
-    explicit AxisChunks(const std::vector<std::variant<size_t, std::tuple<size_t, size_t>>>& chunks, bool extensible) :
-        extensible_(extensible) {
+    explicit AxisChunks(const std::vector<std::variant<size_t, std::tuple<size_t, size_t>>>& chunks,
+                        bool singleGrowingChunk) :
+        singleGrowingChunk_(singleGrowingChunk) {
         for (const auto& element : chunks) {
             if (std::holds_alternative<size_t>(element)) {
                 extensions_.emplace_back(std::get<size_t>(element));
@@ -61,16 +64,18 @@ public:
     }
 
     /// Convenience constructor: @p amount chunks each of size @p chunk_extension.
-    AxisChunks(size_t chunk_extension, size_t amount, bool extensible) :
+    AxisChunks(size_t chunk_extension, size_t amount, bool singleGrowingChunk) :
         AxisChunks(std::vector<std::variant<size_t, std::tuple<size_t, size_t>>>{std::tuple<size_t, size_t>{
                        chunk_extension, amount}},
-                   extensible) {};
+                   singleGrowingChunk) {};
 
     /// Number of chunks along this axis.
     size_t size() const { return extensions_.size(); }
 
-    /// True for WholeAxisChunking axes, whose combined extent is the sum of all parts' extents.
-    bool isExtensible() const { return extensible_; }
+    /// True for WholeAxisChunking axes only: the single chunk's extent is the sum of all
+    /// parts' extents. False for SingleValueChunking and FixedSizeChunking, where the chunk
+    /// size stays fixed and more chunks accumulate as parts are added.
+    bool isSingleGrowingChunk() const { return singleGrowingChunk_; }
 
     /// Per-chunk extents; each entry is the number of axis elements in that chunk.
     const std::vector<size_t>& extensions() const { return extensions_; }
@@ -81,7 +86,7 @@ public:
 private:
 
     std::vector<size_t> extensions_{};
-    bool extensible_;
+    bool singleGrowingChunk_;
 };
 
 

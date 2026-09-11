@@ -8,6 +8,16 @@ from wheel.bdist_wheel import bdist_wheel
 import sys
 
 
+def _read_requirements(name):
+    """Requirement lines from a pip requirements file staged next to this setup.py.
+
+    Comments and blank lines are dropped; everything else is passed through verbatim.
+    """
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), name)
+    with open(path) as requirements_file:
+        return [line.strip() for line in requirements_file if line.strip() and not line.lstrip().startswith("#")]
+
+
 # NOTE this we need to correctly link with fdb5lib version on cd. For local builds feel free to ignore
 version_suffix = os.environ.get("VERSION_SUFFIX", "")
 if version_suffix:
@@ -45,9 +55,17 @@ setup(
         "z3fdb._internal",
         "pychunked_data_view",
         "chunked_data_view_bindings",
+        # PEP 561 stub-only package. The hyphen is mandated by the PEP but is not a valid
+        # Python identifier, so setuptools cannot derive its directory from the name,
+        # package_dir below states it explicitly.
+        "chunked_data_view_bindings-stubs",
     ],
+    package_dir={
+        "chunked_data_view_bindings-stubs": "chunked_data_view_bindings-stubs",
+    },
     package_data={
-        "chunked_data_view_bindings": ["*.so", "*.pyd", "*.pyi", "py.typed"],
+        "chunked_data_view_bindings": ["*.so", "*.pyd"],
+        "chunked_data_view_bindings-stubs": ["*.pyi", "py.typed"],
     },
     license="Apache 2.0",
     license_files=["LICENSE"],
@@ -65,7 +83,10 @@ setup(
         "Operating System :: OS Independent",
         "Topic :: Software Development :: Libraries",
     ],
-    install_requires=["numpy", "zarr~=3.1.6", "findlibs>=0.1.2"] + requires_extra,
+    # Runtime dependencies live in python/z3fdb-requirements.txt, staged next to this file by
+    # src/CMakeLists.txt. Build tooling stays out of the wheel metadata; it is provisioned into
+    # the uvx environment from python/z3fdb-build-requirements.txt instead.
+    install_requires=_read_requirements("z3fdb-requirements.txt") + requires_extra,
     python_requires=python_requires,
     has_ext_modules=lambda: True,
     **ext_kwargs[sys.platform],

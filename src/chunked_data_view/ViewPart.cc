@@ -99,6 +99,7 @@ std::optional<BoundingBox> BoundingBox::intersect(const BoundingBox& other) cons
     // u1 < l2 or l1 > u2 (separating axis)
     // If there is an intersection it's [max(l1, l2), min(u1, u2)]
     // For every axis
+    assert(dimensions() == other.dimensions());
     std::vector<size_t> lower;
     std::vector<size_t> upper;
 
@@ -123,13 +124,13 @@ std::optional<BoundingBox> BoundingBox::intersect(const BoundingBox& other) cons
     return std::make_optional<>(BoundingBox(lower, upper));
 }
 
-ViewPart::ViewPart(const metkit::mars::MarsRequest& request, const DataLayout& data_layout,
-                   const std::vector<std::pair<Axis, AxisChunks>>& axes, const std::vector<size_t>& offset) :
-    request_(request), layout_(data_layout), offset_(offset) {
+ViewPart::ViewPart(const metkit::mars::MarsRequest& request, const std::vector<std::pair<Axis, AxisChunks>>& axes,
+                   const std::vector<size_t>& offset) :
+    request_(request), offset_(offset) {
 
-    extension_.reserve(axes_.size());
-    chunks_.reserve(axes_.size());
-    axes_.reserve(axes_.size());
+    extension_.reserve(axes.size());
+    chunks_.reserve(axes.size());
+    axes_.reserve(axes.size());
 
     for (const auto& [axis, axis_chunks] : axes) {
         axes_.push_back(axis);

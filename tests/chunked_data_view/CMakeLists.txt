@@ -4,6 +4,7 @@ list(APPEND tests
     index_mapper
     request_manipulation_bounding_box
     bounding_box
+    list_element
     view_individual_chunking
 )
 

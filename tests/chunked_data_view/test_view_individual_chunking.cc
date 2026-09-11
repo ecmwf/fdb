@@ -3,6 +3,7 @@
 
 #include <chunked_data_view/ChunkedDataView.h>
 #include <chunked_data_view/ChunkedDataViewBuilder.h>
+#include <eckit/exception/Exceptions.h>
 #include <eckit/testing/Test.h>
 #include <fdb5/api/helpers/FDBToolRequest.h>
 
@@ -20,14 +21,14 @@ CASE("ChunkedDataView | FixedSizeChunking | Can compute shape") {
         "date=2020-01-01/to/2020-01-04,levtype=sfc,"
         "param=v/u,time=0/6/12/18"};
 
-    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB());
+    auto mock_fdb = createMockFDB();
 
     const auto view = cdv::ChunkedDataViewBuilder()
                           .addPart(keys,
                                    {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::FixedSizeChunking{2}},
                                     cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
                                     cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::WholeAxisChunking{}}},
-                                   mock_extractor)
+                                   FakeExtractorDefinition{mock_fdb})
                           .build();
 
     // 4 dates (chunkSize=2 -> 2 chunks), 4 single times, 2 params whole, 10 values
@@ -42,16 +43,12 @@ CASE("ChunkedDataView | FixedSizeChunking | Invalid chunk size throws") {
         "date=2020-01-01/to/2020-01-04,levtype=sfc,"
         "param=v/u,time=0/6/12/18"};
 
-    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB());
+    auto mock_fdb = createMockFDB();
 
-    // chunkSize=0 -- explicitly forbidden
-    EXPECT_THROWS(cdv::ChunkedDataViewBuilder()
-                      .addPart(keys,
-                               {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::FixedSizeChunking{0}},
-                                cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
-                                cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::WholeAxisChunking{}}},
-                               mock_extractor)
-                      .build());
+    // chunkSize=0 -- rejected by FixedSizeChunking's own constructor, so it never reaches
+    // addPart() or build(). Asserted directly: wrapping it in a builder chain would still
+    // pass, but only because the throw happens while evaluating the argument.
+    EXPECT_THROWS_AS(cdv::AxisDefinition::FixedSizeChunking{0}, eckit::AssertionFailed);
 
     // chunkSize=1 -- same as SingleValueChunking, redundant, but ok
     EXPECT_NO_THROW(cdv::ChunkedDataViewBuilder()
@@ -59,7 +56,7 @@ CASE("ChunkedDataView | FixedSizeChunking | Invalid chunk size throws") {
                                  {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::FixedSizeChunking{1}},
                                   cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
                                   cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::WholeAxisChunking{}}},
-                                 mock_extractor)
+                                 FakeExtractorDefinition{mock_fdb})
                         .build());
 
     // chunkSize==axis size (4) -- same as WholeAxisChunking, redundant, but ok
@@ -68,7 +65,7 @@ CASE("ChunkedDataView | FixedSizeChunking | Invalid chunk size throws") {
                                  {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::FixedSizeChunking{4}},
                                   cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
                                   cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::WholeAxisChunking{}}},
-                                 mock_extractor)
+                                 FakeExtractorDefinition{mock_fdb})
                         .build());
 }
 
@@ -79,14 +76,14 @@ CASE("ChunkedDataView | FixedSizeChunking | at() accesses each chunk") {
         "date=2020-01-01/to/2020-01-04,levtype=sfc,"
         "param=v/u,time=0/6/12/18"};
 
-    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(5));
+    auto mock_fdb = createMockFDB(5);
 
     const auto view = cdv::ChunkedDataViewBuilder()
                           .addPart(keys,
                                    {cdv::AxisDefinition{{"date"}, cdv::AxisDefinition::FixedSizeChunking{2}},
                                     cdv::AxisDefinition{{"time"}, cdv::AxisDefinition::SingleValueChunking{}},
                                     cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::WholeAxisChunking{}}},
-                                   mock_extractor)
+                                   FakeExtractorDefinition{mock_fdb})
                           .build();
 
     std::vector<float> buf(view->countChunkValues());
@@ -113,13 +110,13 @@ CASE("ChunkedDataView | FixedSizeChunking | Combined axis with differently-sized
         "date=2020-01-01/to/2020-01-04,levtype=sfc,"
         "param=10/20/30/40,time=0/6/12/18"};
 
-    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(9));
+    auto mock_fdb = createMockFDB(9);
 
     const auto view = cdv::ChunkedDataViewBuilder()
                           .addPart(keys,
                                    {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::FixedSizeChunking{4}},
                                     cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::FixedSizeChunking{2}}},
-                                   mock_extractor)
+                                   FakeExtractorDefinition{mock_fdb})
                           .build();
 
     // Combined datextime axis: 16 values, chunkSize=4 -> 4 chunks.
@@ -154,14 +151,14 @@ CASE("ChunkedDataView | FixedSizeChunking | Combined axis with differently-sized
         "date=2020-01-01/to/2020-01-04,levtype=ml,levelist=100/200/300/400/500/600/700/800/900/1000,"
         "param=10/20/30/40/50/60,time=0/6/12"};
 
-    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(46));
+    auto mock_fdb = createMockFDB(46);
 
     const auto view = cdv::ChunkedDataViewBuilder()
                           .addPart(keys,
                                    {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::FixedSizeChunking{3}},
                                     cdv::AxisDefinition{{"levelist"}, cdv::AxisDefinition::FixedSizeChunking{5}},
                                     cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::FixedSizeChunking{3}}},
-                                   mock_extractor)
+                                   FakeExtractorDefinition{mock_fdb})
                           .build();
 
     // Combined datextime: 12, chunkSize=3 -> 4 chunks
@@ -197,7 +194,7 @@ CASE("ChunkedDataView | FixedSizeChunking | Combined axis with differently-sized
                                {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::FixedSizeChunking{3}},
                                 cdv::AxisDefinition{{"levelist"}, cdv::AxisDefinition::FixedSizeChunking{3}},
                                 cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::FixedSizeChunking{3}}},
-                               mock_extractor)
+                               FakeExtractorDefinition{mock_fdb})
                       .build());
 
     // param has 6 values -> FixedSizeChunking{4} does not divide evenly
@@ -206,7 +203,7 @@ CASE("ChunkedDataView | FixedSizeChunking | Combined axis with differently-sized
                                {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::FixedSizeChunking{3}},
                                 cdv::AxisDefinition{{"levelist"}, cdv::AxisDefinition::FixedSizeChunking{5}},
                                 cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::FixedSizeChunking{4}}},
-                               mock_extractor)
+                               FakeExtractorDefinition{mock_fdb})
                       .build());
 }
 
@@ -227,18 +224,18 @@ CASE("ChunkedDataView | FixedSizeChunking | Multi part with combined axis with d
         "date=2020-01-01/to/2020-01-04,levtype=ml,levelist=100/200/300/400/500/600/700/800/900/1000,"
         "param=10/20/30/40/50/60,time=0/6/12"};
 
-    auto mock_extractor = std::make_shared<FakeExtractor>(createMockFDB(10));
+    auto mock_fdb = createMockFDB(10);
 
     const auto view =
         cdv::ChunkedDataViewBuilder()
             .addPart(keys_sfc,
                      {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::FixedSizeChunking{3}},
                       cdv::AxisDefinition{{"param"}, cdv::AxisDefinition::FixedSizeChunking{3}}},
-                     mock_extractor)
+                     FakeExtractorDefinition{mock_fdb})
             .addPart(keys_ml,
                      {cdv::AxisDefinition{{"date", "time"}, cdv::AxisDefinition::FixedSizeChunking{3}},
                       {cdv::AxisDefinition{{"levelist", "param"}, cdv::AxisDefinition::FixedSizeChunking{3}}}},
-                     mock_extractor)
+                     FakeExtractorDefinition{mock_fdb})
             .extendOnAxis(1)
             .build();
 

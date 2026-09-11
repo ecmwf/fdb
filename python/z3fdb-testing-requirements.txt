@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: 2026 European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
+#
+# Dependencies for running the z3fdb and pychunked_data_view test suites.
+#
+# The runtime dependencies in z3fdb-requirements.txt are needed as well; install both. Build
+# tooling lives in z3fdb-build-requirements.txt and is not needed to run the tests against an
+# already-built package.
+
+# Test runner. pytest-asyncio drives the async parts of the zarr store API, exercised by
+# tests/z3fdb/interface/zarr_interface_conformity.
+pytest
+pytest-asyncio
+
+# Test data. The fixtures in tests/conftest.py build GRIB messages with eccodes and write the
+# FDB config as YAML.
+eccodes
+PyYAML
+GitPython
+
+# tests/z3fdb/interface/zarr_interface_conformity/_mocks.py uses @override, which is only in
+# typing from Python 3.12.
+typing_extensions
+
+# Optional consumers, pulled in through pytest.importorskip. Without them
+# tests/z3fdb/interface/user_tests/test_dask_access.py and test_xarray_access.py skip silently
+# rather than fail, so a suite run without these covers less than it appears to.
+dask
+xarray

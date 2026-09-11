@@ -7,11 +7,15 @@ import findlibs
 
 findlibs.load("fdb5")
 
-from chunked_data_view_bindings.chunked_data_view_bindings import (
+from .chunked_data_view_bindings import (
     init_bindings,
     AxisDefinition,
     ChunkedDataView,
     ChunkedDataViewBuilder,
+    ExtractorDefinition,
+    GribExtractorError,
+    GribJumpExtractorError,
+    has_gribjump_extractor,
     ExtractorType,
 )
 
@@ -23,5 +27,9 @@ __all__ = [
     "AxisDefinition",
     "ChunkedDataView",
     "ChunkedDataViewBuilder",
+    "ExtractorDefinition",
+    "GribExtractorError",
+    "GribJumpExtractorError",
+    "has_gribjump_extractor",
     "ExtractorType",
 ]

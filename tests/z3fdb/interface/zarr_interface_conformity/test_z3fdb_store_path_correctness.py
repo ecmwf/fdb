@@ -43,7 +43,7 @@ import pytest
 from zarr.core.buffer import default_buffer_prototype
 from zarr.core.sync import _collect_aiterator, sync
 
-from tests.z3fdb.zarr_interface_conformity._mocks import (
+from tests.z3fdb.interface.zarr_interface_conformity._mocks import (
     ARR_A1,
     ARR_AI1,
     ARR_AI2,
@@ -64,27 +64,31 @@ pytestmark = pytest.mark.offline
 
 
 def test_total_key_count(deep_store: FdbZarrStore) -> None:
-    """5 arrays + 6 groups verified against expected path breakdown."""
+    """_known_paths holds metadata only: one zarr.json per node (5 arrays + 6 groups = 11).
+
+    Chunk keys are computed on demand and not stored in _known_paths:
+      zarr.json                                      root group
+      arr_root/zarr.json                             1-D  4 chunks
+      grp_a/zarr.json
+      grp_a/arr_a1/zarr.json                         2-D  6 chunks
+      grp_a/grp_a_inner/zarr.json
+      grp_a/grp_a_inner/arr_ai1/zarr.json            3-D  4 chunks
+      grp_a/grp_a_inner/arr_ai2/zarr.json            1-D  2 chunks
+      grp_b/zarr.json
+      grp_b/grp_bb/zarr.json
+      grp_b/grp_bb/grp_bbd/zarr.json
+      grp_b/grp_bb/grp_bbd/arr_bbd/zarr.json        2-D  4 chunks
+    """
     total = len(deep_store._known_paths)
-    log.debug("total paths: %d", total)
-    #  1 root zarr.json
-    #  5 arr_root  (1 + 4 chunks)
-    #  1 grp_a/zarr.json
-    #  7 arr_a1    (1 + 6 chunks)
-    #  1 grp_a_inner/zarr.json
-    #  5 arr_ai1   (1 + 4 chunks)
-    #  3 arr_ai2   (1 + 2 chunks)
-    #  1 grp_b/zarr.json
-    #  1 grp_bb/zarr.json
-    #  1 grp_bbd/zarr.json
-    #  5 arr_bbd   (1 + 4 chunks)
-    assert total == 31
+    log.debug("total metadata paths: %d", total)
+    assert total == 11
 
 
 def test_list_returns_all_known_paths(deep_store: FdbZarrStore) -> None:
+    """list() returns metadata + chunk keys (11 + 20 = 31); _known_paths is a subset."""
     keys = sync(_collect_aiterator(deep_store.list()))
     log.debug("list() returned %d keys", len(keys))
-    assert set(keys) == set(deep_store._known_paths)
+    assert set(deep_store._known_paths).issubset(set(keys))
     assert len(keys) == 31
 
 
@@ -302,7 +306,7 @@ def test_exists_unknown_path(deep_store: FdbZarrStore) -> None:
 def test_list_prefix_empty_returns_all(deep_store: FdbZarrStore) -> None:
     keys = sync(_collect_aiterator(deep_store.list_prefix("")))
     log.debug("list_prefix('') -> %d keys", len(keys))
-    assert set(keys) == set(deep_store._known_paths)
+    assert set(keys) == set(deep_store)
 
 
 @pytest.mark.parametrize(

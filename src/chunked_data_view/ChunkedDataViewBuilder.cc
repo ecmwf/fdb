@@ -5,6 +5,7 @@
 #include "ChunkedDataViewImpl.h"
 #include "chunked_data_view/AxisDefinition.h"
 #include "chunked_data_view/ChunkedDataView.h"
+#include "chunked_data_view/DataLayout.h"
 #include "chunked_data_view/Extractor.h"
 #include "chunked_data_view/ViewPart.h"
 #include "chunked_data_view/mapping/AxisMapper.h"
@@ -28,8 +29,10 @@ ChunkedDataViewBuilder::ChunkedDataViewBuilder(const std::optional<std::filesyst
 
 ChunkedDataViewBuilder& ChunkedDataViewBuilder::addPart(std::string marsRequestKeyValues,
                                                         std::vector<AxisDefinition> axes,
-                                                        std::shared_ptr<Extractor> extractor) {
-    parts_.emplace_back(std::move(marsRequestKeyValues), std::move(axes), std::move(extractor));
+                                                        const ExtractorDefinition& definition) {
+    auto copiedDefinition = definition.copy();
+    copiedDefinition->setDefaultIfUnset(configPath_);  // Set the default
+    parts_.emplace_back(std::move(marsRequestKeyValues), std::move(axes), std::move(copiedDefinition));
     return *this;
 }
 
@@ -44,7 +47,7 @@ ChunkedDataViewBuilder& ChunkedDataViewBuilder::fillMissingValue(float fillValue
 }
 
 bool ChunkedDataViewBuilder::chunkingConsistencyCheck(
-    const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& viewParts) {
+    const std::vector<std::pair<ViewPart, std::unique_ptr<Extractor>>>& viewParts) {
 
     if (viewParts.size() <= 1) {
         return true;
@@ -54,9 +57,9 @@ bool ChunkedDataViewBuilder::chunkingConsistencyCheck(
     const size_t numAxes = refChunks.size();
 
     for (size_t axisIdx = 0; axisIdx < numAxes; ++axisIdx) {
-        // WholeAxisChunking axes are extensible: their single chunk grows when parts are
-        // stitched together, so differing extents per part are expected and correct.
-        if (refChunks[axisIdx].isExtensible()) {
+        // WholeAxisChunking axes have one chunk whose size grows across parts;
+        // differing extents per part are expected and correct, so skip the check.
+        if (refChunks[axisIdx].isSingleGrowingChunk()) {
             continue;
         }
 
@@ -70,8 +73,36 @@ bool ChunkedDataViewBuilder::chunkingConsistencyCheck(
     return true;
 }
 
+void ChunkedDataViewBuilder::validateLayouts(
+    const std::vector<std::pair<ViewPart, std::unique_ptr<Extractor>>>& viewParts) {
+
+    const DataLayout& reference = viewParts[0].second->layout();
+
+    for (size_t index = 1; index < viewParts.size(); ++index) {
+        const DataLayout& current = viewParts[index].second->layout();
+
+        if (current.countValues != reference.countValues) {
+            std::ostringstream ss;
+            ss << "ChunkedDataViewBuilder::build: part " << index << " has " << current.countValues
+               << " grid points but part 0 has " << reference.countValues
+               << ". The grid-point dimension is never the extension axis, so every part must cover the same "
+                  "grid; a view cannot have a ragged last dimension.";
+            throw eckit::UserError(ss.str());
+        }
+
+        if (current.countChunkValues != reference.countChunkValues) {
+            std::ostringstream ss;
+            ss << "ChunkedDataViewBuilder::build: part " << index << " splits the grid-point dimension into chunks of "
+               << current.countChunkValues << " values but part 0 uses " << reference.countChunkValues
+               << ". All parts must agree on the field chunking, so a GribJump part mixed with a Grib part has to "
+                  "use the default WholeAxisChunking.";
+            throw eckit::UserError(ss.str());
+        }
+    }
+}
+
 bool ChunkedDataViewBuilder::doPartsAlign(
-    const std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>>& viewParts) {
+    const std::vector<std::pair<ViewPart, std::unique_ptr<Extractor>>>& viewParts) {
     const ViewPart& first = std::get<0>(viewParts[0]);
     bool extensible = true;
     for (const auto& [viewPart, _] : viewParts) {
@@ -96,15 +127,13 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
         }
     }
 
-    std::vector<std::pair<ViewPart, std::shared_ptr<Extractor>>> viewParts{};
+    std::vector<std::pair<ViewPart, std::unique_ptr<Extractor>>> viewParts{};
     viewParts.reserve(parts_.size());
 
     // Offset is one-dimensional along the extension axis
     std::vector<size_t> part_offsets = {0};
 
-    for (auto& [req, defs, ext] : parts_) {
-        ext->setFillValue(fillValue_);
-
+    for (auto& [req, defs, extDef] : parts_) {
         const auto requests = fdb5::FDBToolRequest::requestsFromString(req);
 
         if (requests.size() > 1) {
@@ -116,17 +145,18 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
         const auto request = requests.at(0).request();
 
         try {
-            const auto layout = ext->layout(request);
             const auto axes = AxisMapper::mapRequestToAxis(request, defs);
 
             // Create offset vector
             std::vector<size_t> offsetInChunkedDataView(axes.size(), 0);
             offsetInChunkedDataView[extensionAxisIndex_.value_or(0)] = part_offsets[part_offsets.size() - 1];
 
-            ViewPart vp(std::move(request), layout, axes, offsetInChunkedDataView);
+            ViewPart vp(std::move(request), axes, offsetInChunkedDataView);
             part_offsets.push_back(part_offsets.back() + vp.extension()[extensionAxisIndex_.value_or(0)]);
 
-            viewParts.emplace_back(std::move(vp), ext);
+            auto ext = extDef->buildExtractor(request);
+            ext->setFillValue(fillValue_);
+            viewParts.emplace_back(std::move(vp), std::move(ext));
         }
         catch (const std::exception& e) {
             std::ostringstream ss;
@@ -135,6 +165,8 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
             throw eckit::UserError(ss.str());
         }
     }
+
+    validateLayouts(viewParts);
 
     if (!doPartsAlign(viewParts)) {
         throw eckit::UserError("Shape of all parts must be identical except for the extension axis index.");
@@ -147,7 +179,7 @@ std::unique_ptr<ChunkedDataView> ChunkedDataViewBuilder::build() {
             "boundaries coincide with Zarr chunk boundaries.");
     }
 
-    return std::make_unique<ChunkedDataViewImpl>(viewParts, fillValue_, extensionAxisIndex_.value_or(0));
+    return std::make_unique<ChunkedDataViewImpl>(std::move(viewParts), fillValue_, extensionAxisIndex_.value_or(0));
 }
 
 };  // namespace chunked_data_view

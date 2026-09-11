@@ -47,7 +47,7 @@ other. The remaining axis have to have the same cardinality.
            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
            AxisDefinition(["param"], Chunking.SINGLE_VALUE)
        ],
-       ExtractorType.GRIB,
+       ExtractorType.Grib(),
    )
    builder.add_part(
        {
@@ -67,7 +67,7 @@ other. The remaining axis have to have the same cardinality.
            AxisDefinition(["date", "time"], Chunking.SINGLE_VALUE),
            AxisDefinition(["param", "levelist"], Chunking.SINGLE_VALUE)
        ],
-       ExtractorType.GRIB,
+       ExtractorType.Grib(),
    )
    builder.extend_on_axis(1)
    store = builder.build()
@@ -92,15 +92,14 @@ from pychunked_data_view.chunked_data_view import (
     ExtractorType,
     MarsSelection,
 )
-from z3fdb.simple_store_builder import (
-    SimpleStoreBuilder,
-)
-
+from z3fdb.simple_store_builder import SimpleStoreBuilder
+from z3fdb.custom_store_builder import CustomStoreBuilder
 from z3fdb.z3fdb_error import Z3fdbError
 
 __all__ = [
     "AxisDefinition",
     "Chunking",
+    "CustomStoreBuilder",
     "ExtractorType",
     "MarsSelection",
     "SimpleStoreBuilder",

@@ -24,8 +24,14 @@ on:
 
 jobs:
   prepare-deps:
-    runs-on: ubuntu-latest
     if: ${{ !github.event.pull_request.draft && (success() || failure()) && (!github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci') }}
+    runs-on: [self-hosted, Linux, platform-builder-docker-xl]
+    container:
+      image: eccr.ecmwf.int/platform-builder/platform-builder:ubuntu-24.04
+      credentials:
+        username: ${{ secrets.ECMWF_DOCKER_REGISTRY_USERNAME }}
+        password: ${{ secrets.ECMWF_DOCKER_REGISTRY_ACCESS_TOKEN }}
+      options: '--user root' # see https://github.com/ecmwf/reusable-workflows/blob/main/.github/workflows/cd-system-package.yml
     steps:
       - name: Get ecbuild
         uses: actions/checkout@v5
@@ -108,11 +114,17 @@ jobs:
           retention-days: 1
   build-wheels:
     needs: prepare-deps
-    runs-on: ubuntu-latest
     if: ${{ !github.event.pull_request.draft && (success() || failure()) && (!github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci') }}
+    runs-on: [self-hosted, Linux, platform-builder-docker-xl]
+    container:
+      image: eccr.ecmwf.int/platform-builder/platform-builder:ubuntu-24.04
+      credentials:
+        username: ${{ secrets.ECMWF_DOCKER_REGISTRY_USERNAME }}
+        password: ${{ secrets.ECMWF_DOCKER_REGISTRY_ACCESS_TOKEN }}
+      options: '--user root' # see https://github.com/ecmwf/reusable-workflows/blob/main/.github/workflows/cd-system-package.yml
     strategy:
       matrix:
-        python-version: ['3.11', '3.12', '3.13'] # eccodes does not yet support 3.14
+        python-version: ['3.11', '3.12', '3.13', '3.14'] # eccodes does not yet support 3.14
       fail-fast: false  # Continue running other versions if one fails
 
     steps:

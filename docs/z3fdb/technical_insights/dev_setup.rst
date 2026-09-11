@@ -45,7 +45,7 @@ A minimal bundle for Z3FDB development looks like this:
 Place this file in a ``bundle`` directory alongside the cloned source trees.
 cmake needs a virtual environment with the ``build`` package present to invoke
 the Python wheel builder at the end of the build. ``pybind11-stubgen`` is also
-required — the build generates ``.pyi`` stub files for the C++ extension during
+required. The build generates ``.pyi`` stub files for the C++ extension during
 the cmake build. The following block can be pasted directly into a shell:
 
 .. code-block:: bash
@@ -188,14 +188,14 @@ FAQ
 
       export FDB5_HOME=/path/to/build
 
-**pytest crashes with** ``abort`` **— wrong binaries picked up**
+**pytest crashes with** ``abort``**: wrong binaries picked up**
 
    .. code-block:: text
 
       [1]    39253 abort      pytest z3fdb
 
    A hard crash (SIGABRT or similar) usually means that a library loaded at
-   runtime does not match the one it was compiled against — for example, a
+   runtime does not match the one it was compiled against. For example, a
    system-installed ``libfdb5`` or ``libeccodes`` is found instead of the one
    from the build tree.
 

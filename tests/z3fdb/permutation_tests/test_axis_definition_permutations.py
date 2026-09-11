@@ -39,14 +39,14 @@ CANONICAL_REQUEST = {
 
 
 def _open_array(store):
-    return zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+    return zarr.open_array(store)
 
 
 def _canonical_value(date, time, param, step=0):
     return step + param * 1 + time * 3 * 1 + date * 4 * 3 * 1
 
 
-@pytest.mark.parametrize("index_permutation", permutations([0, 1, 2, 3]))
+@pytest.mark.parametrize("index_permutation", list(permutations([0, 1, 2, 3])))
 def test_all_four_axis_permutations_chunked(read_only_fdb_pattern_setup, index_permutation) -> None:
     """All 24 permutations of four individually-chunked axes produce correct data."""
     axes = [
@@ -61,7 +61,7 @@ def test_all_four_axis_permutations_chunked(read_only_fdb_pattern_setup, index_p
     builder.add_part(
         CANONICAL_REQUEST,
         [axes[i] for i in index_permutation],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     data = _open_array(builder.build())
     assert data
@@ -104,7 +104,7 @@ def test_three_axis_permutations_with_merged_date_time(
     builder.add_part(
         CANONICAL_REQUEST,
         [axes[i] for i in index_permutation],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     data = _open_array(builder.build())
     assert data

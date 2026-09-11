@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2026 European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
+#
+# Runtime dependencies of the z3fdb wheel. Read into install_requires by
+# cmake/z3fdb_setup.py.in, which stages a copy next to the generated setup.py.
+#
+# Build-time tooling belongs in z3fdb-build-requirements.txt, not here. Anything listed here is
+# installed by every `pip install z3fdb`.
+#
+# This is the complete set of third-party imports across z3fdb, pychunked_data_view and
+# chunked_data_view_bindings. The fdb5lib pin is added separately by setup.py, because it only
+# applies when VERSION_SUFFIX is set on the CD builds.
+
+# Zarr store implementation. z3fdb._internal.zarr subclasses zarr.abc.store.Store and uses
+# zarr.core.buffer, so it is bound to the v3 API.
+zarr~=3.1.6
+
+# Chunk buffers are returned as float32 arrays.
+numpy
+
+# chunked_data_view_bindings/__init__.py calls findlibs.load("fdb5") to locate libfdb5
+# before importing the extension module.
+findlibs>=0.1.2

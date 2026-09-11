@@ -14,7 +14,7 @@ NAME="fdb"
 # NOTE zarr interface is dependent on python 3.11+ -- but we dont activate the venv at the time this is sourced, that's why we rely on PYVERSION. Remove this whole part around October 2026 when 3.10 goes EoL
 # if [ "True" = "$(python -c 'import sys; print(sys.version_info[0:2] >= (3, 11))')" ] ; then
 if [ "3.10" != "$PYVERSION" ] ; then
-    ZARR_IFACE="-DENABLE_PYTHON_ZARR_INTERFACE=ON"
+    ZARR_IFACE="-DENABLE_PYTHON_ZARR_INTERFACE=ON -DENABLE_ZARR_GRIBJUMP_EXTRACTOR=OFF"
 else
     >&2 echo "Not enabling zarr interface because python version is $PYVERSION"
     ZARR_IFACE=""

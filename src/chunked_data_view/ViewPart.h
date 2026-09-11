@@ -108,13 +108,12 @@ public:
 
     /// Constructs a ViewPart.
     /// @param request     The MARS request that describes the data covered by this part.
-    /// @param data_layout Number of values and bytes-per-value for each field.
     /// @param axes        Ordered list of (Axis, AxisChunks) pairs, one per non-values dimension.
     ///                    Each keyword with more than one value must be covered by exactly one axis.
     /// @param offset      Position of the lower corner of this part in the global view index space,
     ///                    one entry per axis (excluding the implicit values dimension).
-    ViewPart(const metkit::mars::MarsRequest& request, const DataLayout& data_layout,
-             const std::vector<std::pair<Axis, AxisChunks>>& axes, const std::vector<size_t>& offset);
+    ViewPart(const metkit::mars::MarsRequest& request, const std::vector<std::pair<Axis, AxisChunks>>& axes,
+             const std::vector<size_t>& offset);
 
     ~ViewPart() = default;
 
@@ -131,18 +130,19 @@ public:
     /// Chunking descriptors for each axis (excluding the implicit values dimension).
     std::vector<AxisChunks> chunks() const { return chunks_; }
 
-    /// Returns true if the axis at @p axisIndex is marked as extensible,
-    /// i.e. additional parts may be stitched onto this part along that axis.
-    bool isExtensible(const size_t axisIndex) const { return chunks_[axisIndex].isExtensible(); }
-
-    /// Field layout (countValues and bytesPerValue) shared by all fields in this part.
-    const DataLayout& layout() const { return layout_; }
+    /// Returns true if the axis at @p axisIndex uses WholeAxisChunking, meaning its single
+    /// chunk grows to cover the combined extent of all stitched parts. False for
+    /// SingleValueChunking and FixedSizeChunking, which accumulate more fixed-size chunks.
+    bool isSingleGrowingChunk(const size_t axisIndex) const { return chunks_[axisIndex].isSingleGrowingChunk(); }
 
     /// Ordered axes that define the non-values dimensions of this part.
     const std::vector<Axis>& axes() const { return axes_; }
 
-    /// Number of entries (fields or values) along each dimension, including the implicit values dimension as the last
-    /// entry.
+    /// Number of entries along each MARS-derived dimension, one per axis.
+    ///
+    /// Does *not* include the implicit values dimension: ChunkedDataViewImpl appends that from
+    /// the extractor's DataLayout after using this to size the view. Consequently the extension
+    /// axis index is always a valid index into this vector.
     std::vector<size_t> extension() const { return extension_; }
 
     /// Position of the lower corner of this part in the global view index space.
@@ -154,7 +154,6 @@ public:
     /// Offset of this part along a single axis in the global view index space.
     size_t offsetOnAxis(size_t axisIndex) const { return offset_[axisIndex]; }
 
-    bool isAxisChunked(size_t index) const { return true; };
 
     /// Returns true if this part and @p other can be stitched together along @p extension_axis,
     /// i.e. their extents match on every axis except the extension axis.
@@ -169,7 +168,6 @@ private:  // members
     metkit::mars::MarsRequest request_{};
     std::vector<Axis> axes_{};
     std::vector<AxisChunks> chunks_;
-    DataLayout layout_{};
 
     std::vector<size_t> extension_{};  // extension in each dimension, counting entries
     std::vector<size_t> offset_{};     // offset in chunked data view

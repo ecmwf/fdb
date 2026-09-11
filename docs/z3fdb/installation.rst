@@ -20,6 +20,43 @@ Verify the installation by importing the package in a Python REPL:
    print(z3fdb)
 
 
+.. _z3fdb_gribjump_availability:
+
+Optional: the GribJump Extractor
+--------------------------------
+
+:class:`~pychunked_data_view.ExtractorType.Grib` works in every installation.
+:class:`~pychunked_data_view.ExtractorType.GribJump` does not: it is compiled only when fdb is
+configured with
+
+.. code-block:: bash
+
+   -DENABLE_ZARR_GRIBJUMP_EXTRACTOR=ON
+
+which is **off by default**, so a wheel from PyPI will not normally have it. The feature needs a
+bundle build in which gribjump is present as a sibling project. Gribjump itself depends on
+fdb5, so it cannot simply be resolved as an ordinary installed dependency.
+
+The class is importable and constructible either way, so code does not have to branch on how the
+wheel was built. Only building a view from it fails:
+
+.. code-block:: text
+
+   RuntimeError: GribJumpExtractorDefinition: this build has no GribJump support. Rebuild fdb
+   with -DENABLE_ZARR_GRIBJUMP_EXTRACTOR=ON (requires a bundle build providing gribjump).
+
+To check before you get there:
+
+.. code-block:: python
+
+   from pychunked_data_view import has_gribjump_extractor
+
+   print(has_gribjump_extractor)   # False on a default build
+
+The two tutorials both use GribJump; everything else in this documentation works without it.
+
+.. seealso:: :ref:`z3fdb_extractor_backends` for what the two backends do and how to choose.
+
 Running the Tests
 -----------------
 

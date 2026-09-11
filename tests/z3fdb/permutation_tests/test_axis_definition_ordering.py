@@ -35,7 +35,7 @@ CANONICAL_REQUEST = {
 
 
 def _open_array(store):
-    return zarr.open_array(store, mode="r", zarr_format=3, use_consolidated=False)
+    return zarr.open_array(store)
 
 
 def _canonical_value(date, time, param, step=0):
@@ -53,7 +53,7 @@ def test_canonical_axis_order_all_chunked(read_only_fdb_pattern_setup) -> None:
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
             AxisDefinition(["step"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     data = _open_array(builder.build())
     assert data
@@ -75,7 +75,7 @@ def test_canonical_axis_order_date_time_non_chunked(read_only_fdb_pattern_setup)
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
             AxisDefinition(["step"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     data = _open_array(builder.build())
     assert data
@@ -97,7 +97,7 @@ def test_swapped_time_date_axes_non_chunked(read_only_fdb_pattern_setup) -> None
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
             AxisDefinition(["step"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     data = _open_array(builder.build())
     assert data
@@ -118,7 +118,7 @@ def test_merged_date_time_axis_non_chunked(read_only_fdb_pattern_setup) -> None:
             AxisDefinition(["param"], Chunking.SINGLE_VALUE),
             AxisDefinition(["step"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     data = _open_array(builder.build())
     assert data
@@ -140,7 +140,7 @@ def test_merged_time_date_axis_non_chunked_switched(read_only_fdb_pattern_setup)
             AxisDefinition(["time", "date"], Chunking.WHOLE_AXIS),
             AxisDefinition(["step"], Chunking.SINGLE_VALUE),
         ],
-        ExtractorType.GRIB,
+        ExtractorType.Grib(),
     )
     data = _open_array(builder.build())
     assert data

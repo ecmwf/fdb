@@ -14,13 +14,8 @@ buffer.
 Ownership Model
 ---------------
 
-Extractors are held via ``std::shared_ptr<Extractor>``. This enables two
-important properties:
-
-**Sharing across parts**
-   Multiple ``ViewPart`` objects can share a single ``Extractor`` instance —
-   for example, two parts reading from the same FDB store can reuse the same
-   open handle without duplicating it.
+Extractors are held via ``std::unique_ptr<Extractor>``. Each ``ViewPart``
+owns its extractor exclusively. There is no sharing between parts.
 
 **Tied lifetime**
    Each extractor's lifetime is bound to the ``ChunkedDataView`` that owns it.
@@ -32,31 +27,64 @@ Why Extractors Are Non-Copyable
 
 Concrete extractor implementations are **stateful and non-copyable**. An
 FDB-backed extractor owns an open FDB connection handle. Copying such a handle
-would duplicate a live network or file-system connection, which is unsafe —
-both copies would race on the same underlying state.
+would duplicate a live network or file-system connection, which is unsafe.
+Both copies would race on the same underlying state.
 
-``std::shared_ptr`` provides shared ownership without copying: all parts that
-reference the same extractor share one instance, and the instance is destroyed
-exactly once when the last shared reference is dropped.
+``std::unique_ptr`` makes this ownership explicit: each extractor belongs to
+exactly one ``ViewPart``, and is destroyed exactly once when the view is
+destroyed.
+
+ExtractorDefinition Factory
+----------------------------
+
+Extractors are not constructed directly in ``addPart``. Instead, each part
+records an ``ExtractorDefinition``, a lightweight configuration object that
+implements a single factory method:
+
+.. code-block:: cpp
+
+   virtual std::unique_ptr<Extractor> buildExtractor(
+       const metkit::mars::MarsRequest& request) const = 0;
+
+``ChunkedDataViewBuilder::build()`` calls ``buildExtractor(request)`` once per
+part after the MARS request string has been parsed. This defers FDB and
+GribJump initialisation to ``build()`` time, so any configuration errors are
+raised there rather than in ``addPart``.
+
+``ChunkedDataViewBuilder`` itself is non-copyable (its copy constructor and
+copy-assignment operator are explicitly deleted) because it stores
+``std::unique_ptr<ExtractorDefinition>`` objects that cannot be duplicated.
 
 Extractor Interface
 --------------------
 
-All extractors implement two methods called by the core during a chunk access:
+All extractors implement one method called by the core during a chunk access,
+and expose a ``DataLayout`` computed eagerly in the constructor:
 
-``layout(request)``
-   Called once per part during :meth:`~z3fdb.SimpleStoreBuilder.build` to
-   probe the field layout — grid size and axis ordering — without reading
-   actual data values.
+``DataLayout layout_``
+   Set during construction by issuing a sample FDB retrieve for the part's
+   MARS request. Records the field's grid-point count, bytes-per-value, and
+   chunk shape so that ``ChunkedDataViewBuilder::build()`` can validate axis
+   compatibility before committing to the view.
 
-``extract(request, buffer, offset)``
-   Called during each chunk access to retrieve the fields matching *request*
-   from FDB, decode them, and write them into *buffer* at *offset*.
-
-The only extractor currently shipped is ``GribExtractor``, which reads GRIB
-messages from FDB and decodes them to ``float32`` via eccodes.
+``extractInto(part, chunkBB, intersectionBB, ptr, len)``
+   Called during each chunk access to retrieve the fields matching the part's
+   MARS request from FDB, decode them (or partially decode), and write the
+   float32 values into the provided buffer at the correct offset.
 
 .. seealso::
 
-   :doc:`chunk_access` for how the extractor's ``extract`` method is invoked
-   as part of the three-step chunk-access pipeline.
+   :doc:`chunk_access` for how the extractor's ``extractInto`` method is
+   invoked as part of the three-step chunk-access pipeline.
+
+The Two Backends
+----------------
+
+``GribExtractor`` and ``GribJumpExtractor`` are documented together in
+:doc:`extractor_backends`: what each one does, how to choose between them, their configuration,
+the constraints they impose on a view, and which builds provide them.
+
+.. seealso::
+
+   :ref:`z3fdb_extractor_backends` for the backends themselves, and
+   :ref:`tutorial_custom_store_mixed_extractors` for a store that uses both.
