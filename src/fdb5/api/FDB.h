@@ -133,6 +133,10 @@ public:  // methods
     /// @note always safe to call
     void flush();
 
+    /// Flush and release all internal resources. Safe to call more than once.
+    /// After this call the FDB object is empty; any further use has undefined behaviour.
+    void close();
+
     // TODO(simondsmart): Review this. This is a bit odd. The purpose of a URI is that it directly describes the
     // data locations - and as such shouldn't need the FDB object to do the conversion into DataHandle?
     /// Read binary data from an URI.

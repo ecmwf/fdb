@@ -33,6 +33,9 @@ Archiver::Archiver(const Config& dbConfig, const ArchiveCallback& callback) :
 
 Archiver::~Archiver() {
     flush();  // certify that all sessions are flushed before closing them
+    for (auto& [key, db] : databases_) {
+        db.store_->close();
+    }
 }
 
 void Archiver::archive(const Key& key, const void* data, size_t len) {

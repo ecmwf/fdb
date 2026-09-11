@@ -117,7 +117,17 @@ class FDB:
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        self.flush()
+        self.close()
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            pass
+
+    def close(self):
+        """Flush and release all internal resources. Safe to call more than once."""
+        self.FDB.close()
 
     def archive(self, data: bytes, identifier: MarsIdentifier | None = None):
         """
