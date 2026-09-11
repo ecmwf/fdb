@@ -1,0 +1,10 @@
+# Bans direct dependencies on *-sys crates outside the safe wrapper layer:
+# examples, tools and applications must use the safe crates. `wrappers` lists
+# the only crates allowed to depend on the banned crate.
+[bans]
+deny = [
+    { name = "fdb-sys", wrappers = ["fdb"] },
+    { name = "eckit-sys", wrappers = ["eckit", "fdb", "fdb-sys", "metkit-sys", "eccodes-sys"] },
+    { name = "metkit-sys", wrappers = ["metkit", "fdb-sys"] },
+    { name = "eccodes-sys", wrappers = ["fdb-sys", "metkit-sys"] },
+]

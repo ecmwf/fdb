@@ -38,8 +38,8 @@ use clap::Parser;
 use crossbeam_channel::{Receiver, Sender, bounded};
 use rand::Rng;
 
-use eccodes::GribHandle;
-use fdb::{Fdb, Key, ListOptions, Request};
+use fdb::{Fdb, Key, ListOptions, UserConfig};
+use metkit::CodesHandle;
 
 // =============================================================================
 // Valid parameter IDs (from C++ fdb-hammer)
@@ -175,8 +175,9 @@ struct Args {
     check_queue_size: usize,
 
     // FDB config
-    /// Disable use of subtocs
-    #[arg(long)]
+    /// Disable use of subtocs (requires `--config`, since user overrides
+    /// must be layered on top of a main config).
+    #[arg(long, requires = "config")]
     disable_subtocs: bool,
 
     // ITT mode options
@@ -508,17 +509,17 @@ impl AsyncVerifier {
 
         while let Ok(job) = rx.recv() {
             // Parse GRIB to get data section offsets for verification
-            let handle = GribHandle::from_bytes(&job.data)
+            let handle = CodesHandle::from_message(&job.data)
                 .map_err(|e| format!("Failed to parse GRIB: {e}"))?;
 
             #[allow(clippy::cast_sign_loss)]
             let offset_before = handle
-                .get_long("offsetBeforeData")
+                .get::<i64>("offsetBeforeData")
                 .map_err(|e| format!("Failed to get offsetBeforeData: {e}"))?
                 as usize;
             #[allow(clippy::cast_sign_loss)]
             let offset_after = handle
-                .get_long("offsetAfterData")
+                .get::<i64>("offsetAfterData")
                 .map_err(|e| format!("Failed to get offsetAfterData: {e}"))?
                 as usize;
 
@@ -762,7 +763,7 @@ impl HammerConfig {
 // Build request string
 // =============================================================================
 
-fn build_request(config: &HammerConfig, step: u32, member: u32) -> Request {
+fn build_request(config: &HammerConfig, step: u32, member: u32) -> metkit::MarsRequest {
     let levels_str = config
         .levels
         .iter()
@@ -776,18 +777,19 @@ fn build_request(config: &HammerConfig, step: u32, member: u32) -> Request {
         .collect::<Vec<_>>()
         .join("/");
 
-    Request::new()
-        .with("class", &config.class)
-        .with("expver", &config.expver)
-        .with("stream", &config.stream)
-        .with("date", &config.date)
-        .with("time", &config.time)
-        .with("type", &config.type_)
-        .with("levtype", &config.levtype)
-        .with("step", &step.to_string())
-        .with("levelist", &levels_str)
-        .with("param", &params_str)
-        .with("number", &member.to_string())
+    let mut request = metkit::MarsRequest::new("retrieve");
+    request.set("class", config.class.as_str());
+    request.set("expver", config.expver.as_str());
+    request.set("stream", &config.stream);
+    request.set("date", &config.date);
+    request.set("time", &config.time);
+    request.set("type", &config.type_);
+    request.set("levtype", &config.levtype);
+    request.set("step", step.to_string());
+    request.set("levelist", &levels_str);
+    request.set("param", &params_str);
+    request.set("number", member.to_string());
+    request
 }
 
 // =============================================================================
@@ -800,7 +802,7 @@ fn run_write(fdb: &Fdb, config: &HammerConfig) -> Result<HammerStats, Box<dyn st
     let mut rng = rand::rng();
 
     // Create template GribHandle from bytes
-    let template_handle = GribHandle::from_bytes(&config.template_data)?;
+    let template_handle = CodesHandle::from_message(&config.template_data)?;
 
     println!(
         "Writing {} fields ({} steps x {} members x {} levels x {} params)",
@@ -819,34 +821,34 @@ fn run_write(fdb: &Fdb, config: &HammerConfig) -> Result<HammerStats, Box<dyn st
                     let mut handle = template_handle.try_clone()?;
 
                     // Set GRIB keys for this field (matching C++ fdb-hammer)
-                    handle.set_string("expver", &config.expver)?;
-                    handle.set_string("class", &config.class)?;
-                    handle.set_long("step", i64::from(step))?;
-                    handle.set_long("level", i64::from(level))?;
-                    handle.set_long("paramId", i64::from(param))?;
-                    handle.set_long("number", i64::from(member))?;
+                    handle.set("expver", config.expver.as_str())?;
+                    handle.set("class", config.class.as_str())?;
+                    handle.set("step", i64::from(step))?;
+                    handle.set("level", i64::from(level))?;
+                    handle.set("paramId", i64::from(param))?;
+                    handle.set("number", i64::from(member))?;
 
                     // Randomize values if requested
                     if config.randomise_data {
-                        let size = handle.get_size("values")?;
+                        let size = handle.value_count("values")?;
                         let random_values: Vec<f64> =
                             (0..size).map(|_| rng.random::<f64>() * 100.0).collect();
-                        handle.set_double_array("values", &random_values)?;
+                        handle.set("values", random_values.as_slice())?;
                     }
 
                     // Get data section offsets for verification embedding (like C++ fdb-hammer)
                     #[allow(clippy::cast_sign_loss)]
-                    let offset_before_data = handle.get_long("offsetBeforeData")? as usize;
+                    let offset_before_data = handle.get::<i64>("offsetBeforeData")? as usize;
                     #[allow(clippy::cast_sign_loss)]
-                    let offset_after_data = handle.get_long("offsetAfterData")? as usize;
+                    let offset_after_data = handle.get::<i64>("offsetAfterData")? as usize;
 
                     // Get the GRIB message and embed verification data in data section
-                    let mut grib_data = handle.message_copy()?;
+                    let mut grib_data = handle.message_data()?.to_vec();
 
                     // Build FDB key for this field
                     let key = Key::new()
-                        .with("class", &config.class)
-                        .with("expver", &config.expver)
+                        .with("class", config.class.as_str())
+                        .with("expver", config.expver.as_str())
                         .with("stream", &config.stream)
                         .with("date", &config.date)
                         .with("time", &config.time)
@@ -905,7 +907,7 @@ fn run_write_itt(
     let mut rng = rand::rng();
 
     // Create template GribHandle from bytes
-    let template_handle = GribHandle::from_bytes(&config.template_data)?;
+    let template_handle = CodesHandle::from_message(&config.template_data)?;
 
     println!(
         "Writing {} fields (ITT mode, step_window={}s)",
@@ -948,34 +950,34 @@ fn run_write_itt(
                     let mut handle = template_handle.try_clone()?;
 
                     // Set GRIB keys for this field (matching C++ fdb-hammer)
-                    handle.set_string("expver", &config.expver)?;
-                    handle.set_string("class", &config.class)?;
-                    handle.set_long("step", i64::from(step))?;
-                    handle.set_long("level", i64::from(level))?;
-                    handle.set_long("paramId", i64::from(param))?;
-                    handle.set_long("number", i64::from(member))?;
+                    handle.set("expver", config.expver.as_str())?;
+                    handle.set("class", config.class.as_str())?;
+                    handle.set("step", i64::from(step))?;
+                    handle.set("level", i64::from(level))?;
+                    handle.set("paramId", i64::from(param))?;
+                    handle.set("number", i64::from(member))?;
 
                     // Randomize values if requested
                     if config.randomise_data {
-                        let size = handle.get_size("values")?;
+                        let size = handle.value_count("values")?;
                         let random_values: Vec<f64> =
                             (0..size).map(|_| rng.random::<f64>() * 100.0).collect();
-                        handle.set_double_array("values", &random_values)?;
+                        handle.set("values", random_values.as_slice())?;
                     }
 
                     // Get data section offsets for verification embedding (like C++ fdb-hammer)
                     #[allow(clippy::cast_sign_loss)]
-                    let offset_before_data = handle.get_long("offsetBeforeData")? as usize;
+                    let offset_before_data = handle.get::<i64>("offsetBeforeData")? as usize;
                     #[allow(clippy::cast_sign_loss)]
-                    let offset_after_data = handle.get_long("offsetAfterData")? as usize;
+                    let offset_after_data = handle.get::<i64>("offsetAfterData")? as usize;
 
                     // Get the GRIB message and embed verification data in data section
-                    let mut grib_data = handle.message_copy()?;
+                    let mut grib_data = handle.message_data()?.to_vec();
 
                     // Build FDB key for this field
                     let key = Key::new()
-                        .with("class", &config.class)
-                        .with("expver", &config.expver)
+                        .with("class", config.class.as_str())
+                        .with("expver", config.expver.as_str())
                         .with("stream", &config.stream)
                         .with("date", &config.date)
                         .with("time", &config.time)
@@ -1091,11 +1093,13 @@ fn run_read(fdb: &Fdb, config: &HammerConfig) -> Result<HammerStats, Box<dyn std
                 },
             )?;
             stats.record_io_start();
-            let mut reader = fdb.read_from_list(list_iter, false)?;
+            let reader = fdb.read_from_list(list_iter, false)?;
+            let (mut reader, estimated) = reader.open_for_read()?;
             if config.verbose {
-                println!("  Reader size: {} bytes", reader.size());
+                println!("  Reader size: {} bytes", estimated);
             }
-            let data = reader.read_all()?;
+            let mut data = Vec::new();
+            std::io::Read::read_to_end(&mut reader, &mut data)?;
             stats.record_io_end();
 
             stats.bytes_processed += data.len() as u64;
@@ -1119,11 +1123,11 @@ fn run_read(fdb: &Fdb, config: &HammerConfig) -> Result<HammerStats, Box<dyn std
                     stats.fields_processed += 1;
 
                     // Parse GRIB to get data section offsets for verification
-                    if let Ok(handle) = GribHandle::from_bytes(field_data) {
+                    if let Ok(handle) = CodesHandle::from_message(field_data) {
                         #[allow(clippy::cast_sign_loss)]
                         if let (Ok(offset_before), Ok(offset_after)) = (
-                            handle.get_long("offsetBeforeData"),
-                            handle.get_long("offsetAfterData"),
+                            handle.get::<i64>("offsetBeforeData"),
+                            handle.get::<i64>("offsetAfterData"),
                         ) {
                             if let Err(e) = verifier.verify_from_message(
                                 &key,
@@ -1233,8 +1237,10 @@ fn run_read_itt(
                 },
             )?;
             stats.record_io_start();
-            let mut reader = fdb.read_from_list(list_iter, false)?;
-            let data = reader.read_all()?;
+            let reader = fdb.read_from_list(list_iter, false)?;
+            let (mut reader, _len) = reader.open_for_read()?;
+            let mut data = Vec::new();
+            std::io::Read::read_to_end(&mut reader, &mut data)?;
             stats.record_io_end();
 
             stats.bytes_processed += data.len() as u64;
@@ -1291,8 +1297,10 @@ fn run_read_uri_file(
     );
 
     stats.record_io_start();
-    let mut reader = fdb.read_uris(&uris, false)?;
-    let data = reader.read_all()?;
+    let reader = fdb.read_uris(&uris, false)?;
+    let (mut reader, _len) = reader.open_for_read()?;
+    let mut data = Vec::new();
+    std::io::Read::read_to_end(&mut reader, &mut data)?;
     stats.record_io_end();
 
     stats.fields_processed = uris.len() as u64;
@@ -1367,6 +1375,8 @@ fn run_list(fdb: &Fdb, config: &HammerConfig) -> Result<HammerStats, Box<dyn std
 // =============================================================================
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    eckit::init();
+
     let args = Args::parse();
 
     println!("FDB Hammer (Rust)");
@@ -1381,17 +1391,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Create FDB handle with optional subtoc configuration
-    let fdb = if let Some(config_path) = &args.config {
-        let mut config_str = fs::read_to_string(config_path)?;
-        if args.disable_subtocs {
-            config_str.push_str("\nuseSubToc: false\n");
-        }
-        Fdb::open(Some(config_str.as_str()), None)?
-    } else if args.disable_subtocs {
-        // Create config with subtoc disabled
-        Fdb::open(Some("useSubToc: false\n"), None)?
+    let user_config = if args.disable_subtocs {
+        Some(UserConfig {
+            use_sub_toc: false,
+            ..Default::default()
+        })
     } else {
-        Fdb::open_default()?
+        None
+    };
+
+    let fdb = if let Some(config_path) = &args.config {
+        let cfg = eckit::Config::from_path(config_path)?;
+        Fdb::open(Some(&cfg), user_config)?
+    } else {
+        Fdb::open(None, user_config)?
     };
 
     println!("FDB handle created: {}", fdb.name());

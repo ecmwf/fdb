@@ -1,6 +1,6 @@
 [package]
 name = "fdb-sys"
-version = "5.19.1"
+version = "5.23.3"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true

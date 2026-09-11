@@ -9,14 +9,15 @@
 //! makes it the typical entry point for browsing what's archived.
 //!
 //! ```no_run
-//! use fdb::{Fdb, ListOptions, Request};
+//! use fdb::{Fdb, ListOptions};
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! eckit::init();
 //! let fdb = Fdb::open_default()?;
 //!
-//! let request = Request::new()
-//!     .with("class", "od")
-//!     .with("expver", "0001");
+//! let mut request = metkit::MarsRequest::new("retrieve");
+//! request.set("class", "od");
+//! request.set("expver", "0001");
 //!
 //! // ListOptions::default() is depth=3 (full traversal), deduplicate=true
 //! for item in fdb.list(&request, ListOptions::default())? {
@@ -33,25 +34,21 @@
 //! # }
 //! ```
 
-mod datareader;
 mod error;
 mod handle;
 mod iterator;
 mod key;
 mod options;
-mod request;
 
-pub use datareader::DataReader;
 pub use error::{Error, Result};
-pub use handle::{ArchiveCallbackData, Fdb, FdbConfig, FdbStats};
+pub use handle::{ArchiveCallbackData, Fdb, FdbStats, MessageArchiver};
 pub use iterator::{
     CompactSummary, ControlElement, ControlIterator, DbStats, DumpElement, DumpIterator,
     IndexStats, ListElement, ListIterator, PurgeElement, PurgeIterator, StatsElement,
     StatsIterator, StatusElement, StatusIterator, WipeElement, WipeIterator,
 };
 pub use key::Key;
-pub use options::{DumpOptions, ListOptions, PurgeOptions, WipeOptions};
-pub use request::Request;
+pub use options::{DumpOptions, ListOptions, PurgeOptions, UserConfig, WipeOptions};
 
 // Re-export control enums from the cxx bindings
 pub use fdb_sys::{ControlAction, ControlIdentifier};
@@ -59,11 +56,11 @@ pub use fdb_sys::{ControlAction, ControlIdentifier};
 /// Version string of the underlying FDB C++ library.
 #[must_use]
 pub fn version() -> String {
-    fdb_sys::fdb_version()
+    fdb_sys::Library::version()
 }
 
 /// Git SHA1 of the underlying FDB C++ library.
 #[must_use]
 pub fn git_sha1() -> String {
-    fdb_sys::fdb_git_sha1()
+    fdb_sys::Library::git_sha1()
 }

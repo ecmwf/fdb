@@ -9,7 +9,7 @@ readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
 description = "Safe Rust wrapper for ECMWF's FDB (Fields DataBase)"
-links = "fdb_rpath"
+links = "fdb_rs"
 build = "build.rs"
 
 [features]
@@ -22,11 +22,15 @@ bindman-utils.workspace = true
 
 [dependencies]
 fdb-sys.workspace = true
-indexmap.workspace = true
+eckit.workspace = true
+eckit-sys = { workspace = true, default-features = false }
+metkit.workspace = true
 parking_lot.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
+eckit.workspace = true
+metkit.workspace = true
 clap = { version = "4", features = ["derive"] }
 criterion = { version = "0.5", features = ["html_reports"] }
 tempfile.workspace = true
