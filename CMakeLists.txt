@@ -49,10 +49,15 @@ ecbuild_find_package( NAME metkit VERSION 1.15 REQUIRED )
 ### FDB backend in CEPH object store (using Rados)
 
 find_package( RADOS QUIET )
+
 ecbuild_add_option( FEATURE RADOSFDB  # option defined in fdb5_config.h
                     CONDITION eckit_HAVE_RADOS AND RADOS_FOUND
                     DEFAULT OFF
                     DESCRIPTION "Ceph/Rados support for FDB Store" )
+
+ecbuild_add_option( FEATURE RADOS_TESTS_MANAGE_POOLS
+                    DEFAULT OFF
+                    DESCRIPTION "Have unit tests create pools automatically rather than using an existing pool specified in the FDB_RADOS_TEST_POOL cmake variable." )
 
 ### FDB backend in indexed filesystem with table-of-contents, i.e. TOC
 ### Supports Lustre parallel filesystem stripping control
