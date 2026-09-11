@@ -10,15 +10,26 @@
 
 #include <fcntl.h>
 #include <pwd.h>
+#include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
+
+#include <cerrno>
 #include <cstddef>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <tuple>
 #include <utility>
 
 #include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/StdDir.h"
+#include "eckit/io/DataHandle.h"
 #include "eckit/io/FileDescHandle.h"
 #include "eckit/io/FileHandle.h"
-#include "eckit/log/BigNum.h"
 #include "eckit/log/Log.h"
 #include "eckit/maths/Functions.h"
 #include "eckit/serialisation/MemoryStream.h"
@@ -31,7 +42,6 @@
 #include "fdb5/database/Index.h"
 #include "fdb5/io/LustreSettings.h"
 #include "fdb5/toc/TocCommon.h"
-#include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
@@ -61,6 +71,87 @@ const std::map<ControlIdentifier, const char*> controlfile_lookup{
     {ControlIdentifier::List, list_lock_file},
     {ControlIdentifier::Wipe, wipe_lock_file},
     {ControlIdentifier::UniqueRoot, allow_duplicates_file}};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+namespace {
+
+/// Blocking whole-file advisory lock. Prefers open-file-description locks
+/// (F_OFD_*) so the lock is bound to this descriptor; falls back to classic
+/// POSIX locks if OFD is unavailable.
+void tocFileLock(int fd, short type, const eckit::PathName& path) {
+    struct flock lock{};
+    lock.l_type = type;
+    lock.l_whence = SEEK_SET;
+    lock.l_start = 0;
+    lock.l_len = 0;  // whole file
+
+    int cmd = F_SETLKW;
+#if defined(F_OFD_SETLKW)
+    cmd = F_OFD_SETLKW;
+#endif
+
+    for (;;) {
+        if (::fcntl(fd, cmd, &lock) == 0) {
+            return;
+        }
+        if (errno == EINTR) {
+            continue;  // interrupted by a signal, retry
+        }
+#if defined(F_OFD_SETLKW)
+        if (cmd == F_OFD_SETLKW && (errno == EINVAL || errno == ENOTSUP)) {
+            cmd = F_SETLKW;  // OFD unsupported at runtime, degrade to classic locks
+            continue;
+        }
+#endif
+        const int err = errno;
+        throw eckit::FailedSystemCall(
+            std::string("advisory lock on TOC ") + path.asString() + " (ensure NFS file locking is enabled)", Here(),
+            err);
+    }
+}
+
+}  // namespace
+
+//----------------------------------------------------------------------------------------------------------------------
+
+
+/// Serialises independent TOC handlers within a process when using process-scoped POSIX locks.
+/// File identity is based on device and inode so aliases share the same mutex.
+class TocProcessLock {
+
+    using FileIdentity = std::tuple<pid_t, dev_t, ino_t>;
+
+    struct Registry {
+        std::mutex mutex;
+        std::map<FileIdentity, std::weak_ptr<std::mutex>> locks;
+    };
+
+    static std::shared_ptr<std::mutex> mutexFor(int fd, const eckit::PathName& path) {
+        static Registry registry;
+
+        struct stat status{};
+        SYSCALL2(::fstat(fd, &status), path);
+
+        const std::lock_guard lock{registry.mutex};
+        auto& entry = registry.locks[FileIdentity{::getpid(), status.st_dev, status.st_ino}];
+        auto fileMutex = entry.lock();
+        if (!fileMutex) {
+            fileMutex = std::make_shared<std::mutex>();
+            entry = fileMutex;
+        }
+        return fileMutex;
+    }
+
+public:
+
+    TocProcessLock(int fd, const eckit::PathName& path) : mutex_{mutexFor(fd, path)}, lock_{*mutex_} {}
+
+private:
+
+    std::shared_ptr<std::mutex> mutex_;
+    std::unique_lock<std::mutex> lock_;
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -222,6 +313,13 @@ bool TocHandler::exists() const {
     return tocPath_.exists();
 }
 
+bool TocHandler::needsNFSLock() const {
+    if (!isNFSCached_) {
+        isNFSCached_ = directory().fileSystemType() == "nfs";
+    }
+    return *isNFSCached_;
+}
+
 void TocHandler::openForAppend() {
 
     checkUID();  // n.b. may openForRead
@@ -245,6 +343,21 @@ void TocHandler::openForAppend() {
     }
 #endif
     SYSCALL2((fd_ = ::open(tocPath_.localPath(), iomode, (mode_t)0777)), tocPath_);
+
+    if (needsNFSLock()) {
+        // On NFS O_APPEND is not atomic, so serialize with a lock (released on close)
+        auto lock = std::make_unique<TocProcessLock>(fd_, tocPath_);
+        try {
+            tocFileLock(fd_, F_WRLCK, tocPath_);
+        }
+        catch (...) {
+            ::close(fd_);
+            fd_ = -1;
+            writeMode_ = false;
+            throw;
+        }
+        processLock_ = std::move(lock);
+    }
 }
 
 void TocHandler::openForRead() const {
@@ -272,19 +385,30 @@ void TocHandler::openForRead() const {
     }
 #endif
     SYSCALL2((fd_ = ::open(tocPath_.localPath(), iomode)), tocPath_);
-    eckit::Length tocSize = tocPath_.size();
 
     // The masked subtocs and indexes could be updated each time, so reset this.
     enumeratedMaskedEntries_ = false;
     numSubtocsRaw_ = 0;
     maskedEntries_.clear();
 
+    const bool needs_nfs_lock = needsNFSLock();
+
     if (fdbCacheTocsOnRead) {
 
-        FileDescHandle toc(fd_, true);  // closes the file descriptor
-        AutoClose closer1(toc);
+        const auto toc_fd = fd_;
         fd_ = -1;
 
+        std::unique_ptr<TocProcessLock> process_lock;
+        FileDescHandle toc(toc_fd, true);  // closes the file descriptor
+        AutoClose closer1(toc);
+
+        if (needs_nfs_lock) {
+            process_lock = std::make_unique<TocProcessLock>(toc_fd, tocPath_);
+            tocFileLock(toc_fd, F_RDLCK, tocPath_);
+        }
+
+        // n.b. the size must be taken *after* the lock is held
+        eckit::Length tocSize = tocPath_.size();
 
         bool grow = true;
         cachedToc_.reset(new eckit::MemoryHandle(tocSize, grow));
@@ -292,6 +416,18 @@ void TocHandler::openForRead() const {
         long buffersize = 4_MiB;
         toc.copyTo(*cachedToc_, buffersize, tocSize, tocReadStats_);
         cachedToc_->openForRead();
+    }
+    else if (needs_nfs_lock) {
+        auto proc_lock = std::make_unique<TocProcessLock>(fd_, tocPath_);
+        try {
+            tocFileLock(fd_, F_RDLCK, tocPath_);  // released on close()
+        }
+        catch (...) {
+            ::close(fd_);
+            fd_ = -1;
+            throw;
+        }
+        processLock_ = std::move(proc_lock);
     }
 }
 
@@ -613,9 +749,17 @@ void TocHandler::close() const {
             SYSCALL2(eckit::fdatasync(fd_), tocPath_);
             dirty_ = false;
         }
+        const bool publishDirectory = writeMode_ && processLock_;
+
+        // Publish namespace changes while both the process-local and file locks are still held.
+        if (publishDirectory) {
+            tocPath_.syncParentDirectory();
+        }
+
         SYSCALL2(::close(fd_), tocPath_);
         fd_ = -1;
         writeMode_ = false;
+        processLock_.reset();
     }
 }
 
@@ -1041,6 +1185,12 @@ void TocHandler::writeInitRecord(const Key& key) {
     SYSCALL2(fd_ = ::open(tocPath_.localPath(), iomode, mode_t(0777)), tocPath_);
 
     TocHandlerCloser closer(*this);
+
+    if (needsNFSLock()) {
+        auto proc_lock = std::make_unique<TocProcessLock>(fd_, tocPath_);
+        tocFileLock(fd_, F_WRLCK, tocPath_);
+        processLock_ = std::move(proc_lock);
+    }
 
     auto r = std::make_unique<TocRecord>(
         serialisationVersion_.used());  // allocate (large) TocRecord on heap not stack (MARS-779)
