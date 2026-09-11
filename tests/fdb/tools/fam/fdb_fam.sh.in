@@ -56,15 +56,15 @@ echo "endpoint : $fam_endpoint"
 echo "region   : $test_region"
 
 ########################################################################################################################
-# 1. Create a region
+# Create a region
 ########################################################################################################################
 
 echo "--- TEST: create region ---"
-expect_output "Created" \
+expect_output "Created FamRegion[Property[size=4096" \
     fdb-fam --endpoint="$fam_endpoint" --create --size=4096 --perm=0640 "/$test_region"
 
 ########################################################################################################################
-# 2. Lookup the created region
+# Lookup the created region
 ########################################################################################################################
 
 echo "--- TEST: lookup region ---"
@@ -72,7 +72,7 @@ expect_match "size=4096" \
     fdb-fam --endpoint="$fam_endpoint" --lookup "/$test_region"
 
 ########################################################################################################################
-# 3. Create same region again — expect failure exit code (not crash)
+# Create same region again — expect failure exit code (not crash)
 ########################################################################################################################
 
 echo "--- TEST: create duplicate region (graceful failure) ---"
@@ -82,15 +82,59 @@ fi
 echo "$out" | grep -qF "Failed to create" || die "Expected 'Failed to create' for duplicate region, got: $out"
 
 ########################################################################################################################
-# 4. Delete the region
+# Create an object in the region
+########################################################################################################################
+
+echo "--- TEST: create object ---"
+expect_output "Created FamObject[Property[size=1024" \
+    fdb-fam --endpoint="$fam_endpoint" --create --size=1024 --perm=0640 "/$test_region/test_object"
+
+########################################################################################################################
+# Create duplicate object — expect failure exit code
+########################################################################################################################
+
+echo "--- TEST: create duplicate object (graceful failure) ---"
+if out=$(fdb-fam --endpoint="$fam_endpoint" --create --size=1024 --perm=0640 "/$test_region/test_object" 2>/dev/null); then
+    die "Expected non-zero exit for duplicate object create, got success: $out"
+fi
+echo "$out" | grep -qF "Failed to create" || die "Expected 'Failed to create' for duplicate object, got: $out"
+
+########################################################################################################################
+# Lookup the created object
+########################################################################################################################
+
+echo "--- TEST: lookup object ---"
+expect_match "FamObject\[Property\[size=1024" \
+    fdb-fam --endpoint="$fam_endpoint" --lookup "/$test_region/test_object"
+
+########################################################################################################################
+# Delete the object
+########################################################################################################################
+
+echo "--- TEST: delete object ---"
+expect_output "Deleted FamObject[Property[size=1024" \
+    fdb-fam --endpoint="$fam_endpoint" --delete "/$test_region/test_object"
+
+########################################################################################################################
+# Lookup deleted object — expect failure exit code
+########################################################################################################################
+
+echo "--- TEST: lookup deleted object (graceful failure) ---"
+if out=$(fdb-fam --endpoint="$fam_endpoint" --lookup "/$test_region/test_object" 2>/dev/null); then
+    die "Expected non-zero exit for lookup of deleted object, got success: $out"
+fi
+echo "$out" | grep -qF "Failed to lookup" || die "Expected 'Failed to lookup' for deleted object, got: $out"
+
+########################################################################################################################
+# Delete the region
 ########################################################################################################################
 
 echo "--- TEST: delete region ---"
-expect_output "Deleted" \
+expect_output "Deleted FamRegion[Property[size=4096" \
     fdb-fam --endpoint="$fam_endpoint" --delete "/$test_region"
 
 ########################################################################################################################
-# 5. Lookup deleted region — expect failure exit code
+# Lookup deleted region — expect failure exit code
 ########################################################################################################################
 
 echo "--- TEST: lookup deleted region (graceful failure) ---"
@@ -100,7 +144,7 @@ fi
 echo "$out" | grep -qF "Failed to lookup" || die "Expected 'Failed to lookup' for deleted region, got: $out"
 
 ########################################################################################################################
-# 6. Delete non-existent region — expect failure exit code
+# Delete non-existent region — expect failure exit code
 ########################################################################################################################
 
 echo "--- TEST: delete non-existent region (graceful failure) ---"
@@ -110,19 +154,19 @@ fi
 echo "$out" | grep -qF "Failed to delete" || die "Expected 'Failed to delete' for non-existent region, got: $out"
 
 ########################################################################################################################
-# 7. Create, then delete, then re-create (lifecycle roundtrip)
+# Create, then delete, then re-create (lifecycle roundtrip)
 ########################################################################################################################
 
 echo "--- TEST: full lifecycle roundtrip ---"
-expect_output "Created" \
+expect_output "Created FamRegion[Property[size=2048" \
     fdb-fam --endpoint="$fam_endpoint" --create --size=2048 --perm=0640 "/$test_region"
-expect_match "size=2048" \
+expect_match "FamRegion\[Property\[size=2048" \
     fdb-fam --endpoint="$fam_endpoint" --lookup "/$test_region"
-expect_output "Deleted" \
+expect_output "Deleted FamRegion[Property[size=2048" \
     fdb-fam --endpoint="$fam_endpoint" --delete "/$test_region"
 
 ########################################################################################################################
-# 8. Argument validation: no action flag — expect failure exit code
+# Argument validation: no action flag — expect failure exit code
 ########################################################################################################################
 
 echo "--- TEST: no action flag (validation failure) ---"
@@ -132,7 +176,7 @@ fi
 echo "$out" | grep -qF "exactly one of" || die "Expected 'exactly one of' for no action flag, got: $out"
 
 ########################################################################################################################
-# 9. Argument validation: multiple action flags — expect failure exit code
+# Argument validation: multiple action flags — expect failure exit code
 ########################################################################################################################
 
 echo "--- TEST: multiple action flags (validation failure) ---"
@@ -142,7 +186,7 @@ fi
 echo "$out" | grep -qF "exactly one of" || die "Expected 'exactly one of' for multiple action flags, got: $out"
 
 ########################################################################################################################
-# 10. Argument validation: missing [path] argument — expect failure exit code
+# Argument validation: missing [path] argument — expect failure exit code
 ########################################################################################################################
 
 echo "--- TEST: missing path argument (validation failure) ---"
@@ -152,7 +196,7 @@ fi
 echo "$out" | grep -qF "missing argument" || die "Expected 'missing argument' for missing path, got: $out"
 
 ########################################################################################################################
-# 11. Argument validation: --create without --size — expect failure exit code
+# Argument validation: --create without --size — expect failure exit code
 ########################################################################################################################
 
 echo "--- TEST: create without size (validation failure) ---"

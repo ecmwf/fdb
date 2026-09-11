@@ -27,7 +27,6 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 
-#include <cstdint>
 #include <cstdlib>
 #include <ostream>
 #include <string>
@@ -168,9 +167,41 @@ void FDBFam::execute(const eckit::option::CmdArgs& args) {
         }
     }
     else {
-        // A path that carries an object name is not (yet) supported: fail loudly rather than
-        // silently succeeding, which would mislead scripts relying on the exit status.
-        throw eckit::BadValue("fdb-fam only supports region paths (no object name): " + path_.asString(), Here());
+        auto objectName = eckit::FamRegionName(endpoint_, path_).object(path_.objectName());
+
+        LOG_DEBUG_LIB(LibFdb5) << "Object [" << objectName << "] ..." << std::endl;
+
+        if (lookup_) {
+            try {
+                const auto object = objectName.lookup();
+                eckit::Log::info() << object << std::endl;
+            }
+            catch (const eckit::Exception&) {
+                eckit::Log::info() << "Failed to lookup: " << objectName << std::endl;
+                exit(EXIT_FAILURE);
+            }
+        }
+        else if (delete_) {
+            try {
+                auto object = objectName.lookup();
+                object.deallocate();
+                eckit::Log::info() << "Deleted " << object << std::endl;
+            }
+            catch (const eckit::Exception&) {
+                eckit::Log::info() << "Failed to delete: " << objectName << std::endl;
+                exit(EXIT_FAILURE);
+            }
+        }
+        else if (create_) {
+            try {
+                const auto object = objectName.allocate(item_.size);
+                eckit::Log::info() << "Created " << object << std::endl;
+            }
+            catch (const eckit::Exception&) {
+                eckit::Log::info() << "Failed to create: " << objectName << std::endl;
+                exit(EXIT_FAILURE);
+            }
+        }
     }
 }
 
