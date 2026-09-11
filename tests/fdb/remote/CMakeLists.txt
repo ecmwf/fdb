@@ -59,4 +59,7 @@ if (HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB)
 endif()
 
 add_subdirectory( multi_store )
-add_subdirectory( single_conn_stress )
+
+if("${ECKIT_VERSION}" VERSION_GREATER_EQUAL 2.2)
+    add_subdirectory( single_conn_stress )
+endif()
