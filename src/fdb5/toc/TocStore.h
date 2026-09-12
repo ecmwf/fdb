@@ -40,7 +40,7 @@ public:  // methods
     TocStore(const Key& key, const Config& config);
     TocStore(const eckit::URI& uri, const Config& config);
 
-    ~TocStore() override {}
+    ~TocStore() override { close(); }
 
     eckit::URI uri() const override;
     static eckit::URI uri(const eckit::URI& dataURI);
