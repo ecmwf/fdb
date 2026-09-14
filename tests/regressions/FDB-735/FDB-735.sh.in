@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+
+# A 'type: select' FDB whose lanes share the same physical root can, for a
+# partial (ambiguous) list/wipe request that omits the keyword used to
+# discriminate between lanes, have every matching lane independently
+# rediscover the *same* on-disk catalogue and process it more than once.
+#
+# Two lanes ("stream=oper" and "stream=dcda") share the same root.
+# A request that omits "stream" entirely legitimately matches both lanes
+# (SelectFDB's MatchOnMissing policy), so both are queried -- but each lane
+# then scans the *shared* root and finds *both* catalogues (the per-lane
+# selector is not used to filter which catalogues are relevant), so every
+# catalogue is reported/wiped once per lane instead of once overall.
+
+set -euxo pipefail
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+
+fdbroot="$<TARGET_FILE:fdb-root>"
+fdboverlay="$<TARGET_FILE:fdb-overlay>"
+fdbwipe="$<TARGET_FILE:fdb-wipe>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+wdir=$bindir/FDB-735
+
+### cleanup and prepare test
+
+rm -rf "$wdir"
+mkdir -p "$wdir/etc/fdb"
+mkdir -p "$wdir/root"
+
+cd "$wdir"
+
+for f in config.yaml schema
+do
+    cp "$srcdir/$f" "$wdir/etc/fdb"
+done
+
+export FDB_HOME="$wdir"
+unset FDB5_CONFIG_FILE
+unset FDB_CONFIG_FILE
+
+# create empty expver 1234
+$fdbroot class=od,expver=1234,stream=oper,domain=g,date=-1,time=0 --create
+
+# overlay 1235 --> 1234
+$fdboverlay class=od,expver=1234,stream=oper,domain=g,date=-1,time=0 class=od,expver=1235,stream=oper,domain=g,date=-1,time=0 
+
+# remove 1234 (dangerous, since we have an overlay!)
+$fdbwipe class=od,expver=1234,stream=oper,domain=g,date=-1,time=0 --doit
+
+# segfault while removing 1235
+$fdbwipe class=od,expver=1235,stream=oper,domain=g,date=-1,time=0
+

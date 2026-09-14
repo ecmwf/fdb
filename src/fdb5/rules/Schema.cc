@@ -9,12 +9,9 @@
  */
 
 #include <cstddef>
-#include <fstream>
-#include <iostream>
 #include <memory>
 #include <mutex>
 #include <optional>
-#include <set>
 #include <sstream>
 #include <string>
 #include <tuple>
@@ -27,6 +24,7 @@
 #include "eckit/utils/Tokenizer.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/exceptions/SchemaError.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/WriteVisitor.h"
 #include "fdb5/rules/Predicate.h"
@@ -190,23 +188,28 @@ void Schema::load(const eckit::PathName& path, const bool replace) {
 
     LOG_DEBUG_LIB(LibFdb5) << "Loading FDB rules from " << path << std::endl;
 
-    std::ifstream in(path.localPath());
-    if (!in) {
-        auto ex = eckit::CantOpenFile(path);
-        ex.dumpStackTrace();
-        throw ex;
-    }
-
-    load(in, replace);
-}
-
-void Schema::load(std::istream& s, const bool replace) {
+    // Constructing the parser opens `path`, so a missing file is reported
+    // (as eckit::CantOpenFile) before any existing rules are cleared.
+    SchemaParser parser(path);
 
     if (replace) {
         clear();
     }
 
-    SchemaParser(s).parse(rules_, registry_);
+    parser.parse(rules_, registry_);
+
+    check();
+}
+
+void Schema::load(std::istream& s, const bool replace) {
+
+    SchemaParser parser(s);
+
+    if (replace) {
+        clear();
+    }
+
+    parser.parse(rules_, registry_);
 
     check();
 }
