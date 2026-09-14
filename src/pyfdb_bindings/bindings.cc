@@ -8,12 +8,6 @@
  * nor does it submit to any jurisdiction.
  */
 
-#include <chunked_data_view/AxisDefinition.h>
-#include <chunked_data_view/ChunkedDataView.h>
-#include <chunked_data_view/ChunkedDataViewBuilder.h>
-#include <chunked_data_view/Extractor.h>
-#include <chunked_data_view/LibChunkedDataView.h>
-
 #include <pybind11/iostream.h>
 #include <pybind11/native_enum.h>
 #include <pybind11/numpy.h>

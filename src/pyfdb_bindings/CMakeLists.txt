@@ -3,7 +3,6 @@ pybind11_add_module(pyfdb_bindings MODULE bindings.cc)
 target_link_libraries(pyfdb_bindings
     PRIVATE pybind11::module 
             pybind11::lto 
-            chunked_data_view
             eckit
             metkit
             fdb5
