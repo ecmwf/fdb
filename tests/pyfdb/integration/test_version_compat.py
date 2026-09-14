@@ -127,15 +127,15 @@ def mock_bindings(monkeypatch):
     mock. Relying on monkeypatch to restore sys.modules would be too late
     (monkeypatch tears down after this fixture), leaving _internal holding
     mock references that leak into subsequent tests."""
-    real_mod = sys.modules.get("pyfdb_bindings._pyfdb_bindings")
+    real_mod = sys.modules["pyfdb_bindings"]
     mock_mod = MagicMock(spec=real_mod)
     # spec copies attribute names but not values; set the ones we need explicitly
     mock_mod.version_info = MagicMock(return_value=[])
     mock_mod.__fdb5_build_version__ = BUILD_VERSION
-    monkeypatch.setitem(sys.modules, "pyfdb_bindings._pyfdb_bindings", mock_mod)
+    monkeypatch.setitem(sys.modules, "pyfdb_bindings", mock_mod)
     yield mock_mod
     # Restore the real module first so the reload below picks up real bindings.
-    sys.modules["pyfdb_bindings._pyfdb_bindings"] = real_mod
+    sys.modules["pyfdb_bindings"] = real_mod
     importlib.reload(_internal)
 
 

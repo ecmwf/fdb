@@ -123,6 +123,15 @@ if (HAVE_PYTHON_FDB_INTERFACE)
         "${CMAKE_CURRENT_SOURCE_DIR}/pyfdb"
         "${PYFDB_STAGING}/pyfdb" SYMBOLIC
     )
+    # Symlink pyfdb_bindings/__init__.py so source edits are immediately reflected
+    # without a rebuild. The .so is placed here by the pyfdb_bindings cmake target.
+    # Remove any stale copy first so the symlink creation cannot fail silently.
+    file(MAKE_DIRECTORY "${PYFDB_STAGING}/pyfdb_bindings")
+    file(REMOVE "${PYFDB_STAGING}/pyfdb_bindings/__init__.py")
+    file(CREATE_LINK
+        "${CMAKE_CURRENT_SOURCE_DIR}/pyfdb_bindings/__init__.py"
+        "${PYFDB_STAGING}/pyfdb_bindings/__init__.py" SYMBOLIC
+    )
     # Copy README.md and LICENSE at build time so changes are picked up
     # without needing to re-run cmake configure
     add_custom_command(
