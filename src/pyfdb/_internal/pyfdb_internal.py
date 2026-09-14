@@ -13,7 +13,7 @@ from typing import Any, Optional
 
 import yaml
 
-from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
+from pyfdb_bindings import _pyfdb_bindings as pyfdb_internal
 
 # Initial setup of binding via eckit main
 pyfdb_internal.init_bindings()

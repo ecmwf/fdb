@@ -102,7 +102,7 @@ metkit::mars::MarsRequest mars_request_from_map(const std::map<std::string, std:
     return expand.expand(mars_request);
 }
 
-PYBIND11_MODULE(pyfdb_bindings, m) {
+PYBIND11_MODULE(_pyfdb_bindings, m) {
     m.def("init_bindings", []() {
         const char* args[] = {"pyfdb", ""};
         eckit::Main::initialise(1, const_cast<char**>(args));

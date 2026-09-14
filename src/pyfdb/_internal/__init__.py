@@ -16,33 +16,23 @@ from pyfdb._internal.pyfdb_internal import (
     ConfigMapper,
     FDBToolRequest,
 )
-from pyfdb_bindings.pyfdb_bindings import (
+from pyfdb_bindings._pyfdb_bindings import (
     FDB as _FDB,
-)
-from pyfdb_bindings.pyfdb_bindings import (
     URI as _URI,
-)
-from pyfdb_bindings.pyfdb_bindings import (
     Config,
+    ControlAction as _ControlAction,
     ControlElement,
+    ControlIdentifier as _ControlIdentifier,
+    DataHandle as _DataHandle,
     IndexAxis,
     ListElement,
+    PurgeElement,
     StatsElement,
     WipeElement,
     WipeElementType,
-    PurgeElement,
     init_bindings,
     version_info,
     __fdb5_build_version__ as _fdb5_build_version,
-)
-from pyfdb_bindings.pyfdb_bindings import (
-    ControlAction as _ControlAction,
-)
-from pyfdb_bindings.pyfdb_bindings import (
-    ControlIdentifier as _ControlIdentifier,
-)
-from pyfdb_bindings.pyfdb_bindings import (
-    DataHandle as _DataHandle,
 )
 
 
