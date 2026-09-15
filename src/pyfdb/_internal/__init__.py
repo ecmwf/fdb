@@ -8,7 +8,7 @@
 
 import warnings
 
-import pyfdb_bindings as _bindings
+import pyfdb.bindings as _bindings
 
 from pyfdb._internal.pyfdb_internal import (
     ConfigMapper,

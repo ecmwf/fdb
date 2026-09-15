@@ -18,7 +18,7 @@ endif()
 set_target_properties(pyfdb_bindings
   PROPERTIES
   OUTPUT_NAME              _pyfdb_bindings
-  LIBRARY_OUTPUT_DIRECTORY ${PYFDB_STAGING}/pyfdb_bindings
+  LIBRARY_OUTPUT_DIRECTORY ${PYFDB_STAGING}/pyfdb/bindings
 )
 
 

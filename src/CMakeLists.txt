@@ -119,18 +119,23 @@ if (HAVE_PYTHON_FDB_INTERFACE)
     # pyfdb, e.g. for testing or local exploration.
     set(PYFDB_STAGING "${CMAKE_BINARY_DIR}/pyfdb-python-package-staging")
     file(MAKE_DIRECTORY "${PYFDB_STAGING}")
+
+    # Granular symlinks so the compiled .so lands in staging only,
+    # not in src/pyfdb/bindings/. Source edits are still reflected immediately.
+    file(MAKE_DIRECTORY "${PYFDB_STAGING}/pyfdb")
+    file(GLOB _pyfdb_toplevel_py "${CMAKE_CURRENT_SOURCE_DIR}/pyfdb/*.py")
+    foreach(_py ${_pyfdb_toplevel_py})
+        get_filename_component(_name ${_py} NAME)
+        file(CREATE_LINK "${_py}" "${PYFDB_STAGING}/pyfdb/${_name}" SYMBOLIC)
+    endforeach()
     file(CREATE_LINK
-        "${CMAKE_CURRENT_SOURCE_DIR}/pyfdb"
-        "${PYFDB_STAGING}/pyfdb" SYMBOLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/pyfdb/_internal"
+        "${PYFDB_STAGING}/pyfdb/_internal" SYMBOLIC
     )
-    # Symlink pyfdb_bindings/__init__.py so source edits are immediately reflected
-    # without a rebuild. The .so is placed here by the pyfdb_bindings cmake target.
-    # Remove any stale copy first so the symlink creation cannot fail silently.
-    file(MAKE_DIRECTORY "${PYFDB_STAGING}/pyfdb_bindings")
-    file(REMOVE "${PYFDB_STAGING}/pyfdb_bindings/__init__.py")
+    file(MAKE_DIRECTORY "${PYFDB_STAGING}/pyfdb/bindings")
     file(CREATE_LINK
-        "${CMAKE_CURRENT_SOURCE_DIR}/pyfdb_bindings/__init__.py"
-        "${PYFDB_STAGING}/pyfdb_bindings/__init__.py" SYMBOLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/pyfdb/bindings/__init__.py"
+        "${PYFDB_STAGING}/pyfdb/bindings/__init__.py" SYMBOLIC
     )
     # Copy README.md and LICENSE at build time so changes are picked up
     # without needing to re-run cmake configure
@@ -160,7 +165,7 @@ if (HAVE_PYTHON_FDB_INTERFACE)
         ${PYFDB_STAGING}/setup.cfg
         @ONLY
     )
-    add_subdirectory(pyfdb_bindings)
+    add_subdirectory(pyfdb/bindings)
     file(GLOB_RECURSE
         _pyfdb_package_files
         "pyfdb/*.py"
