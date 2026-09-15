@@ -17,7 +17,7 @@ use std::io::{self, Write as _};
 use std::process::ExitCode;
 
 use clap::Parser;
-use fdb::{Fdb, ListElement, ListOptions, Request};
+use fdb::{Fdb, ListElement, ListOptions};
 
 /// `fdb-list`-style listing tool. Reimplements a sensible subset of the
 /// upstream `fdb-list` CLI on top of the Rust `fdb` binding.
@@ -100,7 +100,9 @@ fn format_item(item: &ListElement, args: &Args) -> Result<String, std::fmt::Erro
 }
 
 fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
-    let request: Request = args.request.parse()?;
+    eckit::init();
+    let parsed = metkit::parse(&format!("retrieve, {}", args.request), false)?;
+    let request = parsed.at(0)?;
     let fdb = Fdb::open_default()?;
 
     if !args.porcelain {
