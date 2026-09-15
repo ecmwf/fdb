@@ -24,11 +24,6 @@ In-process database with C++ API
 Commandline tools to interact with FDB trough CLI
 [tools](docs/fdb/cli_tools/index.rst)
 
-## z3fdb
-
-A python-zarr v3 store implementation that provides a virtual zarr store
-from FDB.
-
 ### Requirements
 
 Runtime dependencies:
