@@ -117,7 +117,7 @@ Build the entire stack:
    ninja
 
 A successful build populates ``build/pyfdb-python-package-staging/`` with the
-compiled extension (``pyfdb_bindings/pyfdb_bindings.cpython-*.so``) and a
+compiled extension (``pyfdb/bindings/_pyfdb_bindings.cpython-*.so``) and a
 symlink to the Python source tree, making the directory a self-contained,
 installable Python project.
 

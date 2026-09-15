@@ -108,7 +108,7 @@ See :ref:`pyfdb-dev-setup` for the full environment variable reference.
 Tests fail after switching Python versions
 ------------------------------------------
 
-The ``pyfdb_bindings`` extension is compiled against a specific Python version
+The ``pyfdb.bindings`` extension is compiled against a specific Python version
 and ABI.  The CMake wheel build records the target Python at configure time and
 does not automatically recompile when the active interpreter changes.  If you
 switch Python versions (e.g. from 3.11 to 3.13) after an initial build, the
@@ -117,7 +117,7 @@ interpreter will fail with errors such as:
 
 .. code-block:: text
 
-   ImportError: <path>/pyfdb_bindings.cpython-311-...so: cannot open shared object file
+   ImportError: <path>/_pyfdb_bindings.cpython-311-...so: cannot open shared object file
 
 or produce silent test failures caused by an ABI mismatch.
 
