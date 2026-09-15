@@ -13,7 +13,7 @@ from typing import Any, Optional
 
 import yaml
 
-import pyfdb_bindings as _bindings
+import pyfdb.bindings as _bindings
 
 InternalMarsSelection = dict[str, Collection[str]]
 """

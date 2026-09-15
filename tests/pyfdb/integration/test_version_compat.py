@@ -119,23 +119,31 @@ def test_exception_message_contains_deps_hint():
 
 @pytest.fixture()
 def mock_bindings(monkeypatch):
-    """Replace pyfdb_bindings.pyfdb_bindings in sys.modules with a MagicMock
-    so that importlib.reload(pyfdb._internal) picks up controlled values.
+    """Replace pyfdb.bindings in sys.modules and on the pyfdb module with a
+    MagicMock so that importlib.reload(pyfdb._internal) picks up controlled values.
+
+    Both sys.modules and the pyfdb.bindings attribute must be patched:
+    `import pyfdb.bindings as _bindings` resolves via getattr(pyfdb, 'bindings'),
+    which holds the real object unless explicitly overridden.
 
     Teardown restores sys.modules *before* reloading pyfdb._internal so that
     the cleanup reload binds _internal's names to the real module, not the
     mock. Relying on monkeypatch to restore sys.modules would be too late
     (monkeypatch tears down after this fixture), leaving _internal holding
     mock references that leak into subsequent tests."""
-    real_mod = sys.modules["pyfdb_bindings"]
+    import pyfdb
+
+    real_mod = sys.modules["pyfdb.bindings"]
     mock_mod = MagicMock(spec=real_mod)
     # spec copies attribute names but not values; set the ones we need explicitly
     mock_mod.version_info = MagicMock(return_value=[])
     mock_mod.__fdb5_build_version__ = BUILD_VERSION
-    monkeypatch.setitem(sys.modules, "pyfdb_bindings", mock_mod)
+    monkeypatch.setitem(sys.modules, "pyfdb.bindings", mock_mod)
+    monkeypatch.setattr(pyfdb, "bindings", mock_mod)
     yield mock_mod
     # Restore the real module first so the reload below picks up real bindings.
-    sys.modules["pyfdb_bindings"] = real_mod
+    sys.modules["pyfdb.bindings"] = real_mod
+    pyfdb.bindings = real_mod
     importlib.reload(_internal)
 
 
