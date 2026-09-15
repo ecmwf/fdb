@@ -57,7 +57,7 @@ def capture_info_logs(caplog):
 @pytest.fixture(autouse=True)
 def version_info_mock(monkeypatch):
     mock = MagicMock(return_value=FAKE_VERSION_INFO)
-    monkeypatch.setattr(_internal, "version_info", mock)
+    monkeypatch.setattr(_internal, "_version_info", mock)
     return mock
 
 
@@ -121,9 +121,7 @@ def test_print_home_deps_logs_dependency_versions(find_mock, monkeypatch, caplog
 
 def test_print_home_deps_dependency_versions_logged_before_exit(monkeypatch, caplog):
     libs_without_metkit = {k: v for k, v in ALL_LIBS.items() if k != "metkit"}
-    monkeypatch.setattr(
-        findlibs, "find", MagicMock(side_effect=lambda n: libs_without_metkit.get(n))
-    )
+    monkeypatch.setattr(findlibs, "find", MagicMock(side_effect=lambda n: libs_without_metkit.get(n)))
     _run_cli(["--print-home-deps"], monkeypatch)
     assert "Dependency Versions:" in caplog.text
     for name, version, git_sha, _ in FAKE_VERSION_INFO:
@@ -134,9 +132,7 @@ def test_print_home_deps_dependency_versions_logged_before_exit(monkeypatch, cap
 
 def test_print_home_deps_missing_required_exits_nonzero(monkeypatch, caplog):
     libs_without_metkit = {k: v for k, v in ALL_LIBS.items() if k != "metkit"}
-    monkeypatch.setattr(
-        findlibs, "find", MagicMock(side_effect=lambda n: libs_without_metkit.get(n))
-    )
+    monkeypatch.setattr(findlibs, "find", MagicMock(side_effect=lambda n: libs_without_metkit.get(n)))
     exit_code = _run_cli(["--print-home-deps"], monkeypatch)
     assert exit_code == 1
     assert "metkit" in caplog.text
@@ -144,31 +140,22 @@ def test_print_home_deps_missing_required_exits_nonzero(monkeypatch, caplog):
 
 def test_print_home_deps_missing_required_logs_error(monkeypatch, caplog):
     libs_without_metkit = {k: v for k, v in ALL_LIBS.items() if k != "metkit"}
-    monkeypatch.setattr(
-        findlibs, "find", MagicMock(side_effect=lambda n: libs_without_metkit.get(n))
-    )
+    monkeypatch.setattr(findlibs, "find", MagicMock(side_effect=lambda n: libs_without_metkit.get(n)))
     _run_cli(["--print-home-deps"], monkeypatch)
-    errors = [
-        r for r in caplog.records
-        if r.levelno == logging.ERROR and "metkit" in r.message
-    ]
+    errors = [r for r in caplog.records if r.levelno == logging.ERROR and "metkit" in r.message]
     assert errors
 
 
 def test_print_home_deps_missing_optional_exits_nonzero(monkeypatch):
     libs_without_eccodes = {k: v for k, v in ALL_LIBS.items() if k != "eccodes"}
-    monkeypatch.setattr(
-        findlibs, "find", MagicMock(side_effect=lambda n: libs_without_eccodes.get(n))
-    )
+    monkeypatch.setattr(findlibs, "find", MagicMock(side_effect=lambda n: libs_without_eccodes.get(n)))
     exit_code = _run_cli(["--print-home-deps"], monkeypatch)
     assert exit_code == 1
 
 
 def test_print_home_deps_missing_optional_logs_info_not_error(monkeypatch, caplog):
     libs_without_eccodes = {k: v for k, v in ALL_LIBS.items() if k != "eccodes"}
-    monkeypatch.setattr(
-        findlibs, "find", MagicMock(side_effect=lambda n: libs_without_eccodes.get(n))
-    )
+    monkeypatch.setattr(findlibs, "find", MagicMock(side_effect=lambda n: libs_without_eccodes.get(n)))
     _run_cli(["--print-home-deps"], monkeypatch)
     eccodes_records = [r for r in caplog.records if "eccodes" in r.message]
     assert eccodes_records
@@ -177,9 +164,7 @@ def test_print_home_deps_missing_optional_logs_info_not_error(monkeypatch, caplo
 
 def test_print_home_deps_optional_marker_in_message(monkeypatch, caplog):
     libs_without_eccodes = {k: v for k, v in ALL_LIBS.items() if k != "eccodes"}
-    monkeypatch.setattr(
-        findlibs, "find", MagicMock(side_effect=lambda n: libs_without_eccodes.get(n))
-    )
+    monkeypatch.setattr(findlibs, "find", MagicMock(side_effect=lambda n: libs_without_eccodes.get(n)))
     _run_cli(["--print-home-deps"], monkeypatch)
     assert "[Optional]" in caplog.text
 
@@ -190,15 +175,11 @@ def test_print_home_deps_queries_all_deps(find_mock, monkeypatch):
     assert queried == set(DEPENDENCY_ORDER)
 
 
-def test_print_home_deps_disable_vars_appear_before_homes(
-    find_mock, monkeypatch, caplog
-):
+def test_print_home_deps_disable_vars_appear_before_homes(find_mock, monkeypatch, caplog):
     monkeypatch.setenv("FINDLIBS_DISABLE_FDB5", "1")
     _run_cli(["--print-home-deps"], monkeypatch)
     lines = caplog.text.splitlines()
-    disable_idx = next(
-        i for i, line in enumerate(lines) if "FINDLIBS_DISABLE_FDB5" in line
-    )
+    disable_idx = next(i for i, line in enumerate(lines) if "FINDLIBS_DISABLE_FDB5" in line)
     first_dep_idx = next(i for i, line in enumerate(lines) if "fdb5:" in line)
     assert disable_idx < first_dep_idx
 
@@ -211,9 +192,7 @@ def test_print_home_deps_disable_vars_appear_before_homes(
 def test_logging_format(monkeypatch):
     calls = []
     monkeypatch.setattr(logging, "basicConfig", lambda **kwargs: calls.append(kwargs))
-    monkeypatch.setattr(
-        findlibs, "find", MagicMock(return_value="/fake/fdb/lib/libfdb5.so")
-    )
+    monkeypatch.setattr(findlibs, "find", MagicMock(return_value="/fake/fdb/lib/libfdb5.so"))
     _run_cli(["--print-home"], monkeypatch)
     assert calls, "basicConfig must be called"
     fmt = calls[0]["format"]
@@ -225,9 +204,7 @@ def test_logging_format(monkeypatch):
 def test_verbose_sets_debug_level(monkeypatch):
     calls = []
     monkeypatch.setattr(logging, "basicConfig", lambda **kwargs: calls.append(kwargs))
-    monkeypatch.setattr(
-        findlibs, "find", MagicMock(return_value="/fake/fdb/lib/libfdb5.so")
-    )
+    monkeypatch.setattr(findlibs, "find", MagicMock(return_value="/fake/fdb/lib/libfdb5.so"))
     _run_cli(["--print-home", "--verbose"], monkeypatch)
     assert calls[0]["level"] == logging.DEBUG
 
@@ -235,9 +212,7 @@ def test_verbose_sets_debug_level(monkeypatch):
 def test_default_level_is_info(monkeypatch):
     calls = []
     monkeypatch.setattr(logging, "basicConfig", lambda **kwargs: calls.append(kwargs))
-    monkeypatch.setattr(
-        findlibs, "find", MagicMock(return_value="/fake/fdb/lib/libfdb5.so")
-    )
+    monkeypatch.setattr(findlibs, "find", MagicMock(return_value="/fake/fdb/lib/libfdb5.so"))
     _run_cli(["--print-home"], monkeypatch)
     assert calls[0]["level"] == logging.INFO
 
