@@ -36,7 +36,7 @@ extensions = [
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "_internal"]
 
-autoapi_dirs = ["../src/pyfdb", "../src/z3fdb", "../src/pychunked_data_view"]
+autoapi_dirs = ["../src/pyfdb"]
 autoapi_type = "python"
 autoapi_generate_api_docs = True
 autoapi_add_toctree_entry = False
