@@ -205,7 +205,7 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
     private:
 
         using EntryVisitor::visitDatum;
-        void visitDatum(const Field& field, const Key& datumKey) override {
+        void visitDatum(IndexScope& /*scope*/, const Field& field, const Key& datumKey) override {
             /// @todo Do a sneaky schema.expand() here, prepopulated with the current DB/index/Rule,
             //       to extract the full key, including optional values.
             const TocFieldLocation& location(static_cast<const TocFieldLocation&>(field.location()));
@@ -226,10 +226,18 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
 
     ASSERT(readIndexes.size() == indexInSubtoc.size());
 
+    // Brackets the visitation as Catalogue::visitEntries() would: without it currentCatalogue_ is
+    // never set, and claiming a scope - which needs the schema to resolve each index's datum rule -
+    // asserts.
+    visitor.visitDatabase(*this);
+
     for (size_t i = 0; i < readIndexes.size(); i++) {
         Index& idx(readIndexes[i]);
         selectIndex(idx.key());
-        idx.entries(visitor);
+        OrderedParallelFor::Order order;  // sequential reindex, so the ordering is inherent
+        if (auto scope = visitor.visitIndex(idx, order)) {
+            idx.entries(visitor, *scope);
+        }
 
         Log::info() << "Visiting index: " << idx.location().uri() << std::endl;
 
@@ -238,6 +246,8 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
             maskable_indexes += 1;
         }
     }
+
+    visitor.catalogueComplete(*this);
 
     // Flush the new indexes and add relevant entries!
     clean();

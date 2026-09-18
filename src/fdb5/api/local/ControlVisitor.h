@@ -36,10 +36,10 @@ public:
     bool visitEntries() override { return false; }
 
     bool visitDatabase(const Catalogue& catalogue) override;
-    bool visitIndex(const Index&) override { NOTIMP; }
+    IndexScopePtr visitIndex(const Index&, const Rule&, eckit::Queue<ValueType>&) override { NOTIMP; }
 
     using QueryVisitor<ControlElement>::visitDatum;
-    void visitDatum(const Field&, const Key&) override { NOTIMP; }
+    void visitDatum(IndexScope&, const Field&, const Key&) override { NOTIMP; }
 
 private:  // members
 

@@ -15,6 +15,7 @@
 #ifndef fdb5_TocDbStats_H
 #define fdb5_TocDbStats_H
 
+#include <mutex>
 #include <iosfwd>
 #include <map>
 #include <set>
@@ -173,13 +174,15 @@ private:  // methods
 
     bool visitDatabase(const Catalogue& catalogue) override;
 
-    void visitDatum(const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
-    void visitDatum(const Field& field, const std::string& keyFingerprint) override;
+    void visitDatum(IndexScope& /*scope*/, const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
+    void visitDatum(IndexScope& scope, const Field& field, const std::string& keyFingerprint) override;
 
     // This visitor is only legit for one DB - so don't reset database
     void catalogueComplete(const Catalogue& catalogue) override;
 
 protected:  // members
+
+    mutable std::mutex statsMutex_;
 
     eckit::PathName directory_;
 

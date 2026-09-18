@@ -126,13 +126,7 @@ bool FamIndex::get(const Key& key, const Key& /*remapKey*/, Field& field) const 
     return true;
 }
 
-void FamIndex::entries(EntryVisitor& visitor) const {
-    Index instant_index(const_cast<FamIndex*>(this));
-    // Allow the visitor to decline visiting this index's entries.
-    if (!visitor.visitIndex(instant_index)) {
-        LOG_DEBUG_LIB(LibFdb5) << "FamIndex::entries visitor declined index=" << instant_index << std::endl;
-        return;
-    }
+void FamIndex::entries(EntryVisitor& visitor, EntryVisitor::IndexScope& scope) const {
     for (const auto& [key, value] : data_) {
         // Skip the reserved axes metadata entry.
         if (key.asString() == FamCommon::axes_keyword) {
@@ -141,7 +135,7 @@ void FamIndex::entries(EntryVisitor& visitor) const {
         eckit::MemoryStream stream{value};
         auto [timestamp, location] = decodePrefix(stream);
         auto datum = Key(stream).valuesToString();
-        visitor.visitDatum(Field(std::move(location), timestamp), datum);
+        visitor.visitDatum(scope, Field(std::move(location), timestamp), datum);
     }
 }
 

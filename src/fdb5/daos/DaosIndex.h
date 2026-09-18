@@ -52,7 +52,7 @@ private:  // methods
     void add(const Key& key, const Field& field) override;
     void flush() override { NOTIMP; }
     void encode(eckit::Stream& s, const int version) const override { NOTIMP; }
-    void entries(EntryVisitor& visitor) const override;
+    void entries(EntryVisitor& visitor, EntryVisitor::IndexScope& scope) const override;
 
     void print(std::ostream& out) const override { NOTIMP; }
     void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const override {

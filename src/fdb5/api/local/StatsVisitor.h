@@ -38,12 +38,22 @@ public:
 
     using QueryVisitor<StatsElement>::QueryVisitor;
 
+    bool supportsConcurrentIndexVisitation() const override { return true; }
+
     bool visitDatabase(const Catalogue& catalogue) override;
-    bool visitIndex(const Index& index) override;
+    IndexScopePtr visitIndex(const Index& index, const Rule& rule, eckit::Queue<StatsElement>& queue) override;
     void catalogueComplete(const Catalogue& catalogue) override;
 
-    void visitDatum(const Field& field, const std::string& keyFingerprint) override;
-    void visitDatum(const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
+    void visitDatum(IndexScope& scope, const Field& field, const std::string& keyFingerprint) override;
+    void visitDatum(IndexScope& /*scope*/, const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
+
+private:  // types
+
+    /// Owns the delegate's scope, to hand back on each forwarded visitDatum().
+    struct Scope : public IndexScope {
+        using IndexScope::IndexScope;
+        IndexScopePtr inner;
+    };
 
 private:  // members
 
