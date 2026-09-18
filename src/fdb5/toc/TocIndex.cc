@@ -169,28 +169,24 @@ void TocIndex::funlock() const {
 class TocIndexVisitor : public BTreeIndexVisitor {
     const UriStore& uris_;
     EntryVisitor& visitor_;
+    EntryVisitor::IndexScope& scope_;
 
 public:
 
-    TocIndexVisitor(const UriStore& uris, EntryVisitor& visitor) : uris_(uris), visitor_(visitor) {}
+    TocIndexVisitor(const UriStore& uris, EntryVisitor& visitor, EntryVisitor::IndexScope& scope) :
+        uris_(uris), visitor_(visitor), scope_(scope) {}
 
     void visit(const std::string& keyFingerprint, const FieldRef& ref) {
 
-        Field field(TocFieldLocation(uris_, ref), visitor_.indexTimestamp(), ref.details());
-        visitor_.visitDatum(field, keyFingerprint);
+        Field field(TocFieldLocation(uris_, ref), scope_.index().timestamp(), ref.details());
+        visitor_.visitDatum(scope_, field, keyFingerprint);
     }
 };
 
-void TocIndex::entries(EntryVisitor& visitor) const {
-
-    Index instantIndex(const_cast<TocIndex*>(this));
-
-    // Allow the visitor to selectively decline to visit the entries in this index
-    if (visitor.visitIndex(instantIndex)) {
-        TocIndexCloser closer(*this);
-        TocIndexVisitor v(uris_, visitor);
-        btree_->visit(v);
-    }
+void TocIndex::entries(EntryVisitor& visitor, EntryVisitor::IndexScope& scope) const {
+    TocIndexCloser closer(*this);
+    TocIndexVisitor v(uris_, visitor, scope);
+    btree_->visit(v);
 }
 
 void TocIndex::print(std::ostream& out) const {

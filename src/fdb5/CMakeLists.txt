@@ -113,6 +113,8 @@ list( APPEND fdb5_srcs
     database/IndexStats.h
     database/Inspector.cc
     database/Inspector.h
+    database/OrderedParallelFor.cc
+    database/OrderedParallelFor.h
     database/Signature.h
     database/StatsReportVisitor.cc
     database/StatsReportVisitor.h

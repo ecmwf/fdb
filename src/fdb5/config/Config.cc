@@ -18,6 +18,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/filesystem/FileMode.h"
+#include "eckit/log/Log.h"
 #include "eckit/runtime/Main.h"
 
 #include <algorithm>
@@ -233,6 +234,13 @@ mode_t Config::umask() const {
     }
     static eckit::FileMode fdbFileMode(eckit::Resource<std::string>("fdbFileMode", std::string("0644")));
     return fdbFileMode.mask();
+}
+
+size_t Config::readIndexThreads() const {
+    constexpr long maxReadIndexThreads = 64;
+    static const long fromResource = eckit::Resource<long>("fdbReadIndexThreads;$FDB_READ_INDEX_THREADS", -1);
+    const long threads = fromResource > 0 ? fromResource : userConfig().getLong("fdbReadIndexThreads", 1);
+    return static_cast<size_t>(std::clamp(threads, 1L, maxReadIndexThreads));
 }
 
 std::vector<Config> Config::getSubConfigs(const std::string& name) const {

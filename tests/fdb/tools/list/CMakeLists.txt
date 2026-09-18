@@ -8,6 +8,7 @@ list( APPEND fdb_tools_list_tests
     porcelain
     ranges
     depth
+    concurrent
 )
 
 # add the tests

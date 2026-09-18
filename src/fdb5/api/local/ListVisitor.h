@@ -20,6 +20,7 @@
 #define fdb5_api_local_ListVisitor_H
 
 #include "eckit/container/Queue.h"
+#include "eckit/container/QueueOfQueues.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 #include "fdb5/api/helpers/ControlIterator.h"
@@ -35,6 +36,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -44,12 +46,14 @@ namespace fdb5::api::local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-struct ListVisitor : public QueryVisitor<ListElement> {
+struct ListVisitor : public QueryVisitor<ListElement, eckit::QueueOfQueues<ListElement>> {
 
 public:
 
-    ListVisitor(eckit::Queue<ListElement>& queue, const metkit::mars::MarsRequest& request, int level) :
-        QueryVisitor<ListElement>(queue, request), level_(level) {}
+    ListVisitor(eckit::QueueOfQueues<ListElement>& queue, const metkit::mars::MarsRequest& request, int level) :
+        QueryVisitor<ListElement, eckit::QueueOfQueues<ListElement>>(queue, request), level_(level) {}
+
+    bool supportsConcurrentIndexVisitation() const override { return true; }
 
     /// @todo remove this with better logic
     bool preVisitDatabase(const eckit::URI& uri, const Schema& schema) override {
@@ -58,7 +62,7 @@ public:
         if (level_ == 1 && uri.scheme() == "toc") {
             /// @todo only works with the toc backend
             if (auto dbKey = schema.matchDatabase(uri.path().baseName())) {
-                queue_.emplace(*dbKey, 0);
+                emit(*dbKey, 0);
                 return false;
             }
         }
@@ -87,66 +91,106 @@ public:
         }
 
         if (level_ == 1) {
-            queue_.emplace(currentCatalogue_->key(), 0);
+            emit(currentCatalogue_->key(), 0);
             ret = false;
         }
 
         return ret;
     }
 
-    /// Make a note of the current database. Subtracts key from the current request
-    /// so we can test request is used in its entirety.
-    ///
-    /// Returns true/false depending on matching the request (avoids enumerating
-    /// entries if not matching).
-    bool visitIndex(const Index& index) override {
-        QueryVisitor::visitIndex(index);
+    /// Subtracts the index key from the request, so we can test the request is used in its
+    /// entirety. Returns null if the index does not match, avoiding enumeration of its entries.
+    IndexScopePtr visitIndex(const Index& index, const Rule& rule, eckit::Queue<ListElement>& queue) override {
 
         // rule_ is the Datum rule (3rd level)
         // to match the index key, we need to canonicalise the request with the rule at Index level (2nd level) aka
         // rule_->parent()
-        if (index.partialMatch(canonicalise(rule_->parent()), canonicalise(*rule_))) {
+        const metkit::mars::MarsRequest& canonicalRule = canonicalise(rule);
 
-            // Subselect the parts of the request
-            datumRequest_ = indexRequest_;
-
-            for (const auto& kv : index.key()) {
-                datumRequest_.unsetValues(kv.first);
-            }
-
-            if (level_ == 2) {
-                queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), 0);
-                return false;
-            }
-
-            return true;  // Explore contained entries
+        if (!index.partialMatch(canonicalise(rule.parent()), canonicalRule)) {
+            return nullptr;  // Skip contained entries
         }
 
-        return false;  // Skip contained entries
+        if (level_ == 2) {
+            queue.emplace(currentCatalogue_->key(), index.key(), 0);
+            return nullptr;
+        }
+
+        // Subselect the parts of the request
+        metkit::mars::MarsRequest datumRequest = indexRequest_;
+        for (const auto& kv : index.key()) {
+            datumRequest.unsetValues(kv.first);
+        }
+
+        return std::make_unique<ListIndexScope>(*currentCatalogue_, index, rule, canonicalRule, queue,
+                                                std::move(datumRequest));
     }
 
-    using QueryVisitor<ListElement>::visitDatum;
+    using QueryVisitor<ListElement, eckit::QueueOfQueues<ListElement>>::visitDatum;
     /// Test if entry matches the current request. If so, add to the output queue.
-    void visitDatum(const Field& field, const Key& datumKey) override {
+    void visitDatum(IndexScope& indexScope, const Field& field, const Key& datumKey) override {
         ASSERT(currentCatalogue_);
-        ASSERT(currentIndex_);
+        ASSERT(dynamic_cast<ListIndexScope*>(&indexScope));
+        auto& scope = static_cast<ListIndexScope&>(indexScope);
 
         // Take into account any rule-specific behaviour in the request
-        if (datumKey.partialMatch(canonicalise(*rule_))) {
+        if (datumKey.partialMatch(scope.canonicalRule())) {
             for (const auto& k : datumKey.keys()) {
-                datumRequest_.unsetValues(k);
+                scope.datumRequest().unsetValues(k);
             }
-            if (datumRequest_.parameters().size() == 0) {
-                queue_.emplace(currentCatalogue_->key(), currentIndex_->key(), datumKey, field.stableLocation(),
-                               field.timestamp());
+            if (scope.datumRequest().parameters().size() == 0) {
+                scope.queue().emplace(currentCatalogue_->key(), scope.index().key(), datumKey, field.stableLocation(),
+                                      field.timestamp());
             }
         }
+    }
+
+private:  // types
+
+    /// Carries this index's place in the output: a sub-queue of the QueueOfQueues, taken in index
+    /// order when the scope is claimed.
+    class ListIndexScope : public IndexScope {
+
+    public:  // methods
+
+        ListIndexScope(const Catalogue& catalogue, const Index& index, const Rule& rule,
+                       const metkit::mars::MarsRequest& canonicalRule, eckit::Queue<ListElement>& queue,
+                       metkit::mars::MarsRequest&& datumRequest) :
+            IndexScope(catalogue, index, rule),
+            canonicalRule_(canonicalRule),
+            queue_(queue),
+            datumRequest_(std::move(datumRequest)) {}
+
+        /// Closing releases this index's place in the output, so consumer can move onto the next index
+        ~ListIndexScope() override { queue_.close(); }
+
+        eckit::Queue<ListElement>& queue() { return queue_; }
+        const metkit::mars::MarsRequest& canonicalRule() const { return canonicalRule_; }
+        metkit::mars::MarsRequest& datumRequest() { return datumRequest_; }
+
+    private:  // members
+
+        const metkit::mars::MarsRequest& canonicalRule_;
+        eckit::Queue<ListElement>& queue_;
+        metkit::mars::MarsRequest datumRequest_;
+    };
+
+private:  // methods
+
+    /// Outside of visiting an index, when the visitor has already obtained a Queue and stored
+    /// it in a ListIndexScope, we need to create, and finalise, a sub-queue in the output
+    /// QueueOfQueues to do any output.
+    template <typename... Args>
+    void emit(Args&&... args) {
+        auto& queue = queue_.push();
+        queue.emplace(std::forward<Args>(args)...);
+        queue.close();
     }
 
 private:  // members
 
+    /// Read-only once set in visitDatabase(), before any index is visited.
     metkit::mars::MarsRequest indexRequest_;
-    metkit::mars::MarsRequest datumRequest_;
     const int level_;
 };
 
