@@ -1412,8 +1412,7 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted, std::set<std::string>* s
         std::vector<TocIndex*> tocindexes(indexEntries.size(), nullptr);
 
         for (size_t i = 0; i < nthreads; ++i) {
-            threads.emplace_back(std::async(std::launch::async, [i, nthreads, &indexEntries, &tocindexes, debug,
-                                                                 this] {
+            threads.emplace_back(std::async(std::launch::async, [i, nthreads, &indexEntries, &tocindexes, debug, this] {
                 for (size_t idx = i; idx < indexEntries.size(); idx += nthreads) {
 
                     const IndexEntry& entry = indexEntries[idx];

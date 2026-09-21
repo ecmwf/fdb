@@ -15,9 +15,9 @@
 #ifndef fdb5_TocDbStats_H
 #define fdb5_TocDbStats_H
 
-#include <mutex>
 #include <iosfwd>
 #include <map>
+#include <mutex>
 #include <set>
 
 #include "eckit/filesystem/PathName.h"
