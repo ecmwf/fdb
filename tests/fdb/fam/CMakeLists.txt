@@ -18,13 +18,13 @@ if( HAVE_FAMFDB )
         # /dev/shm, so running many at once (ctest -j) exhausts tmpfs.
         set( _fam_test_properties TEST_PROPERTIES RESOURCE_LOCK famfdb_mock_shm )
     else()
-        if( DEFINED ENV{ECKIT_FAM_TEST_ENDPOINT} )
-            set( _famfdb_fam_endpoint "$ENV{ECKIT_FAM_TEST_ENDPOINT}" )
-        else()
-            set( _famfdb_fam_endpoint "172.24.0.2:8880" )
+        # Real OpenFAM servers are site-specific, so the caller must point the tests at them.
+        if( NOT DEFINED ENV{ECKIT_FAM_TEST_ENDPOINT} )
+            ecbuild_warn( "FAM tests need ECKIT_FAM_TEST_ENDPOINT in the environment; skipping them." )
+            return()
         endif()
         list( APPEND _fam_environment ${_test_environment}
-            "ECKIT_FAM_TEST_ENDPOINT=${_famfdb_fam_endpoint}"
+            "ECKIT_FAM_TEST_ENDPOINT=$ENV{ECKIT_FAM_TEST_ENDPOINT}"
         )
     endif()
 
