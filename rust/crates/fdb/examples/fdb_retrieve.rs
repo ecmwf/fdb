@@ -3,35 +3,39 @@
 //! Run with: `cargo run --example fdb_retrieve -p fdb -- <request> [output.grib]`
 //!
 //! Examples:
-//!   cargo run --example `fdb_retrieve` -p fdb -- class=rd,expver=xxxx,date=20230508,...
-//!   cargo run --example `fdb_retrieve` -p fdb -- class=rd,expver=xxxx,... output.grib
+//!   cargo run --example `fdb_retrieve` -p fdb -- "retrieve, class=rd,expver=xxxx,..."
+//!   cargo run --example `fdb_retrieve` -p fdb -- "retrieve, class=rd,..." output.grib
 
 use std::env;
 use std::fs::File;
 use std::io::{Read, Write};
 
-use fdb::{Fdb, Request};
+use fdb::Fdb;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         eprintln!("Usage: {} <request> [output.grib]", args[0]);
         eprintln!();
-        eprintln!("Request format: key=value,key=value,...");
+        eprintln!("Request format: retrieve, key=value, key=value, ...");
         eprintln!(
-            "Example: class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=0,param=151130"
+            "Example: retrieve, class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=0,param=151130"
         );
         std::process::exit(1);
     }
 
+    eckit::init();
+
     let fdb = Fdb::open_default()?;
-    let request: Request = args[1].parse()?;
+    let parsed = metkit::parse(&args[1], false)?;
+    let request = parsed.at(0)?;
 
     println!("Retrieving data...");
-    let mut reader = fdb.retrieve(&request)?;
+    let handle = fdb.retrieve(&request)?;
+    let (mut handle, _len) = handle.open_for_read()?;
 
     let mut buffer = Vec::new();
-    let bytes_read = reader.read_to_end(&mut buffer)?;
+    let bytes_read = handle.read_to_end(&mut buffer)?;
     println!("Retrieved {bytes_read} bytes");
 
     // Write to file or show summary

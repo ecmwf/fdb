@@ -145,7 +145,7 @@ Default: unset.
 
 ``FDB5_ROOT``
 -------------
-Deprecated. Equivalent to ``FDB_ROOT``. If both are specified, ``FDB_ROOT`` takes precedence over ``FDB5_ROOT``.
+Equivalent to ``FDB_ROOT``. If both are specified, ``FDB5_ROOT`` takes precedence over ``FDB_ROOT``.
 
 
 ``FDB_FILESPACEHANDLER_ENVVARNAME``
