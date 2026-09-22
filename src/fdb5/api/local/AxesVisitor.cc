@@ -53,20 +53,22 @@ bool AxesVisitor::visitDatabase(const Catalogue& catalogue) {
     return (level_ > 1);
 }
 
-bool AxesVisitor::visitIndex(const Index& index) {
-    EntryVisitor::visitIndex(index);
+EntryVisitor::IndexScopePtr AxesVisitor::visitIndex(const Index& index, const Rule& rule,
+                                                    eckit::Queue<AxesElement>& /*queue*/) {
 
-    if (index.partialMatch(canonicalise(rule_->parent()), canonicalise(*rule_))) {
+    if (index.partialMatch(canonicalise(rule.parent()), canonicalise(rule))) {
         IndexAxis tmpAxis;
         tmpAxis.insert(index.key());
         tmpAxis.sort();
+
         axes_.merge(tmpAxis);  // avoid sorts on the (growing) main Axes object
 
         if (level_ > 2) {
             axes_.merge(index.axes());
         }
     }
-    return false;
+
+    return nullptr;  // visitEntries() is false, so the contents are never explored
 }
 
 void AxesVisitor::catalogueComplete(const fdb5::Catalogue& catalogue) {

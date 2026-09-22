@@ -49,6 +49,7 @@ list( APPEND fdb5_srcs
     api/helpers/WipeIterator.cc
     api/helpers/WipeIterator.h
     api/helpers/PurgeIterator.h
+    api/helpers/QueueTraits.h
     api/helpers/StatsIterator.cc
     api/helpers/StatsIterator.h
     api/helpers/Callback.h
@@ -113,6 +114,8 @@ list( APPEND fdb5_srcs
     database/IndexStats.h
     database/Inspector.cc
     database/Inspector.h
+    database/OrderedParallelFor.cc
+    database/OrderedParallelFor.h
     database/Signature.h
     database/StatsReportVisitor.cc
     database/StatsReportVisitor.h

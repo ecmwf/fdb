@@ -34,13 +34,18 @@ public:  // methods
     WipeCatalogueVisitor(eckit::Queue<CatalogueWipeState>& queue, const metkit::mars::MarsRequest& request, bool doit);
 
     bool visitEntries() override { return false; }
+
+    bool supportsConcurrentIndexVisitation() const final { return false; }
+
     bool visitDatabase(const Catalogue& catalogue) override;
-    bool visitIndex(const Index& index) override;
+    IndexScopePtr visitIndex(const Index& index, const Rule& rule, eckit::Queue<CatalogueWipeState>& queue) override;
     void catalogueComplete(const Catalogue& catalogue) override;
 
     // These methods are not used in the wipe visitor
-    void visitDatum(const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
-    void visitDatum(const Field& /*field*/, const std::string& /*keyFingerprint*/) override { NOTIMP; }
+    void visitDatum(IndexScope& /*scope*/, const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
+    void visitDatum(IndexScope& /*scope*/, const Field& /*field*/, const std::string& /*keyFingerprint*/) override {
+        NOTIMP;
+    }
 
     void onDatabaseNotFound(const fdb5::DatabaseNotFoundException& e) override { throw e; }
 
