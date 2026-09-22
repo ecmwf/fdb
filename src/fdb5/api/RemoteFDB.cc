@@ -297,19 +297,22 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     return IteratorType(
         // n.b. Don't worry about catching exceptions in lambda, as
         // this is handled in the AsyncIterator.
-        new AsyncIterator(shared_from_this(), [messageQueue, remoteFDB](Queue<ValueType>& queue) {
-            Buffer msg{0};
-            while (true) {
-                if (messageQueue->pop(msg) == -1) {
-                    break;
+        new AsyncIterator(
+            shared_from_this(),
+            [messageQueue, remoteFDB](Queue<ValueType>& queue) {
+                Buffer msg{0};
+                while (true) {
+                    if (messageQueue->pop(msg) == -1) {
+                        break;
+                    }
+                    else {
+                        MemoryStream s(msg);
+                        queue.emplace(HelperClass::valueFromStream(s, remoteFDB));
+                    }
                 }
-                else {
-                    MemoryStream s(msg);
-                    queue.emplace(HelperClass::valueFromStream(s, remoteFDB));
-                }
-            }
-            // messageQueue goes out of scope --> destructed
-        }));
+                // messageQueue goes out of scope --> destructed
+            },
+            config_));
 }
 
 ListIterator RemoteFDB::list(const FDBToolRequest& request, const int depth) {

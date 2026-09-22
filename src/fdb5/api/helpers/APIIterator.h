@@ -21,6 +21,8 @@
 
 #include "eckit/container/Queue.h"
 
+#include "fdb5/api/helpers/QueueTraits.h"
+
 #include <exception>
 #include <functional>
 #include <memory>
@@ -128,15 +130,12 @@ class APIAsyncIterator : public APIIteratorBase<ValueType> {
 
 public:  // methods
 
-    // Default constructor for QueueType=Queue, specifies queueSize
-    // If using QueueOfQueues requires additional arguments
+    /// The queue is sized from the configuration. How that is done depends on the QueueType - a
+    /// QueueOfQueues is bounded in two dimensions where a Queue is bounded in one - so it is
+    /// delegated to QueueTraits rather than spelled out at each call site.
 
-    APIAsyncIterator(std::shared_ptr<FDBBase> fdb, std::function<void(QueueType&)> workerFn) :
-        APIAsyncIterator(fdb, std::move(workerFn), 100) {}
-
-    template <typename... QueueArgs>
-    APIAsyncIterator(std::shared_ptr<FDBBase> fdb, std::function<void(QueueType&)> workerFn, QueueArgs... queueArgs) :
-        fdb_(fdb), queue_(queueArgs...) {
+    APIAsyncIterator(std::shared_ptr<FDBBase> fdb, std::function<void(QueueType&)> workerFn, const Config& config) :
+        fdb_(fdb), queue_(QueueTraits<QueueType>::make(config)) {
 
         // Add a call to set_done() on the eckit::Queue.
         auto fullWorker = [workerFn, this] {

@@ -38,7 +38,9 @@ public:
 
     using QueryVisitor<StatsElement>::QueryVisitor;
 
-    bool supportsConcurrentIndexVisitation() const override { return true; }
+    // We should be able to do this in parallel, but this requires constructing and merging stats
+    // objects per-index - which is not yet implemented (just doing accumulation for now)
+    // bool supportsConcurrentIndexVisitation() const override { return true; }
 
     bool visitDatabase(const Catalogue& catalogue) override;
     IndexScopePtr visitIndex(const Index& index, const Rule& rule, eckit::Queue<StatsElement>& queue) override;

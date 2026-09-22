@@ -114,7 +114,7 @@ APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBTo
         mechanism.visit(request, visitor);
     };
 
-    return QueryIterator(new AsyncIterator(shared_from_this(), async_worker));
+    return QueryIterator(new AsyncIterator(shared_from_this(), async_worker, config_));
 }
 
 ListIterator LocalFDB::list(const FDBToolRequest& request, const int level) {
