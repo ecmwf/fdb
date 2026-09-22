@@ -227,10 +227,15 @@ CASE("A blocking acquisition before release() does not deadlock against work() i
     std::atomic<int> maxOutstanding{0};
 
     OrderedParallelFor(8).run(n, [&](size_t, Order& order) {
-        while (outstanding.load() >= capacity) {
+        int current;
+        while (true) {
+            current = outstanding.load();
+            if (current < capacity && outstanding.compare_exchange_weak(current, current + 1)) {
+                break;
+            }
             std::this_thread::yield();
         }
-        const int now = ++outstanding;
+        const int now = current + 1;
         int previousMax = maxOutstanding.load();
         while (now > previousMax && !maxOutstanding.compare_exchange_weak(previousMax, now)) {}
 
