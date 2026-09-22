@@ -18,6 +18,8 @@
 #include "fdb5/tools/FDBTool.h"
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/io/fam/FamObject.h"
+#include "eckit/io/fam/FamObjectName.h"
 #include "eckit/io/fam/FamPath.h"
 #include "eckit/io/fam/FamProperty.h"
 #include "eckit/io/fam/FamRegion.h"
@@ -32,6 +34,23 @@
 #include <string>
 
 namespace fdb5 ::tools {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+namespace {
+
+template <typename Target, typename Action>
+void attempt(const char* verb, const Target& target, Action&& action) {
+    try {
+        action();
+    }
+    catch (const eckit::Exception& e) {
+        eckit::Log::info() << "Failed to " << verb << ": " << target << " - " << e.what() << std::endl;
+        throw;
+    }
+}
+
+}  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -126,82 +145,59 @@ void FDBFam::init(const eckit::option::CmdArgs& args) {
     LOG_DEBUG_LIB(LibFdb5) << "Item " << item_ << std::endl;
 }
 
-void FDBFam::execute(const eckit::option::CmdArgs& args) {
+void FDBFam::execute(const eckit::option::CmdArgs& /*args*/) {
+
+    const auto regionName = eckit::FamRegionName(endpoint_, path_);
 
     if (isRegion_) {
-
-        auto regionName = eckit::FamRegionName(endpoint_, path_);
 
         LOG_DEBUG_LIB(LibFdb5) << "Region [" << regionName << "] ..." << std::endl;
 
         if (lookup_) {
-            try {
-                auto region = regionName.lookup();
+            attempt("lookup", regionName, [&] {
+                const auto region = regionName.lookup();
                 eckit::Log::info() << region << std::endl;
-            }
-            catch (const eckit::Exception&) {
-                eckit::Log::info() << "Failed to lookup: " << regionName << std::endl;
-                exit(EXIT_FAILURE);
-            }
+            });
         }
         else if (delete_) {
-            try {
+            attempt("delete", regionName, [&] {
                 const auto region = regionName.lookup();
                 region.destroy();
                 eckit::Log::info() << "Deleted " << region << std::endl;
-            }
-            catch (const eckit::Exception&) {
-                eckit::Log::info() << "Failed to delete: " << regionName << std::endl;
-                exit(EXIT_FAILURE);
-            }
+            });
         }
         else if (create_) {
-            try {
+            attempt("create", regionName, [&] {
                 const auto region = regionName.create(item_.size, item_.perm);
                 eckit::Log::info() << "Created " << region << std::endl;
-            }
-            catch (const eckit::Exception&) {
-                eckit::Log::info() << "Failed to create: " << regionName << std::endl;
-                exit(EXIT_FAILURE);
-            }
+            });
         }
+
+        return;
     }
-    else {
-        auto objectName = eckit::FamRegionName(endpoint_, path_).object(path_.objectName());
 
-        LOG_DEBUG_LIB(LibFdb5) << "Object [" << objectName << "] ..." << std::endl;
+    const auto objectName = regionName.object(path_.objectName());
 
-        if (lookup_) {
-            try {
-                const auto object = objectName.lookup();
-                eckit::Log::info() << object << std::endl;
-            }
-            catch (const eckit::Exception&) {
-                eckit::Log::info() << "Failed to lookup: " << objectName << std::endl;
-                exit(EXIT_FAILURE);
-            }
-        }
-        else if (delete_) {
-            try {
-                auto object = objectName.lookup();
-                object.deallocate();
-                eckit::Log::info() << "Deleted " << object << std::endl;
-            }
-            catch (const eckit::Exception&) {
-                eckit::Log::info() << "Failed to delete: " << objectName << std::endl;
-                exit(EXIT_FAILURE);
-            }
-        }
-        else if (create_) {
-            try {
-                const auto object = objectName.allocate(item_.size);
-                eckit::Log::info() << "Created " << object << std::endl;
-            }
-            catch (const eckit::Exception&) {
-                eckit::Log::info() << "Failed to create: " << objectName << std::endl;
-                exit(EXIT_FAILURE);
-            }
-        }
+    LOG_DEBUG_LIB(LibFdb5) << "Object [" << objectName << "] ..." << std::endl;
+
+    if (lookup_) {
+        attempt("lookup", objectName, [&] {
+            const auto object = objectName.lookup();
+            eckit::Log::info() << object << std::endl;
+        });
+    }
+    else if (delete_) {
+        attempt("delete", objectName, [&] {
+            const auto object = objectName.lookup();
+            object.deallocate();
+            eckit::Log::info() << "Deleted " << object << std::endl;
+        });
+    }
+    else if (create_) {
+        attempt("create", objectName, [&] {
+            const auto object = objectName.allocate(item_.size, false, item_.perm);
+            eckit::Log::info() << "Created " << object << std::endl;
+        });
     }
 }
 
