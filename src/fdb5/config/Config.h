@@ -67,14 +67,7 @@ public:  // methods
     const eckit::Configuration& userConfig() const { return *userConfig_; }
 
     size_t readIndexThreads() const;
-
-    /// The depth of the queue carrying elements from an API iterator's worker thread to the
-    /// caller. Bounds how far the worker may run ahead of whoever is consuming the iterator.
     size_t apiQueueSize() const;
-
-    /// The number of outstanding sub-queues for API iterators whose output is order-sequenced.
-    /// One sub-queue is claimed per index visited, so this bounds how far the visitation threads
-    /// may collectively run ahead of the consumer.
     size_t apiMaxQueues() const;
 
     std::vector<Config> getSubConfigs(const std::string& name) const;

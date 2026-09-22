@@ -18,6 +18,7 @@
 #include <mutex>
 #include <iosfwd>
 #include <map>
+#include <mutex>
 #include <set>
 
 #include "eckit/filesystem/PathName.h"

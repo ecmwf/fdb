@@ -13,10 +13,7 @@ from typing import Any, Optional
 
 import yaml
 
-from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
-
-# Initial setup of binding via eckit main
-pyfdb_internal.init_bindings()
+import pyfdb.bindings as _bindings
 
 InternalMarsSelection = dict[str, Collection[str]]
 """
@@ -72,20 +69,13 @@ class FDBToolRequest:
         all: bool = False,
         minimum_key_set: list[str] | None = None,
     ) -> None:
-        if key_values is not None:
-            key_values = key_values
-
         if minimum_key_set is None:
             minimum_key_set = []
 
-        self.tool_request = pyfdb_internal.FDBToolRequest(
-            key_values, all, minimum_key_set
-        )
+        self.tool_request = _bindings.FDBToolRequest(key_values, all, minimum_key_set)
 
     @classmethod
-    def from_internal_mars_selection(
-        cls, selection: InternalMarsSelection | None
-    ) -> "FDBToolRequest":
+    def from_internal_mars_selection(cls, selection: InternalMarsSelection | None) -> "FDBToolRequest":
         if selection is None or len(selection) == 0:
             return cls(key_values={}, all=True)
 
