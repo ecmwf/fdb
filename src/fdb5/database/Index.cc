@@ -185,7 +185,7 @@ private:  // methods
     void add(const Key&, const Field&) override { NOTIMP; }
     void flush() override { NOTIMP; }
     void encode(eckit::Stream&, const int version) const override { NOTIMP; }
-    void entries(EntryVisitor&) const override { NOTIMP; }
+    void entries(EntryVisitor&, EntryVisitor::IndexScope&) const override { NOTIMP; }
 
     void print(std::ostream& s) const override { s << "NullIndex()"; }
     void dump(std::ostream&, const char*, bool, bool) const override { NOTIMP; }

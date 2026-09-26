@@ -35,6 +35,34 @@ This mode is useful for avoiding contention on the main toc file when multiple F
 This variable overrides the `useSubToc` flag provided by the user config.
 
 
+``FDB_READ_INDEX_THREADS``
+---------------------------
+
+How many threads FDB may use, per database, for read-side work that can be split across indexes:
+constructing the index objects, and visiting them on behalf of tools such as ``fdb-list``,
+``fdb-axes`` and ``fdb-stats``.
+
+Defaults to ``1``, i.e. no threading, so applications see no change in behaviour unless they opt
+in. Values below 1 are treated as 1, and the value is capped at a sane maximum. Threading is only
+used where both the operation and the storage backend support it; where they do not, the setting
+is ignored.
+
+Output is unaffected: a listing reports exactly the same entries, in the same order, whatever this
+is set to.
+
+.. code-block:: console
+
+   export FDB_READ_INDEX_THREADS=8
+
+This variable overrides the ``fdbReadIndexThreads`` value provided by the user config.
+
+
+``FDB_LOAD_INDEX_THREADS``
+---------------------------
+Override FDB_READ_INDEX_THREADS to use a different thread count for constructing the index
+objects from the information read from the tocs.
+
+
 ``FDB_CONFIG_FILE``
 --------------------
 

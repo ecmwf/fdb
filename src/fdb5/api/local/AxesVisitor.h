@@ -20,6 +20,7 @@
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/Key.h"
 
+
 namespace fdb5 {
 
 class Index;
@@ -49,10 +50,10 @@ public:
 
     bool visitDatabase(const Catalogue& catalogue) override;
 
-    bool visitIndex(const Index& index) override;
+    IndexScopePtr visitIndex(const Index& index, const Rule& rule, eckit::Queue<AxesElement>& queue) override;
 
     using QueryVisitor<AxesElement>::visitDatum;
-    void visitDatum(const Field& /*field*/, const Key& /*key*/) override { NOTIMP; }
+    void visitDatum(IndexScope& /*scope*/, const Field& /*field*/, const Key& /*key*/) override { NOTIMP; }
 
 private:  // members
 

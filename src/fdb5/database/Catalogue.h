@@ -65,6 +65,8 @@ public:
 
     virtual void visitEntries(EntryVisitor& visitor, bool sorted = false);
 
+    virtual bool supportsConcurrentIndexReads() const { return false; }
+
     virtual void hideContents() = 0;
 
     virtual void dump(std::ostream& out, bool simple = false,

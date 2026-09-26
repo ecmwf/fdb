@@ -17,6 +17,10 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/database/DatabaseNotFoundException.h"
 #include "fdb5/database/Field.h"
+#include "fdb5/database/OrderedParallelFor.h"
+
+#include <memory>
+#include <mutex>
 
 namespace eckit {
 class URI;
@@ -35,6 +39,38 @@ class Key;
 
 class EntryVisitor {
 
+public:  // types
+
+    /// In the EntryVisitMechanism indexes can be visited in parallel. So the visitEntries
+    /// function needs a way to know what is the current index, and a way to store/accumulate
+    /// index-specific values.
+    ///
+    /// This class may be subclassed to include anything else which is needed per-index
+    /// when running in parallel (e.g. a specific output queue)
+    class IndexScope {
+
+    public:  // methods
+
+        IndexScope(const Catalogue& catalogue, const Index& index, const Rule& rule) :
+            catalogue_(catalogue), index_(index), rule_(rule) {}
+        virtual ~IndexScope() = default;
+
+        IndexScope(const IndexScope&) = delete;
+        IndexScope& operator=(const IndexScope&) = delete;
+
+        const Catalogue& catalogue() const { return catalogue_; }
+        const Index& index() const { return index_; }
+        const Rule& rule() const { return rule_; }
+
+    private:  // members
+
+        const Catalogue& catalogue_;
+        const Index& index_;
+        const Rule& rule_;
+    };
+
+    using IndexScopePtr = std::unique_ptr<IndexScope>;
+
 public:  // methods
 
     EntryVisitor();
@@ -52,29 +88,33 @@ public:  // methods
 
     virtual bool preVisitDatabase(const eckit::URI& uri, const Schema& schema);
     virtual bool visitDatabase(const Catalogue& catalogue);  // return true if Catalogue should be explored
-    virtual bool visitIndex(const Index& index);             // return true if index should be explored
     virtual void catalogueComplete(const Catalogue& catalogue);
-    virtual void visitDatum(const Field& field, const std::string& keyFingerprint);
+
+    virtual IndexScopePtr visitIndex(const Index& index, OrderedParallelFor::Order& order);
+    virtual IndexScopePtr visitIndex(const Index& index, const Rule& rule);
+
+    virtual void visitDatum(IndexScope& scope, const Field& field, const std::string& keyFingerprint);
 
     virtual void onDatabaseNotFound(const fdb5::DatabaseNotFoundException& e) {}
 
-    time_t indexTimestamp() const;
+    virtual bool supportsConcurrentIndexVisitation() const { return false; }
 
 protected:
 
     Store& store() const;
-    virtual void visitDatum(const Field& field, const Key& datumKey) = 0;
+    virtual void visitDatum(IndexScope& scope, const Field& field, const Key& datumKey) = 0;
+
+    /// The datum rule for an index of the database currently being visited.
+    const Rule& indexRule(const Index& index) const;
 
 protected:  // members
 
     /// Non-owning
     const Catalogue* currentCatalogue_{nullptr};
-    /// Owned store
+
+    // Owned Store
     mutable Store* currentStore_{nullptr};
-    /// Non-owning
-    const Index* currentIndex_{nullptr};
-    /// Non-owning
-    const Rule* rule_{nullptr};
+    mutable std::mutex storeMutex_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
