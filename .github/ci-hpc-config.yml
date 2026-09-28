@@ -4,7 +4,7 @@ build:
   dependencies:
     - ecmwf/ecbuild@develop
     - ecmwf/eccodes@develop
-    - ecmwf/eckit@develop
+    - ecmwf/eckit@feature/ECKIT-684-ceph-backend
     - ecmwf/metkit@develop
   cmake_options:
     - -DENABLE_LUSTRE=OFF
