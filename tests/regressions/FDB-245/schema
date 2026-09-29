@@ -19,7 +19,7 @@
 # This will be used when matching rules.
 
 # * Attributes can be typed
-#   Globally, at the begining of this file:
+#   Globally, at the beginning of this file:
 
 #   refdate: Date;
 
@@ -30,7 +30,7 @@
 
 # * Attributes can be optional
 # [ step, levelist?, param ]
-# They will be replaced internally by an empty value. It is also posiible to provide a default subtitution value: e.g. [domain?g] will consider the domain to be 'g' if missing.
+# They will be replaced internally by an empty value. It is also possible to provide a default substitution value: e.g. [domain?g] will consider the domain to be 'g' if missing.
 
 # * Attributes can be removed:
 # [grid-]

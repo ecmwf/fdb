@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -eux
+set -euxo pipefail
 
 fdbread="$<TARGET_FILE:fdb-read>"
 fdbwrite="$<TARGET_FILE:fdb-write>"
@@ -11,7 +11,7 @@ gribset="$<TARGET_FILE:grib_set>"
 
 function post_process {
   num=0
-  while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; done | sort
+  while read line; do [[ $line =~ ^\}, ]] && num=$((num+1)); [[ $line =~ \": ]] && echo $num $line; true; done | sort
 }
 
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
@@ -142,7 +142,7 @@ diff out list
 # test grib packingType
 $gribset -s edition=2,step=24 in.grib 24.grib
 
-$fdbwrite --modifiers=packingType=grid_ieee,expver=zzzz,type=an 24.grib
+$fdbwrite --modifiers=expver=zzzz,type=an,packingType=grid_ieee 24.grib
 
 $fdblist --porcelain class=rd,expver=zzzz
 

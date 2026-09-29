@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+if [[ $# -lt 4 ]]; then
+    echo "Usage: $0 <test_directory> <client_config> <store1_config> <store2_config>" >&2
+    exit 1
+fi
+
+set -eux
+
+source "@FDB_REMOTE_TEST_HELPER@"
+
+testdir=$1
+client_config="$testdir/$2"
+store1_config="$testdir/$3"
+store2_config="$testdir/$4"
+catalogue_rootdir=$testdir/catalogue_root
+store1_rootdir=$testdir/store1_root
+store2_rootdir=$testdir/store2_root
+
+server="$<TARGET_FILE:fdb-server>"
+test="$<TARGET_FILE:fdb_test_remote_multi_store>"
+
+cleanup() {
+    local exit_code=$?
+
+    fdb_remote_cleanup "$exit_code"
+    rm -rf "$catalogue_rootdir" "$store1_rootdir" "$store2_rootdir"
+    return "$exit_code"
+}
+
+trap cleanup EXIT
+trap 'exit 1' INT TERM
+
+rm -rf "$catalogue_rootdir" "$store1_rootdir" "$store2_rootdir"
+mkdir -p "$catalogue_rootdir" "$store1_rootdir" "$store2_rootdir"
+fdb_remote_init "$testdir/remote_servers"
+
+fdb_remote_start_server STORE1 "$store1_config" "$(fdb_remote_config_port "$store1_config")" FDB_DEBUG=1 -- "$server"
+fdb_remote_start_server STORE2 "$store2_config" "$(fdb_remote_config_port "$store2_config")" FDB_DEBUG=1 -- "$server"
+
+fdb_remote_wait_for_servers
+
+FDB5_CONFIG_FILE="$client_config" "$test"
+
+exit $?

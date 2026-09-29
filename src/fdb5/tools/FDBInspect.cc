@@ -35,7 +35,7 @@ FDBInspect::FDBInspect(int argc, char **argv, std::string minimumKeys) :
     FDBTool(argc, argv),
     fail_(true) {
 
-    minimumKeys_ = Resource<std::vector<std::string> >("FDBInspectMinimumKeys", minimumKeys, true);
+    minimumKeys_ = Resource<std::vector<std::string>>("FDBInspectMinimumKeys", minimumKeys, true);
 
     if(minimumKeys_.size() == 0) {
         options_.push_back(new eckit::option::SimpleOption<bool>("all", "Visit all FDB databases"));
@@ -89,7 +89,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
         }
 
         if (dbs.size() == 0) {
-            std::stringstream ss;
+            std::ostringstream ss;
             ss << "No FDB matches " << dbKey;
             Log::warning() << ss.str() << std::endl;
             if (fail_)
@@ -118,7 +118,7 @@ void FDBInspect::execute(const eckit::option::CmdArgs &args) {
             }
 
             if (dbs.size() == 0) {
-                std::stringstream ss;
+                std::ostringstream ss;
                 ss << "No FDB matches " << req.key();
                 Log::warning() << ss.str() << std::endl;
                 if (fail_)

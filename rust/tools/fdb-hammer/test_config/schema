@@ -1,0 +1,25 @@
+# Minimal FDB schema for fdb_hammer example
+#
+# Schema format:
+# [level1_keys... [level2_keys... [level3_keys...]]]
+#
+# - level1: top directory naming
+# - level2: data file naming
+# - level3: index keys
+
+# Type definitions
+param:      Param;
+step:       Step;
+date:       Date;
+time:       Time;
+levelist:   Double;
+expver:     Expver;
+number:     Integer;
+
+# Rule for fdb_hammer workloads
+# Matches: class, expver, stream, date, time (level 1)
+#          type, levtype (level 2)
+#          step, number?, levelist?, param (level 3)
+[ class, expver, stream, date, time
+    [ type, levtype
+        [ step, number?, levelist?, param ]]]

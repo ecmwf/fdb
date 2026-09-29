@@ -21,6 +21,7 @@ namespace fdb5 {
 
 class DatabaseNotFoundException : public eckit::Exception {
 public:
+
     DatabaseNotFoundException(const std::string&);
     DatabaseNotFoundException(const std::string&, const eckit::CodeLocation&);
 };

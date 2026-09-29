@@ -16,13 +16,15 @@
 #ifndef fdb5_TypesRegistry_H
 #define fdb5_TypesRegistry_H
 
-#include <string>
+#include <functional>
 #include <map>
 #include <memory>
-#include <optional>
-#include <functional>
+#include <mutex>
+#include <string>
 
-#include "eckit/memory/NonCopyable.h"
+#include "eckit/serialisation/Streamable.h"
+
+#include "fdb5/types/Type.h"
 
 namespace metkit::mars {
 class MarsRequest;
@@ -30,44 +32,72 @@ class MarsRequest;
 
 namespace fdb5 {
 
-class Type;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-class TypesRegistry : private eckit::NonCopyable {
+class TypesRegistry : public eckit::Streamable {
 
-public: // methods
+public:  // methods
 
-    TypesRegistry();
+    TypesRegistry() = default;
 
-    ~TypesRegistry();
+    explicit TypesRegistry(eckit::Stream& stream);
 
-    const Type &lookupType(const std::string &keyword) const;
+    void decode(eckit::Stream& stream);
+    void encode(eckit::Stream& out) const override;
 
-    void addType(const std::string &, const std::string &);
+    const Type& lookupType(const std::string& keyword) const;
+
+    void addType(const std::string&, const std::string&);
     void updateParent(const TypesRegistry& parent);
-    void dump( std::ostream &out ) const;
-    void dump( std::ostream &out, const std::string &keyword ) const;
+    void dump(std::ostream& out) const;
+    void dump(std::ostream& out, const std::string& keyword) const;
 
     metkit::mars::MarsRequest canonicalise(const metkit::mars::MarsRequest& request) const;
 
-private: // members
+    // streamable
 
-    typedef std::map<std::string, Type *> TypeMap;
+    const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
 
-    mutable TypeMap cache_;
+    static const eckit::ClassSpec& classSpec() { return classSpec_; }
+
+    std::size_t hash() const;
+
+    bool operator==(const TypesRegistry& other) const;
+
+private:  // methods
+
+    void print(std::ostream& out) const;
+
+    friend std::ostream& operator<<(std::ostream& s, const TypesRegistry& x);
+
+private:  // members
 
     std::map<std::string, std::string> types_;
-    std::optional<std::reference_wrapper<const TypesRegistry>> parent_;
 
-    friend std::ostream &operator<<(std::ostream &s, const TypesRegistry &x);
+    const TypesRegistry* parent_{nullptr};
 
-    void print( std::ostream &out ) const;
+    using TypeMap = std::map<std::string, std::unique_ptr<const Type>>;
+    mutable std::mutex cacheMutex_;
+    mutable TypeMap cache_;
 
+    // streamable
+
+    static eckit::ClassSpec classSpec_;
+    static eckit::Reanimator<TypesRegistry> reanimator_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
+
+template <>
+struct std::hash<const fdb5::TypesRegistry*> {
+    std::size_t operator()(const fdb5::TypesRegistry* registry) const { return registry->hash(); }
+};
+
+template <>
+struct std::equal_to<const fdb5::TypesRegistry*> {
+    bool operator()(const fdb5::TypesRegistry* left, const fdb5::TypesRegistry* right) const { return *left == *right; }
+};
 
 #endif

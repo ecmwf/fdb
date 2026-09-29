@@ -1,0 +1,7 @@
+---
+type: local
+engine: toc
+schema: ./sink_schema
+spaces:
+ - roots:
+   - path: ./reindex_sink

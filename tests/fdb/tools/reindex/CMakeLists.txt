@@ -1,0 +1,9 @@
+if (HAVE_GRIB)
+    ecbuild_configure_file( fdb_reindex.sh.in fdb_reindex.sh @ONLY )
+
+    ecbuild_add_test(
+        TARGET fdb_test_tools_reindex
+        TYPE SCRIPT
+        COMMAND fdb_reindex.sh
+        ENVIRONMENT "${test_environment}")
+endif()

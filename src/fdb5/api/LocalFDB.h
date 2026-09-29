@@ -16,15 +16,18 @@
 /// @author Simon Smart
 /// @date   Mar 2018
 
-#ifndef fdb5_api_LocalFDB_H
-#define fdb5_api_LocalFDB_H
+#pragma once
 
 #include "fdb5/api/FDBFactory.h"
+#include "fdb5/database/Inspector.h"
+#include "fdb5/database/Reindexer.h"
+
+#include <memory>
+#include <mutex>
 
 
 namespace fdb5 {
 
-class Inspector;
 class Archiver;
 class FDB;
 
@@ -32,29 +35,29 @@ class FDB;
 
 class LocalFDB : public FDBBase {
 
-public: // methods
+public:  // methods
 
     using FDBBase::FDBBase;
-    using FDBBase::stats;
 
     void archive(const Key& key, const void* data, size_t length) override;
 
+    void reindex(const Key& key, const FieldLocation& location) override;
+
     ListIterator inspect(const metkit::mars::MarsRequest& request) override;
 
-    ListIterator list(const FDBToolRequest& request) override;
+    ListIterator list(const FDBToolRequest& request, int level) override;
 
     DumpIterator dump(const FDBToolRequest& request, bool simple) override;
 
     StatusIterator status(const FDBToolRequest& request) override;
 
-    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
+    WipeStateIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
 
     PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override;
 
     StatsIterator stats(const FDBToolRequest& request) override;
 
-    ControlIterator control(const FDBToolRequest& request,
-                            ControlAction action,
+    ControlIterator control(const FDBToolRequest& request, ControlAction action,
                             ControlIdentifiers identifiers) override;
 
     MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override;
@@ -63,23 +66,26 @@ public: // methods
 
     void flush() override;
 
-private: // methods
+protected:  // methods
+
+    template <typename VisitorType, typename... Ts>
+    APIIterator<typename VisitorType::ValueType> queryInternal(const FDBToolRequest& request, Ts... args);
+
+private:  // methods
 
     void print(std::ostream& s) const override;
 
-    template <typename VisitorType, typename ... Ts>
-    APIIterator<typename VisitorType::ValueType> queryInternal(const FDBToolRequest& request, Ts ... args);
-
-private: // members
+protected:  // members
 
     std::string home_;
 
+    mutable std::mutex mutex_;
+
     std::unique_ptr<Archiver> archiver_;
+    std::unique_ptr<Reindexer> reindexer_;
     std::unique_ptr<Inspector> inspector_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
-
-#endif // fdb5_api_LocalFDB_H
+}  // namespace fdb5

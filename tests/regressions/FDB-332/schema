@@ -1,0 +1,114 @@
+
+# * Format of the rules is:
+
+# [a1, a2, a3 ...[b1, b2, b3... [c1, c2, c3...]]]
+
+# - The first level (a) defines which attributes are used to name the top level directory
+# - The second level (b) defines which attributes are used to name the data files
+# - The third level (c) defines which attributes are used as index keys
+
+# * Rules can be grouped
+
+# [a1, a2, a3 ...
+#   [b1, b2, b3... [c1, c2, c3...]]
+#   [B1, B2, B3... [C1, C2, C3...]]
+# ]
+
+# * A list of values can be given for an attribute
+# [ ..., stream=enfo/efov, ... ]
+# This will be used when matching rules.
+
+# * Attributes can be typed
+#   Globally, at the beginning of this file:
+
+#   refdate: Date;
+
+#   or in the context of a rule:
+#   [type=cl, ... [date:ClimateMonth, ...]]
+
+# Typing attributes is done when the user's requests or the GRIB values need to be modified before directories, files and indexes are created. For example, ClimateMonth will transform 2010-04-01 to 'may' internally.
+
+# * Attributes can be optional
+# [ step, levelist?, param ]
+# They will be replaced internally by an empty value. It is also possible to provide a default substitution value: e.g. [domain?g] will consider the domain to be 'g' if missing.
+
+# * Attributes can be removed:
+# [grid-]
+# This is useful to remove attributes present in the GRIB that should not be ignored
+
+# * Rules are matched:
+
+# - If the attributes are present in the GRIB/Request, or marked optional or ignored
+# - If a list of possible value is provided, one of them must match, for example
+#   [ class, expver, stream=enfo/efov, date, time, domain ]
+#   will match either stream=enfo or stream=efov, all other attributes will be matched if they exist in the GRIB or user's request
+
+# * On archive:
+# - Attributes are extracted from the GRIB (namespace 'mars'), possibly modified by the attribute type
+# - Only the first rule is used, so order is important
+# - All GRIB attributes must be used by the rules, otherwise an error is raised
+
+# * On retrieve:
+# - Attributes are extracted from the user's request, possibly modified by the attribute type (e.g. for handling of U/V)
+# - All the matching rules are considered
+# - Only attributes listed in the rules are used to extract values from the user's request
+
+
+# Default types
+
+param:      Param;
+step:       Step;
+date:       Date;
+hdate:      Date;
+refdate:    Date;
+latitude:   Double;
+longitude:  Double;
+levelist:   Double;
+grid:       Grid;
+expver:     Expver;
+
+time:       Time;
+fcmonth:    Integer;
+
+number:     Integer;
+frequency:  Integer;
+direction:  Integer;
+channel:    Integer;
+
+instrument: Integer;
+ident:      Integer;
+
+diagnostic: Integer;
+iteration:  Integer;
+system:     Integer;
+method:     Integer;
+
+# ???????
+
+# reference:  Integer;
+# fcperiod:   Integer;
+
+# opttime:    Integer;
+# leadtime:   Integer;
+
+# quantile:   ??????
+# range:      ??????
+
+# band:       Integer;
+
+
+########################################################
+# These are the rules for the Climate DT
+ 
+# clte/wave
+[ class=d1, dataset=climate-dt, activity, experiment, generation, model, realization, expver, stream=clte/wave, date: Year
+       [ date: Month, resolution, type, levtype
+               [ date: Date, time, levelist?, param, frequency?, direction? ]]
+]
+ 
+# clmn
+[ class=d1, dataset=climate-dt, activity, experiment, generation, model, realization, expver, stream=clmn, year
+       [ month, resolution, type, levtype
+               [ levelist?, param ]]
+]
+ 

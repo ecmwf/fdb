@@ -1,0 +1,8 @@
+add_subdirectory("all_identical")
+add_subdirectory("diff_exp")
+add_subdirectory("mismatch_mars")
+add_subdirectory("mismatch_grib")
+add_subdirectory("invalid_args")
+add_subdirectory("mars_keys_ignore")
+add_subdirectory("grib_keys_select")
+add_subdirectory("option_warnings")

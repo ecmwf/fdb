@@ -20,21 +20,19 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 StatsElement::StatsElement(const IndexStats& iStats, const DbStats& dbStats) :
-    indexStatistics(iStats),
-    dbStatistics(dbStats) {}
+    indexStatistics(iStats), dbStatistics(dbStats) {}
 
 
-StatsElement::StatsElement(eckit::Stream &s) :
+StatsElement::StatsElement(eckit::Stream& s) :
     indexStatistics(eckit::Reanimator<IndexStatsContent>::reanimate(s)),
     dbStatistics(eckit::Reanimator<DbStatsContent>::reanimate(s)) {}
 
 
-void StatsElement::encode(eckit::Stream &s) const {
+void StatsElement::encode(eckit::Stream& s) const {
     s << indexStatistics;
     s << dbStatistics;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
-
+}  // namespace fdb5

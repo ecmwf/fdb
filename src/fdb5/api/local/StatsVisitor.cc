@@ -16,8 +16,10 @@
 
 #include "fdb5/api/local/StatsVisitor.h"
 
-#include "fdb5/database/DB.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/database/StatsReportVisitor.h"
+
+#include <memory>
 
 namespace fdb5 {
 namespace api {
@@ -25,26 +27,32 @@ namespace local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-bool StatsVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool StatsVisitor::visitDatabase(const Catalogue& catalogue) {
 
-    EntryVisitor::visitDatabase(catalogue, store);
+    EntryVisitor::visitDatabase(catalogue);
 
     ASSERT(!internalVisitor_);
     internalVisitor_.reset(catalogue.statsReportVisitor());
 
-    internalVisitor_->visitDatabase(catalogue, store);
+    internalVisitor_->visitDatabase(catalogue);
 
-    return true; // Explore contained indexes
+    return true;  // Explore contained indexes
 }
 
-bool StatsVisitor::visitIndex(const Index& index) {
-    internalVisitor_->visitIndex(index);
+EntryVisitor::IndexScopePtr StatsVisitor::visitIndex(const Index& index, const Rule& rule,
+                                                     eckit::Queue<StatsElement>& /*queue*/) {
+    auto inner = internalVisitor_->visitIndex(index, rule);
+    if (!inner) {
+        return nullptr;  // Skip contained entries
+    }
 
-    return true; // Explore contained entries
+    auto scope = std::make_unique<Scope>(*currentCatalogue_, index, rule);
+    scope->inner = std::move(inner);
+    return scope;  // Explore contained entries
 }
 
-void StatsVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {
-    internalVisitor_->visitDatum(field, keyFingerprint);
+void StatsVisitor::visitDatum(IndexScope& indexScope, const Field& field, const std::string& keyFingerprint) {
+    internalVisitor_->visitDatum(*static_cast<Scope&>(indexScope).inner, field, keyFingerprint);
 }
 
 void StatsVisitor::catalogueComplete(const Catalogue& catalogue) {
@@ -52,7 +60,7 @@ void StatsVisitor::catalogueComplete(const Catalogue& catalogue) {
 
     // Construct the object to push onto the queue
 
-    queue_.emplace(StatsElement { internalVisitor_->indexStatistics(), internalVisitor_->dbStatistics() });
+    queue_.emplace(StatsElement{internalVisitor_->indexStatistics(), internalVisitor_->dbStatistics()});
 
     // Cleanup
 
@@ -61,6 +69,6 @@ void StatsVisitor::catalogueComplete(const Catalogue& catalogue) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace local
+}  // namespace api
+}  // namespace fdb5

@@ -1,0 +1,56 @@
+name: Create Ubuntu Rolling FDB build environment
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '45 4 * * *'  # Every day at 4:45 AM UTC
+  push:
+    branches:
+      - develop
+    paths:
+      - 'containerfiles/ubuntu_rolling_fdb_build_env/**'
+  pull_request:
+    paths:
+      - 'containerfiles/ubuntu_rolling_fdb_build_env/**'
+
+env:
+  REGISTRY: eccr.ecmwf.int
+  IMAGE_NAME: ubuntu_rolling_fdb_build_env
+  PROJECT_NAME: ci-utils
+
+jobs:
+  build-and-push:
+    runs-on: [self-hosted, Linux, platform-builder-docker]
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Log in to ECCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.ECMWF_DOCKER_REGISTRY_USERNAME }}
+          password: ${{ secrets.ECMWF_DOCKER_REGISTRY_ACCESS_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.PROJECT_NAME }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./containerfiles/ubuntu_rolling_fdb_build_env
+          file: ./containerfiles/ubuntu_rolling_fdb_build_env/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}

@@ -38,18 +38,17 @@ public:
 
     QueueStringLogTarget(eckit::Queue<std::string>& queue) : queue_(queue) {}
 
-    void line(const char* line) override {
-        queue_.emplace(std::string(line));
-    }
+    void line(const char* line) override { queue_.emplace(std::string(line)); }
 
-private: // members
+private:  // members
+
     eckit::Queue<std::string>& queue_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
+}  // namespace local
+}  // namespace api
+}  // namespace fdb5
 
 #endif

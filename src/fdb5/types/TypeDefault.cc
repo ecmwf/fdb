@@ -8,21 +8,18 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/types/TypesFactory.h"
 #include "fdb5/types/TypeDefault.h"
+#include "fdb5/types/TypesFactory.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeDefault::TypeDefault(const std::string &name, const std::string &type) :
-    Type(name, type) {
-}
+TypeDefault::TypeDefault(const std::string& name, const std::string& type) : Type(name, type) {}
 
-TypeDefault::~TypeDefault() {
-}
+TypeDefault::~TypeDefault() {}
 
-void TypeDefault::print(std::ostream &out) const {
+void TypeDefault::print(std::ostream& out) const {
     out << "TypeDefault[name=" << name_ << "]";
 }
 
@@ -30,4 +27,4 @@ static TypeBuilder<TypeDefault> type("Default");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

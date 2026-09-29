@@ -8,13 +8,13 @@
  * does it submit to any jurisdiction.
  */
 
-#include <sstream>
-
-#include "eckit/thread/AutoLock.h"
-#include "eckit/log/Log.h"
-
-#include "fdb5/LibFdb5.h"
 #include "fdb5/database/AxisRegistry.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/thread/AutoLock.h"
+#include "eckit/thread/Mutex.h"
+
+#include <memory>
 
 namespace fdb5 {
 
@@ -27,10 +27,17 @@ AxisRegistry& AxisRegistry::instance() {
 
 void AxisRegistry::release(const keyword_t& keyword, std::shared_ptr<axis_t>& ptr) {
 
-    if (ptr.use_count() != 2)
+    // use_count() can change concurrently, so it must be re-checked under the lock
+    // this is only an optimisation to avoid locking
+    if (ptr.use_count() > 2) {
         return;
+    }
 
-    eckit::AutoLock<eckit::Mutex> lock(mutex_);
+    eckit::AutoLock lock(mutex_);
+
+    if (ptr.use_count() != 2) {
+        return;
+    }
 
     axis_map_t::iterator it = axes_.find(keyword);
     ASSERT(it != axes_.end());
@@ -39,15 +46,16 @@ void AxisRegistry::release(const keyword_t& keyword, std::shared_ptr<axis_t>& pt
 
     ASSERT(ptr.use_count() == 1);
 
-    if (it->second.empty())
+    if (it->second.empty()) {
         axes_.erase(it);
+    }
 }
 
 void AxisRegistry::deduplicate(const keyword_t& keyword, std::shared_ptr<axis_t>& ptr) {
 
     eckit::AutoLock<eckit::Mutex> lock(mutex_);
 
-//    static std::size_t dedups = 0;
+    //    static std::size_t dedups = 0;
 
     axis_store_t& axis = axes_[keyword];
     axis_store_t::iterator it = axis.find(ptr);
@@ -55,11 +63,10 @@ void AxisRegistry::deduplicate(const keyword_t& keyword, std::shared_ptr<axis_t>
         axis.insert(ptr);
     }
     else {
-//        dedups++;
-//        LOG_DEBUG_LIB(LibFdb5) << dedups << " deduped axis [" << *ptr << "]" << std::endl;
+        //        dedups++;
+        //        LOG_DEBUG_LIB(LibFdb5) << dedups << " deduped axis [" << *ptr << "]" << std::endl;
         ptr = *it;
     }
 }
 
-}
-
+}  // namespace fdb5

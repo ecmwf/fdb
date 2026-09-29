@@ -21,11 +21,11 @@
 
 #include "metkit/mars/MarsRequest.h"
 
-#include "fdb5/database/Archiver.h"
-#include "fdb5/config/Config.h"
-#include "fdb5/message/MessageDecoder.h"
-#include "fdb5/database/Key.h"
 #include "fdb5/api/FDB.h"
+#include "fdb5/config/Config.h"
+#include "fdb5/database/Archiver.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/message/MessageDecoder.h"
 
 namespace eckit {
 class DataHandle;
@@ -37,27 +37,25 @@ namespace fdb5 {
 
 class MessageArchiver : public MessageDecoder {
 
-public: // methods
+public:  // methods
 
-    MessageArchiver(const fdb5::Key& key = Key(),
-                 bool completeTransfers = false,
-                 bool verbose = false,
-                 const Config& config = Config().expandConfig());
+    MessageArchiver(const fdb5::Key& key = Key(), bool completeTransfers = false, bool verbose = false,
+                    const Config& config = Config().expandConfig());
 
-    void filters(const std::string& include, const std::string& exclude);
-    void modifiers(const std::string& modify);
+    void setFilters(const std::string& include, const std::string& exclude);
+    void setModifiers(const fdb5::Key& modify);
 
-    eckit::Length archive(eckit::DataHandle &source);
+    eckit::Length archive(eckit::DataHandle& source);
 
     void flush();
 
-private: // protected
+private:  // protected
 
     bool filterOut(const Key& k) const;
 
-    eckit::message::Message transform(eckit::message::Message&);
+    void transform(eckit::message::Message&);
 
-private: // members
+private:  // members
 
     FDB fdb_;
 
@@ -66,7 +64,7 @@ private: // members
     std::vector<metkit::mars::MarsRequest> include_;
     std::vector<metkit::mars::MarsRequest> exclude_;
 
-    eckit::StringDict modifiers_;
+    eckit::OrderedStringDict modifiers_;
 
     bool completeTransfers_;
 
@@ -75,4 +73,4 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

@@ -13,10 +13,9 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 
-#include "fdb5/fdb5_config.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/UriStore.h"
-#include "fdb5/toc/TocFieldLocation.h"
+#include "fdb5/fdb5_config.h"
 
 #ifdef fdb5_HAVE_S3FDB
 #include "fdb5/s3/S3FieldLocation.h"
@@ -28,11 +27,10 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-FieldRefLocation::FieldRefLocation() {
-}
+FieldRefLocation::FieldRefLocation() {}
 
 
-FieldRefLocation::FieldRefLocation(UriStore &store, const Field& field) {
+FieldRefLocation::FieldRefLocation(UriStore& store, const Field& field) {
 
     const FieldLocation& loc = field.location();
 
@@ -57,38 +55,27 @@ FieldRefLocation::FieldRefLocation(UriStore &store, const Field& field) {
     uriId_ = store.insert(loc.uri());
     length_ = loc.length();
     offset_ = loc.offset();
-
 }
 
-void FieldRefLocation::print(std::ostream &s) const {
+void FieldRefLocation::print(std::ostream& s) const {
     s << "FieldRefLocation(pathid=" << uriId_ << ",offset=" << offset_ << ",length=" << length_ << ")";
 }
 
-FieldRefReduced::FieldRefReduced() {
+FieldRefReduced::FieldRefReduced() {}
 
-}
+FieldRefReduced::FieldRefReduced(const FieldRef& other) : location_(other.location()) {}
 
-FieldRefReduced::FieldRefReduced(const FieldRef &other):
-    location_(other.location()) {
-}
-
-void FieldRefReduced::print(std::ostream &s) const {
+void FieldRefReduced::print(std::ostream& s) const {
     s << location_;
 }
 
-FieldRef::FieldRef() {
-}
+FieldRef::FieldRef() {}
 
-FieldRef::FieldRef(UriStore &store, const Field &field):
-    location_(store, field),
-    details_(field.details()) {
-}
+FieldRef::FieldRef(UriStore& store, const Field& field) : location_(store, field), details_(field.details()) {}
 
-FieldRef::FieldRef(const FieldRefReduced& other):
-    location_(other.location()) {
-}
+FieldRef::FieldRef(const FieldRefReduced& other) : location_(other.location()) {}
 
-void FieldRef::print(std::ostream &s) const {
+void FieldRef::print(std::ostream& s) const {
     s << location_;
 }
 
@@ -96,4 +83,4 @@ void FieldRef::print(std::ostream &s) const {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-} // namespace fdb5
+}  // namespace fdb5

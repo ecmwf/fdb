@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+
+# --- Documentation
+# This script is used to start a test server for the remote fdb tests
+
+if [[ $# -lt 4 ]]; then
+    echo "Usage: $0 <test_directory> <client_config> <catalogue_config> <store_config>" >&2
+    exit 1
+fi
+
+set -eux
+
+source "@FDB_REMOTE_TEST_HELPER@"
+
+#  --- Variables
+testdir=$1
+client_config="$testdir/$2"
+catalogue_config="$testdir/$3"
+store_config="$testdir/$4"
+catalogue_rootdir=$testdir/catalogue_root
+store_rootdir=$testdir/store_root
+
+server="$<TARGET_FILE:fdb-server>"
+# Optional 5th arg: path to the client test binary to run. Defaults to fdb_test_remote_api_bin
+# for backward compatibility with callers that only pass 4 args.
+test="${5:-$<TARGET_FILE:fdb_test_remote_api_bin>}"
+
+# --- Cleanup and setup
+cleanup() {
+  local exit_code=$?
+
+  fdb_remote_cleanup "$exit_code"
+  rm -rf "$catalogue_rootdir" "$store_rootdir"
+  return "$exit_code"
+}
+
+trap cleanup EXIT
+trap 'exit 1' INT TERM
+
+#  -- Start fresh
+rm -rf "$catalogue_rootdir" "$store_rootdir"
+mkdir -p "$catalogue_rootdir" "$store_rootdir"
+fdb_remote_init "$testdir/remote_servers"
+
+# --- Start the servers in the background.
+
+fdb_remote_start_server CATALOGUE "$catalogue_config" "$(fdb_remote_config_port "$catalogue_config")" \
+  FDB5_SUB_TOCS=1 FDB_DEBUG=1 FDB_WIPE_SECRET=123 -- "$server"
+fdb_remote_start_server STORE "$store_config" "$(fdb_remote_config_port "$store_config")" \
+  FDB5_SUB_TOCS=1 FDB_DEBUG=1 FDB_WIPE_SECRET=123 -- "$server"
+
+fdb_remote_wait_for_servers
+
+# --- Run the client test
+FDB5_CONFIG_FILE="$client_config" "$test"
+exit $?

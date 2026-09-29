@@ -16,44 +16,118 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_local_QueryVisitor_H
-#define fdb5_api_local_QueryVisitor_H
-
-#include "fdb5/database/EntryVisitMechanism.h"
+#pragma once
 
 #include "eckit/container/Queue.h"
+#include "eckit/container/QueueOfQueues.h"
+#include "eckit/exception/Exceptions.h"
 
 #include "metkit/mars/MarsRequest.h"
 
-namespace fdb5 {
-namespace api {
-namespace local {
+#include "fdb5/database/EntryVisitMechanism.h"
+#include "fdb5/rules/Rule.h"
+
+#include <memory>
+#include <mutex>
+#include <tuple>
+#include <type_traits>
+#include <unordered_map>
+#include <vector>
+
+namespace fdb5::api::local {
 
 /// @note Helper classes for LocalFDB
 
 //----------------------------------------------------------------------------------------------------------------------
 
-template <typename T>
+template <typename T, typename Q = eckit::Queue<T>>
 class QueryVisitor : public EntryVisitor {
 
-public: // methods
+public:  // methods
 
     using ValueType = T;
+    using QueueType = Q;
 
-    QueryVisitor(eckit::Queue<ValueType>& queue, const metkit::mars::MarsRequest& request) :
-        queue_(queue), request_(request) {}
+    QueryVisitor(QueueType& queue, const metkit::mars::MarsRequest& request) : queue_(queue), request_(request) {}
 
-protected: // members
+    using EntryVisitor::visitIndex;
 
-    eckit::Queue<ValueType>& queue_;
+    /// If running in parallel, and the ordering of output matters, then we will have a per-thread
+    /// per-index output queue. We need to take that, and close it appropriately.
+    ///
+    /// We should always release the ordering imposed by the OrderedParallelFor once everything that
+    /// requires strict index ordering is done. Do this in this class, such that we only have
+    /// to implement this logic once, no matter how many visitors can be parallelised.
+    IndexScopePtr visitIndex(const Index& index, OrderedParallelFor::Order& order) final {
+
+        const Rule& rule = indexRule(index);
+
+        eckit::Queue<ValueType>& queue = obtainQueue();  // the one thing that must happen in order
+        order.release();
+
+        if constexpr (ordered()) {
+            // A sub-queue that is never closed stalls the consumer for good. A returned scope
+            // adopts it; if the visitor skips this index or throws, close it here instead, leaving
+            // an empty place in the sequence.
+            try {
+                auto scope = visitIndex(index, rule, queue);
+                if (!scope) {
+                    queue.close();
+                }
+                return scope;
+            }
+            catch (...) {
+                queue.close();
+                throw;
+            }
+        }
+        else {
+            return visitIndex(index, rule, queue);
+        }
+    }
+
+    virtual IndexScopePtr visitIndex(const Index& index, const Rule& rule, eckit::Queue<ValueType>& queue) {
+        return EntryVisitor::visitIndex(index, rule);
+    }
+
+protected:  // methods
+
+    /// output sequencing uses a QueueOfQueues. So this can be used to switch if the output is sequenced
+    static constexpr bool ordered() { return std::is_same_v<QueueType, eckit::QueueOfQueues<ValueType>>; }
+    eckit::Queue<ValueType>& obtainQueue() {
+        if constexpr (ordered()) {
+            return queue_.push();
+        }
+        else {
+            return queue_;
+        }
+    }
+
+    const metkit::mars::MarsRequest& canonicalise(const Rule& rule) const {
+        bool success;
+        std::lock_guard<std::mutex> lock(canonicalisedMutex_);
+        auto it = canonicalised_.find(&rule.registry());
+        if (it == canonicalised_.end()) {
+            std::tie(it, success) = canonicalised_.emplace(&rule.registry(), rule.registry().canonicalise(request_));
+            ASSERT(success);
+        }
+        return it->second;
+    }
+
+
+protected:  // members
+
+    QueueType& queue_;
     metkit::mars::MarsRequest request_;
+
+private:  // members
+
+    /// Cache of canonicalised requests
+    mutable std::unordered_map<const TypesRegistry*, metkit::mars::MarsRequest> canonicalised_;
+    mutable std::mutex canonicalisedMutex_;  ///< Protects canonicalised_ map
 };
 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace local
-} // namespace api
-} // namespace fdb5
-
-#endif
+}  // namespace fdb5::api::local

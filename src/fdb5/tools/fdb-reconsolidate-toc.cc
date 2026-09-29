@@ -8,12 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/tools/FDBTool.h"
-#include "fdb5/database/DB.h"
 
-#include "eckit/option/CmdArgs.h"
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/filesystem/URI.h"
+#include "eckit/option/CmdArgs.h"
 
 using namespace eckit;
 
@@ -21,20 +21,18 @@ using namespace eckit;
 
 class FDBReconsolidateToc : public fdb5::FDBTool {
 
-  public: // methods
+public:  // methods
 
-    FDBReconsolidateToc(int argc, char **argv) :
-        fdb5::FDBTool(argc, argv) {}
+    FDBReconsolidateToc(int argc, char** argv) : fdb5::FDBTool(argc, argv) {}
 
-  private: // methods
+private:  // methods
 
-    virtual void usage(const std::string &tool) const;
+    virtual void usage(const std::string& tool) const;
     virtual void execute(const eckit::option::CmdArgs& args);
 };
 
-void FDBReconsolidateToc::usage(const std::string &tool) const {
-    Log::info() << std::endl
-                << "Usage: " << tool << " path" << std::endl;
+void FDBReconsolidateToc::usage(const std::string& tool) const {
+    Log::info() << std::endl << "Usage: " << tool << " path" << std::endl;
     fdb5::FDBTool::usage(tool);
 }
 
@@ -54,14 +52,15 @@ void FDBReconsolidateToc::execute(const eckit::option::CmdArgs& args) {
         dbPath = dbPath.dirName();
     }
 
-    std::unique_ptr<fdb5::DB> db = fdb5::DB::buildWriter(eckit::URI("toc", dbPath), config(args));
-    db->reconsolidate();
+    std::unique_ptr<fdb5::CatalogueWriter> catalogue =
+        fdb5::CatalogueWriterFactory::instance().build(eckit::URI("toc", dbPath), config(args));
+
+    catalogue->reconsolidate();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     FDBReconsolidateToc app(argc, argv);
     return app.start();
 }
-

@@ -16,17 +16,17 @@
 /// @author Simon Smart
 /// @date   Mar 2018
 
-#ifndef fdb5_api_SelectFDB_H
-#define fdb5_api_SelectFDB_H
+#pragma once
 
-#include <vector>
-#include <map>
-#include <string>
-
-#include "eckit/utils/Regex.h"
-
-#include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/FDB.h"
+#include "fdb5/api/FDBFactory.h"
+#include "fdb5/config/Config.h"
+
+#include "metkit/mars/Matcher.h"
+
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace fdb5 {
 
@@ -34,13 +34,29 @@ namespace fdb5 {
 
 class SelectFDB : public FDBBase {
 
-private: // types
+private:  // types
 
-    using SelectMap = std::map<std::string, eckit::Regex>;
+    class FDBLane {
+        Config config_;
+        std::shared_ptr<FDBBase> fdb_;
+        std::shared_ptr<Callbacks> callbacks_;
 
-public: // methods
+    public:
 
-    using FDBBase::stats;
+        FDBLane(const eckit::LocalConfiguration& config, const eckit::Configuration& userConfig,
+                std::shared_ptr<Callbacks> callbacks);
+
+        FDBBase& get();
+
+        void flush();
+
+        void setCallbacks(std::shared_ptr<Callbacks> callbacks);
+
+        template <typename T>  // T is either a mars request or a Key
+        bool matches(const T& vals, metkit::mars::Matcher::MatchMissingPolicy matchOnMissing) const;
+    };
+
+public:  // methods
 
     SelectFDB(const Config& config, const std::string& name);
 
@@ -50,45 +66,41 @@ public: // methods
 
     ListIterator inspect(const metkit::mars::MarsRequest& request) override;
 
-    ListIterator list(const FDBToolRequest& request) override;
+    ListIterator list(const FDBToolRequest& request, int level) override;
 
     DumpIterator dump(const FDBToolRequest& request, bool simple) override;
 
     StatusIterator status(const FDBToolRequest& request) override;
 
-    WipeIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
+    WipeStateIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
 
     PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override;
 
     StatsIterator stats(const FDBToolRequest& request) override;
 
-    ControlIterator control(const FDBToolRequest& request,
-                            ControlAction action,
+    ControlIterator control(const FDBToolRequest& request, ControlAction action,
                             ControlIdentifiers identifiers) override;
-    
+
     MoveIterator move(const FDBToolRequest& request, const eckit::URI& dest) override { NOTIMP; }
 
     AxesIterator axesIterator(const FDBToolRequest& request, int level) override;
 
     void flush() override;
 
-private: // methods
+    void setCallbacks(std::shared_ptr<Callbacks> callbacks) override;
+
+private:  // methods
 
     void print(std::ostream& s) const override;
 
-    bool matches(const Key& key, const SelectMap& select, bool requireMissing) const;
-    bool matches(const metkit::mars::MarsRequest& request, const SelectMap& select, bool requireMissing) const;
-
     template <typename QueryFN>
-    auto queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDB*)(nullptr), request));
+    auto queryInternal(const FDBToolRequest& request, const QueryFN& fn) -> decltype(fn(*(FDBBase*)(nullptr), request));
 
-private: // members
+private:  // members
 
-    std::vector<std::pair<SelectMap, FDB>> subFdbs_;
+    std::vector<FDBLane> subFdbs_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
-
-#endif // fdb5_api_SelectFDB_H
+}  // namespace fdb5

@@ -1,0 +1,13 @@
+# Default types
+
+param:      Param;
+step:       Step;
+date:       Date;
+levelist:   Double;
+expver:     Expver;
+time:       Time;
+
+[ class=od, expver=xxxx, stream=oper, date, time, domain?
+       [ type, levtype
+               [ step, levelist?, param ]]
+]

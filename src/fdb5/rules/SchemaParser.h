@@ -14,39 +14,62 @@
 #ifndef fdb5_SchemaParser_h
 #define fdb5_SchemaParser_h
 
+#include <cstddef>
+#include <fstream>
+#include <iosfwd>
+#include <memory>
+#include <string>
+
+#include "eckit/filesystem/PathName.h"
 #include "eckit/parser/StreamParser.h"
 #include "eckit/types/Types.h"
 
-namespace fdb5 {
+#include "fdb5/rules/Rule.h"
 
-class Schema;
-class Rule;
-class Predicate;
-class TypesRegistry;
+namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class SchemaParser : public eckit::StreamParser {
+class SchemaParser {
 
-public: // methods
+public:  // methods
 
-    SchemaParser(std::istream &in);
+    explicit SchemaParser(const eckit::PathName& path);
 
-    void parse(const Schema &owner, std::vector<Rule *> &, TypesRegistry &registry);
+    explicit SchemaParser(std::istream& in);
 
-private: // methods
+    void parse(RuleList& result, TypesRegistry& registry);
+
+private:  // methods
+
+    bool isAscii(char c);
+
+    char peek(bool spaces = false);
 
     std::string parseIdent(bool value, bool emptyOK);
 
-    Rule *parseRule(const Schema &owner);
+    std::unique_ptr<RuleDatum> parseDatum();
 
-    Predicate *parsePredicate(std::map<std::string, std::string> &types);
-    void parseTypes(std::map<std::string, std::string> &);
+    std::unique_ptr<RuleIndex> parseIndex();
 
+    std::unique_ptr<RuleDatabase> parseDatabase();
+
+    std::unique_ptr<Predicate> parsePredicate(eckit::StringDict& types);
+
+    void parseTypes(eckit::StringDict& types);
+
+private:  // members
+
+    std::string getSchemaPath() const noexcept {
+        return path_.has_value() ? std::get<0>(*path_).localPath() : "Created from std::istream";
+    }
+
+    std::optional<std::tuple<eckit::PathName, std::ifstream>> path_;
+    std::unique_ptr<eckit::StreamParser> parser_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace eckit
+}  // namespace fdb5
 
 #endif

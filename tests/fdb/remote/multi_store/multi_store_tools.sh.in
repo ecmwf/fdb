@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+
+# Exercises the archive -> list -> retrieve workflow via the fdb-write/fdb-list/fdb-read
+# CLI tools (rather than the API, as in test_multi_store.cc) against the same two-store setup.
+
+if [[ $# -lt 5 ]]; then
+    echo "Usage: $0 <test_directory> <client_config> <store1_config> <store2_config> <src_grib_data>" >&2
+    exit 1
+fi
+
+set -euxo pipefail
+
+source "@FDB_REMOTE_TEST_HELPER@"
+
+testdir=$1
+client_config="$testdir/$2"
+store1_config="$testdir/$3"
+store2_config="$testdir/$4"
+src_data=$5
+catalogue_rootdir=$testdir/catalogue_tools_root
+store1_rootdir=$testdir/store1_tools_root
+store2_rootdir=$testdir/store2_tools_root
+workdir=$testdir/tools_work
+
+export PATH="@CMAKE_BINARY_DIR@/bin:$PATH"
+
+server="$<TARGET_FILE:fdb-server>"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+fdbread="$<TARGET_FILE:fdb-read>"
+
+n_dates=8
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+
+line_count() {
+    [[ $# -eq 1 ]] || die "line_count requires 1 argument; expected line count"
+    val=$(wc -l < out) && val=$((val + 0))
+    [[ $val -eq $1 ]] || die "Incorrect count => [$val != $1]"
+}
+
+cleanup() {
+    local exit_code=$?
+
+    fdb_remote_cleanup "$exit_code"
+    rm -rf "$catalogue_rootdir" "$store1_rootdir" "$store2_rootdir" "$workdir"
+    return "$exit_code"
+}
+
+trap cleanup EXIT
+trap 'exit 1' INT TERM
+
+rm -rf "$catalogue_rootdir" "$store1_rootdir" "$store2_rootdir" "$workdir"
+mkdir -p "$catalogue_rootdir" "$store1_rootdir" "$store2_rootdir" "$workdir"
+cd "$workdir"
+fdb_remote_init "$testdir/remote_tools_servers"
+
+fdb_remote_start_server STORE1 "$store1_config" "$(fdb_remote_config_port "$store1_config")" FDB_DEBUG=1 -- "$server"
+fdb_remote_start_server STORE2 "$store2_config" "$(fdb_remote_config_port "$store2_config")" FDB_DEBUG=1 -- "$server"
+
+fdb_remote_wait_for_servers
+
+export FDB5_CONFIG_FILE="$client_config"
+
+########################################################################################################################
+# Build one archivable message per date; only the "date" key differs between databases, so
+# (per RemoteFDB::storeEndpoint()) each date's database is randomly bound to store1 or store2.
+
+grib_copy -w count=1 "$src_data" base.grib
+read -r base_levtype base_param base_levelist base_step base_time <<< "$(grib_get -p levtype,param,levelist,step,time base.grib)"
+
+dates=()
+for i in $(seq 1 "$n_dates"); do
+    date=$((20250101 + i - 1))
+    dates+=("$date")
+    grib_set -s class=od,expver=xxxx,stream=oper,type=fc,date="$date" base.grib "data.$i.grib"
+done
+
+########################################################################################################################
+# archive
+
+for i in $(seq 1 "$n_dates"); do
+    "$fdbwrite" "data.$i.grib"
+done
+
+########################################################################################################################
+# list: every archived field must be visible through the local catalogue, whichever store backs it
+
+"$fdblist" --all --minimum-keys="" --porcelain | tee out
+line_count "$n_dates"
+
+########################################################################################################################
+# retrieve: sequential, byte-exact per date
+
+for i in $(seq 1 "$n_dates"); do
+    date=${dates[$((i - 1))]}
+    cat > "retrieve.$i.req" <<EOF
+retrieve,
+class=od,
+expver=xxxx,
+stream=oper,
+date=$date,
+time=$base_time,
+domain=g,
+type=fc,
+levtype=$base_levtype,
+step=$base_step,
+levelist=$base_levelist,
+param=$base_param
+EOF
+    "$fdbread" "retrieve.$i.req" "seq.$i.grib"
+    cmp "seq.$i.grib" "data.$i.grib"
+done
+
+########################################################################################################################
+# retrieve: concurrently, one client process per date plus one request spanning every date
+
+date_list=$(IFS=/; echo "${dates[*]}")
+cat > retrieve.all.req <<EOF
+retrieve,
+class=od,
+expver=xxxx,
+stream=oper,
+date=$date_list,
+time=$base_time,
+domain=g,
+type=fc,
+levtype=$base_levtype,
+step=$base_step,
+levelist=$base_levelist,
+param=$base_param
+EOF
+
+pids=()
+for i in $(seq 1 "$n_dates"); do
+    "$fdbread" "retrieve.$i.req" "conc.$i.grib" &
+    pids+=("$!")
+done
+"$fdbread" retrieve.all.req conc.all.grib &
+pids+=("$!")
+
+status=0
+for pid in "${pids[@]}"; do
+    wait "$pid" || status=1
+done
+[[ $status -eq 0 ]] || die "One or more concurrent fdb-read invocations failed"
+
+for i in $(seq 1 "$n_dates"); do
+    cmp "conc.$i.grib" "data.$i.grib"
+done
+
+count=$(codes_count conc.all.grib)
+[[ $count -eq $n_dates ]] || die "Incorrect message count in combined retrieve => [$count != $n_dates]"
+
+exit 0

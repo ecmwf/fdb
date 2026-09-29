@@ -13,32 +13,46 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
-#include "eckit/container/Queue.h"
-#include "eckit/log/Log.h"
-#include "eckit/message/Message.h"
-
-#include "fdb5/api/helpers/ListIterator.h"
-#include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/LocalFDB.h"
-#include "fdb5/database/Archiver.h"
-#include "fdb5/database/DB.h"
-#include "fdb5/database/EntryVisitMechanism.h"
-#include "fdb5/database/Index.h"
-#include "fdb5/database/Inspector.h"
-#include "fdb5/database/Key.h"
-#include "fdb5/rules/Schema.h"
-#include "fdb5/LibFdb5.h"
 
+#include "fdb5/LibFdb5.h"
+#include "fdb5/api/FDBFactory.h"
+#include "fdb5/api/helpers/APIIterator.h"
+#include "fdb5/api/helpers/AxesIterator.h"
+#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/api/helpers/DumpIterator.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/api/helpers/MoveIterator.h"
+#include "fdb5/api/helpers/PurgeIterator.h"
+#include "fdb5/api/helpers/StatsIterator.h"
+#include "fdb5/api/helpers/StatusIterator.h"
 #include "fdb5/api/local/AxesVisitor.h"
 #include "fdb5/api/local/ControlVisitor.h"
 #include "fdb5/api/local/DumpVisitor.h"
 #include "fdb5/api/local/ListVisitor.h"
+#include "fdb5/api/local/MoveVisitor.h"
 #include "fdb5/api/local/PurgeVisitor.h"
-#include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/local/StatsVisitor.h"
 #include "fdb5/api/local/StatusVisitor.h"
 #include "fdb5/api/local/WipeVisitor.h"
-#include "fdb5/api/local/MoveVisitor.h"
+#include "fdb5/database/Archiver.h"
+#include "fdb5/database/EntryVisitMechanism.h"
+#include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/Inspector.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/database/Reindexer.h"
+#include "fdb5/database/WipeState.h"
+#include "fdb5/rules/Schema.h"
+
+#include "eckit/container/Queue.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/log/Log.h"
+
+#include <cstddef>
+#include <memory>
+#include <mutex>
+#include <ostream>
 
 
 using namespace fdb5::api::local;
@@ -48,59 +62,79 @@ using namespace eckit;
 namespace fdb5 {
 
 void LocalFDB::archive(const Key& key, const void* data, size_t length) {
-
-    if (!archiver_) {
-        LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new archiver" << std::endl;
-        archiver_.reset(new Archiver(config_, callback_));
+    Archiver* archiver = nullptr;
+    {
+        std::lock_guard lock(mutex_);
+        if (!archiver_) {
+            LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new archiver" << std::endl;
+            archiver_ = std::make_unique<Archiver>(config_, callbacks_->archiveCallback_);
+        }
+        archiver = archiver_.get();
     }
-
-    archiver_->archive(key, data, length);
+    archiver->archive(key, data, length);
 }
 
-ListIterator LocalFDB::inspect(const metkit::mars::MarsRequest &request) {
-
-    if (!inspector_) {
-        LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new retriever" << std::endl;
-        inspector_.reset(new Inspector(config_));
+void LocalFDB::reindex(const Key& key, const FieldLocation& location) {
+    Reindexer* reindexer = nullptr;
+    {
+        std::lock_guard lock(mutex_);
+        if (!reindexer_) {
+            LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new reindexer" << std::endl;
+            reindexer_ = std::make_unique<Reindexer>(config_);
+        }
+        reindexer = reindexer_.get();
     }
-
-    return inspector_->inspect(request);
+    reindexer->reindex(key, location);
 }
 
-template<typename VisitorType, typename ... Ts>
-APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBToolRequest& request, Ts ... args) {
+ListIterator LocalFDB::inspect(const metkit::mars::MarsRequest& request) {
+    Inspector* inspector = nullptr;
+    {
+        std::lock_guard lock(mutex_);
+        if (!inspector_) {
+            LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new retriever" << std::endl;
+            inspector_ = std::make_unique<Inspector>(config_);
+        }
+        inspector = inspector_.get();
+    }
+    return inspector->inspect(request);
+}
+
+template <typename VisitorType, typename... Ts>
+APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBToolRequest& request, Ts... args) {
 
     using ValueType = typename VisitorType::ValueType;
+    using QueueType = typename VisitorType::QueueType;
     using QueryIterator = APIIterator<ValueType>;
-    using AsyncIterator = APIAsyncIterator<ValueType>;
+    using AsyncIterator = APIAsyncIterator<ValueType, QueueType>;
 
-    auto async_worker = [this, request, args...] (Queue<ValueType>& queue) {
+    auto async_worker = [this, request, args...](QueueType& queue) {
         EntryVisitMechanism mechanism(config_);
         VisitorType visitor(queue, request.request(), args...);
         mechanism.visit(request, visitor);
     };
 
-    return QueryIterator(new AsyncIterator(async_worker));
+    return QueryIterator(new AsyncIterator(shared_from_this(), async_worker, config_));
 }
 
-ListIterator LocalFDB::list(const FDBToolRequest& request) {
+ListIterator LocalFDB::list(const FDBToolRequest& request, const int level) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::list() : " << request << std::endl;
-    return queryInternal<ListVisitor>(request);
+    return queryInternal<ListVisitor>(request, level);
 }
 
-DumpIterator LocalFDB::dump(const FDBToolRequest &request, bool simple) {
+DumpIterator LocalFDB::dump(const FDBToolRequest& request, bool simple) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::dump() : " << request << std::endl;
     return queryInternal<DumpVisitor>(request, simple);
 }
 
-StatusIterator LocalFDB::status(const FDBToolRequest &request) {
+StatusIterator LocalFDB::status(const FDBToolRequest& request) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::status() : " << request << std::endl;
     return queryInternal<StatusVisitor>(request);
 }
 
-WipeIterator LocalFDB::wipe(const FDBToolRequest &request, bool doit, bool porcelain, bool unsafeWipeAll) {
+WipeStateIterator LocalFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::wipe() : " << request << std::endl;
-    return queryInternal<fdb5::api::local::WipeVisitor>(request, doit, porcelain, unsafeWipeAll);
+    return queryInternal<WipeCatalogueVisitor>(request, doit);
 }
 
 MoveIterator LocalFDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
@@ -118,32 +152,43 @@ StatsIterator LocalFDB::stats(const FDBToolRequest& request) {
     return queryInternal<StatsVisitor>(request);
 }
 
-ControlIterator LocalFDB::control(const FDBToolRequest& request,
-                                  ControlAction action,
-                                  ControlIdentifiers identifiers) {
+ControlIterator LocalFDB::control(const FDBToolRequest& request, ControlAction action, ControlIdentifiers identifiers) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::control() : " << request << std::endl;
     return queryInternal<ControlVisitor>(request, action, identifiers);
 }
 
 AxesIterator LocalFDB::axesIterator(const FDBToolRequest& request, int level) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::axesIterator() : " << request << std::endl;
-    return queryInternal<AxesVisitor>(request, config_, level);
+    return queryInternal<AxesVisitor>(request, level);
 }
 
 void LocalFDB::flush() {
-    if (archiver_) {
-        archiver_->flush();
+    Archiver* archiver = nullptr;
+    Reindexer* reindexer = nullptr;
+    {
+        std::lock_guard lock(mutex_);
+        ASSERT(!(archiver_ && reindexer_));
+        archiver = archiver_.get();
+        reindexer = reindexer_.get();
+    }
+    if (archiver) {
+        archiver->flush();
+        callbacks_->flushCallback_();
+    }
+    else if (reindexer) {
+        reindexer->flush();
+        callbacks_->flushCallback_();
     }
 }
 
 
-void LocalFDB::print(std::ostream &s) const {
+void LocalFDB::print(std::ostream& s) const {
     s << "LocalFDB(home=" << config_.expandPath("~fdb") << ")";
 }
 
 
 static FDBBuilder<LocalFDB> localFdbBuilder("local");
-
+static FDBBuilder<LocalFDB> builder("catalogue");  // Enable type=catalogue to build localFDB (serverside).
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

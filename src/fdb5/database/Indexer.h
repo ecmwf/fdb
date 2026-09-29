@@ -27,9 +27,9 @@ struct Indexer {
 
     Indexer();
 
-    void print(std::ostream &out) const;
+    void print(std::ostream& out) const;
 
-    friend std::ostream &operator<<(std::ostream& s, const Indexer& o) {
+    friend std::ostream& operator<<(std::ostream& s, const Indexer& o) {
         o.print(s);
         return s;
     }
@@ -41,6 +41,6 @@ struct Indexer {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

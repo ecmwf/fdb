@@ -1,0 +1,12 @@
+retrieve,
+  class=od,
+  domain=g,
+  type=fc,
+  stream=oper,
+  expver=xxxx,
+  levtype=ml,
+  levelist=0,
+  param=75/76/77,
+  step=-9,
+  date=20250614,
+  time=1200

@@ -1,11 +1,17 @@
-cmake_minimum_required( VERSION 3.12 FATAL_ERROR )
+cmake_minimum_required( VERSION 3.18 FATAL_ERROR )
 
-find_package( ecbuild 3.7 REQUIRED HINTS ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../ecbuild)
+find_package( ecbuild 3.12 REQUIRED HINTS ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../ecbuild)
 
 project( fdb5 LANGUAGES C CXX )
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
+# add_compile_options(-fsanitize=address)
+# add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
+# add_link_options(-fsanitize=address)
+# set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -Wno-sign-compare")
+# set(CMAKE_CXX_FLAGS "-Wno-unused-parameter -Wno-unused-variable -Wno-reorder -Wno-sign-compare -Wvla-cxx-extension")
 
 CHECK_TYPE_SIZE(off_t SIZEOF_OFF_T)
 
@@ -16,11 +22,16 @@ endif()
 ########################################################################################################################
 ### dependencies and options
 
+### Documentation
+ecbuild_add_option( FEATURE FDB_DOCUMENTATION
+                    DEFAULT OFF
+                    DESCRIPTION "Enable documentation generation" )
+
 ### eckit
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-ecbuild_find_package( NAME eckit  VERSION 1.28.3 REQUIRED )
+ecbuild_find_package( NAME eckit  VERSION 1.32.5 REQUIRED )
 
 ### GRIB support
 
@@ -31,14 +42,9 @@ ecbuild_add_option( FEATURE GRIB
                     CONDITION eccodes_FOUND
                     DESCRIPTION "Support for GRIB via eccodes")
 
-ecbuild_find_package( NAME metkit VERSION 1.11.22 REQUIRED )
-
-### FDB backend in persistent memory, i.e. pmem (NVRAM)
-
-ecbuild_add_option( FEATURE PMEMFDB # option present in fdb5_config.h
-                    DEFAULT OFF
-                    DESCRIPTION "Persistent memory (NVRAM) support for FDB"
-                    REQUIRED_PACKAGES "NAME pmem" )
+## accepting a version that pre-dates SyncRelease 2026.02 to enable compatibility with multio 2.7.0 (used in 50r1)
+## fdb-compare and fdb-patch require metkit >= 1.16
+ecbuild_find_package( NAME metkit VERSION 1.15 REQUIRED )
 
 ### FDB backend in CEPH object store (using Rados)
 
@@ -76,9 +82,10 @@ ecbuild_add_option( FEATURE FDB_REMOTE
                     DEFAULT ON
                     DESCRIPTION "Support for FDB remote access" )
 
-find_package(UUID QUIET)
+find_package(LibUUID QUIET)
 
 find_package(DAOS QUIET)
+
 
 set(_default_dummy_daos ON)
 if(DAOS_FOUND)
@@ -87,7 +94,7 @@ endif()
 
 ecbuild_add_option( FEATURE DUMMY_DAOS
                     DEFAULT ${_default_dummy_daos}
-                    CONDITION UUID_FOUND
+                    CONDITION LibUUID_FOUND
                     DESCRIPTION "Use dummy DAOS library emulating DAOS with a file system" )
 
 if(HAVE_DUMMY_DAOS)
@@ -100,7 +107,7 @@ if(HAVE_DUMMY_DAOS)
 endif()
 
 ecbuild_add_option( FEATURE DAOSFDB
-                    CONDITION DAOS_FOUND AND UUID_FOUND 
+                    CONDITION DAOS_FOUND AND LibUUID_FOUND
                     DEFAULT ON
                     DESCRIPTION "DAOS support for FDB Store" )
 
@@ -122,6 +129,38 @@ ecbuild_add_option( FEATURE EXPERIMENTAL
 ecbuild_add_option( FEATURE SANDBOX
                     DESCRIPTION "build the sandbox stuff"
                     DEFAULT OFF	 )
+
+### Enables the FAM support for FDB. (https://openfam.github.io/)
+ecbuild_add_option( FEATURE FAMFDB
+                    CONDITION eckit_HAVE_OPENFAM
+                    DEFAULT ON
+                    DESCRIPTION "Enables the FAM support for FDB via OpenFAM API" )
+
+if(ENABLE_PYTHON_ZARR_INTERFACE OR ENABLE_PYTHON_FDB_INTERFACE)
+    find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
+endif()
+
+ecbuild_add_option( FEATURE PYTHON_ZARR_INTERFACE
+                    DESCRIPTION "Build python Zarr interface layer"
+                    DEFAULT OFF
+                    REQUIRED_PACKAGES "NAME pybind11 VERSION 3.0.1" )
+
+# We need PyFDB in case z3fdb is enabled
+if(HAVE_PYTHON_ZARR_INTERFACE AND NOT HAVE_PYTHON_FDB_INTERFACE)
+    message( WARN "FDB Zarr interface requires python FDB interface. I enable ENABLE_PYTHON_FDB_INTERFACE to build the PyFDB interface" )
+    set(ENABLE_PYTHON_FDB_INTERFACE "ON")
+endif()
+
+ecbuild_add_option( FEATURE PYTHON_FDB_INTERFACE
+                    DESCRIPTION "Build python FDB interface layer"
+                    DEFAULT OFF
+                    REQUIRED_PACKAGES "NAME pybind11 VERSION 3.0.1" )
+
+
+ecbuild_add_option( FEATURE PYTHON_EXTENDED_FDB_TOOL_TESTS
+                    DESCRIPTION "Build extended fdb tool tests"
+                    CONDITION HAVE_PYTHON_FDB_INTERFACE
+                    DEFAULT OFF)
 
 ### build the tools
 
@@ -171,6 +210,10 @@ add_subdirectory( src )
 add_subdirectory( tests )
 
 ### finalize
+if(ENABLE_FDB_DOCUMENTATION)
+    add_subdirectory(docs)
+endif()
+
 
 ecbuild_install_project( NAME fdb )
 

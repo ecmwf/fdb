@@ -8,16 +8,20 @@
  * does it submit to any jurisdiction.
  */
 
-#include "fdb5/database/EntryVisitMechanism.h"
-
+#include "eckit/exception/Exceptions.h"
 #include "eckit/io/AutoCloser.h"
+#include "eckit/log/Log.h"
 
-#include "fdb5/api/helpers/FDBToolRequest.h"
-#include "fdb5/database/Manager.h"
-#include "fdb5/database/Key.h"
-#include "fdb5/database/Engine.h"
 #include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
+#include "fdb5/database/Engine.h"
+#include "fdb5/database/EntryVisitMechanism.h"
+#include "fdb5/database/Manager.h"
+#include "fdb5/database/Store.h"
 #include "fdb5/rules/Schema.h"
+
+#include <memory>
+#include <vector>
 
 using namespace eckit;
 
@@ -28,16 +32,35 @@ namespace fdb5 {
 
 class FDBVisitException : public eckit::Exception {
 public:
+
     using Exception::Exception;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-bool EntryVisitor::visitDatabase(const Catalogue& catalogue, const Store& store) {
+bool EntryVisitor::preVisitDatabase(const eckit::URI& /*uri*/, const Schema& /*schema*/) {
+    return true;
+}
+
+EntryVisitor::EntryVisitor() : currentCatalogue_(nullptr), currentStore_(nullptr) {}
+
+EntryVisitor::~EntryVisitor() {
+    delete currentStore_;
+}
+
+Store& EntryVisitor::store() const {
+    std::lock_guard<std::mutex> lock(storeMutex_);
+    if (!currentStore_) {
+        ASSERT(currentCatalogue_);
+        currentStore_ = currentCatalogue_->buildStore().release();
+        ASSERT(currentStore_);
+    }
+    return *currentStore_;
+}
+
+bool EntryVisitor::visitDatabase(const Catalogue& catalogue) {
     currentCatalogue_ = &catalogue;
-    currentStore_ = &store;
-    currentIndex_ = nullptr;
-    rule_ = nullptr;
+    currentStore_ = nullptr;
     return true;
 }
 
@@ -46,35 +69,34 @@ void EntryVisitor::catalogueComplete(const Catalogue& catalogue) {
         ASSERT(currentCatalogue_ == &catalogue);
     }
     currentCatalogue_ = nullptr;
+    delete currentStore_;
     currentStore_ = nullptr;
-    currentIndex_ = nullptr;
-    rule_ = nullptr;
 }
 
-bool EntryVisitor::visitIndex(const Index& index) {
-    currentIndex_ = &index;
-    rule_ = currentCatalogue_->schema().ruleFor(currentCatalogue_->key(), currentIndex_->key());
-    return true;
-}
-
-void EntryVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {
+const Rule& EntryVisitor::indexRule(const Index& index) const {
     ASSERT(currentCatalogue_);
-    ASSERT(currentIndex_);
-    ASSERT(rule_);
-    Key key(keyFingerprint, *rule_);
-    visitDatum(field, key);
+    return currentCatalogue_->schema().matchingRule(currentCatalogue_->key(), index.key());
 }
 
+EntryVisitor::IndexScopePtr EntryVisitor::visitIndex(const Index& index, OrderedParallelFor::Order& order) {
+    // This is the default behaviour - that there is nothing specific that needs to be done in
+    // index visitation order (when indexes are being visited in parallel), so we release the
+    // block. A specific visitor can/should override this. See ListVisitor.
+    order.release();
+    return visitIndex(index, indexRule(index));
+}
 
-time_t EntryVisitor::indexTimestamp() const {
-    return currentIndex_ == nullptr ? 0 : currentIndex_->timestamp();
+EntryVisitor::IndexScopePtr EntryVisitor::visitIndex(const Index& index, const Rule& rule) {
+    return std::make_unique<IndexScope>(*currentCatalogue_, index, rule);
+}
+
+void EntryVisitor::visitDatum(IndexScope& scope, const Field& field, const std::string& keyFingerprint) {
+    visitDatum(scope, field, scope.rule().makeKey(keyFingerprint));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-EntryVisitMechanism::EntryVisitMechanism(const Config& config) :
-    dbConfig_(config),
-    fail_(true) {}
+EntryVisitMechanism::EntryVisitMechanism(const Config& config) : dbConfig_(config), fail_(true) {}
 
 void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& visitor) {
 
@@ -86,50 +108,52 @@ void EntryVisitMechanism::visit(const FDBToolRequest& request, EntryVisitor& vis
 
     ASSERT(request.all() == request.request().empty());
 
-    // TODO: Put minimim keys check into FDBToolRequest.
+    /// @todo Put minimim keys check into FDBToolRequest.
 
     LOG_DEBUG_LIB(LibFdb5) << "REQUEST ====> " << request.request() << std::endl;
 
     try {
-
         fdb5::Manager mg{dbConfig_};
         std::vector<URI> uris(mg.visitableLocations(request.request(), request.all()));
 
         // n.b. it is not an error if nothing is found (especially in a sub-fdb).
 
         // And do the visitation
-
-        for (URI uri : uris) {
-            /// @note: the schema of a URI returned by visitableLocations 
-            ///   matches the corresponding Engine type name
-            // fdb5::Engine& ng = fdb5::Engine::backend(uri.scheme());
-
-            std::unique_ptr<DB> db;
-
-            try {
-                
-                db = DB::buildReader(uri, dbConfig_);
-
-            } catch (fdb5::DatabaseNotFoundException& e) {
-
-                visitor.onDatabaseNotFound(e);
-
+        for (const URI& uri : uris) {
+            if (!visitor.preVisitDatabase(uri, dbConfig_.schema())) {
+                continue;
             }
 
-            ASSERT(db->open());
-            eckit::AutoCloser<DB> closer(*db);
+            /// @note: the schema of a URI returned by visitableLocations
+            ///   matches the corresponding Engine type name
+            // fdb5::Engine& ng = fdb5::Engine::backend(uri.scheme());
+            LOG_DEBUG_LIB(LibFdb5) << "FDB processing URI " << uri << std::endl;
 
-            db->visitEntries(visitor, false);
+            std::unique_ptr<CatalogueReader> catalogue;
+            try {
 
+                catalogue = CatalogueReaderFactory::instance().build(uri, dbConfig_);
+            }
+            catch (fdb5::DatabaseNotFoundException& e) {
+                visitor.onDatabaseNotFound(e);
+            }
+
+            ASSERT(catalogue->open());
+
+            eckit::AutoCloser<Catalogue> closer(*catalogue);
+
+            catalogue->visitEntries(visitor, /* *store, */ false);
         }
-
-    } catch (eckit::UserError&) {
-        throw;
-    } catch (eckit::Exception& e) {
-        Log::warning() << e.what() << std::endl;
-        if (fail_) throw;
     }
-
+    catch (eckit::UserError&) {
+        throw;
+    }
+    catch (eckit::Exception& e) {
+        Log::warning() << e.what() << std::endl;
+        if (fail_) {
+            throw;
+        }
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

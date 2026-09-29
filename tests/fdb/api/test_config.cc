@@ -17,8 +17,8 @@
 
 #include "eckit/config/Resource.h"
 #include "eckit/filesystem/PathName.h"
-#include "eckit/filesystem/TmpFile.h"
 #include "eckit/filesystem/TmpDir.h"
+#include "eckit/filesystem/TmpFile.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/testing/Test.h"
 
@@ -33,12 +33,12 @@ namespace test {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-CASE( "config_expands_from_environment_variable_json" ) {
+CASE("config_expands_from_environment_variable_json") {
 
     const std::string config_str(R"XX(
         {
             "type": "local",
-            "engine": "pmem",
+            "engine": "toc",
             "groups": [{
                 "pools": [{
                     "path": "/a/path/is/something"
@@ -51,15 +51,16 @@ CASE( "config_expands_from_environment_variable_json" ) {
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
 
-    EXPECT(expanded.getString("type") == "local");
-    EXPECT(expanded.getString("engine") == "pmem");
-    EXPECT(expanded.getSubConfigurations("groups").size() == 1);
-    EXPECT(expanded.getSubConfigurations("groups")[0].getSubConfigurations("pools").size() == 1);
-    EXPECT(expanded.getSubConfigurations("groups")[0].getSubConfigurations("pools")[0].getString("path") == "/a/path/is/something");
+    EXPECT_EQUAL(expanded.getString("type"), "local");
+    EXPECT_EQUAL(expanded.getString("engine"), "toc");
+    EXPECT_EQUAL(expanded.getSubConfigurations("groups").size(), 1);
+    EXPECT_EQUAL(expanded.getSubConfigurations("groups")[0].getSubConfigurations("pools").size(), 1);
+    EXPECT_EQUAL(expanded.getSubConfigurations("groups")[0].getSubConfigurations("pools")[0].getString("path"),
+                 "/a/path/is/something");
 }
 
 
-CASE( "config_expands_from_environment_variable_yaml" ) {
+CASE("config_expands_from_environment_variable_yaml") {
 
     const std::string config_str(R"XX(
         ---
@@ -74,14 +75,15 @@ CASE( "config_expands_from_environment_variable_yaml" ) {
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
 
-    EXPECT(expanded.getString("type") == "local");
-    EXPECT(expanded.getString("engine") == "toc");
-    EXPECT(expanded.getSubConfigurations("spaces").size() == 1);
-    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size() == 1);
-    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") == "/a/path/is/something");
+    EXPECT_EQUAL(expanded.getString("type"), "local");
+    EXPECT_EQUAL(expanded.getString("engine"), "toc");
+    EXPECT_EQUAL(expanded.getSubConfigurations("spaces").size(), 1);
+    EXPECT_EQUAL(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size(), 1);
+    EXPECT_EQUAL(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path"),
+                 "/a/path/is/something");
 }
 
-CASE( "config_expands_explicit_path" ) {
+CASE("config_expands_explicit_path") {
 
     const std::string config_str(R"XX(
         ---
@@ -106,14 +108,15 @@ CASE( "config_expands_explicit_path" ) {
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
 
-    EXPECT(expanded.getString("type") == "local");
-    EXPECT(expanded.getString("engine") == "toc");
-    EXPECT(expanded.getSubConfigurations("spaces").size() == 1);
-    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size() == 1);
-    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") == "/a/path/is/different");
+    EXPECT_EQUAL(expanded.getString("type"), "local");
+    EXPECT_EQUAL(expanded.getString("engine"), "toc");
+    EXPECT_EQUAL(expanded.getSubConfigurations("spaces").size(), 1);
+    EXPECT_EQUAL(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size(), 1);
+    EXPECT_EQUAL(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path"),
+                 "/a/path/is/different");
 }
 
-CASE( "config_expands_override_fdb_home" ) {
+CASE("config_expands_override_fdb_home") {
 
     const std::string config_str(R"XX(
         ---
@@ -142,15 +145,17 @@ CASE( "config_expands_override_fdb_home" ) {
 
     fdb5::Config expanded = cfg.expandConfig();
 
-    EXPECT(expanded.getString("type") == "local");
-    EXPECT(expanded.getString("engine") == "toc");
-    EXPECT(expanded.getSubConfigurations("spaces").size() == 1);
-    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size() == 2);
-    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path") == "/a/path/is/first");
-    EXPECT(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[1].getString("path") == "/a/path/is/second");
+    EXPECT_EQUAL(expanded.getString("type"), "local");
+    EXPECT_EQUAL(expanded.getString("engine"), "toc");
+    EXPECT_EQUAL(expanded.getSubConfigurations("spaces").size(), 1);
+    EXPECT_EQUAL(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots").size(), 2);
+    EXPECT_EQUAL(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[0].getString("path"),
+                 "/a/path/is/first");
+    EXPECT_EQUAL(expanded.getSubConfigurations("spaces")[0].getSubConfigurations("roots")[1].getString("path"),
+                 "/a/path/is/second");
 }
 
-CASE( "userConfig" ) {
+CASE("userConfig") {
 
     const std::string config_str(R"XX(
         ---
@@ -165,62 +170,80 @@ CASE( "userConfig" ) {
     eckit::testing::SetEnv env("FDB5_CONFIG", config_str.c_str());
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
-    EXPECT(expanded.userConfig().getBool("useSubToc", false) == false);
+    EXPECT_EQUAL(expanded.userConfig().getBool("useSubToc", false), false);
 
     eckit::LocalConfiguration userConf;
     userConf.set("useSubToc", true);
 
     fdb5::Config empty;
     EXPECT(!empty.has("type"));
-    EXPECT(empty.userConfig().getBool("useSubToc", false) == false);
+    EXPECT_EQUAL(empty.userConfig().getBool("useSubToc", false), false);
     fdb5::Config user(empty, userConf);
     EXPECT(!user.has("type"));
-    EXPECT(user.userConfig().getBool("useSubToc", false) == true);
+    EXPECT_EQUAL(user.userConfig().getBool("useSubToc", false), true);
     fdb5::Config userExpanded = user.expandConfig();
     EXPECT(userExpanded.has("type"));
-    EXPECT(userExpanded.userConfig().getBool("useSubToc", false) == false);
+    EXPECT_EQUAL(userExpanded.userConfig().getBool("useSubToc", false), false);
 
     fdb5::Config config(expanded, userConf);
-    EXPECT(config.userConfig().getBool("useSubToc", false) == true);
+    EXPECT_EQUAL(config.userConfig().getBool("useSubToc", false), true);
+}
 
-    eckit::LocalConfiguration cfg_od;
-    cfg_od.set("type", "spy");
-    cfg_od.set("id", "1");
+CASE("FDB_CONFIG takes precendence over FDB5_CONFIG") {
 
-    eckit::LocalConfiguration cfg_rd1;
-    cfg_rd1.set("type", "spy");
-    cfg_rd1.set("id", "2");
+    const std::string config_str_fdb(R"XX(
+        ---
+        type: local
+    )XX");
 
-    eckit::LocalConfiguration cfg_rd2;
-    cfg_rd2.set("type", "spy");
-    cfg_rd2.set("id", "3");
 
+    const std::string config_str_fdb5(R"XX(
+        ---
+        type: remote
+    )XX");
+
+    eckit::testing::SetEnv env_fdb("FDB_CONFIG", config_str_fdb.c_str());
+    eckit::testing::SetEnv env_fdb5("FDB5_CONFIG", config_str_fdb5.c_str());
+
+    fdb5::Config expanded = fdb5::Config().expandConfig();
+    EXPECT_EQUAL(expanded.getString("type"), "local");
+}
+
+CASE("FDB_CONFIG_FILE takes precendence over FDB5_CONFIG_FILE") {
+
+    const std::string config_str_fdb(R"XX(
+        ---
+        type: local
+    )XX");
+
+    const std::string config_str_fdb5(R"XX(
+        ---
+        type: remote
+    )XX");
+
+    eckit::TmpFile tf_fdb;
     {
-        fdb5::Config cfg;
-        cfg.set("type", "dist");
-        cfg.set("lanes", { cfg_od, cfg_rd1, cfg_rd2 });
-
-        EXPECT(cfg.userConfig().getBool("useSubToc", false) == false);
-
-        std::vector<fdb5::Config> configs = cfg.getSubConfigs("lanes");
-        ASSERT(configs.size() == 3);
-        for (const auto& c: configs) {
-            EXPECT(c.userConfig().getBool("useSubToc", false) == false);
-        }
+        std::unique_ptr<eckit::DataHandle> dh(tf_fdb.fileHandle());
+        eckit::AutoClose close(*dh);
+        eckit::Length estimate;
+        dh->openForWrite(estimate);
+        dh->write(config_str_fdb.c_str(), config_str_fdb.size());
     }
+
+    eckit::TmpFile tf_fdb5;
     {
-        fdb5::Config cfg(eckit::LocalConfiguration(), userConf);
-        cfg.set("type", "dist");
-        cfg.set("lanes", { cfg_od, cfg_rd1, cfg_rd2 });
-
-        EXPECT(cfg.userConfig().getBool("useSubToc", false) == true);
-
-        std::vector<fdb5::Config> configs = cfg.getSubConfigs("lanes");
-        ASSERT(configs.size() == 3);
-        for (const auto& c: configs) {
-            EXPECT(c.userConfig().getBool("useSubToc", false) == true);
-        }
+        std::unique_ptr<eckit::DataHandle> dh(tf_fdb5.fileHandle());
+        eckit::AutoClose close(*dh);
+        eckit::Length estimate;
+        dh->openForWrite(estimate);
+        dh->write(config_str_fdb5.c_str(), config_str_fdb5.size());
     }
+
+    eckit::testing::SetEnv env_fdb_file("FDB_CONFIG_FILE", tf_fdb.asString().c_str());
+    eckit::testing::SetEnv env_fdb5_file("FDB5_CONFIG_FILE", tf_fdb5.asString().c_str());
+
+    fdb5::Config expanded = fdb5::Config().expandConfig();
+    EXPECT_EQUAL(expanded.getString("type"), "local");
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -228,7 +251,6 @@ CASE( "userConfig" ) {
 }  // namespace test
 }  // namespace fdb
 
-int main(int argc, char **argv)
-{
-    return run_tests ( argc, argv );
+int main(int argc, char** argv) {
+    return run_tests(argc, argv);
 }

@@ -10,11 +10,10 @@
 
 #include <algorithm>
 
-#include "metkit/mars/ParamID.h"
 #include "metkit/mars/Param.h"
+#include "metkit/mars/ParamID.h"
 
-#include "fdb5/database/DB.h"
-#include "fdb5/database/Notifier.h"
+#include "fdb5/database/Catalogue.h"
 #include "fdb5/types/TypeParam.h"
 #include "fdb5/types/TypesFactory.h"
 
@@ -24,37 +23,35 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TypeParam::TypeParam(const std::string &name, const std::string &type) :
-    Type(name, type) {
-}
+TypeParam::TypeParam(const std::string& name, const std::string& type) : Type(name, type) {}
 
-TypeParam::~TypeParam() {
-}
+TypeParam::~TypeParam() {}
 
-void TypeParam::getValues(const metkit::mars::MarsRequest &request,
-                          const std::string &keyword,
-                          eckit::StringList &values,
-                          const Notifier &wind,
-                          const DB *db) const {
-    ASSERT(db);
-
-    eckit::StringSet ax;
-
-    db->axis(keyword, ax);
+void TypeParam::getValues(const metkit::mars::MarsRequest& request, const std::string& keyword,
+                          eckit::StringList& values, const CatalogueReader* cat) const {
+    ASSERT(cat);
 
     eckit::StringList us;
 
-    Type::getValues(request, keyword, us, wind, db);
+    Type::getValues(request, keyword, us, cat);
 
     std::vector<Param> user;
     std::copy(us.begin(), us.end(), std::back_inserter(user));
 
     std::vector<Param> axis;
-    std::copy(ax.begin(), ax.end(), std::back_inserter(axis));
-    std::sort(axis.begin(), axis.end());
+    auto ax = cat->axis(keyword);
+    if (ax) {
+        std::copy(ax->get().begin(), ax->get().end(), std::back_inserter(axis));
+        std::sort(axis.begin(), axis.end());
+    }
 
     bool windConversion = false;
-    metkit::ParamID::normalise(request, user, axis, windConversion);
+    if (strictMatching_) {
+        metkit::ParamID::normalise(request, user, axis, windConversion, metkit::NormalisationMode::Strict);
+    }
+    else {
+        metkit::ParamID::normalise(request, user, axis, windConversion);
+    }
 
     std::set<Param> axisSet;
 
@@ -67,50 +64,47 @@ void TypeParam::getValues(const metkit::mars::MarsRequest &request,
             values.push_back(*i);
         }
     }
-
-    // Log::info() << "TypeParam before: " << us << std::endl;
-    // Log::info() << "              after: " << values << std::endl;
-    // Log::info() << "               wind: " << (windConversion ? "true" : "false") << std::endl;
-    // Log::info() << "               axis: " << ax << std::endl;
-
-    if (windConversion) {
-        wind.notifyWind();
-    }
 }
 
-bool TypeParam::match(const std::string&,
-                       const std::string& value1,
-                       const std::string& value2) const {
-    if(value1 == value2) {
+bool TypeParam::match(const std::string&, const std::string& value1, const std::string& value2) const {
+    if (value1 == value2) {
         return true;
     }
 
     Param p1(value1);
     Param p2(value2);
 
-    if((p1.value() == p2.value()) && (p1.table() == 0 || p2.table() == 0)) {
+    if ((p1.value() == p2.value()) && (p1.table() == 0 || p2.table() == 0)) {
         return true;
     }
 
-    if(p1.table() * 1000 + p1.value() == p2.value())
-    {
+    if (p1.table() * 1000 + p1.value() == p2.value()) {
         return true;
     }
 
-    if(p2.table() * 1000 + p2.value() == p1.value())
-    {
+    if (p2.table() * 1000 + p2.value() == p1.value()) {
         return true;
     }
 
     return false;
 }
 
-void TypeParam::print(std::ostream &out) const {
+void TypeParam::print(std::ostream& out) const {
     out << "TypeParam[name=" << name_ << "]";
 }
 
 static TypeBuilder<TypeParam> type("Param");
 
+class TypeParamStrict : public TypeParam {
+public:
+
+    TypeParamStrict(const std::string& name, const std::string& type) : TypeParam(name, type) {
+        strictMatching_ = true;
+    }
+};
+
+static TypeBuilder<TypeParamStrict> typeStrict("ParamID");
+
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

@@ -10,17 +10,21 @@
 
 #include "fdb5/config/Config.h"
 
-#include <algorithm>
-#include <map>
-#include <mutex>
+#include "fdb5/LibFdb5.h"
+#include "fdb5/rules/Schema.h"
+#include "fdb5/rules/SelectMatcher.h"
 
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/filesystem/FileMode.h"
+#include "eckit/log/Log.h"
 #include "eckit/runtime/Main.h"
 
-#include "fdb5/LibFdb5.h"
-#include "fdb5/rules/Schema.h"
+#include <algorithm>
+#include <memory>
+#include <mutex>
+#include <vector>
 
 using namespace eckit;
 
@@ -29,33 +33,63 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Config::Config() : schemaPath_("") {
+Config::Config() : schemaPath_(""), schemaPathInitialised_(false), matcher_(nullptr) {
     userConfig_ = std::make_shared<eckit::LocalConfiguration>(eckit::LocalConfiguration());
 }
 
-Config Config::make(const eckit::PathName& path, const eckit::Configuration& userConfig) {
+Config Config::make(const eckit::PathName& path, const eckit::Configuration& userConfig, const std::string& fdb_home) {
     LOG_DEBUG_LIB(LibFdb5) << "Using FDB configuration file: " << path << std::endl;
+    ASSERT(!path.realName().isDir());
     Config cfg{YAMLConfiguration(path)};
     cfg.set("configSource", path);
+    if (!fdb_home.empty()) {
+        cfg.set("fdb_home", fdb_home);
+    }
+    cfg.matcher_ = nullptr;
     cfg.userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
 
     return cfg;
 }
 
 Config::Config(const Configuration& config, const eckit::Configuration& userConfig) :
-    LocalConfiguration(config) {
-    initializeSchemaPath();
+    LocalConfiguration(config), schemaPathInitialised_(false), matcher_(nullptr) {
     userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
+}
+
+Config::Config(const Config& other) :
+    LocalConfiguration(other), schemaPathInitialised_(false), userConfig_(other.userConfig_), matcher_(other.matcher_) {
+    std::lock_guard lock(other.schemaMutex_);
+    schemaPath_ = other.schemaPath_;
+    schemaPathInitialised_ = other.schemaPathInitialised_;
+}
+
+Config& Config::operator=(const Config& other) {
+    if (this == &other) {
+        return *this;
+    }
+    LocalConfiguration::operator=(other);
+    /// @note A mutex member makes the implicit copy operations ill-formed.
+    /// They lock the source to stay safe against concurrent lazy schema-path init.
+    std::scoped_lock lock(schemaMutex_, other.schemaMutex_);
+    schemaPath_ = other.schemaPath_;
+    schemaPathInitialised_ = other.schemaPathInitialised_;
+    matcher_ = other.matcher_;
+    userConfig_ = other.userConfig_;
+    return *this;
 }
 
 Config Config::expandConfig() const {
     // stops recursion on loading configuration of sub-fdb's
-    if (has("type"))
+    if (has("type")) {
         return *this;
+    }
 
     // If we have explicitly specified a config as an environment variable, use that
 
-    char* config_str = ::getenv("FDB5_CONFIG");
+    char* config_str = ::getenv("FDB_CONFIG");
+    if (!config_str) {
+        config_str = ::getenv("FDB5_CONFIG");  // backwards compatibility
+    }
     if (config_str) {
         std::string s(config_str);
         Config cfg{YAMLConfiguration(s)};
@@ -76,11 +110,16 @@ Config Config::expandConfig() const {
     // If fdb_home is explicitly set in the config then use that not from
     // the Resource (as it has been overridden, or this is a _nested_ config).
 
-    std::string config_path = eckit::Resource<std::string>("fdb5ConfigFile;$FDB5_CONFIG_FILE", "");
+    std::string config_path = eckit::Resource<std::string>("fdbConfigFile;$FDB_CONFIG_FILE", "");
+    if (config_path.empty()) {
+        config_path = eckit::Resource<std::string>("fdb5ConfigFile;$FDB5_CONFIG_FILE", "");  // backwards compatibility
+    }
+
     if (!config_path.empty() && !has("fdb_home")) {
         actual_path = config_path;
-        if (!actual_path.exists())
+        if (!actual_path.exists()) {
             return *this;
+        }
         found = true;
     }
 
@@ -97,22 +136,20 @@ Config Config::expandConfig() const {
                     break;
                 }
             }
-            if (found)
+            if (found) {
                 break;
+            }
         }
     }
 
     if (found) {
-        return Config::make(actual_path, userConfig_ ? *userConfig_ : eckit::LocalConfiguration());
+        return Config::make(actual_path, userConfig_ ? *userConfig_ : eckit::LocalConfiguration(),
+                            getString("fdb_home", ""));
     }
 
     // No expandable config available. Use the skeleton config.
     return *this;
 }
-
-
-Config::~Config() {}
-
 
 // TODO: We could add this to expandTilde.
 
@@ -124,15 +161,17 @@ PathName Config::expandPath(const std::string& path) const {
     if (path[0] == '~') {
         if (path.length() > 1 && path[1] != '/') {
             size_t slashpos = path.find('/');
-            if (slashpos == std::string::npos)
+            if (slashpos == std::string::npos) {
                 slashpos = path.length();
+            }
 
             std::string key = path.substr(1, slashpos - 1) + "_home";
             std::transform(key.begin(), key.end(), key.begin(), ::tolower);
 
             if (has(key)) {
-                std::string newpath = getString(key) + path.substr(slashpos);
-                return PathName(newpath);
+                PathName newpath = getString(key);
+                newpath += path.substr(slashpos);
+                return newpath;
             }
         }
     }
@@ -141,15 +180,28 @@ PathName Config::expandPath(const std::string& path) const {
     return PathName(path);
 }
 
-const PathName& Config::schemaPath() const {
-    if (schemaPath_.path().empty()) {
-        initializeSchemaPath();
-    }
+PathName Config::schemaPath() const {
+    std::lock_guard lock(schemaMutex_);
+    initializeSchemaPath();
     return schemaPath_;
+}
+
+void Config::overrideSchema(const eckit::PathName& schemaPath, std::unique_ptr<Schema> schema) {
+    ASSERT(schema);
+
+    schema->path_ = schemaPath;
+    SchemaRegistry::instance().add(schemaPath, std::move(schema));
+
+    std::lock_guard lock(schemaMutex_);
+    schemaPath_ = schemaPath;
+    schemaPathInitialised_ = true;
 }
 
 void Config::initializeSchemaPath() const {
 
+    if (schemaPathInitialised_) {
+        return;
+    }
     // If the user has specified the schema location in the FDB config, use that,
     // otherwise use the library-wide schema path.
 
@@ -161,10 +213,10 @@ void Config::initializeSchemaPath() const {
         //       N.B. this uses Config expandPath()
         static std::string fdbSchemaFile =
             Resource<std::string>("fdbSchemaFile;$FDB_SCHEMA_FILE", "~fdb/etc/fdb/schema");
-
         schemaPath_ = expandPath(fdbSchemaFile);
     }
 
+    schemaPathInitialised_ = true;
     LOG_DEBUG_LIB(LibFdb5) << "Using FDB schema: " << schemaPath_ << std::endl;
 }
 
@@ -180,9 +232,32 @@ mode_t Config::umask() const {
     if (has("permissions")) {
         return FileMode(getString("permissions")).mask();
     }
-    static eckit::FileMode fdbFileMode(
-        eckit::Resource<std::string>("fdbFileMode", std::string("0644")));
+    static eckit::FileMode fdbFileMode(eckit::Resource<std::string>("fdbFileMode", std::string("0644")));
     return fdbFileMode.mask();
+}
+
+size_t Config::readIndexThreads() const {
+    constexpr long maxReadIndexThreads = 64;
+    static const long fromResource = eckit::Resource<long>("fdbReadIndexThreads;$FDB_READ_INDEX_THREADS", -1);
+    const long threads = fromResource > 0 ? fromResource : userConfig().getLong("readIndexThreads", 1);
+    return static_cast<size_t>(std::clamp(threads, 1L, maxReadIndexThreads));
+}
+
+size_t Config::apiQueueSize() const {
+    constexpr long maxApiQueueSize = 1024 * 1024;
+    static const long fromResource = eckit::Resource<long>("fdbApiQueueSize;$FDB_API_QUEUE_SIZE", -1);
+    const long size = fromResource > 0 ? fromResource : userConfig().getLong("apiQueueSize", 100);
+    return static_cast<size_t>(std::clamp(size, 1L, maxApiQueueSize));
+}
+
+size_t Config::apiMaxQueues() const {
+    constexpr long maxApiMaxQueues = 1024;
+    static const long fromResource = eckit::Resource<long>("fdbApiMaxQueues;$FDB_API_MAX_QUEUES", -1);
+    // A sub-queue is claimed per index being visited, so the default scales with the number of
+    // visitation threads, with headroom for queues that are filled but not yet drained.
+    const long byThreads = 2 * static_cast<long>(readIndexThreads());
+    const long queues = fromResource > 0 ? fromResource : userConfig().getLong("apiMaxQueues", byThreads);
+    return static_cast<size_t>(std::clamp(queues, 1L, maxApiMaxQueues));
 }
 
 std::vector<Config> Config::getSubConfigs(const std::string& name) const {
@@ -207,6 +282,13 @@ std::vector<Config> Config::getSubConfigs() const {
     return out;
 }
 
+void Config::setMatcher(std::unique_ptr<SelectMatcher> matcher) {
+    matcher_ = std::move(matcher);
+}
+
+const SelectMatcher* Config::matcher() const {
+    return matcher_.get();
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

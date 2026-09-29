@@ -1,0 +1,10 @@
+type: catalogue
+serverPort: 8000
+engine: toc
+stores:
+- default: "doesnotexist:8001"
+schema: @SCHEMA_PATH@ 
+spaces:
+- handler: Default
+  roots:
+    - path: @SPACE_ROOT_PATH@

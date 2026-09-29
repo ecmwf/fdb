@@ -1,0 +1,66 @@
+//! Safe Rust wrapper for ECMWF's FDB (Fields `DataBase`).
+//!
+//! This crate provides a safe, idiomatic Rust interface to the FDB,
+//! a domain-specific object store for meteorological data.
+//!
+//! # Example
+//!
+//! `list` accepts partial requests — any unset key matches everything — which
+//! makes it the typical entry point for browsing what's archived.
+//!
+//! ```no_run
+//! use fdb::{Fdb, ListOptions};
+//!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! eckit::init();
+//! let fdb = Fdb::open_default()?;
+//!
+//! let mut request = metkit::MarsRequest::new("retrieve");
+//! request.set("class", "od");
+//! request.set("expver", "0001");
+//!
+//! // ListOptions::default() is depth=3 (full traversal), deduplicate=true
+//! for item in fdb.list(&request, ListOptions::default())? {
+//!     let item = item?;
+//!     let key = item
+//!         .full_key()
+//!         .into_iter()
+//!         .map(|(k, v)| format!("{k}={v}"))
+//!         .collect::<Vec<_>>()
+//!         .join(",");
+//!     println!("{{{key}}}");
+//! }
+//! # Ok(())
+//! # }
+//! ```
+
+mod error;
+mod handle;
+mod iterator;
+mod key;
+mod options;
+
+pub use error::{Error, Result};
+pub use handle::{ArchiveCallbackData, Fdb, FdbStats, MessageArchiver};
+pub use iterator::{
+    CompactSummary, ControlElement, ControlIterator, DbStats, DumpElement, DumpIterator,
+    IndexStats, ListElement, ListIterator, PurgeElement, PurgeIterator, StatsElement,
+    StatsIterator, StatusElement, StatusIterator, WipeElement, WipeIterator,
+};
+pub use key::Key;
+pub use options::{DumpOptions, ListOptions, PurgeOptions, UserConfig, WipeOptions};
+
+// Re-export control enums from the cxx bindings
+pub use fdb_sys::{ControlAction, ControlIdentifier};
+
+/// Version string of the underlying FDB C++ library.
+#[must_use]
+pub fn version() -> String {
+    fdb_sys::Library::version()
+}
+
+/// Git SHA1 of the underlying FDB C++ library.
+#[must_use]
+pub fn git_sha1() -> String {
+    fdb_sys::Library::git_sha1()
+}

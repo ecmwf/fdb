@@ -24,29 +24,38 @@ namespace fdb5 {
 
 class DaosStore : public Store, public DaosCommon {
 
-public: // methods
+public:  // methods
 
-    DaosStore(const Schema& schema, const Key& key, const Config& config);
+    DaosStore(const Key& key, const Config& config);
+    DaosStore(const eckit::URI& uri, const Config& config);
 
     ~DaosStore() override {}
 
     eckit::URI uri() const override;
+    static eckit::URI uri(const eckit::URI& dataURI);
     bool uriBelongs(const eckit::URI&) const override;
     bool uriExists(const eckit::URI&) const override;
-    std::vector<eckit::URI> collocatedDataURIs() const override;
-    std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>&) const override;
+    std::set<eckit::URI> collocatedDataURIs() const override;
+    std::set<eckit::URI> asCollocatedDataURIs(const std::set<eckit::URI>&) const override;
 
     bool open() override { return true; }
-    void flush() override;
+    size_t flush() override;
     void close() override {};
 
     void checkUID() const override { /* nothing to do */ }
 
-    // DAOS store does not currently support auxiliary objects
-    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&) const override { return {}; }
-    bool auxiliaryURIExists(const eckit::URI&) const override { return false; }
+    /// Wipe-related methods
+    void finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override;
+    bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const override;
+    bool doWipeURIs(const StoreWipeState& wipeState) const override;
+    void doWipeEmptyDatabase() const override;
+    bool doUnsafeFullWipe() const override;
 
-protected: // methods
+    // DAOS store does not currently support auxiliary objects
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI&, bool onlyExisting = false) const override { return {}; }
+    // bool auxiliaryURIExists(const eckit::URI&) const override { return false; }
+
+protected:  // methods
 
     std::string type() const override { return "daos"; }
 
@@ -57,14 +66,13 @@ protected: // methods
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
 
-    void print(std::ostream &out) const override;
+    void print(std::ostream& out) const override;
 
-private: // members
+private:  // members
 
-    std::string db_str_;
-
+    size_t archivedFields_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5

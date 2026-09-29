@@ -19,8 +19,9 @@
 
 #include "eckit/system/Library.h"
 
-#include "fdb5/database/DB.h"
 #include "fdb5/api/helpers/Callback.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/types/TypesRegistry.h"
 
 namespace fdb5 {
 
@@ -30,6 +31,7 @@ class Config;
 
 class RemoteProtocolVersion {
 public:
+
     RemoteProtocolVersion();
 
     /// Defines the serialisation versions the software is able to handle
@@ -49,20 +51,21 @@ public:
 
     /// Defines the serialisation version the software is meant to create new entries with
     /// Normally is the latest()
-    /// But can be overriden by the variable FDB5_REMOTE_PROTOCOL_VERSION
     unsigned int used() const;
 
     /// Checks the serialisation version is supported by the software
     bool check(unsigned int version, bool throwOnFail = true);
 
 private:
-    unsigned int used_; //< version to be used for remote protocol
+
+    unsigned int used_;  //< version to be used for remote protocol
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class LibFdb5 : public eckit::system::Library {
 public:
+
     LibFdb5();
 
     static LibFdb5& instance();
@@ -82,11 +85,13 @@ public:
     static const std::set<std::string>& auxiliaryRegistry();
 
 protected:
+
     virtual std::string version() const;
 
     virtual std::string gitsha1(unsigned int count) const;
 
 private:
+
     std::unique_ptr<Config> config_;
     ConstructorCallback constructorCallback_ = CALLBACK_CONSTRUCTOR_NOOP;
 };

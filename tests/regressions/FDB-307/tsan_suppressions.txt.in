@@ -1,0 +1,5 @@
+# shared task monitor is updated by the foreground and remote listener threads!
+race:eckit::TaskInfo::touch
+race:eckit::TaskInfo::name
+race:eckit::TaskInfo::status
+race:eckit::Monitor::show

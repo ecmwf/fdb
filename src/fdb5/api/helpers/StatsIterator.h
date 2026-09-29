@@ -40,7 +40,7 @@ struct StatsElement {
     IndexStats indexStatistics;
     DbStats dbStatistics;
 
-private: // methods
+private:  // methods
 
     void encode(eckit::Stream& s) const;
 
@@ -54,10 +54,8 @@ using StatsIterator = APIIterator<StatsElement>;
 
 using StatsAggregateIterator = APIAggregateIterator<StatsElement>;
 
-using StatsAsyncIterator = APIAsyncIterator<StatsElement>;
-
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace fdb5
+}  // namespace fdb5
 
 #endif

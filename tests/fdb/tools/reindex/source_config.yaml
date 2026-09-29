@@ -1,0 +1,7 @@
+---
+type: local
+engine: toc
+schema: ./source_schema
+spaces:
+ - roots:
+   - path: ./reindex_source

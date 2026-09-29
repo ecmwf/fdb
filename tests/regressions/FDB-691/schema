@@ -1,0 +1,45 @@
+# FDB-691 regression test.
+#
+# This is the top-level schema referenced by config.yaml. It is only consulted
+# when a brand-new database is created (TocHandler::writeInitRecord copies it
+# into that database's directory as its persisted schema). The dataset key
+# used throughout this test (class=ea,expver=0001,stream=wamo,domain=g)
+# already exists on disk under root/ea:0001:wamo:g/ with its own persisted
+# schema copy (root/ea:0001:wamo:g/schema, real 'wamo' fragment, still saying
+# 'date: Month'), which is what TocCatalogue::loadSchema actually reads for
+# every open of that database
+
+# Default types
+param:      Param;
+step:       Step;
+date:       Date;
+hdate:      Date;
+refdate:    Date;
+latitude:   Double;
+longitude:  Double;
+levelist:   Double;
+grid:       Grid;
+expver:     Expver;
+
+time:       Time;
+fcmonth:    Integer;
+
+number:     Integer;
+frequency:  Integer;
+direction:  Integer;
+channel:    Integer;
+
+instrument: Integer;
+ident:      Integer;
+
+diagnostic: Integer;
+iteration:  Integer;
+system:     Integer;
+method:     Integer;
+
+# wamo
+[ class, expver, stream=wamo, domain
+       [ type=cl, levtype
+               [ date: ClimateMonthly, time, param ]]
+       [ type, levtype
+               [ date: Month, time, step?, param ]]]

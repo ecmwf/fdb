@@ -1,0 +1,65 @@
+# Client side of test
+ecbuild_add_executable(
+    TARGET    fdb_test_remote_api_bin
+    SOURCES   test_remote_api.cc
+    INCLUDES  ${ECKIT_INCLUDE_DIRS}
+    LIBS      fdb5
+    NOINSTALL
+)
+
+if (HAVE_FDB_BUILD_TOOLS)
+    ecbuild_configure_file( fdb_remote_test_helper.sh.in fdb_remote_test_helper.sh @ONLY )
+    set(FDB_REMOTE_TEST_HELPER "${CMAKE_CURRENT_BINARY_DIR}/fdb_remote_test_helper.sh" CACHE INTERNAL "")
+endif()
+
+if (HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB)
+    ecbuild_configure_file( test_server.sh.in fdb_test_server.sh @ONLY )
+    set(FDB_TEST_SERVER_SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/fdb_test_server.sh" CACHE INTERNAL "")
+
+    # Basic API test using "standard" configuration
+    ecbuild_configure_file( catalogue.yaml.in catalogue.yaml @ONLY )
+    ecbuild_configure_file( store.yaml.in store.yaml @ONLY )
+    ecbuild_configure_file( client.yaml.in client.yaml @ONLY )
+
+    ecbuild_add_test(
+        TARGET         fdb_test_remote_api
+        TYPE           SCRIPT
+        COMMAND        ${FDB_TEST_SERVER_SCRIPT}
+        ARGS           ${CMAKE_CURRENT_BINARY_DIR} client.yaml catalogue.yaml store.yaml
+        TEST_DEPENDS   fdb_test_remote_api_bin
+        ENVIRONMENT    "${test_environment}"
+        TEST_PROPERTIES
+        TIMEOUT 300
+        RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
+        LABELS remotefdb
+    )
+
+    # See, https://jira.ecmwf.int/browse/FDB-720
+    # Regression test for the control/data connection message-ordering race in RemoteStore::handle()
+    # ecbuild_add_executable(
+    #     TARGET    fdb_test_remote_store_race_bin
+    #     SOURCES   test_remote_store_race.cc
+    #     INCLUDES  ${ECKIT_INCLUDE_DIRS}
+    #     LIBS      fdb5
+    #     NOINSTALL
+    # )
+    #
+    # ecbuild_add_test(
+    #     TARGET         fdb_test_remote_store_race
+    #     TYPE           SCRIPT
+    #     COMMAND        ${FDB_TEST_SERVER_SCRIPT}
+    #     ARGS           ${CMAKE_CURRENT_BINARY_DIR} client.yaml catalogue.yaml store.yaml "$<TARGET_FILE:fdb_test_remote_store_race_bin>"
+    #     TEST_DEPENDS   fdb_test_remote_store_race_bin
+    #     ENVIRONMENT    "${test_environment}"
+    #     TEST_PROPERTIES
+    #     TIMEOUT 120
+    #     RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
+    #     LABELS remotefdb
+    # )
+endif()
+
+add_subdirectory( multi_store )
+
+if("${ECKIT_VERSION}" VERSION_GREATER_EQUAL 2.2)
+    add_subdirectory( single_conn_stress )
+endif()

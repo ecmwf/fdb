@@ -1,0 +1,231 @@
+#!/usr/bin/env bash
+
+set -euxo pipefail
+
+yell() {
+  printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2
+}
+
+die() {
+  yell "$*"
+  exit 1
+}
+
+command_exists() {
+  command -v "$1" >/dev/null 2>&1 || die "Required command not found: $1"
+}
+
+line_count() {
+  [[ $# -eq 1 ]] || die "line_count requires 1 argument; expected line count"
+  val=$(wc -l < out) && val=$((val + 0))
+  [[ $val -eq $1 ]] || die "Incorrect count => [$val != $1]"
+}
+
+grep_count() {
+  [[ $# -eq 2 ]] || die "grep_count requires 2; regex and expected count"
+  val=$(grep -cE "$1" out || true)
+  [[ $val -eq $2 ]] || die "Incorrect count [$val != $2] for regex [$1]"
+}
+
+########################################################################################################################
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+# Validate required commands
+command_exists grib_set
+command_exists grib_copy
+command_exists fdb-fam
+command_exists fdb-write
+command_exists fdb-list
+
+test_name=fam_all
+src_data="../../../od.oper.grib"
+src_dir=@CMAKE_CURRENT_SOURCE_DIR@
+bin_dir=@CMAKE_CURRENT_BINARY_DIR@
+
+echo "Using FDB_HOME: $FDB_HOME"
+echo "Using source data: $src_data"
+echo "Using source dir: $src_dir"
+echo "Using binary dir: $bin_dir"
+
+# When ECKIT_FAM_TEST_ENDPOINT is set (real OpenFAM), use it verbatim.
+# Otherwise (mock), embed PID in hostname so each test gets its own shm segment.
+fam_endpoint="${ECKIT_FAM_TEST_ENDPOINT:-localhost_$$:8880}"
+test_region="fdb_list_fam_all_$$"
+fam_uri="fam://${fam_endpoint}/${test_region}"
+
+########################################################################################################################
+
+echo "running test '$test_name' on $(hostname)"
+
+cd "$bin_dir" || die "Failed to change to binary directory: $bin_dir"
+
+rm -rf "$test_name"
+mkdir -p "$test_name/localroot" || die "Failed to create test directory: $test_name/localroot"
+
+cd "$test_name" || die "Failed to change to test directory: $test_name"
+
+# Repack source data to a tiny grid to shrink the FAM memory footprint.
+grib_set -d1 -s packingType=grid_simple,gridType=regular_ll,Ni=10,Nj=10,iDirectionIncrementInDegrees=36,jDirectionIncrementInDegrees=18,bitsPerValue=8 "$src_data" od.oper.small.grib
+src_data="od.oper.small.grib"
+
+# Subset to a few fields per file so this write-heavy loop stays within the 64 MB OpenFAM
+# mock data area (the mock uses a bump allocator without hole reclamation). Real OpenFAM and
+# a larger /dev/shm are unaffected. Keep nfld in sync with the count filter below.
+nfld=6
+grib_copy -w count=1/2/3/4/5/6 od.oper.small.grib od.oper.tiny.grib
+src_data="od.oper.tiny.grib"
+
+# Create the FAM region (32 MB — real OpenFAM has ~128-byte minimum allocation + per-dataitem metadata overhead)
+fdb-fam --endpoint="$fam_endpoint" --create --size=33554432 --perm=0640 "/$test_region"
+
+cleanup() {
+    echo "cleanup"
+    fdb-fam --endpoint="$fam_endpoint" --delete "/$test_region" 2>/dev/null || true
+    rm -rf "$bin_dir/$test_name" 2>/dev/null || true
+    # Remove per-process mock shm segment (no-op when using real OpenFAM)
+    [[ -z "${ECKIT_FAM_TEST_ENDPOINT:-}" ]] && rm -f "/dev/shm/eckit_fam_mock_localhost_$$" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+echo "Setup validation:"
+[[ -d "$bin_dir" ]] || die "Binary directory not found: $bin_dir"
+[[ -n "$FDB_HOME" ]] || die "FDB_HOME not set"
+[[ -d "$FDB_HOME" ]] || die "FDB_HOME directory not found: $FDB_HOME"
+
+schema_src="$FDB_HOME/etc/fdb/schema"
+
+cat > local.yaml <<EOF
+---
+type: local
+engine: fam
+schema: ${schema_src}
+store: fam
+catalogue: fam
+spaces:
+- handler: Default
+  roots:
+  - path: $(pwd)/localroot
+fam_roots:
+- uri: ${fam_uri}
+  writable: true
+  visit: true
+EOF
+
+export FDB5_CONFIG_FILE="$(pwd)/local.yaml"
+[[ -f "$FDB5_CONFIG_FILE" ]] || die "Config file not found: $FDB5_CONFIG_FILE"
+
+work_dir=$(pwd)
+echo "Working directory: $work_dir"
+echo "Config file: $FDB5_CONFIG_FILE"
+
+########################################################################################################################
+
+# Ensure that listing finds the correct data, but excludes duplicates.
+
+# Set up the data for the test
+
+grib_set -s class=rd,expver=xxxx,type=fc,step=0 "$src_data" data.xxxx.0.grib
+grib_set -s class=rd,expver=xxxx,type=fc,step=1 "$src_data" data.xxxx.1.grib
+grib_set -s class=rd,expver=xxxx,type=fc,step=2 "$src_data" data.xxxx.2.grib
+grib_set -s class=rd,expver=xxxy,type=fc,step=0 "$src_data" data.xxxy.0.grib
+grib_set -s class=rd,expver=xxxy,type=fc,step=1 "$src_data" data.xxxy.1.grib
+grib_set -s class=rd,expver=xxxy,type=fc,step=2 "$src_data" data.xxxy.2.grib
+
+# Set up some regexes for later testing
+
+regex_x0="{class=rd,expver=xxxx,stream=oper,date=[0-9]+,time=(12|00)00,domain=g}{type=fc,levtype=pl}{step=0,levelist=[0-9]+,param=[0-9]+}"
+regex_x1="{class=rd,expver=xxxx,stream=oper,date=[0-9]+,time=(12|00)00,domain=g}{type=fc,levtype=pl}{step=1,levelist=[0-9]+,param=[0-9]+}"
+regex_x2="{class=rd,expver=xxxx,stream=oper,date=[0-9]+,time=(12|00)00,domain=g}{type=fc,levtype=pl}{step=2,levelist=[0-9]+,param=[0-9]+}"
+regex_y0="{class=rd,expver=xxxy,stream=oper,date=[0-9]+,time=(12|00)00,domain=g}{type=fc,levtype=pl}{step=0,levelist=[0-9]+,param=[0-9]+}"
+regex_y1="{class=rd,expver=xxxy,stream=oper,date=[0-9]+,time=(12|00)00,domain=g}{type=fc,levtype=pl}{step=1,levelist=[0-9]+,param=[0-9]+}"
+regex_y2="{class=rd,expver=xxxy,stream=oper,date=[0-9]+,time=(12|00)00,domain=g}{type=fc,levtype=pl}{step=2,levelist=[0-9]+,param=[0-9]+}"
+
+# We loop over all these tests twice. We should get the same listing results both times
+# as the default behaviour is to only show the data that would be retrieved (i.e. that matches a MARS request.)
+
+sum=0
+for i in 1 2; do
+
+  echo "============ Loop $i ============"
+
+fdb-write data.xxxx.0.grib
+fdb-list --all --minimum-keys="" --porcelain | tee out
+  if [[ $i = 1 ]]; then
+    sum=$((sum + nfld))
+    line_count $sum
+    grep_count "$regex_x1" 0
+    grep_count "$regex_x2" 0
+    grep_count "$regex_y0" 0
+    grep_count "$regex_y1" 0
+    grep_count "$regex_y2" 0
+  fi
+  grep_count "$regex_x0" $nfld
+
+fdb-write data.xxxy.0.grib
+fdb-list --all --minimum-keys="" --porcelain | tee out
+  if [[ $i = 1 ]]; then
+    sum=$((sum + nfld))
+    line_count $sum
+    grep_count "$regex_x1" 0
+    grep_count "$regex_x2" 0
+    grep_count "$regex_y1" 0
+    grep_count "$regex_y2" 0
+  fi
+  grep_count "$regex_x0" $nfld
+  grep_count "$regex_y0" $nfld
+
+
+fdb-write data.xxxx.1.grib
+fdb-list --all --minimum-keys="" --porcelain | tee out
+  if [[ $i = 1 ]]; then
+    sum=$((sum + nfld))
+    line_count $sum
+    grep_count "$regex_x2" 0
+    grep_count "$regex_y1" 0
+    grep_count "$regex_y2" 0
+  fi
+  grep_count "$regex_x0" $nfld
+  grep_count "$regex_y0" $nfld
+  grep_count "$regex_x1" $nfld
+
+fdb-write data.xxxy.1.grib
+fdb-list --all --minimum-keys="" --porcelain | tee out
+  if [[ $i = 1 ]]; then
+    sum=$((sum + nfld))
+    line_count $sum
+    grep_count "$regex_x2" 0
+    grep_count "$regex_y2" 0
+  fi
+  grep_count "$regex_x0" $nfld
+  grep_count "$regex_y0" $nfld
+  grep_count "$regex_x1" $nfld
+  grep_count "$regex_y1" $nfld
+
+
+fdb-write data.xxxx.2.grib
+fdb-list --all --minimum-keys="" --porcelain | tee out
+  if [[ $i = 1 ]]; then
+    sum=$((sum + nfld))
+    line_count $sum
+    grep_count "$regex_y2" 0
+  fi
+  grep_count "$regex_x0" $nfld
+  grep_count "$regex_y0" $nfld
+  grep_count "$regex_x1" $nfld
+  grep_count "$regex_y1" $nfld
+  grep_count "$regex_x2" $nfld
+
+fdb-write data.xxxy.2.grib
+fdb-list --all --minimum-keys="" --porcelain | tee out
+  [[ $i = 1 ]] && sum=$((sum + nfld))
+  line_count $sum
+  grep_count "$regex_x0" $nfld
+  grep_count "$regex_y0" $nfld
+  grep_count "$regex_x1" $nfld
+  grep_count "$regex_y1" $nfld
+  grep_count "$regex_x2" $nfld
+  grep_count "$regex_y2" $nfld
+
+done
