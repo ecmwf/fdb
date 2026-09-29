@@ -42,13 +42,14 @@ bool EntryVisitor::preVisitDatabase(const eckit::URI& /*uri*/, const Schema& /*s
     return true;
 }
 
-EntryVisitor::EntryVisitor() : currentCatalogue_(nullptr), currentStore_(nullptr), currentIndex_(nullptr) {}
+EntryVisitor::EntryVisitor() : currentCatalogue_(nullptr), currentStore_(nullptr) {}
 
 EntryVisitor::~EntryVisitor() {
     delete currentStore_;
 }
 
 Store& EntryVisitor::store() const {
+    std::lock_guard<std::mutex> lock(storeMutex_);
     if (!currentStore_) {
         ASSERT(currentCatalogue_);
         currentStore_ = currentCatalogue_->buildStore().release();
@@ -60,8 +61,6 @@ Store& EntryVisitor::store() const {
 bool EntryVisitor::visitDatabase(const Catalogue& catalogue) {
     currentCatalogue_ = &catalogue;
     currentStore_ = nullptr;
-    currentIndex_ = nullptr;
-    rule_ = &currentCatalogue_->rule();
     return true;
 }
 
@@ -72,28 +71,27 @@ void EntryVisitor::catalogueComplete(const Catalogue& catalogue) {
     currentCatalogue_ = nullptr;
     delete currentStore_;
     currentStore_ = nullptr;
-    currentIndex_ = nullptr;
-    rule_ = nullptr;
 }
 
-bool EntryVisitor::visitIndex(const Index& index) {
+const Rule& EntryVisitor::indexRule(const Index& index) const {
     ASSERT(currentCatalogue_);
-    currentIndex_ = &index;
-    rule_ = &currentCatalogue_->schema().matchingRule(currentCatalogue_->key(), currentIndex_->key());
-    return true;
+    return currentCatalogue_->schema().matchingRule(currentCatalogue_->key(), index.key());
 }
 
-void EntryVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {
-    ASSERT(currentCatalogue_);
-    ASSERT(currentIndex_);
-
-    const auto datumKey = rule_->makeKey(keyFingerprint);
-
-    visitDatum(field, datumKey);
+EntryVisitor::IndexScopePtr EntryVisitor::visitIndex(const Index& index, OrderedParallelFor::Order& order) {
+    // This is the default behaviour - that there is nothing specific that needs to be done in
+    // index visitation order (when indexes are being visited in parallel), so we release the
+    // block. A specific visitor can/should override this. See ListVisitor.
+    order.release();
+    return visitIndex(index, indexRule(index));
 }
 
-time_t EntryVisitor::indexTimestamp() const {
-    return currentIndex_ == nullptr ? 0 : currentIndex_->timestamp();
+EntryVisitor::IndexScopePtr EntryVisitor::visitIndex(const Index& index, const Rule& rule) {
+    return std::make_unique<IndexScope>(*currentCatalogue_, index, rule);
+}
+
+void EntryVisitor::visitDatum(IndexScope& scope, const Field& field, const std::string& keyFingerprint) {
+    visitDatum(scope, field, scope.rule().makeKey(keyFingerprint));
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -47,10 +47,10 @@ public:
         return true;
     }
 
-    bool visitIndex(const Index&) override { NOTIMP; }
+    IndexScopePtr visitIndex(const Index&, const Rule&, eckit::Queue<ValueType>&) override { NOTIMP; }
 
     using QueryVisitor<DumpElement>::visitDatum;
-    void visitDatum(const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
+    void visitDatum(IndexScope& /*scope*/, const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
 
 private:
 

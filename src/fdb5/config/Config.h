@@ -66,6 +66,10 @@ public:  // methods
 
     const eckit::Configuration& userConfig() const { return *userConfig_; }
 
+    size_t readIndexThreads() const;
+    size_t apiQueueSize() const;
+    size_t apiMaxQueues() const;
+
     std::vector<Config> getSubConfigs(const std::string& name) const;
     std::vector<Config> getSubConfigs() const;
 
