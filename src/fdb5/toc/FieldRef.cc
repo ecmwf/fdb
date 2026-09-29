@@ -10,16 +10,11 @@
 
 #include "fdb5/toc/FieldRef.h"
 
-#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 
 #include "fdb5/database/Field.h"
+#include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/UriStore.h"
-#include "fdb5/fdb5_config.h"
-
-#ifdef fdb5_HAVE_S3FDB
-#include "fdb5/s3/S3FieldLocation.h"
-#endif
 
 namespace fdb5 {
 
@@ -33,24 +28,6 @@ FieldRefLocation::FieldRefLocation() {}
 FieldRefLocation::FieldRefLocation(UriStore& store, const Field& field) {
 
     const FieldLocation& loc = field.location();
-
-    const auto* tocfloc = dynamic_cast<const TocFieldLocation*>(&loc);
-#ifdef fdb5_HAVE_S3FDB
-    const auto* s3floc = dynamic_cast<const S3FieldLocation*>(&loc);
-    if(!tocfloc && !s3floc) {
-        throw eckit::NotImplemented(
-            "Field location is not of TocFieldLocation or S3FieldLocation type "
-            "-- indexing other locations is not supported",
-            Here());
-    }
-#else
-    if(!tocfloc) {
-        throw eckit::NotImplemented(
-            "Field location is not of TocFieldLocation type "
-            "-- indexing other locations is not supported",
-            Here());
-    }
-#endif
 
     uriId_ = store.insert(loc.uri());
     length_ = loc.length();
