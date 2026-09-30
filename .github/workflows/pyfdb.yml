@@ -110,7 +110,7 @@ jobs:
     if: ${{ !github.event.pull_request.draft && (success() || failure()) && (!github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci') }}
     strategy:
       matrix:
-        python-version: ['3.11', '3.12', '3.13'] # eccodes does not yet support 3.14
+        python-version: ['3.11', '3.12', '3.13', '3.14'] # eccodes does not yet support 3.14
       fail-fast: false  # Continue running other versions if one fails
 
     steps:
@@ -160,3 +160,13 @@ jobs:
           path: "fdb-build/pyfdb-*.whl"
           retention-days: 10
           if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
+  trigger-push-to-test-pypi:
+    needs: build-wheels
+    # Only publish on a manual run or a tag push, on top of the existing
+    # fork/draft gating.
+    if: ${{ (github.event_name == 'workflow_dispatch' || github.ref_type == 'tag') && !github.event.pull_request.draft && (success() || failure()) && (!github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci') }}
+    uses: ecmwf/python-develop-bundle/.github/workflows/release.yml@main
+    with:
+      target: fdb@${{ github.ref_name }}
+      env: nowhere
+      tag_strategy: dev
