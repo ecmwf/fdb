@@ -40,7 +40,7 @@ namespace fdb::test::s3 {
 
 const eckit::net::Endpoint TEST_ENDPOINT {S3_TEST_ENDPOINT};
 
-const eckit::S3Config TEST_CONFIG {TEST_ENDPOINT, S3_TEST_REGION};
+const eckit::S3Config TEST_CONFIG{TEST_ENDPOINT, S3_TEST_REGION};
 
 const eckit::S3Credential TEST_CRED {TEST_ENDPOINT, "minio", "minio1234"};
 
