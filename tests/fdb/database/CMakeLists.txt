@@ -12,3 +12,8 @@ ecbuild_add_test( TARGET fdb_test_database_orderedparallelfor
     SOURCES test_orderedparallelfor.cc
     LIBS fdb5
     ENVIRONMENT "${_test_environment}")
+
+ecbuild_add_test( TARGET fdb_test_database_tocstore_close
+    SOURCES test_tocstore_close.cc
+    LIBS fdb5
+    ENVIRONMENT "${_test_environment}")

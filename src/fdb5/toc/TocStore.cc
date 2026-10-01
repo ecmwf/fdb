@@ -205,7 +205,14 @@ eckit::DataHandle* TocStore::getCachedHandle(const eckit::PathName& path) const 
 void TocStore::closeDataHandles() {
     std::lock_guard lock(handlesMutex_);
     for (const auto& [p, dh] : handles_) {
-        dh->close();
+        try {
+            dh->close();
+        }
+        catch (const std::exception& e) {
+            // Don't let one handle's failure stop the rest from being closed.
+            eckit::Log::error() << "TocStore: failed to close data handle for " << p << ": " << e.what()
+                                 << std::endl;
+        }
     }
     handles_.clear();
 }
