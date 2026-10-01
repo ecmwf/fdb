@@ -15,13 +15,16 @@
 
 #include "fdb5/s3/S3Common.h"
 
+#include "eckit/filesystem/URI.h"
 #include "fdb5/s3/S3RootManager.h"
 
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-S3Common::S3Common(const Key& databaseKey, const Config& config) : root_ {S3RootManager(config).root(databaseKey)} { }
+S3Common::S3Common(const Config& config, const eckit::URI& uri) : root_{S3RootManager(config).root(uri)} {}
+
+S3Common::S3Common(const Config& config) : S3Common(config, eckit::URI{}) {}
 
 //----------------------------------------------------------------------------------------------------------------------
 

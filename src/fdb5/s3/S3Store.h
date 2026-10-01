@@ -32,7 +32,12 @@ namespace fdb5 {
 
 class S3Store : public Store, private S3Common {
 public:  // methods
-    S3Store(const Schema& schema, const Key& key, const Config& config);
+
+    S3Store(const Config& config);
+
+    S3Store(const Key& key, const Config& config);
+
+    S3Store(const eckit::URI& uri, const Config& config);
 
     ~S3Store() override = default;
 
@@ -40,30 +45,48 @@ public:  // methods
 
     eckit::URI uri() const override;
 
+    static eckit::URI uri(const eckit::URI& dataURI);
+
     bool uriBelongs(const eckit::URI& uri) const override;
 
     bool uriExists(const eckit::URI& uri) const override;
 
-    std::vector<eckit::URI> collocatedDataURIs() const override;
+    std::set<eckit::URI> collocatedDataURIs() const override;
 
-    std::set<eckit::URI> asCollocatedDataURIs(const std::vector<eckit::URI>& uris) const override;
+    std::set<eckit::URI> asCollocatedDataURIs(const std::set<eckit::URI>& uris) const override;
 
-    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI& uri) const override;
-
-    bool auxiliaryURIExists(const eckit::URI& uri) const override;
+    std::vector<eckit::URI> getAuxiliaryURIs(const eckit::URI& uri, bool onlyExisting) const override;
 
     bool open() override { return true; }
 
-    void flush() override;
+    size_t flush() override;
 
     void close() override;
 
     void checkUID() const override { /* nothing to do */ }
 
+    /// Given a StoreWipeState from the Catalogue, identify URIs to be wiped
+    void finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) override;
+
+    /// Delete unknown URIs. Part of an --unsafe-wipe-all operation.
+    bool doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const override;
+
+    /// Delete URIs marked in the wipe state
+    bool doWipeURIs(const StoreWipeState& wipeState) const override;
+
+    /// Delete empty DBs
+    void doWipeEmptyDatabase() const override;
+
+    /// Delete full DB in a single or a few operations
+    bool doUnsafeFullWipe() const override;
+
+
 private:  // methods
+
     bool exists() const override;
 
-    eckit::DataHandle*                   retrieve(Field& field) const override;
+    eckit::DataHandle* retrieve(Field& field) const override;
+
     std::unique_ptr<const FieldLocation> archive(const Key& key, const void* data, eckit::Length length) override;
 
     void remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const override;
@@ -71,9 +94,6 @@ private:  // methods
     void print(std::ostream& out) const override;
 
     eckit::URI getAuxiliaryURI(const eckit::URI& uri, const std::string& ext) const;
-
-    // private:  // members
-    //     S3Root root_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

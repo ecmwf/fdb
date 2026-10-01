@@ -26,7 +26,7 @@
 #include "fdb5/database/Field.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/database/Store.h"
-#include "fdb5/database/WipeVisitor.h"
+// #include "fdb5/database/Wipe
 #include "fdb5/rules/Schema.h"
 #include "fdb5/s3/S3Store.h"
 #include "fdb5/toc/TocCatalogueReader.h"
@@ -53,18 +53,24 @@ namespace fdb::test {
 
 namespace {
 
-const std::vector<std::string> testBuckets {S3_TEST_BUCKET};
+const std::vector<std::string> testBuckets{S3_TEST_BUCKET};
 
 void deldir(const eckit::PathName& root) {
 
-    if (!root.exists()) { return; }
+    if (!root.exists()) {
+        return;
+    }
 
     std::vector<eckit::PathName> files;
     std::vector<eckit::PathName> dirs;
     root.children(files, dirs);
 
-    for (auto& f : files) { f.unlink(); }
-    for (auto& d : dirs) { deldir(d); }
+    for (auto& f : files) {
+        f.unlink();
+    }
+    for (auto& d : dirs) {
+        deldir(d);
+    }
 
     root.rmdir();
 };
@@ -77,7 +83,7 @@ CASE("Setup") {
 
     // create root directory for tests
 
-    const eckit::PathName rootDir {S3_TEST_ROOT};
+    const eckit::PathName rootDir{S3_TEST_ROOT};
     deldir(rootDir);
     EXPECT_NO_THROW(rootDir.mkdir());
 
@@ -114,9 +120,9 @@ CASE("S3Store tests") {
 
         // archive
 
-        fdb5::S3Store s3store {config.schema(), dbKey, config};
-        fdb5::Store&  store = s3store;
-        auto          loc   = store.archive(indexKey, data, sizeof(data));
+        fdb5::S3Store s3store{config};
+        fdb5::Store& store = s3store;
+        auto loc = store.archive(indexKey, data, sizeof(data));
 
         s3store.flush();
 
@@ -132,11 +138,11 @@ CASE("S3Store tests") {
         EXPECT(::memcmp(mh.data(), data, sizeof(data)) == 0);
 
         // remove
-        const URI           fieldURI = field.location().uri();
-        eckit::S3ObjectName field_name {fieldURI};
-        eckit::S3BucketName store_name {fieldURI, field_name.path().bucket};
-        eckit::URI          store_uri(store_name.uri());
-        std::ostream        out(std::cout.rdbuf());
+        const URI fieldURI = field.location().uri();
+        eckit::S3ObjectName field_name{fieldURI};
+        eckit::S3BucketName store_name{fieldURI, field_name.path().bucket};
+        eckit::URI store_uri(store_name.uri());
+        std::ostream out(std::cout.rdbuf());
         store.remove(store_uri, out, out, false);
         EXPECT(field_name.exists());
         store.remove(store_uri, out, out, true);
@@ -174,21 +180,21 @@ CASE("S3Store tests") {
 
         char data[] = "test";
 
-        fdb5::S3Store s3store {config.schema(), dbKey, config};
+        fdb5::S3Store s3store{config};
 
         auto& store = static_cast<fdb5::Store&>(s3store);
-        auto  loc   = store.archive(indexKey, data, sizeof(data));
+        auto loc = store.archive(indexKey, data, sizeof(data));
 
         // index data
 
         {
-            fdb5::TocCatalogueWriter tcat {dbKey, config};
+            fdb5::TocCatalogueWriter tcat{dbKey, config};
 
             auto& cat = static_cast<fdb5::Catalogue&>(tcat);
             cat.deselectIndex();
             cat.selectIndex(indexKey);
             // const fdb5::Index& idx = tcat.currentIndex();
-            static_cast<fdb5::CatalogueWriter&>(tcat).archive(fieldKey, std::move(loc));
+            static_cast<fdb5::CatalogueWriter&>(tcat).archive(indexKey, fieldKey, std::move(loc));
 
             /// flush store before flushing catalogue
             s3store.flush();  // not necessary if using a DAOS store
@@ -198,8 +204,8 @@ CASE("S3Store tests") {
 
         fdb5::Field field;
         {
-            fdb5::TocCatalogueReader tcat {dbKey, config};
-            fdb5::Catalogue&         cat = static_cast<fdb5::Catalogue&>(tcat);
+            fdb5::TocCatalogueReader tcat{dbKey, config};
+            fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);
             cat.selectIndex(indexKey);
             static_cast<fdb5::CatalogueReader&>(tcat).retrieve(fieldKey, field);
         }
@@ -217,11 +223,11 @@ CASE("S3Store tests") {
 
         // remove data
 
-        const URI           fieldURI = field.location().uri();
-        eckit::S3ObjectName field_name {fieldURI};
-        eckit::S3BucketName store_name {fieldURI, field_name.path().bucket};
-        eckit::URI          store_uri(store_name.uri());
-        std::ostream        out(std::cout.rdbuf());
+        const URI fieldURI = field.location().uri();
+        eckit::S3ObjectName field_name{fieldURI};
+        eckit::S3BucketName store_name{fieldURI, field_name.path().bucket};
+        eckit::URI store_uri(store_name.uri());
+        std::ostream out(std::cout.rdbuf());
         store.remove(store_uri, out, out, false);
         EXPECT(field_name.exists());
         store.remove(store_uri, out, out, true);
@@ -230,13 +236,13 @@ CASE("S3Store tests") {
 
         // deindex data
 
-        {
-            fdb5::TocCatalogueWriter           tcat {dbKey, config};
-            fdb5::Catalogue&                   cat = static_cast<fdb5::Catalogue&>(tcat);
-            metkit::mars::MarsRequest          r   = dbKey.request("retrieve");
-            std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
-            cat.visitEntries(*wv, store, false);
-        }
+        // {
+        //     fdb5::TocCatalogueWriter tcat{dbKey, config};
+        //     fdb5::Catalogue& cat = static_cast<fdb5::Catalogue&>(tcat);
+        //     metkit::mars::MarsRequest r = dbKey.request("retrieve");
+        //     std::unique_ptr<fdb5::WipeVisitor> wv(cat.wipeVisitor(store, r, out, true, false, false));
+        //     cat.visitEntries(*wv, store, false);
+        // }
     }
 
     SECTION("VIA FDB API") {
@@ -263,9 +269,9 @@ CASE("S3Store tests") {
         indexKey.set("c", "3");
         indexKey.set("d", "4");
 
-        fdb5::FDBToolRequest fullReq {requestKey.request("retrieve"), false, std::vector<std::string> {"a", "b"}};
-        fdb5::FDBToolRequest indexReq {indexKey.request("retrieve"), false, std::vector<std::string> {"a", "b"}};
-        fdb5::FDBToolRequest dbReq {dbKey.request("retrieve"), false, std::vector<std::string> {"a", "b"}};
+        fdb5::FDBToolRequest fullReq{requestKey.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+        fdb5::FDBToolRequest indexReq{indexKey.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+        fdb5::FDBToolRequest dbReq{dbKey.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
 
         // initialise store
 
@@ -280,7 +286,7 @@ CASE("S3Store tests") {
         auto listObject = fdb.list(dbReq);
 
         while (listObject.next(info)) {
-            info.print(std::cout, true, true);
+            info.print(std::cout, true, true, true, ",");
             std::cout << std::endl;
             ++count;
         }
@@ -296,7 +302,7 @@ CASE("S3Store tests") {
 
         // retrieve data
 
-        metkit::mars::MarsRequest          r = requestKey.request("retrieve");
+        metkit::mars::MarsRequest r = requestKey.request("retrieve");
         std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(r));
 
         eckit::MemoryHandle mh;
@@ -311,25 +317,31 @@ CASE("S3Store tests") {
         // dry run attempt to wipe with too specific request
 
         auto wipeObject = fdb.wipe(fullReq);
-        count           = 0;
-        while (wipeObject.next(elem)) { count++; }
+        count = 0;
+        while (wipeObject.next(elem)) {
+            count++;
+        }
         EXPECT(count == 0);
 
         // dry run wipe index and store unit
         wipeObject = fdb.wipe(indexReq);
-        count      = 0;
-        while (wipeObject.next(elem)) { count++; }
+        count = 0;
+        while (wipeObject.next(elem)) {
+            count++;
+        }
         EXPECT(count > 0);
 
         // dry run wipe database
         wipeObject = fdb.wipe(dbReq);
-        count      = 0;
-        while (wipeObject.next(elem)) { count++; }
+        count = 0;
+        while (wipeObject.next(elem)) {
+            count++;
+        }
         EXPECT(count > 0);
 
         // ensure field still exists
         listObject = fdb.list(fullReq);
-        count      = 0;
+        count = 0;
         while (listObject.next(info)) {
             // info.print(std::cout, true, true);
             // std::cout << std::endl;
@@ -339,24 +351,30 @@ CASE("S3Store tests") {
 
         // attempt to wipe with too specific request
         wipeObject = fdb.wipe(fullReq, true);
-        count      = 0;
-        while (wipeObject.next(elem)) { count++; }
+        count = 0;
+        while (wipeObject.next(elem)) {
+            count++;
+        }
         EXPECT(count == 0);
         /// @todo: really needed?
         fdb.flush();
 
         // wipe index and store unit (and DB bucket as there is only one index)
         wipeObject = fdb.wipe(indexReq, true);
-        count      = 0;
-        while (wipeObject.next(elem)) { count++; }
+        count = 0;
+        while (wipeObject.next(elem)) {
+            count++;
+        }
         EXPECT(count > 0);
         /// @todo: really needed?
         fdb.flush();
 
         // ensure field does not exist
         listObject = fdb.list(fullReq);
-        count      = 0;
-        while (listObject.next(info)) { count++; }
+        count = 0;
+        while (listObject.next(info)) {
+            count++;
+        }
         EXPECT(count == 0);
     }
 
@@ -386,9 +404,9 @@ CASE("S3Store tests") {
         indexKey.set("c", "3");
         indexKey.set("d", "4");
 
-        fdb5::FDBToolRequest fullReq {requestKey.request("retrieve"), false, std::vector<std::string> {"a", "b"}};
-        fdb5::FDBToolRequest indexReq {indexKey.request("retrieve"), false, std::vector<std::string> {"a", "b"}};
-        fdb5::FDBToolRequest dbReq {dbKey.request("retrieve"), false, std::vector<std::string> {"a", "b"}};
+        fdb5::FDBToolRequest fullReq{requestKey.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+        fdb5::FDBToolRequest indexReq{indexKey.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+        fdb5::FDBToolRequest dbReq{dbKey.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
 
         // initialise store
 
@@ -409,7 +427,9 @@ CASE("S3Store tests") {
         fdb5::WipeElement elem;
 
         auto wipeObject = fdb.wipe(dbReq, true);
-        while (wipeObject.next(elem)) { count++; }
+        while (wipeObject.next(elem)) {
+            count++;
+        }
 
         EXPECT(count > 0);
 

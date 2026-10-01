@@ -17,7 +17,6 @@
 #include "eckit/io/s3/S3BucketName.h"
 #include "eckit/io/s3/S3Name.h"
 #include "eckit/io/s3/S3ObjectName.h"
-#include "eckit/log/Log.h"
 #include "eckit/log/TimeStamp.h"
 #include "eckit/runtime/Main.h"
 #include "eckit/thread/AutoLock.h"
@@ -84,42 +83,51 @@ std::string generateObject(const Key& key) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-S3Store::S3Store(const Schema& schema, const Key& key, const Config& config) : Store(schema), S3Common(key, config) { }
+S3Store::S3Store(const Config& config) : S3Common(config) {}
+
+S3Store::S3Store(const Key& key, const Config& config) : S3Common(config) {}
+
+S3Store::S3Store(const eckit::URI& uri, const Config& config) : S3Common(config) {}
+
+eckit::URI S3Store::uri(const eckit::URI& dataURI) {
+    ASSERT(dataURI.scheme() == eckit::S3Name::type);
+    return eckit::S3ObjectName(dataURI).uri();
+}
 
 eckit::URI S3Store::uri() const {
-    return root_.uri();
+    return root().uri();
 }
 
 bool S3Store::uriBelongs(const eckit::URI& uri) const {
     const auto uriBucket = eckit::S3BucketName::parse(uri.name());
-    return uri.scheme() == type() && uriBucket == root_.path();
+    return uri.scheme() == type() && uriBucket == root().path();
 }
 
 bool S3Store::uriExists(const eckit::URI& uri) const {
-    return eckit::S3Name::make(root_.endpoint(), uri.name())->exists();
+    return eckit::S3Name::make(root().endpoint(), uri.name())->exists();
 }
 
-bool S3Store::auxiliaryURIExists(const eckit::URI& uri) const {
-    return uriExists(uri);
-}
+std::set<eckit::URI> S3Store::collocatedDataURIs() const {
 
-std::vector<eckit::URI> S3Store::collocatedDataURIs() const {
+    std::set<eckit::URI> storeUnitUris;
 
-    std::vector<eckit::URI> storeUnitUris;
+    if (!root().exists()) {
+        return storeUnitUris;
+    }
 
-    if (!root_.exists()) { return storeUnitUris; }
-
-    for (const auto& object : root_.listObjects()) { storeUnitUris.push_back(root_.makeObject(object)->uri()); }
+    for (const auto& object : root().listObjects()) {
+        storeUnitUris.insert(root().makeObject(object)->uri());
+    }
 
     return storeUnitUris;
 }
 
-std::set<eckit::URI> S3Store::asCollocatedDataURIs(const std::vector<eckit::URI>& uris) const {
-    return {uris.begin(), uris.end()};
+std::set<eckit::URI> S3Store::asCollocatedDataURIs(const std::set<eckit::URI>& uris) const {
+    return uris;
 }
 
 bool S3Store::exists() const {
-    return root_.exists();
+    return root().exists();
 }
 
 eckit::URI S3Store::getAuxiliaryURI(const eckit::URI& uri, const std::string& ext) const {
@@ -127,11 +135,36 @@ eckit::URI S3Store::getAuxiliaryURI(const eckit::URI& uri, const std::string& ex
     return {type(), uri.name() + '.' + ext};
 }
 
-std::vector<eckit::URI> S3Store::getAuxiliaryURIs(const eckit::URI& uri) const {
+std::vector<eckit::URI> S3Store::getAuxiliaryURIs(const eckit::URI& uri, bool onlyExisting) const {
     ASSERT(uri.scheme() == type());
     std::vector<eckit::URI> uris;
-    for (const auto& ext : LibFdb5::auxiliaryRegistry()) { uris.push_back(getAuxiliaryURI(uri, ext)); }
+    for (const auto& ext : LibFdb5::auxiliaryRegistry()) {
+        uris.push_back(getAuxiliaryURI(uri, ext));
+    }
     return uris;
+}
+
+void S3Store::finaliseWipeState(StoreWipeState& storeState, bool doit, bool unsafeWipeAll) {
+    // Implementation goes here
+}
+
+bool S3Store::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
+    // Implementation goes here
+    return false;
+}
+
+bool S3Store::doWipeURIs(const StoreWipeState& wipeState) const {
+    // Implementation goes here
+    return false;
+}
+
+void S3Store::doWipeEmptyDatabase() const {
+    // Implementation goes here
+}
+
+bool S3Store::doUnsafeFullWipe() const {
+    // Implementation goes here
+    return false;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -143,7 +176,7 @@ eckit::DataHandle* S3Store::retrieve(Field& field) const {
 
 std::unique_ptr<const FieldLocation> S3Store::archive(const Key& key, const void* data, eckit::Length length) {
 
-    auto object = root_.makeObject(generateObject(key));
+    auto object = root().makeObject(generateObject(key));
 
     auto dataHandle = std::unique_ptr<eckit::DataHandle>(object->dataHandle());
 
@@ -155,43 +188,37 @@ std::unique_ptr<const FieldLocation> S3Store::archive(const Key& key, const void
     return std::make_unique<const S3FieldLocation>(object->uri(), 0, length, fdb5::Key());
 }
 
-void S3Store::flush() {
-
-    /// @note: code for S3 object (key) per index store:
-
-    // /// @note: clear cached data handles thus triggering consolidation of
-    // ///   multipart objects, so that step data is made visible to readers.
-    // ///   New S3 handles will be created on the next archive() call after
-    // ///   flush().
-    // closeDataHandles();
+size_t S3Store::flush() {
+    return 0;
 }
 
-void S3Store::close() {
-
-    /// @note: code for S3 object (key) per index store:
-
-    // closeDataHandles();
-}
+void S3Store::close() {}
 
 void S3Store::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, const bool doit) const {
 
-    auto name = eckit::S3Name::make(root_.endpoint(), uri.name());
+    auto name = eckit::S3Name::make(root().endpoint(), uri.name());
 
     if (auto* object = dynamic_cast<eckit::S3ObjectName*>(name.get())) {
         logVerbose << "Removing S3 object: ";
         logAlways << object->asString() << '\n';
-        if (doit) { object->remove(); }
-    } else if (auto* bucket = dynamic_cast<eckit::S3BucketName*>(name.get())) {
+        if (doit) {
+            object->remove();
+        }
+    }
+    else if (auto* bucket = dynamic_cast<eckit::S3BucketName*>(name.get())) {
         logVerbose << "Removing S3 bucket: ";
         logAlways << bucket->asString() << '\n';
-        if (doit) { bucket->ensureDestroyed(); }
-    } else {
+        if (doit) {
+            bucket->ensureDestroyed();
+        }
+    }
+    else {
         throw eckit::SeriousBug("S3Store::remove() unknown URI type: " + uri.asString(), Here());
     }
 }
 
 void S3Store::print(std::ostream& out) const {
-    out << "S3Store[root=" << root_ << ']';
+    out << "S3Store[root=" << root() << ']';
 }
 
 //----------------------------------------------------------------------------------------------------------------------

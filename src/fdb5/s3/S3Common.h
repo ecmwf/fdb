@@ -13,13 +13,17 @@
  * (Grant agreement: 101128693) https://www.dafab-ai.eu/
  */
 
-/// @file   S3Config.h
+/// @file   S3Common.h
 /// @author Metin Cakircali
 /// @date   Dec 2024
 
 #pragma once
 
 #include "eckit/io/s3/S3BucketName.h"
+
+namespace eckit {
+class URI;
+}
 
 namespace fdb5 {
 
@@ -28,8 +32,16 @@ class Config;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-struct S3Common {
-    S3Common(const Key& databaseKey, const Config& config);
+class S3Common {
+public:  // methods
+
+    S3Common(const Config& config);
+
+    S3Common(const Config& config, const eckit::URI& uri);
+
+    const eckit::S3BucketName& root() const { return root_; }
+
+private:  // members
 
     eckit::S3BucketName root_;
 };

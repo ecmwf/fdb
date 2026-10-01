@@ -23,6 +23,10 @@
 
 #include <vector>
 
+namespace eckit {
+class URI;
+}
+
 namespace fdb5 {
 
 class Key;
@@ -43,7 +47,7 @@ public:  // methods
     virtual ~S3RootManager() = default;
 
     /// Uniquely selects a root using the databaseKey
-    eckit::S3BucketName root(const Key& databaseKey) const;
+    eckit::S3BucketName root(const eckit::URI& uri) const;
 
 protected:  // methods
     virtual std::vector<eckit::S3BucketName> parseRoots() const;

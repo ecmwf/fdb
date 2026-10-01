@@ -71,7 +71,7 @@ S3RootManager::S3RootManager(const Config& config) : config_ {loadS3(config)} { 
 
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::S3BucketName S3RootManager::root(const Key& /*databaseKey*/) const {
+eckit::S3BucketName S3RootManager::root(const eckit::URI& /*uri*/) const {
     /// @todo implement databaseKey to root selection
     return parseRoots().front();
 }
