@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026- European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
+
+---
+exempt:
+  - workflow: ci_legacy.yml
+  - workflow: build-ubuntu-rolling-fdb-build-env.yml
+  - workflow: label-public-pr.yml
+  - workflow: notify-pull-request.yml
+  - workflow: z3fdb.yml
+  - workflow: pyfdb.yml
+    reason: "legacy, retiring; gates downstream-ci with an if: rather than needs:"
+
+
