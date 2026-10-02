@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: 2026- European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
+
+name: Build fdb from source
+description: >
+  Builds and installs the checked-out fdb with
+  ecmwf/ci-infrastructure/actions/cmake-build, which documents the inputs.
+
+inputs:
+  cmake-prefix-path:
+    description: 'Prefixes of the resolved deps (ecbuild, stack-deps)'
+    required: true
+  c-compiler:
+    description: 'C compiler, e.g. clang-18, gcc-13'
+    required: true
+  cxx-compiler:
+    description: 'C++ compiler, e.g. clang++-18, g++-13'
+    required: true
+  build-type:
+    description: 'CMake build type'
+    required: true
+
+outputs:
+  install-path:
+    description: 'Absolute path where fdb is installed'
+    value: ${{ steps.build.outputs.install-path }}
+  build-dir:
+    description: 'Absolute path of the build tree, for ctest'
+    value: ${{ steps.build.outputs.build-dir }}
+
+runs:
+  using: composite
+  steps:
+    - id: venv
+      shell: bash
+      run: |
+        set -euo pipefail
+        python3 -m venv "$RUNNER_TEMP/fdb-venv"
+        source "$RUNNER_TEMP/fdb-venv/bin/activate"
+        pip install -r "$GITHUB_WORKSPACE/python/requirements-build.txt"
+        echo "VIRTUAL_ENV=$RUNNER_TEMP/fdb-venv" >> "$GITHUB_ENV"
+
+    - id: build
+      uses: ecmwf/ci-infrastructure/actions/cmake-build@main
+      with:
+        package: fdb
+        cmake-prefix-path: ${{ inputs.cmake-prefix-path }}
+        c-compiler: ${{ inputs.c-compiler }}
+        cxx-compiler: ${{ inputs.cxx-compiler }}
+        build-type: ${{ inputs.build-type }}
