@@ -93,6 +93,11 @@ CASE("Setup") {
 
 CASE("S3Store tests") {
 
+    // sections re-run this prelude, so reset the TOC catalogue left by the previous section
+    const eckit::PathName rootDir{S3_TEST_ROOT};
+    deldir(rootDir);
+    rootDir.mkdir();
+
     s3::cleanup(testBuckets);
     eckit::S3BucketName(s3::TEST_ENDPOINT, {S3_TEST_BUCKET}).create();
 

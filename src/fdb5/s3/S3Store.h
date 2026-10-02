@@ -94,6 +94,10 @@ private:  // methods
     void print(std::ostream& out) const override;
 
     eckit::URI getAuxiliaryURI(const eckit::URI& uri, const std::string& ext) const;
+
+private:  // members
+
+    size_t archivedFields_{0};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

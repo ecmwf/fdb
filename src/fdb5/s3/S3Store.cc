@@ -185,11 +185,15 @@ std::unique_ptr<const FieldLocation> S3Store::archive(const Key& key, const void
 
     dataHandle->write(data, length);
 
+    archivedFields_++;
+
     return std::make_unique<const S3FieldLocation>(object->uri(), 0, length, fdb5::Key());
 }
 
 size_t S3Store::flush() {
-    return 0;
+    size_t out = archivedFields_;
+    archivedFields_ = 0;
+    return out;
 }
 
 void S3Store::close() {}
