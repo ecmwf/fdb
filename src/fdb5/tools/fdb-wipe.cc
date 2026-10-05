@@ -30,12 +30,10 @@ public:  // methods
     FDBWipe(int argc, char** argv) :
         FDBVisitTool(argc, argv, "class,expver,stream,date,time"),
         doit_(false),
-        ignoreNoData_(false),
         porcelain_(false),
         unsafeWipeAll_(false) {
 
         options_.push_back(new SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
-        options_.push_back(new SimpleOption<bool>("ignore-no-data", "No data available to delete is not an error"));
         options_.push_back(new SimpleOption<bool>("porcelain", "List only the deleted files"));
         options_.push_back(
             new SimpleOption<bool>("unsafe-wipe-all", "Wipe all (unowned) contents of an unclean database"));
@@ -51,7 +49,6 @@ private:  // methods
 private:  // members
 
     bool doit_;
-    bool ignoreNoData_;
     bool porcelain_;
     bool unsafeWipeAll_;
 };
@@ -74,7 +71,6 @@ void FDBWipe::init(const CmdArgs& args) {
     FDBVisitTool::init(args);
 
     doit_ = args.getBool("doit", false);
-    ignoreNoData_ = args.getBool("ignore-no-data", false);
     porcelain_ = args.getBool("porcelain", false);
     unsafeWipeAll_ = args.getBool("unsafe-wipe-all", false);
 }
@@ -122,7 +118,7 @@ void FDBWipe::execute(const CmdArgs& args) {
             }
         }
 
-        if (count == 0 && !ignoreNoData_ && fail()) {
+        if (count == 0 && failOnNoData()) {
             std::ostringstream ss;
             ss << "No FDB entries found matching the provided request, or entries skipped due to the request being too "
                   "specific: "
