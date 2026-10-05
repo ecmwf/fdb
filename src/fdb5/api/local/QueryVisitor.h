@@ -19,15 +19,20 @@
 #pragma once
 
 #include "eckit/container/Queue.h"
+#include "eckit/container/QueueOfQueues.h"
+#include "eckit/exception/Exceptions.h"
 
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/rules/Rule.h"
 
+#include <memory>
 #include <mutex>
 #include <tuple>
+#include <type_traits>
 #include <unordered_map>
+#include <vector>
 
 namespace fdb5::api::local {
 
@@ -35,17 +40,68 @@ namespace fdb5::api::local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-template <typename T>
+template <typename T, typename Q = eckit::Queue<T>>
 class QueryVisitor : public EntryVisitor {
 
 public:  // methods
 
     using ValueType = T;
+    using QueueType = Q;
 
-    QueryVisitor(eckit::Queue<ValueType>& queue, const metkit::mars::MarsRequest& request) :
-        queue_(queue), request_(request) {}
+    QueryVisitor(QueueType& queue, const metkit::mars::MarsRequest& request) : queue_(queue), request_(request) {}
+
+    using EntryVisitor::visitIndex;
+
+    /// If running in parallel, and the ordering of output matters, then we will have a per-thread
+    /// per-index output queue. We need to take that, and close it appropriately.
+    ///
+    /// We should always release the ordering imposed by the OrderedParallelFor once everything that
+    /// requires strict index ordering is done. Do this in this class, such that we only have
+    /// to implement this logic once, no matter how many visitors can be parallelised.
+    IndexScopePtr visitIndex(const Index& index, OrderedParallelFor::Order& order) final {
+
+        const Rule& rule = indexRule(index);
+
+        eckit::Queue<ValueType>& queue = obtainQueue();  // the one thing that must happen in order
+        order.release();
+
+        if constexpr (ordered()) {
+            // A sub-queue that is never closed stalls the consumer for good. A returned scope
+            // adopts it; if the visitor skips this index or throws, close it here instead, leaving
+            // an empty place in the sequence.
+            try {
+                auto scope = visitIndex(index, rule, queue);
+                if (!scope) {
+                    queue.close();
+                }
+                return scope;
+            }
+            catch (...) {
+                queue.close();
+                throw;
+            }
+        }
+        else {
+            return visitIndex(index, rule, queue);
+        }
+    }
+
+    virtual IndexScopePtr visitIndex(const Index& index, const Rule& rule, eckit::Queue<ValueType>& queue) {
+        return EntryVisitor::visitIndex(index, rule);
+    }
 
 protected:  // methods
+
+    /// output sequencing uses a QueueOfQueues. So this can be used to switch if the output is sequenced
+    static constexpr bool ordered() { return std::is_same_v<QueueType, eckit::QueueOfQueues<ValueType>>; }
+    eckit::Queue<ValueType>& obtainQueue() {
+        if constexpr (ordered()) {
+            return queue_.push();
+        }
+        else {
+            return queue_;
+        }
+    }
 
     const metkit::mars::MarsRequest& canonicalise(const Rule& rule) const {
         bool success;
@@ -61,7 +117,7 @@ protected:  // methods
 
 protected:  // members
 
-    eckit::Queue<ValueType>& queue_;
+    QueueType& queue_;
     metkit::mars::MarsRequest request_;
 
 private:  // members

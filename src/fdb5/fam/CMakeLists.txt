@@ -1,9 +1,11 @@
 # FamFieldLocation is independent of FAMFDB.
 # We compile it even if FAMFDB is not available for client/server builds.
-list( APPEND fdb5_srcs
-    fam/FamFieldLocation.cc
-    fam/FamFieldLocation.h
-)
+if( eckit_HAVE_OPENFAM )
+    list( APPEND fdb5_srcs
+        fam/FamFieldLocation.cc
+        fam/FamFieldLocation.h
+    )
+endif()
 
 if( HAVE_FAMFDB )
     list( APPEND fdb5_srcs

@@ -9,6 +9,7 @@
  */
 
 #include <algorithm>
+#include <memory>
 
 #include "eckit/log/Log.h"
 #include "fdb5/LibFdb5.h"
@@ -214,15 +215,15 @@ bool TocStatsReportVisitor::visitDatabase(const Catalogue& catalogue) {
 }
 
 
-void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fieldFingerprint) {
+void TocStatsReportVisitor::visitDatum(IndexScope& scope, const Field& field, const std::string& fieldFingerprint) {
 
-    TocDbStats* dbStats = new TocDbStats();
+    auto dbStats = std::make_unique<TocDbStats>();
 
     // Exclude non-owned data if relevant
     if (!includeReferencedNonOwnedData_) {
         const TocCatalogue* cat = dynamic_cast<const TocCatalogue*>(currentCatalogue_);
 
-        if (!currentIndex_->location().uri().path().dirName().sameAs(cat->basePath())) {
+        if (!scope.index().location().uri().path().dirName().sameAs(cat->basePath())) {
             return;
         }
         if (!field.location().uri().path().dirName().sameAs(cat->basePath())) {
@@ -230,12 +231,17 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
         }
     }
 
+    // Everything from here on touches state shared across indexes (indexStats_, allDataFiles_,
+    // dataUsage_, ...), which may be visited concurrently - one thread per index, see
+    // Catalogue::visitEntries()/supportsConcurrentIndexVisitation().
+    std::lock_guard<std::mutex> lock(statsMutex_);
+
     // If this index is not yet in the map, then create an entry
 
-    std::map<Index, IndexStats>::iterator stats_it = indexStats_.find(*currentIndex_);
+    std::map<Index, IndexStats>::iterator stats_it = indexStats_.find(scope.index());
 
     if (stats_it == indexStats_.end()) {
-        stats_it = indexStats_.insert(std::make_pair(*currentIndex_, IndexStats(new TocIndexStats()))).first;
+        stats_it = indexStats_.insert(std::make_pair(scope.index(), IndexStats(new TocIndexStats()))).first;
     }
 
     IndexStats& stats(stats_it->second);
@@ -246,7 +252,7 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
     stats.addFieldsSize(len);
 
     const eckit::PathName& dataPath = field.location().uri().path();
-    const eckit::PathName& indexPath = currentIndex_->location().uri().path();
+    const eckit::PathName& indexPath = scope.index().location().uri().path();
 
     if (dataPath != lastDataPath_) {
         if (dataPath.exists()) {
@@ -276,7 +282,7 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
         lastIndexPath_ = indexPath;
     }
 
-    std::string unique = currentIndex_->key().valuesToString() + "+" + fieldFingerprint;
+    std::string unique = scope.index().key().valuesToString() + "+" + fieldFingerprint;
 
     if (active_.insert(unique).second) {
         indexUsage_[indexPath]++;
@@ -291,7 +297,7 @@ void TocStatsReportVisitor::visitDatum(const Field& field, const std::string& fi
         dataUsage_[dataPath];
     }
 
-    dbStats_ += DbStats(dbStats);  // append to the global dbStats
+    dbStats_ += DbStats(dbStats.release());  // append to the global dbStats, which adopts it
 }
 
 void TocStatsReportVisitor::catalogueComplete(const Catalogue& catalogue) {}

@@ -57,6 +57,7 @@ public:  // methods
         options_.push_back(new SimpleOption<bool>("json", "Output available fields in JSON form"));
         options_.push_back(new SimpleOption<bool>("compact", "Aggregate available fields in MARS requests"));
         options_.push_back(new SimpleOption<long>("depth", "Output entries up to 'depth' levels deep [1-3]"));
+        options_.push_back(new SimpleOption<long>("threads", "Number of threads to use for index reading (default 8)"));
     }
 
 private:  // methods
@@ -72,6 +73,7 @@ private:  // methods
     bool json_{false};
     bool compact_{false};
     int depth_{3};
+    int threads_{8};
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -89,6 +91,7 @@ void FDBList::init(const CmdArgs& args) {
     json_ = args.getBool("json", json_);
     compact_ = args.getBool("compact", compact_);
     depth_ = args.getInt("depth", depth_);
+    threads_ = args.getInt("threads", threads_);
 
     ASSERT(depth_ > 0 && depth_ < 4);
 
@@ -134,7 +137,9 @@ void FDBList::init(const CmdArgs& args) {
 
 void FDBList::execute(const CmdArgs& args) {
 
-    FDB fdb(config(args));
+    LocalConfiguration userConfig;
+    userConfig.set("readIndexThreads", threads_);
+    FDB fdb(config(args, userConfig));
 
     std::unique_ptr<JSON> json;
     if (json_) {

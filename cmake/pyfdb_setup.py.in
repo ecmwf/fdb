@@ -37,9 +37,9 @@ ext_kwargs = {
 setup(
     name="pyfdb",
     version=f"@fdb5_VERSION_STR@{version_suffix}",
-    packages=["pyfdb", "pyfdb._internal", "pyfdb_bindings"],
+    packages=["pyfdb", "pyfdb._internal", "pyfdb.bindings"],
     package_data={
-        "pyfdb_bindings": ["*.so", "*.pyd"],
+        "pyfdb.bindings": ["*.so", "*.pyd"],
     },
     license="Apache 2.0",
     license_files=["LICENSE"],

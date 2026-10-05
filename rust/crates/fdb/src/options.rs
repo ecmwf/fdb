@@ -13,11 +13,13 @@
 //! `..Default::default()`:
 //!
 //! ```no_run
-//! use fdb::{Fdb, Request, WipeOptions};
+//! use fdb::{Fdb, WipeOptions};
 //!
 //! # fn main() -> fdb::Result<()> {
+//! eckit::init();
 //! let fdb = Fdb::open_default()?;
-//! let request = Request::new().with("class", "od");
+//! let mut request = metkit::MarsRequest::new("retrieve");
+//! request.set("class", "od");
 //!
 //! // Dry run with safe defaults — clearly the safe case.
 //! for entry in fdb.wipe(&request, WipeOptions::default())? { let _ = entry?; }
@@ -37,6 +39,56 @@
 //!   masked entries hidden, matching `fdb-list`'s defaults.
 //! - `DumpOptions`: `simple = false` — verbose dump by default, matching
 //!   `fdb-dump`.
+
+/// Per-instance FDB user configuration.
+///
+/// Overlays the main FDB config with per-instance tuning parameters.
+/// Pass to [`Fdb::open`](crate::Fdb::open) as the `user_config` argument.
+///
+/// # Example
+///
+/// ```no_run
+/// use fdb::{Fdb, UserConfig};
+///
+/// let cfg: eckit::Config = "type: local\nspaces: []".parse()?;
+/// let fdb = Fdb::open(
+///     Some(&cfg),
+///     Some(UserConfig { use_sub_toc: true, ..Default::default() }),
+/// )?;
+/// # Ok::<(), fdb::Error>(())
+/// ```
+#[derive(Debug, Clone, Copy)]
+pub struct UserConfig {
+    /// Enable sub-TOC files for improved write performance.
+    /// Default: `false`.
+    pub use_sub_toc: bool,
+    /// Preload `BTree` index into memory on open for faster lookups.
+    /// Default: `true`.
+    pub preload_toc_btree: bool,
+    /// Maximum read size limit for remote FDB (bytes).
+    /// Default: 1 GiB.
+    pub read_limit: i64,
+}
+
+impl Default for UserConfig {
+    fn default() -> Self {
+        Self {
+            use_sub_toc: false,
+            preload_toc_btree: true,
+            read_limit: 1024 * 1024 * 1024, // 1 GiB
+        }
+    }
+}
+
+impl From<UserConfig> for eckit::Config {
+    fn from(cfg: UserConfig) -> Self {
+        let mut config = Self::new();
+        config.set("useSubToc", cfg.use_sub_toc);
+        config.set("preloadTocBTree", cfg.preload_toc_btree);
+        config.set("limits.read", cfg.read_limit);
+        config
+    }
+}
 
 /// Options for [`Fdb::list`](crate::Fdb::list).
 ///

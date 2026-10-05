@@ -12,9 +12,7 @@
 #include <pwd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <unistd.h>
-
-#include <cerrno>
+#include <algorithm>
 #include <cstddef>
 #include <map>
 #include <memory>
@@ -818,6 +816,7 @@ eckit::LocalPathName TocHandler::parseSubTocRecord(const TocRecord& r, bool read
     eckit::MemoryStream s(&r.payload_[0], r.maxPayloadSize);
     eckit::LocalPathName path;
     s >> path;
+
     // Handle both path and absPath for compatibility as we move from storing
     // absolute paths to relative paths. Either may exist in either the TOC_SUB_TOC
     // or TOC_CLEAR entries.
@@ -826,7 +825,17 @@ eckit::LocalPathName TocHandler::parseSubTocRecord(const TocRecord& r, bool read
     if (path.path()[0] == '/') {
         absPath = findRealPath(path);
         if (!absPath.exists()) {
-            absPath = currentDirectory() / path.baseName();
+            // the DB may have been moved, so try to find the subtoc in the current directory
+            // except in case of an overlay (subtoc name = "toc")
+            if (path.baseName() != "toc") {
+                absPath = currentDirectory() / path.baseName();
+            }
+            else {
+                eckit::Log::error()
+                    << "Skipping an FDB overlay database that is no longer available. Original path was: " << path
+                    << std::endl;
+                absPath = "";
+            }
         }
     }
     else {
@@ -1452,7 +1461,6 @@ const eckit::LocalPathName& TocHandler::directory() const {
 
 std::vector<Index> TocHandler::loadIndexes(bool sorted, std::set<std::string>* subTocs,
                                            std::vector<bool>* indexInSubtoc, std::vector<Key>* remapKeys) const {
-
     std::vector<Index> indexes;
 
     if (!tocPath_.exists()) {
@@ -1538,18 +1546,21 @@ std::vector<Index> TocHandler::loadIndexes(bool sorted, std::set<std::string>* s
         }
     }
 
-    // Now construct the index objects (we can parallelise this...)
-    // n.b. would be nicer to use std::for_each with a policy ... but that doesn't work for now.
-
-    static const int nthreads = eckit::Resource<long>("fdbLoadIndexThreads;$FDB_LOAD_INDEX_THREADS", 1);
+    // The long-standing per-call override. Left under its original name so existing settings keep
+    // working; unset, the thread count follows the general read-side setting.
+    static const long threadsFromResource = eckit::Resource<long>("fdbLoadIndexThreads;$FDB_LOAD_INDEX_THREADS", -1);
+    int nthreads = threadsFromResource;
+    if (nthreads < 1) {
+        nthreads = std::max<int>(std::min<int>(indexEntries.size(), dbConfig_.readIndexThreads()), 1);
+    }
 
     {
         std::vector<std::future<void>> threads;
         std::vector<TocIndex*> tocindexes(indexEntries.size(), nullptr);
 
-        for (int i = 0; i < nthreads; ++i) {
-            threads.emplace_back(std::async(std::launch::async, [i, &indexEntries, &tocindexes, debug, this] {
-                for (int idx = i; idx < indexEntries.size(); idx += nthreads) {
+        for (size_t i = 0; i < nthreads; ++i) {
+            threads.emplace_back(std::async(std::launch::async, [i, nthreads, &indexEntries, &tocindexes, debug, this] {
+                for (size_t idx = i; idx < indexEntries.size(); idx += nthreads) {
 
                     const IndexEntry& entry = indexEntries[idx];
                     eckit::MemoryStream s(entry.datap->payload_, entry.dataLen - sizeof(TocRecord::Header));

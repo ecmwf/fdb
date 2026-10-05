@@ -88,7 +88,7 @@ bool FileSpace::match(const std::string& s) const {
 eckit::PathName getFullDB(const eckit::PathName& path, const std::string& db) {
 
     static bool searchCaseSensitiveDB =
-        eckit::Resource<bool>("fdbSearchCaseSensitiveDB;$FDB_SEARCH_CASESENSITIVE_DB", true);
+        eckit::Resource<bool>("fdbSearchCaseSensitiveDB;$FDB_SEARCH_CASESENSITIVE_DB", false);
 
     if (searchCaseSensitiveDB) {
 

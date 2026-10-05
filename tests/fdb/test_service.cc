@@ -71,7 +71,7 @@ struct FixtureService {
         modelParams_.push_back("138");
     }
 
-    void write_cycle(fdb5::Archiver& fdb, StringDict& p) {
+    void write_cycle(fdb5::FDB& fdb, StringDict& p) {
         Translator<size_t, std::string> str;
         for (const auto& param : modelParams_) {
             p["param"] = param;
@@ -90,9 +90,7 @@ struct FixtureService {
                     std::string data_str = data.str();
 
                     fdb5::Key k{p};
-                    auto visitor =
-                        ArchiveVisitor::create(fdb, k, static_cast<const void*>(data_str.c_str()), data_str.size());
-                    fdb.archive(k, *visitor);
+                    fdb.archive(k, static_cast<const void*>(data_str.c_str()), data_str.size());
                 }
             }
         }
@@ -210,7 +208,7 @@ CASE("test_fdb_service") {
         FixtureService f;
 
         SECTION("test_fdb_service_write") {
-            fdb5::Archiver fdb;
+            fdb5::FDB fdb;
 
             f.p["class"] = "rd";
             f.p["stream"] = "oper";
@@ -387,7 +385,7 @@ CASE("test_fdb_service_subtoc") {
         fdb5::Config config(expanded, userConf);
 
         SECTION("test_fdb_service_subtoc_write") {
-            fdb5::Archiver fdb(config);
+            fdb5::FDB fdb(config);
 
             f.p["class"] = "rd";
             f.p["stream"] = "oper";

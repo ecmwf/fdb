@@ -67,7 +67,7 @@ void LocalFDB::archive(const Key& key, const void* data, size_t length) {
         std::lock_guard lock(mutex_);
         if (!archiver_) {
             LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new archiver" << std::endl;
-            archiver_ = std::make_unique<Archiver>(config_, archiveCallback_);
+            archiver_ = std::make_unique<Archiver>(config_, callbacks_->archiveCallback_);
         }
         archiver = archiver_.get();
     }
@@ -104,16 +104,17 @@ template <typename VisitorType, typename... Ts>
 APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBToolRequest& request, Ts... args) {
 
     using ValueType = typename VisitorType::ValueType;
+    using QueueType = typename VisitorType::QueueType;
     using QueryIterator = APIIterator<ValueType>;
-    using AsyncIterator = APIAsyncIterator<ValueType>;
+    using AsyncIterator = APIAsyncIterator<ValueType, QueueType>;
 
-    auto async_worker = [this, request, args...](Queue<ValueType>& queue) {
+    auto async_worker = [this, request, args...](QueueType& queue) {
         EntryVisitMechanism mechanism(config_);
         VisitorType visitor(queue, request.request(), args...);
         mechanism.visit(request, visitor);
     };
 
-    return QueryIterator(new AsyncIterator(shared_from_this(), async_worker));
+    return QueryIterator(new AsyncIterator(shared_from_this(), async_worker, config_));
 }
 
 ListIterator LocalFDB::list(const FDBToolRequest& request, const int level) {
@@ -172,11 +173,11 @@ void LocalFDB::flush() {
     }
     if (archiver) {
         archiver->flush();
-        flushCallback_();
+        callbacks_->flushCallback_();
     }
     else if (reindexer) {
         reindexer->flush();
-        flushCallback_();
+        callbacks_->flushCallback_();
     }
 }
 

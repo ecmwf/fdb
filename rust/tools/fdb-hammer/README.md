@@ -24,9 +24,7 @@ cargo build -p fdb-hammer --release --no-default-features --features system
 ## Running
 
 Binaries work out of the box on both macOS and Linux — no
-`LD_LIBRARY_PATH` / `DYLD_LIBRARY_PATH` setup needed. The build script
-stamps a binary-relative RPATH so the dynamic linker finds the
-vendored libraries automatically:
+`LD_LIBRARY_PATH` / `DYLD_LIBRARY_PATH` setup needed:
 
 ```bash
 cd target/release

@@ -43,7 +43,9 @@ static FDBBuilder<SelectFDB> selectFdbBuilder("select");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-SelectFDB::FDBLane::FDBLane(const eckit::LocalConfiguration& config) : config_(config), fdb_(nullptr) {
+SelectFDB::FDBLane::FDBLane(const eckit::LocalConfiguration& config, const eckit::Configuration& userConfig,
+                            std::shared_ptr<Callbacks> callbacks) :
+    config_(config, userConfig), fdb_(nullptr), callbacks_(callbacks) {
     config_.setMatcher(std::make_unique<SelectMatcher>(config));
 }
 
@@ -56,6 +58,7 @@ bool SelectFDB::FDBLane::matches(const T& vals, Matcher::MatchMissingPolicy matc
 FDBBase& SelectFDB::FDBLane::get() {
     if (!fdb_) {
         fdb_ = FDBFactory::instance().build(config_);
+        fdb_->setCallbacks(callbacks_);
     }
     return *fdb_;
 }
@@ -63,6 +66,13 @@ FDBBase& SelectFDB::FDBLane::get() {
 void SelectFDB::FDBLane::flush() {
     if (fdb_) {
         fdb_->flush();
+    }
+}
+
+void SelectFDB::FDBLane::setCallbacks(std::shared_ptr<Callbacks> callbacks) {
+    callbacks_ = std::move(callbacks);
+    if (fdb_) {
+        fdb_->setCallbacks(callbacks_);
     }
 }
 
@@ -84,7 +94,7 @@ SelectFDB::SelectFDB(const Config& config, const std::string& name) : FDBBase(co
         if (!schema.empty() && !c.has("schema")) {
             c.set("schema", schema);
         }
-        subFdbs_.emplace_back(FDBLane{c});
+        subFdbs_.emplace_back(FDBLane{c, config.userConfig(), callbacks_});
     }
 }
 
@@ -192,6 +202,12 @@ void SelectFDB::flush() {
     }
 }
 
+void SelectFDB::setCallbacks(std::shared_ptr<Callbacks> callbacks) {
+    FDBBase::setCallbacks(callbacks);
+    for (auto& lane : subFdbs_) {
+        lane.setCallbacks(callbacks_);
+    }
+}
 
 void SelectFDB::print(std::ostream& s) const {
     s << "SelectFDB()";

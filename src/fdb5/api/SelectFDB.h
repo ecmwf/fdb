@@ -31,6 +31,7 @@
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
+
 class SelectFDB : public FDBBase {
 
 private:  // types
@@ -38,19 +39,22 @@ private:  // types
     class FDBLane {
         Config config_;
         std::shared_ptr<FDBBase> fdb_;
+        std::shared_ptr<Callbacks> callbacks_;
 
     public:
 
-        FDBLane(const eckit::LocalConfiguration& config);
+        FDBLane(const eckit::LocalConfiguration& config, const eckit::Configuration& userConfig,
+                std::shared_ptr<Callbacks> callbacks);
 
         FDBBase& get();
 
         void flush();
 
+        void setCallbacks(std::shared_ptr<Callbacks> callbacks);
+
         template <typename T>  // T is either a mars request or a Key
         bool matches(const T& vals, metkit::mars::Matcher::MatchMissingPolicy matchOnMissing) const;
     };
-
 
 public:  // methods
 
@@ -82,6 +86,8 @@ public:  // methods
     AxesIterator axesIterator(const FDBToolRequest& request, int level) override;
 
     void flush() override;
+
+    void setCallbacks(std::shared_ptr<Callbacks> callbacks) override;
 
 private:  // methods
 

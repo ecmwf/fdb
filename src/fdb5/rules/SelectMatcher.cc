@@ -16,7 +16,11 @@
 #include <algorithm>
 #include <functional>
 #include <optional>
+#include <sstream>
 #include <string>
+
+#include "eckit/config/LocalConfiguration.h"
+#include "eckit/exception/Exceptions.h"
 
 #include "metkit/mars/Parameter.h"
 
@@ -48,13 +52,22 @@ private:
 
 // ------------------------------------------------------------------------------------------------------
 
-SelectMatcher::SelectMatcher(const eckit::LocalConfiguration& config) :
-    select_{Matcher(config.getString("select", ""), Matcher::Policy::Any)} {
-
+SelectMatcher::SelectMatcher(const eckit::LocalConfiguration& config) {
+    bool found = false;
+    if (config.has("select")) {
+        select_ = Matcher(config.getString("select"), Matcher::Policy::Any);
+        found = true;
+    }
     if (config.has("excludes")) {
         for (const auto& ex : config.getStringVector("excludes")) {
             excludes_.push_back(Matcher(ex, Matcher::Policy::All));
         }
+        found = true;
+    }
+    if (!found) {
+        std::ostringstream ss;
+        ss << "SelectMatcher: no select or excludes rule found in config: " << config;
+        throw eckit::BadValue(ss.str(), Here());
     }
 }
 
@@ -71,7 +84,7 @@ bool SelectMatcher::match(const metkit::mars::MarsRequest& request, Matcher::Mat
 
 template <typename T>  // T is either a MarsRequest or KeyAccessor
 bool SelectMatcher::matchInner(const T& vals, Matcher::MatchMissingPolicy matchOnMissing) const {
-    if (!select_.match(vals, matchOnMissing)) {
+    if (select_ && !select_->match(vals, matchOnMissing)) {
         return false;
     }
 

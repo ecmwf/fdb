@@ -13,7 +13,7 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use fdb::{Fdb, Key, ListOptions, Request};
+use fdb::{Fdb, Key, ListOptions};
 use tokio::task::JoinSet;
 
 /// Get the path to test fixtures directory.
@@ -23,12 +23,12 @@ fn fixtures_dir() -> PathBuf {
 }
 
 /// Create a temporary FDB configuration for testing.
-fn create_test_config(tmpdir: &std::path::Path) -> String {
+fn create_test_config(tmpdir: &std::path::Path) -> eckit::Config {
     let schema_src = fixtures_dir().join("schema");
     let schema_dst = tmpdir.join("schema");
     fs::copy(&schema_src, &schema_dst).expect("failed to copy schema");
 
-    format!(
+    let yaml = format!(
         r"---
 type: local
 engine: toc
@@ -39,7 +39,18 @@ spaces:
 ",
         tmpdir.display(),
         tmpdir.display()
-    )
+    );
+    yaml.parse().expect("failed to parse test config")
+}
+
+/// Build a `MarsRequest` from a Key.
+fn request_from_key(key: &Key) -> metkit::MarsRequest {
+    eckit::init();
+    let mut request = metkit::MarsRequest::new("retrieve");
+    for (k, v) in key.entries() {
+        request.set(k, v);
+    }
+    request
 }
 
 /// Archive test data and return the key used.
@@ -130,7 +141,7 @@ async fn test_fdb_concurrent_retrieve() {
         let fdb = Arc::clone(&fdb);
 
         tasks.spawn(async move {
-            let request = Request::new()
+            let key = Key::new()
                 .with("class", "rd")
                 .with("expver", "xxxx")
                 .with("stream", "oper")
@@ -141,11 +152,14 @@ async fn test_fdb_concurrent_retrieve() {
                 .with("step", &i.to_string())
                 .with("param", "151130");
 
-            // Retrieve returns a DataReader that owns the data
-            let mut reader = fdb.retrieve(&request).expect("retrieve failed");
+            let request = request_from_key(&key);
+
+            // Retrieve returns an eckit::DataHandle
+            let handle = fdb.retrieve(&request).expect("retrieve failed");
+            let (mut handle, _len) = handle.open_for_read().expect("open_for_read failed");
 
             let mut buf = Vec::new();
-            reader.read_to_end(&mut buf).expect("read failed");
+            handle.read_to_end(&mut buf).expect("read failed");
 
             (i, buf.len())
         });
@@ -184,10 +198,10 @@ async fn test_fdb_concurrent_list() {
         let fdb = Arc::clone(&fdb);
 
         tasks.spawn(async move {
-            let request = Request::new()
-                .with("class", "rd")
-                .with("expver", "xxxx")
-                .with("stream", "oper");
+            let mut request = metkit::MarsRequest::new("retrieve");
+            request.set("class", "rd");
+            request.set("expver", "xxxx");
+            request.set("stream", "oper");
 
             let entries: Vec<_> = fdb
                 .list(
@@ -250,7 +264,7 @@ async fn test_fdb_spawn_blocking_pattern() {
     // Retrieve using spawn_blocking
     let fdb_clone = Arc::clone(&fdb);
     let result = tokio::task::spawn_blocking(move || {
-        let request = Request::new()
+        let key = Key::new()
             .with("class", "rd")
             .with("expver", "xxxx")
             .with("stream", "oper")
@@ -261,10 +275,12 @@ async fn test_fdb_spawn_blocking_pattern() {
             .with("step", "1")
             .with("param", "151130");
 
-        let mut reader = fdb_clone.retrieve(&request).expect("retrieve failed");
+        let request = request_from_key(&key);
+        let handle = fdb_clone.retrieve(&request).expect("retrieve failed");
+        let (mut handle, _len) = handle.open_for_read().expect("open_for_read failed");
 
         let mut buf = Vec::new();
-        reader.read_to_end(&mut buf).expect("read failed");
+        handle.read_to_end(&mut buf).expect("read failed");
         buf.len()
     })
     .await
