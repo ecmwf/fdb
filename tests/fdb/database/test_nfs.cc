@@ -23,7 +23,6 @@
 #include <atomic>
 #include <cerrno>
 #include <cstdlib>
-#include <string>
 #include <thread>
 #include <vector>
 
@@ -270,6 +269,51 @@ CASE("NFS mount: concurrent creators and writers preserve complete TOC records")
     (dir / "toc").unlink();
     (dir / "schema").unlink();
     dir.rmdir();
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+CASE("NFS mount: independent clients preserve records in a shared TOC") {
+    const char* shared_dir = ::getenv("FDB_TEST_NFS_SHARED_DIR");
+    if (shared_dir == nullptr || shared_dir[0] == '\0') {
+        return;
+    }
+
+    const eckit::PathName mount = nfsMountDir();
+    EXPECT(!mount.path().empty());
+    EXPECT_EQUAL(mount.fileSystemType(), std::string("nfs"));
+
+    const eckit::PathName dir{shared_dir};
+    EXPECT(dir.exists());
+    if (!dir.exists()) {
+        return;
+    }
+
+    constexpr size_t records_per_client = 100;
+    const char* clients_env = ::getenv("FDB_TEST_NFS_CLIENTS");
+    const size_t client_count = clients_env == nullptr ? 2 : ::strtoul(clients_env, nullptr, 10);
+    EXPECT(client_count > 0);
+
+    fdb5::Config config = fdb5::Config().expandConfig();
+    fdb5::Key key{{{"class", "od"}, {"expver", "0001"}, {"stream", "oper"}}};
+
+    const char* role_env = ::getenv("FDB_TEST_NFS_ROLE");
+    const std::string role = role_env == nullptr ? "write" : role_env;
+    if (role == "verify") {
+        fdb5::TocHandler reader(dir, config);
+        EXPECT_EQUAL(reader.databaseKey(), key);
+        EXPECT_EQUAL(reader.numberOfRecords(), 1 + client_count * records_per_client);
+        return;
+    }
+
+    EXPECT_EQUAL(role, std::string("write"));
+    fdb5::TocHandler creator(dir, config);
+    creator.writeInitRecord(key);
+
+    fdb5::TocHandler writer(dir, config);
+    for (size_t record = 0; record < records_per_client; ++record) {
+        writer.writeClearAllRecord();
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
