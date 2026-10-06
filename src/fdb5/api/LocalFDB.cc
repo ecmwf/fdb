@@ -67,7 +67,7 @@ void LocalFDB::archive(const Key& key, const void* data, size_t length) {
         std::lock_guard lock(mutex_);
         if (!archiver_) {
             LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new archiver" << std::endl;
-            archiver_ = std::make_unique<Archiver>(config_, callbacks_->archiveCallback_);
+            archiver_ = std::make_unique<Archiver>(config_, callbacks_->archiveCallbacks_);
         }
         archiver = archiver_.get();
     }
