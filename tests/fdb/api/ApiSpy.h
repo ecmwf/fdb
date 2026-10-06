@@ -90,9 +90,11 @@ public:  // methods
     void archive(const fdb5::Key& key, const void* data, size_t length) override {
         counts_.archive += 1;
         archives_.push_back(std::make_tuple(key, data, length));
-        std::promise<std::shared_ptr<const fdb5::FieldLocation>> promise;
-        promise.set_value(nullptr);
-        callbacks_->archiveCallback_(key, data, length, promise.get_future());
+        for (const auto& callback : callbacks_->archiveCallbacks_) {
+            std::promise<std::shared_ptr<const fdb5::FieldLocation>> promise;
+            promise.set_value(nullptr);
+            callback(key, data, length, promise.get_future());
+        }
     }
 
     fdb5::ListIterator inspect(const metkit::mars::MarsRequest& request) override {
