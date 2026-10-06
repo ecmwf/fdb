@@ -14,7 +14,8 @@ foreach( _t ${fdb_tools_tests} )
 endforeach()
 
 list( APPEND fdb_tools_grib_tests
-    axes )
+    axes
+    stats )
 
 foreach( _t ${fdb_tools_grib_tests} )
 

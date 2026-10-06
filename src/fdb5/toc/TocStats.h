@@ -65,6 +65,8 @@ public:
 
     void report(std::ostream& out, const char* indent) const override;
 
+    void json(eckit::JSON& json) const override;
+
 public:  // For Streamable
 
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
@@ -123,6 +125,8 @@ public:
     void add(const IndexStatsContent&) override;
 
     void report(std::ostream& out, const char* indent = "") const override;
+
+    void json(eckit::JSON& json) const override;
 
 public:  // For Streamable
 

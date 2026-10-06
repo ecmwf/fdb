@@ -13,6 +13,7 @@
 #include "fdb5/database/IndexStats.h"
 #include "fdb5/tools/FDBVisitTool.h"
 
+#include "eckit/log/JSON.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 
@@ -29,9 +30,10 @@ class FDBStats : public FDBVisitTool {
 
 public:  // methods
 
-    FDBStats(int argc, char** argv) : FDBVisitTool(argc, argv, "class,expver"), details_(false) {
+    FDBStats(int argc, char** argv) : FDBVisitTool(argc, argv, "class,expver"), details_(false), json_(false) {
 
         options_.push_back(new SimpleOption<bool>("details", "Print report for each database visited"));
+        options_.push_back(new SimpleOption<bool>("json", "Output the statistics in JSON form"));
     }
 
     ~FDBStats() override {}
@@ -44,11 +46,13 @@ private:  // methods
 private:  // members
 
     bool details_;
+    bool json_;
 };
 
 void FDBStats::init(const eckit::option::CmdArgs& args) {
     FDBVisitTool::init(args);
     details_ = args.getBool("details", false);
+    json_ = args.getBool("json", false);
 }
 
 void FDBStats::execute(const CmdArgs& args) {
@@ -58,6 +62,16 @@ void FDBStats::execute(const CmdArgs& args) {
     DbStats totaldbStats;
     size_t count = 0;
 
+    std::unique_ptr<JSON> json;
+    if (json_) {
+        json = std::make_unique<JSON>(Log::info());
+        json->startObject();
+        if (details_) {
+            (*json) << "details";
+            json->startList();
+        }
+    }
+
     for (const FDBToolRequest& request : requests()) {
 
         auto statsIterator = fdb.stats(request);
@@ -66,10 +80,18 @@ void FDBStats::execute(const CmdArgs& args) {
         while (statsIterator.next(elem)) {
 
             if (details_) {
-                Log::info() << std::endl;
-                elem.indexStatistics.report(Log::info());
-                elem.dbStatistics.report(Log::info());
-                Log::info() << std::endl;
+                if (json) {
+                    json->startObject();
+                    elem.indexStatistics.json(*json);
+                    elem.dbStatistics.json(*json);
+                    json->endObject();
+                }
+                else {
+                    Log::info() << std::endl;
+                    elem.indexStatistics.report(Log::info());
+                    elem.dbStatistics.report(Log::info());
+                    Log::info() << std::endl;
+                }
             }
 
             if (count == 0) {
@@ -91,7 +113,19 @@ void FDBStats::execute(const CmdArgs& args) {
         }
     }
 
-    if (count > 0) {
+    if (json) {
+        if (details_) json->endList();
+        if (count > 0) {
+            totalIndexStats.json(*json);
+            totaldbStats.json(*json);
+        }
+        else {
+            (*json) << "databases" << count;
+        }
+        json->endObject();
+        Log::info() << std::endl;
+    }
+    else if (count > 0) {
         Log::info() << std::endl;
         Log::info() << "Summary:" << std::endl;
         Log::info() << "========" << std::endl;
