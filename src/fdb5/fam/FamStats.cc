@@ -26,6 +26,7 @@
 #include "fdb5/fam/FamCatalogue.h"
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/log/JSON.h"
 #include "eckit/serialisation/Reanimator.h"
 #include "eckit/serialisation/Stream.h"
 
@@ -70,6 +71,14 @@ void FamDbStats::report(std::ostream& out, const char* indent) const {
     reportBytes(out, "Reachable data size", dataReachableSize_, indent);
 }
 
+void FamDbStats::json(eckit::JSON& json) const {
+    json << "databases" << dbCount_;
+    json << "indexes" << indexCount_;
+    json << "dataObjects" << dataObjectCount_;
+    json << "dataSize" << dataObjectSize_;
+    json << "reachableDataSize" << dataReachableSize_;
+}
+
 void FamDbStats::encode(eckit::Stream& stream) const {
     stream << dbCount_;
     stream << indexCount_;
@@ -109,6 +118,15 @@ void FamIndexStats::report(std::ostream& out, const char* indent) const {
     reportBytes(out, "Size of duplicates", duplicatesSize_, indent);
     reportCount(out, "Reachable fields", fieldsCount_ - duplicatesCount_, indent);
     reportBytes(out, "Reachable size", fieldsSize_ - duplicatesSize_, indent);
+}
+
+void FamIndexStats::json(eckit::JSON& json) const {
+    json << "fields" << fieldsCount_;
+    json << "fieldsSize" << fieldsSize_;
+    json << "duplicates" << duplicatesCount_;
+    json << "duplicatesSize" << duplicatesSize_;
+    json << "reachable" << fieldsCount_ - duplicatesCount_;
+    json << "reachableSize" << fieldsSize_ - duplicatesSize_;
 }
 
 void FamIndexStats::encode(eckit::Stream& stream) const {

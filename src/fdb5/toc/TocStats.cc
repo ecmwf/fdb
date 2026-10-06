@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <memory>
 
+#include "eckit/log/JSON.h"
 #include "eckit/log/Log.h"
 #include "fdb5/LibFdb5.h"
 
@@ -105,6 +106,24 @@ void TocDbStats::report(std::ostream& out, const char* indent) const {
                 tocFileSize_ + schemaFileSize_ + indexFilesSize_ + ownedFilesSize_ + adoptedFilesSize_, indent);
 }
 
+void TocDbStats::json(JSON& json) const {
+
+    json << "databases" << dbCount_;
+    json << "tocRecords" << tocRecordsCount_;
+    json << "tocSize" << tocFileSize_;
+    json << "schemaSize" << schemaFileSize_;
+
+    json << "ownedDataFiles" << ownedFilesCount_;
+    json << "ownedDataSize" << ownedFilesSize_;
+    json << "adoptedDataFiles" << adoptedFilesCount_;
+    json << "adoptedDataSize" << adoptedFilesSize_;
+    json << "indexFiles" << indexFilesCount_;
+    json << "indexSize" << indexFilesSize_;
+
+    json << "totalOwnedSize" << tocFileSize_ + schemaFileSize_ + indexFilesSize_ + ownedFilesSize_;
+    json << "totalSize" << tocFileSize_ + schemaFileSize_ + indexFilesSize_ + ownedFilesSize_ + adoptedFilesSize_;
+}
+
 void TocDbStats::encode(Stream& s) const {
 
     s << dbCount_;
@@ -154,6 +173,15 @@ void TocIndexStats::report(std::ostream& out, const char* indent) const {
     reportBytes(out, "Size of duplicates", duplicatesSize_, indent);
     reportCount(out, "Reacheable fields ", fieldsCount_ - duplicatesCount_, indent);
     reportBytes(out, "Reachable size", fieldsSize_ - duplicatesSize_, indent);
+}
+
+void TocIndexStats::json(JSON& json) const {
+    json << "fields" << fieldsCount_;
+    json << "fieldsSize" << fieldsSize_;
+    json << "duplicates" << duplicatesCount_;
+    json << "duplicatesSize" << duplicatesSize_;
+    json << "reachable" << fieldsCount_ - duplicatesCount_;
+    json << "reachableSize" << fieldsSize_ - duplicatesSize_;
 }
 
 void TocIndexStats::encode(Stream& s) const {

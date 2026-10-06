@@ -14,6 +14,8 @@ Options
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--details``                          | Print information for each database visited, in addition to the summary                                             |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
+| ``--json``                             | Report statistics as a JSON object.
++----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--ignore-errors``                    | Ignore errors (report them as warnings) and continue processing wherever possible                                   |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--ignore-no-data``                   | Not finding any data is not an error                                                                                |
@@ -101,3 +103,18 @@ The --details flag prints a report per database that is visited, as well as the 
 
   Number of databases             : 4
   ...
+
+Example 3
+---------
+
+The --json flag reports the same statistics as a single JSON object, with the aggregated summary at the
+top level. Where it is combined with --details, the statistics of each database visited are reported as
+objects within the "details" list.
+
+::
+
+  % fdb stats class=rd,expver=xxxx --json --details
+  {"details":[{"fields":2,"fieldsSize":2952,"duplicates":0,"duplicatesSize":0,...},
+              {"fields":1,"fieldsSize":1476,...}],
+   "fields":3,"fieldsSize":4428,"duplicates":0,"duplicatesSize":0,"reachable":3,
+   "reachableSize":4428,"databases":2,"tocRecords":5,"tocSize":5120,...}

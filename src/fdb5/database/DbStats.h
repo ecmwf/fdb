@@ -22,6 +22,10 @@
 #include "eckit/memory/Counted.h"
 #include "eckit/serialisation/Streamable.h"
 
+namespace eckit {
+class JSON;
+}  // namespace eckit
+
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -34,6 +38,7 @@ public:
     virtual void add(const DbStatsContent&) = 0;
 
     virtual void report(std::ostream& out, const char* indent) const = 0;
+    virtual void json(eckit::JSON& json) const = 0;
 
 public:  // For Streamable
 
@@ -66,6 +71,7 @@ public:  // methods
     void add(const DbStats&);
 
     void report(std::ostream& out, const char* indent = "") const;
+    void json(eckit::JSON& json) const;
 
     //    template <class T>
     //    T& as() {
