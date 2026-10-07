@@ -2,10 +2,9 @@
    SPDX-License-Identifier: Apache-2.0 #}
 {% extends "ci-infrastructure/cmake-atos.sh.j2" %}
 {% block set_environment %}
-  VENV="${TMPDIR:-/tmp}/fdb-venv-atos"
-  uv venv "$VENV"
-  source "$VENV/bin/activate"
-  uv pip install -r "python/requirements-build.txt"
+python3 -m venv "${TMPDIR:-/tmp}/fdb-venv"
+source "${TMPDIR:-/tmp}/fdb-venv/bin/activate"
+uv pip install -r "python/requirements-build.txt"
 {% endblock %}
 {% block test %}
 IFS=';:' read -ra dep_prefixes <<< "$CMAKE_PREFIX_PATH"
