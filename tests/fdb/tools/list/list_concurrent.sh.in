@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+
+# Concurrent per-index visitation must not change what a listing reports.
+#
+# Builds a database with many indexes, several holding the same fields, and checks list/axes/stats
+# output is byte-for-byte identical whatever the thread count. The duplicates are the point:
+# de-duplication keeps the entry from whichever index is seen first, so output released out of
+# order would report different locations.
+
+set -euxo pipefail
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+
+########################################################################################################################
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB5_CONFIG_FILE="local.yaml"
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+test_name=concurrent
+src_data="../../../od.oper.grib"
+src_dir=@CMAKE_CURRENT_SOURCE_DIR@
+bin_dir=@CMAKE_CURRENT_BINARY_DIR@
+
+########################################################################################################################
+
+echo "running test '$test_name' on $(hostname)"
+
+cd $bin_dir
+
+rm -rf $test_name
+mkdir -p $test_name/localroot
+
+cd $test_name
+
+cp "$src_dir/local.yaml" ./
+
+########################################################################################################################
+
+# Each fdb-write session writes a fresh index record, so repeating the same steps over several
+# passes leaves many indexes and every field present more than once.
+
+for step in 0 1 2; do
+  grib_set -s class=rd,expver=xxxx,type=fc,step=$step "$src_data" "d.$step.grib"
+done
+
+for pass in 1 2 3; do
+  for step in 0 1 2; do
+    fdb-write "d.$step.grib"
+  done
+done
+
+########################################################################################################################
+
+# Confirm there really are several indexes, else the comparisons below pass trivially.
+# n.b. the eckit debug channel writes to stdout, so this run is kept separate from the comparisons.
+FDB_DEBUG=1 fdb-list --all --minimum-keys="" --porcelain > indexes.debug 2>&1
+
+nindexes=$(sed -nE 's/.*Visiting ([0-9]+) indexes.*/\1/p' indexes.debug | sort -rn | sed -n 1p)
+[[ -n "${nindexes:-}" ]] || die "could not determine the index count"
+[[ $nindexes -ge 4 ]] || die "expected several indexes per database, got [$nindexes]"
+
+for tool in "fdb-list --all --minimum-keys= --porcelain" \
+            "fdb-axes --all --minimum-keys=" \
+            "fdb-stats --all --minimum-keys="; do
+
+  name=$(echo $tool | cut -d' ' -f1)
+
+  $tool > "$name.threads1"
+  [[ -s "$name.threads1" ]] || die "$name produced no output; the comparison would be meaningless"
+
+  # Repeated: a lost ordering guarantee shows up only on some interleavings.
+  for attempt in 1 2 3; do
+    FDB_READ_INDEX_THREADS=8 $tool > "$name.threads8"
+    cmp "$name.threads1" "$name.threads8" \
+      || die "$name output differs with FDB_READ_INDEX_THREADS=8 (attempt $attempt)"
+  done
+
+  echo "$name: identical across thread counts ($(wc -l < "$name.threads1") lines)"
+done
+
+echo "$test_name: OK"

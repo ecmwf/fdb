@@ -71,6 +71,7 @@ add_subdirectory( database )
 add_subdirectory( type )
 add_subdirectory( daos )
 add_subdirectory( fam )
+add_subdirectory( parsing )
 
 if("${ECKIT_VERSION}" VERSION_GREATER_EQUAL 2.2)
     add_subdirectory( concurrent )

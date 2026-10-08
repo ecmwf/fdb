@@ -16,7 +16,6 @@ from pyfdb._internal import (
     Config,
     ConfigMapper,
     FDBToolRequest,
-    init_bindings,
 )
 from pyfdb.pyfdb_iterator import (
     ControlElement,
@@ -97,7 +96,6 @@ class FDB:
         ...     pass
         """
 
-        init_bindings()
         self.logger = logging.getLogger(__name__ + ".FDB")
 
         # Convert to JSON if set

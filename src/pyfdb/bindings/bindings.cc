@@ -8,12 +8,6 @@
  * nor does it submit to any jurisdiction.
  */
 
-#include <chunked_data_view/AxisDefinition.h>
-#include <chunked_data_view/ChunkedDataView.h>
-#include <chunked_data_view/ChunkedDataViewBuilder.h>
-#include <chunked_data_view/Extractor.h>
-#include <chunked_data_view/LibChunkedDataView.h>
-
 #include <pybind11/iostream.h>
 #include <pybind11/native_enum.h>
 #include <pybind11/numpy.h>
@@ -108,7 +102,7 @@ metkit::mars::MarsRequest mars_request_from_map(const std::map<std::string, std:
     return expand.expand(mars_request);
 }
 
-PYBIND11_MODULE(pyfdb_bindings, m) {
+PYBIND11_MODULE(_pyfdb_bindings, m) {
     m.def("init_bindings", []() {
         const char* args[] = {"pyfdb", ""};
         eckit::Main::initialise(1, const_cast<char**>(args));

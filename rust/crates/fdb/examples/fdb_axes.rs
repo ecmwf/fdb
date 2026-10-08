@@ -10,7 +10,7 @@
 use std::process::ExitCode;
 
 use clap::Parser;
-use fdb::{Fdb, Request};
+use fdb::Fdb;
 
 /// Query the available axes (metadata dimensions) for a MARS request.
 #[derive(Parser, Debug)]
@@ -22,7 +22,9 @@ struct Args {
 }
 
 fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
-    let request: Request = args.request.parse()?;
+    eckit::init();
+    let parsed = metkit::parse(&format!("retrieve, {}", args.request), false)?;
+    let request = parsed.at(0)?;
     let fdb = Fdb::open_default()?;
 
     // Full traversal (db + index + datum) mirrors the behaviour of

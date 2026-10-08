@@ -56,7 +56,7 @@ impl ListIterator {
     where
         W: std::io::Write,
     {
-        let data = fdb_sys::list_iterator_dump_compact(self.handle.pin_mut())?;
+        let data = self.handle.pin_mut().dump_compact()?;
         // Mark exhausted so any stray subsequent use surfaces as
         // `None` rather than trying to touch the drained C++ iterator.
         self.exhausted = true;

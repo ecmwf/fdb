@@ -9,8 +9,10 @@
  */
 
 #include <cstdlib>
+#include <fstream>
 #include <sstream>
 
+#include "eckit/filesystem/PathName.h"
 #include "eckit/testing/Test.h"
 
 #include "fdb5/config/Config.h"

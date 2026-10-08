@@ -23,6 +23,8 @@
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/PurgeVisitor.h"
 
+#include <memory>
+
 namespace fdb5 {
 namespace api {
 namespace local {
@@ -64,14 +66,20 @@ bool PurgeVisitor::visitDatabase(const Catalogue& catalogue) {
     return true;  // Explore contained indexes
 }
 
-bool PurgeVisitor::visitIndex(const Index& index) {
-    internalVisitor_->visitIndex(index);
+EntryVisitor::IndexScopePtr PurgeVisitor::visitIndex(const Index& index, const Rule& rule,
+                                                     eckit::Queue<PurgeElement>& /*queue*/) {
+    auto inner = internalVisitor_->visitIndex(index, rule);
+    if (!inner) {
+        return nullptr;  // Skip contained entries
+    }
 
-    return true;  // Explore contained entries
+    auto scope = std::make_unique<Scope>(*currentCatalogue_, index, rule);
+    scope->inner = std::move(inner);
+    return scope;  // Explore contained entries
 }
 
-void PurgeVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {
-    internalVisitor_->visitDatum(field, keyFingerprint);
+void PurgeVisitor::visitDatum(IndexScope& indexScope, const Field& field, const std::string& keyFingerprint) {
+    internalVisitor_->visitDatum(*static_cast<Scope&>(indexScope).inner, field, keyFingerprint);
 }
 
 void PurgeVisitor::catalogueComplete(const Catalogue& catalogue) {

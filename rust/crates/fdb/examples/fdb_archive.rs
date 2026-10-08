@@ -24,10 +24,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let grib_path = &args[2];
     let use_raw = args.get(3).is_some_and(|a| a == "--raw");
 
-    // Open the FDB. Passing a `Path` (rather than a `&str`) routes through
-    // `fdb5::Config::make`, which loads YAML or JSON and expands `~fdb`/
-    // `fdb_home` references — no need to slurp the file into a String first.
-    let fdb = Fdb::open(Some(config_path), None)?;
+    // Load the config from the YAML/JSON file path, then open the FDB.
+    let cfg = eckit::Config::from_path(config_path)?;
+    let fdb = Fdb::open(Some(&cfg), None)?;
 
     // Read GRIB data
     let data = fs::read(grib_path)?;
@@ -55,7 +54,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Flush to persist
-    fdb.flush()?;
+    let () = fdb.flush()?;
     println!("Data archived and flushed successfully");
 
     // Show stats

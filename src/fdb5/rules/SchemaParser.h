@@ -14,10 +14,13 @@
 #ifndef fdb5_SchemaParser_h
 #define fdb5_SchemaParser_h
 
+#include <cstddef>
+#include <fstream>
 #include <iosfwd>
 #include <memory>
 #include <string>
 
+#include "eckit/filesystem/PathName.h"
 #include "eckit/parser/StreamParser.h"
 #include "eckit/types/Types.h"
 
@@ -27,15 +30,21 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class SchemaParser : public eckit::StreamParser {
+class SchemaParser {
 
 public:  // methods
 
-    SchemaParser(std::istream& in) : StreamParser(in, true) {}
+    explicit SchemaParser(const eckit::PathName& path);
+
+    explicit SchemaParser(std::istream& in);
 
     void parse(RuleList& result, TypesRegistry& registry);
 
 private:  // methods
+
+    bool isAscii(char c);
+
+    char peek(bool spaces = false);
 
     std::string parseIdent(bool value, bool emptyOK);
 
@@ -48,6 +57,15 @@ private:  // methods
     std::unique_ptr<Predicate> parsePredicate(eckit::StringDict& types);
 
     void parseTypes(eckit::StringDict& types);
+
+private:  // members
+
+    std::string getSchemaPath() const noexcept {
+        return path_.has_value() ? std::get<0>(*path_).localPath() : "Created from std::istream";
+    }
+
+    std::optional<std::tuple<eckit::PathName, std::ifstream>> path_;
+    std::unique_ptr<eckit::StreamParser> parser_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
