@@ -332,7 +332,8 @@ void TocStatsReportVisitor::catalogueComplete(const Catalogue& catalogue) {
                 if (dataFile.adopted) {
                     dbStats->adoptedFilesSize_ += dataFile.size;
                     dbStats->adoptedFilesCount_++;
-                } else {
+                }
+                else {
                     dbStats->ownedFilesSize_ += dataFile.size;
                     dbStats->ownedFilesCount_++;
                 }
@@ -358,7 +359,8 @@ void TocStatsReportVisitor::catalogueComplete(const Catalogue& catalogue) {
             if (active_.insert(std::move(fieldRecord.fingerprint)).second) {
                 indexUsage_[acc.indexPath()]++;
                 dataUsage_[dataPath]++;
-            } else {
+            }
+            else {
                 indexStats_[acc.index].addDuplicatesCount(1);
                 indexStats_[acc.index].addDuplicatesSize(fieldRecord.length);
 
@@ -367,7 +369,6 @@ void TocStatsReportVisitor::catalogueComplete(const Catalogue& catalogue) {
                 dataUsage_[dataPath];
             }
         }
-
     }
 
     ASSERT(perIndexAccumulators_.empty());
