@@ -343,7 +343,12 @@ void TocStatsReportVisitor::catalogueComplete(const Catalogue& catalogue) {
         // Indexes which are non-owned will contribute no fields as a result of the filter in
         // visitDatum. We exclude them here with the fieldsCount check.
 
-        if (acc.indexStats->fieldsCount() > 0 && allIndexFiles_.insert(acc.indexPath()).second) {
+        if (acc.indexStats->fieldsCount() == 0) {
+            ASSERT(acc.fieldQueue.empty());
+            continue;
+        }
+
+        if (allIndexFiles_.insert(acc.indexPath()).second) {
             dbStats->indexFilesSize_ += acc.indexPathSize();
             dbStats->indexFilesCount_++;
         }
