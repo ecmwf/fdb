@@ -1,0 +1,163 @@
+#!/usr/bin/env bash
+
+# fdb-purge deletes data, and which data it deletes depends on index visitation order.
+#
+# De-duplication keeps whichever copy of a field is merged first; every later copy is charged to
+# its own index as a duplicate, and a data file whose usage count stays at zero is removed. With
+# indexes visited across several threads, TocStatsReportVisitor accumulates per index and merges
+# in index order in catalogueComplete(). If that ordering were lost, purge would still delete the
+# right *number* of files - it would just delete the wrong ones, taking the live data with it.
+#
+# So counting files is not enough. This test pins the identity of what survives: the data files
+# left on disk after the purge must be exactly the files that the de-duplicated listing pointed
+# at beforehand, and the listing itself must be unchanged.
+#
+# The fixture stacks four layers of the same fields - three layers of duplicates over the
+# original - so that every index is a candidate to be kept and only one of them is correct.
+
+set -euxo pipefail
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+
+########################################################################################################################
+
+export PATH=@CMAKE_BINARY_DIR@/bin:${ECCODES_BINARY_PATH}:$PATH
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+# Config::readIndexThreads() reads this through a static eckit::Resource that takes priority over
+# the user config, which is where --threads lands. Left set, --threads would have no effect.
+unset FDB_READ_INDEX_THREADS || true
+
+test_name=purge_concurrent
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+request=class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g
+
+nlayers=4
+nsteps=3
+
+########################################################################################################################
+
+echo "running test '$test_name' on $(hostname)"
+
+cd $bindir
+
+rm -rf $test_name
+mkdir -p $test_name
+cd $test_name
+
+# Basenames are generated unique per data file, so comparing them is enough to identify a file,
+# and unlike full paths they are stable to compare against find(1) output.
+data_basenames() { find . -name '*.data' | sed 's#.*/##' | sort; }
+
+# fdb-list --location renders a field location as
+#   TocFieldLocation[uri=URI[scheme=file,name=/path/to/xxx.data,offset=...,length=...]]
+# with no space before the path, so anchor on the leading '/' rather than on whitespace. The
+# path itself contains no commas, which is what terminates the name= field.
+live_data_paths() {
+  fdb-list --all --minimum-keys= --porcelain --location \
+    | grep -oE '/[^[:space:],]+\.data' \
+    | sort -u
+}
+
+live_data_basenames() { live_data_paths | sed 's#.*/##' | sort -u; }
+
+########################################################################################################################
+# One complete write / purge / verify cycle, at a given thread count, in its own FDB root.
+
+run_case() {
+  local threads="$1"
+  local dir="run.threads$threads"
+
+  rm -rf "$dir"
+  mkdir -p "$dir/localroot"
+  (
+    cd "$dir"
+
+    cp "$srcdir/local.yaml" ./
+    cp "$srcdir/x.grib" ./
+    export FDB5_CONFIG_FILE=local.yaml
+
+    # One layer = one fdb-write session = one index record and one data file holding nsteps
+    # fields. Repeating it leaves every field present nlayers times, in nlayers separate indexes.
+    for step in 6 9 12; do
+      grib_set -s step=$step x.grib "x.$step.grib"
+    done
+    cat x.6.grib x.9.grib x.12.grib > layer.grib
+
+    for layer in $(seq 1 $nlayers); do
+      fdb-write layer.grib
+    done
+
+    ####################################################################################################################
+    # Preconditions - if these do not hold the purge below proves nothing.
+
+    fdb-list --all --minimum-keys= --porcelain > live.before
+    fdb-list --all --minimum-keys= --full --porcelain > all.before
+
+    [[ $(wc -l < live.before | tr -d ' ') -eq $nsteps ]] \
+      || die "expected $nsteps reachable fields, got $(wc -l < live.before)"
+    [[ $(wc -l < all.before | tr -d ' ') -eq $((nsteps * nlayers)) ]] \
+      || die "expected $((nsteps * nlayers)) total entries, got $(wc -l < all.before)"
+    [[ $(find . -name '*.data' | wc -l | tr -d ' ') -eq $nlayers ]] \
+      || die "expected $nlayers data files, got $(find . -name '*.data' | wc -l)"
+    [[ $(find . -name '*.index' | wc -l | tr -d ' ') -eq $nlayers ]] \
+      || die "expected $nlayers index files, got $(find . -name '*.index' | wc -l)"
+
+    # The files the live data actually lives in. Everything else is masked and must go.
+    live_data_basenames > keep.expected
+    [[ -s keep.expected ]] || die "could not determine which data files hold the live fields"
+
+    ####################################################################################################################
+
+    fdb-purge $request --threads="$threads" --doit > purge.out
+    cat purge.out
+
+    ####################################################################################################################
+    # The identity check: what survived must be exactly what was live.
+
+    data_basenames > keep.actual
+
+    diff keep.expected keep.actual \
+      || die "purge kept the wrong data files at --threads=$threads (expected left, got right)"
+
+    [[ $(find . -name '*.data' | wc -l | tr -d ' ') -eq 1 ]] \
+      || die "expected a single data file to survive, got $(find . -name '*.data' | wc -l)"
+    [[ $(find . -name '*.index' | wc -l | tr -d ' ') -eq 1 ]] \
+      || die "expected a single index file to survive, got $(find . -name '*.index' | wc -l)"
+
+    # The live data is still listed, still de-duplicated, and every location resolves.
+    fdb-list --all --minimum-keys= --porcelain > live.after
+    fdb-list --all --minimum-keys= --full --porcelain > all.after
+
+    diff live.before live.after || die "the reachable fields changed across the purge"
+
+    [[ $(wc -l < all.after | tr -d ' ') -eq $nsteps ]] \
+      || die "expected $nsteps entries after purge, got $(wc -l < all.after)"
+
+    for f in $(live_data_paths); do
+      [[ -f "$f" ]] || die "a surviving field points at $f, which purge deleted"
+    done
+
+    echo "--threads=$threads: kept $(cat keep.expected), $(wc -l < live.after) fields still reachable"
+  )
+}
+
+########################################################################################################################
+
+run_case 1
+run_case 8
+
+########################################################################################################################
+# Serial and parallel must agree. Data file names are generated unique per run, so the listings
+# with locations cannot be compared across runs - the porcelain key listing can.
+
+diff run.threads1/live.after run.threads8/live.after \
+  || die "the surviving fields differ between --threads=1 and --threads=8"
+
+diff <(wc -l < run.threads1/all.after) <(wc -l < run.threads8/all.after) \
+  || die "the number of surviving entries differs between --threads=1 and --threads=8"
+
+echo "$test_name: OK"

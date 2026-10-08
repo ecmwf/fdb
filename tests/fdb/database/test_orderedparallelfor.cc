@@ -109,8 +109,7 @@ CASE("After release(), work() runs concurrently") {
 CASE("Work that never releases is serialised, but still correct") {
 
     // Forgetting to release costs concurrency, never correctness - the Order is released when
-    // work() returns however it ends. QueryVisitor marks its ordered overload final precisely so
-    // that no visitor can land here by accident.
+    // work() returns however it ends.
     constexpr size_t n = 32;
     std::vector<size_t> ran;
 

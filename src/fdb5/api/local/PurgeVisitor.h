@@ -41,14 +41,18 @@ public:
     PurgeVisitor(eckit::Queue<PurgeElement>& queue, const metkit::mars::MarsRequest& request, bool doit,
                  bool porcelain);
 
-    bool supportsConcurrentIndexVisitation() const final { return false; }
-
     bool visitDatabase(const Catalogue& catalogue) override;
-    IndexScopePtr visitIndex(const Index& index, const Rule& rule, eckit::Queue<PurgeElement>& queue) override;
+    IndexScopePtr visitIndex(const Index& index, OrderedParallelFor::Order& order) override;
     void catalogueComplete(const Catalogue& catalogue) override;
+
+    // Ensure that overrides of default behaviour can't be used (we've overriden the base using Order)
+    IndexScopePtr visitIndex(const Index&, const Rule&) final { NOTIMP; }
+    IndexScopePtr visitIndex(const Index&, const Rule&, eckit::Queue<ValueType>& queue) final { NOTIMP; }
 
     void visitDatum(IndexScope& scope, const Field& field, const std::string& keyFingerprint) override;
     void visitDatum(IndexScope& /*scope*/, const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
+
+    bool supportsConcurrentIndexVisitation() const override;
 
 private:  // types
 

@@ -44,14 +44,14 @@ public:  // types
 
     public:  // methods
 
-        /// An Order that holds nothing, for callers running outside a parallel batch. release()
-        /// is a no-op.
+        /// Default-constructed Order can be used to satisfy function calling outside
+        /// a parallel context. Use is a no-op.
         Order() = default;
 
         Order(const Order&) = delete;
         Order& operator=(const Order&) = delete;
 
-        /// Idempotent.
+        /// Release other tasks to run in parallel. Idempotent.
         void release() {
             if (lock_ && lock_->owns_lock()) {
                 lock_->unlock();
@@ -61,7 +61,8 @@ public:  // types
     private:  // methods
 
         friend class OrderedParallelFor;
-        explicit Order(std::unique_lock<std::mutex>& lock) : lock_(&lock) {}
+        explicit Order(std::unique_lock<std::mutex>& lock) :
+            lock_(&lock) {}
 
     private:  // members
 

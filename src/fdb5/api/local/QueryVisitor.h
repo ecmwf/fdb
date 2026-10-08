@@ -52,13 +52,16 @@ public:  // methods
 
     using EntryVisitor::visitIndex;
 
-    /// If running in parallel, and the ordering of output matters, then we will have a per-thread
-    /// per-index output queue. We need to take that, and close it appropriately.
+    /// If running in parallel, and the ordering of output matters, then typically we will
+    /// have a per-thread per-index output queue. If that is the case, then acquiring this
+    /// ordered slot is normally the only thing that needs to be done strictly in order, so
+    /// we can release the ordering once that is done.
     ///
-    /// We should always release the ordering imposed by the OrderedParallelFor once everything that
-    /// requires strict index ordering is done. Do this in this class, such that we only have
-    /// to implement this logic once, no matter how many visitors can be parallelised.
-    IndexScopePtr visitIndex(const Index& index, OrderedParallelFor::Order& order) final {
+    /// If a specific visitor either does not make use of this queue ordering, or if it
+    /// needs to do something else ordered (e.g. toc-stats creates per-index accumulators
+    /// which need to be ordered, but are merged beore output), then this function should
+    /// be overridden.
+    IndexScopePtr visitIndex(const Index& index, OrderedParallelFor::Order& order) {
 
         const Rule& rule = indexRule(index);
 

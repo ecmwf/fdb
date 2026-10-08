@@ -12,6 +12,7 @@
 
 #include <map>
 #include <ostream>
+#include <shared_mutex>
 #include <string>
 
 #include "eckit/exception/Exceptions.h"
@@ -26,11 +27,11 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-static eckit::Mutex* local_mutex = 0;
+static std::shared_mutex* local_mutex = 0;
 static std::map<std::string, BTreeIndexFactory*>* m = 0;
 static pthread_once_t once = PTHREAD_ONCE_INIT;
 static void init() {
-    local_mutex = new eckit::Mutex();
+    local_mutex = new std::shared_mutex;
     m = new std::map<std::string, BTreeIndexFactory*>();
 }
 
@@ -38,7 +39,7 @@ static void init() {
 
 BTreeIndexFactory::BTreeIndexFactory(const std::string& name) : name_(name) {
     pthread_once(&once, init);
-    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
+    std::unique_lock lock(*local_mutex);
 
     ASSERT(m->find(name) == m->end());
     (*m)[name] = this;
@@ -48,14 +49,14 @@ BTreeIndexFactory::~BTreeIndexFactory() {
     if (LibFdb5::instance().dontDeregisterFactories()) {
         return;
     }
-    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
+    std::unique_lock lock(*local_mutex);
     m->erase(name_);
 }
 
 BTreeIndex* BTreeIndexFactory::build(const std::string& name, const eckit::PathName& path, bool readOnly,
                                      off_t offset) {
     pthread_once(&once, init);
-    eckit::AutoLock<eckit::Mutex> lock(local_mutex);
+    std::shared_lock lock(*local_mutex);
 
     std::map<std::string, BTreeIndexFactory*>::const_iterator j = m->find(name);
 

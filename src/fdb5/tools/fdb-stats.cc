@@ -34,6 +34,7 @@ public:  // methods
 
         options_.push_back(new SimpleOption<bool>("details", "Print report for each database visited"));
         options_.push_back(new SimpleOption<bool>("json", "Output the statistics in JSON form"));
+        options_.push_back(new SimpleOption<long>("threads", "Number of threads to use for index reading (default 8)"));
     }
 
     ~FDBStats() override {}
@@ -47,17 +48,22 @@ private:  // members
 
     bool details_;
     bool json_;
+    int threads_{8};
 };
 
 void FDBStats::init(const eckit::option::CmdArgs& args) {
     FDBVisitTool::init(args);
     details_ = args.getBool("details", false);
     json_ = args.getBool("json", false);
+    threads_ = args.getInt("threads", threads_);
 }
 
 void FDBStats::execute(const CmdArgs& args) {
 
-    FDB fdb(config(args));
+    LocalConfiguration userConfig;
+    userConfig.set("readIndexThreads", threads_);
+    FDB fdb(config(args, userConfig));
+
     IndexStats totalIndexStats;
     DbStats totaldbStats;
     size_t count = 0;

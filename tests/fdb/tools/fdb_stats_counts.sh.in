@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+
+# Statistics are gathered into a per-index accumulator and merged in catalogueComplete(), rather
+# than into shared state as each datum is visited. The data-file accounting has to survive that
+# move intact, in particular for a file that is referenced by an index but is no longer on disk:
+# it must not re-enter the totals as a zero-byte owned file, and it must not make fdb-stats throw.
+#
+# Removing a data file therefore has a precise signature, which is what this test pins:
+#
+#            ownedDataFiles   ownedDataSize   fields
+#   before   N                S               F
+#   after    N - 1            S - v           F        <- the fields referencing it still count
+
+set -euxo pipefail
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+
+# Pull a top-level integer out of the single-line JSON object produced by --json. The colon keeps
+# "fields" from matching "fieldsSize", and "ownedDataFiles" from matching "ownedDataSize".
+json() { sed -nE "s/.*\"$1\":([0-9]+).*/\1/p" "$2"; }
+
+########################################################################################################################
+
+export PATH=@CMAKE_BINARY_DIR@/bin:${ECCODES_BINARY_PATH}:$PATH
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+test_name=stats_counts
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+########################################################################################################################
+
+echo "running test '$test_name' on $(hostname)"
+
+cd $bindir
+
+rm -rf $test_name
+mkdir -p $test_name/localroot
+cd $test_name
+
+for f in local.yaml x.grib; do
+  cp $srcdir/$f ./
+done
+
+export FDB5_CONFIG_FILE=local.yaml
+
+########################################################################################################################
+# Fixture. Each fdb-write session opens its own data file (TocStore::generateDataPath), so writing
+# the steps in separate sessions leaves several owned data files to choose a victim from.
+
+for step in 6 9 12; do
+  grib_set -s step=$step x.grib "x.$step.grib"
+  fdb-write "x.$step.grib"
+done
+
+########################################################################################################################
+# Baseline
+
+fdb-stats --all --minimum-keys= --json > before.json
+cat before.json
+
+owned_before=$(json ownedDataFiles before.json)
+size_before=$(json ownedDataSize before.json)
+fields_before=$(json fields before.json)
+
+[[ -n "${owned_before:-}" && -n "${size_before:-}" && -n "${fields_before:-}" ]] \
+  || die "could not read the counts out of the JSON report"
+
+# Two, so that losing one still leaves the database non-empty and the delta is unambiguous.
+[[ $owned_before -ge 2 ]] || die "expected at least two owned data files, got [$owned_before]"
+[[ $fields_before -ge 1 ]] || die "expected some fields, got [$fields_before]"
+
+########################################################################################################################
+# Remove one data file behind the catalogue's back. The index still references it.
+
+victim=$(find . -name '*.data' | sort | sed -n 1p)
+[[ -n "${victim:-}" ]] || die "no data file found to remove"
+
+vsize=$(wc -c < "$victim" | tr -d '[:space:]')
+rm "$victim"
+
+echo "removed $victim ($vsize bytes)"
+
+########################################################################################################################
+# fdb-stats must still run, and must report the file as gone rather than as a zero-byte owned file.
+
+fdb-stats --all --minimum-keys= --json > after.json
+cat after.json
+
+owned_after=$(json ownedDataFiles after.json)
+size_after=$(json ownedDataSize after.json)
+fields_after=$(json fields after.json)
+
+[[ $owned_after -eq $((owned_before - 1)) ]] \
+  || die "owned data files went $owned_before -> $owned_after, expected $((owned_before - 1))"
+
+[[ $size_after -eq $((size_before - vsize)) ]] \
+  || die "owned data size went $size_before -> $size_after, expected $((size_before - vsize))"
+
+[[ $fields_after -eq $fields_before ]] \
+  || die "field count changed, $fields_before -> $fields_after; a missing data file must not drop its fields"
+
+echo "owned data files $owned_before -> $owned_after, size $size_before -> $size_after, fields held at $fields_after"
+
+echo "$test_name: OK"

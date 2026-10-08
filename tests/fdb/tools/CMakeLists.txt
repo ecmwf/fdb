@@ -15,7 +15,10 @@ endforeach()
 
 list( APPEND fdb_tools_grib_tests
     axes
-    stats )
+    stats
+    stats_concurrent
+    stats_counts
+    purge_concurrent )
 
 foreach( _t ${fdb_tools_grib_tests} )
 
