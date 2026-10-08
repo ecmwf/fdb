@@ -59,7 +59,7 @@ public:  // methods
     ///
     /// If a specific visitor either does not make use of this queue ordering, or if it
     /// needs to do something else ordered (e.g. toc-stats creates per-index accumulators
-    /// which need to be ordered, but are merged beore output), then this function should
+    /// which need to be ordered, but are merged before output), then this function should
     /// be overridden.
     IndexScopePtr visitIndex(const Index& index, OrderedParallelFor::Order& order) {
 
