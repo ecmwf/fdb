@@ -45,7 +45,7 @@ public:
     IndexScopePtr visitIndex(const Index& index, OrderedParallelFor::Order& order) override;
     void catalogueComplete(const Catalogue& catalogue) override;
 
-    // Ensure that overrides of default behaviour can't be used (we've overriden the base using Order)
+    // Ensure that overrides of default behaviour can't be used (we've overridden the base using Order)
     IndexScopePtr visitIndex(const Index&, const Rule&) final { NOTIMP; }
     IndexScopePtr visitIndex(const Index&, const Rule&, eckit::Queue<ValueType>& queue) final { NOTIMP; }
 
