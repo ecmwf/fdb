@@ -120,7 +120,9 @@ void FDBStats::execute(const CmdArgs& args) {
     }
 
     if (json) {
-        if (details_) json->endList();
+        if (details_) {
+            json->endList();
+        }
         if (count > 0) {
             totalIndexStats.json(*json);
             totaldbStats.json(*json);

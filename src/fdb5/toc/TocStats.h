@@ -202,9 +202,7 @@ protected:  // types
     };
 
     struct PerIndexAccumulator {
-        PerIndexAccumulator(const Index& index) :
-            index(index),
-            indexStats(new TocIndexStats()) {}
+        PerIndexAccumulator(const Index& index) : index(index), indexStats(new TocIndexStats()) {}
         Index index;
 
         std::unique_ptr<TocIndexStats> indexStats;
@@ -212,15 +210,20 @@ protected:  // types
         std::vector<FieldRecord> fieldQueue;
 
         const eckit::PathName& indexPath() {
-            if (!indexPath_) indexPath_ = index.location().uri().path();
+            if (!indexPath_) {
+                indexPath_ = index.location().uri().path();
+            }
             return indexPath_.value();
         }
         const eckit::Length& indexPathSize() {
-            if (!indexPathSize_) indexPathSize_ = indexPath().exists() ? indexPath().size() : eckit::Length(0);
+            if (!indexPathSize_) {
+                indexPathSize_ = indexPath().exists() ? indexPath().size() : eckit::Length(0);
+            }
             return indexPathSize_.value();
         }
 
     private:
+
         std::optional<eckit::PathName> indexPath_;
         std::optional<eckit::Length> indexPathSize_;
     };
@@ -229,7 +232,8 @@ protected:  // types
 
     public:  // methods
 
-        TocIndexScope(const Catalogue& catalogue, const Index& index, const Rule& rule, PerIndexAccumulator& accumulator) :
+        TocIndexScope(const Catalogue& catalogue, const Index& index, const Rule& rule,
+                      PerIndexAccumulator& accumulator) :
             IndexScope(catalogue, index, rule),
             accumulator_(accumulator),
             indexPath_(index.location().uri().path()),

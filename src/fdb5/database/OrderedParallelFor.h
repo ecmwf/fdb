@@ -61,8 +61,7 @@ public:  // types
     private:  // methods
 
         friend class OrderedParallelFor;
-        explicit Order(std::unique_lock<std::mutex>& lock) :
-            lock_(&lock) {}
+        explicit Order(std::unique_lock<std::mutex>& lock) : lock_(&lock) {}
 
     private:  // members
 
