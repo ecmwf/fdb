@@ -12,7 +12,6 @@
 #include <memory>
 
 #include "eckit/log/JSON.h"
-#include "eckit/log/Log.h"
 #include "fdb5/LibFdb5.h"
 
 #include "fdb5/toc/TocStats.h"
@@ -242,93 +241,138 @@ bool TocStatsReportVisitor::visitDatabase(const Catalogue& catalogue) {
     return true;
 }
 
+EntryVisitor::IndexScopePtr TocStatsReportVisitor::visitIndex(const Index& index, OrderedParallelFor::Order& order) {
+
+    auto& accumulator = perIndexAccumulators_.emplace_back(index);
+
+    // Release the threads to start opening as many indexes in parallel as possible as
+    // soon as possible
+    order.release();
+
+    return std::make_unique<TocIndexScope>(*currentCatalogue_, index, indexRule(index), accumulator);
+}
 
 void TocStatsReportVisitor::visitDatum(IndexScope& scope, const Field& field, const std::string& fieldFingerprint) {
 
-    auto dbStats = std::make_unique<TocDbStats>();
+    ASSERT(dynamic_cast<TocIndexScope*>(&scope));
+    auto& tocScope = static_cast<TocIndexScope&>(scope);
+    auto& accumulator = tocScope.accumulator();
+
+    const auto& dataURI = field.location().uri();
+
+    // Cache the current data path, as the URI --> PathName conversion becomes limiting
+    // otherwise (profiled)
+
+    bool dataPathConsidered = true;
+    if (dataURI != tocScope.lastDataURI()) {
+        dataPathConsidered = false;
+        tocScope.lastDataURI(dataURI);
+        tocScope.lastDataPath(dataURI.path());
+    }
+    const auto& dataPath = tocScope.lastDataPath();
 
     // Exclude non-owned data if relevant
+
     if (!includeReferencedNonOwnedData_) {
         const TocCatalogue* cat = dynamic_cast<const TocCatalogue*>(currentCatalogue_);
 
-        if (!scope.index().location().uri().path().dirName().sameAs(cat->basePath())) {
+        if (!tocScope.indexParentPath().sameAs(cat->basePath())) {
             return;
         }
-        if (!field.location().uri().path().dirName().sameAs(cat->basePath())) {
+        if (!dataPath.dirName().sameAs(cat->basePath())) {
             return;
         }
     }
 
-    // Everything from here on touches state shared across indexes (indexStats_, allDataFiles_,
-    // dataUsage_, ...), which may be visited concurrently - one thread per index, see
-    // Catalogue::visitEntries()/supportsConcurrentIndexVisitation().
-    std::lock_guard<std::mutex> lock(statsMutex_);
+    // If this is a new data path, add it to the appropriate lists (if non-skipped)
 
-    // If this index is not yet in the map, then create an entry
-
-    std::map<Index, IndexStats>::iterator stats_it = indexStats_.find(scope.index());
-
-    if (stats_it == indexStats_.end()) {
-        stats_it = indexStats_.insert(std::make_pair(scope.index(), IndexStats(new TocIndexStats()))).first;
-    }
-
-    IndexStats& stats(stats_it->second);
-
-    eckit::Length len = field.location().length();
-
-    stats.addFieldsCount(1);
-    stats.addFieldsSize(len);
-
-    const eckit::PathName& dataPath = field.location().uri().path();
-    const eckit::PathName& indexPath = scope.index().location().uri().path();
-
-    if (dataPath != lastDataPath_) {
-        if (dataPath.exists()) {
-            if (allDataFiles_.find(dataPath) == allDataFiles_.end()) {
-
-                if (dataPath.dirName().sameAs(directory_)) {
-                    dbStats->ownedFilesSize_ += dataPath.size();
-                    dbStats->ownedFilesCount_++;
-                }
-                else {
-                    dbStats->adoptedFilesSize_ += dataPath.size();
-                    dbStats->adoptedFilesCount_++;
-                }
-                allDataFiles_.insert(dataPath);
+    if (!dataPathConsidered) {
+        auto it = std::find_if(accumulator.dataPaths.begin(), accumulator.dataPaths.end(),
+                               [&](const DataFile& elem) { return elem.path == dataPath; });
+        if (it == accumulator.dataPaths.end()) {
+            if (dataPath.exists()) {
+                accumulator.dataPaths.push_back(
+                    {dataPath, dataPath.size(), !dataPath.dirName().sameAs(directory_), true});
             }
+            else {
+                accumulator.dataPaths.push_back({dataPath, 0, false, false});
+            }
+            it = std::prev(accumulator.dataPaths.end());
         }
-        lastDataPath_ = dataPath;
+        tocScope.lastDataPathIndex(it - accumulator.dataPaths.begin());
     }
 
-    if (indexPath != lastIndexPath_) {
+    // Accumulate statistics
 
-        if (allIndexFiles_.find(indexPath) == allIndexFiles_.end()) {
-            dbStats->indexFilesSize_ += indexPath.size();
-            allIndexFiles_.insert(indexPath);
-            dbStats->indexFilesCount_++;
-        }
-        lastIndexPath_ = indexPath;
-    }
+    Length len = field.location().length();
+    accumulator.indexStats->addFieldsCount(1);
+    accumulator.indexStats->addFieldsSize(len);
+
+    // Add field-specific info to queue to be processed downstream
 
     std::string unique = scope.index().key().valuesToString() + "+" + fieldFingerprint;
-
-    if (active_.insert(unique).second) {
-        indexUsage_[indexPath]++;
-        dataUsage_[dataPath]++;
-    }
-    else {
-        stats.addDuplicatesCount(1);
-        stats.addDuplicatesSize(len);
-
-        // Ensure these counts exist (as zero if otherwise unused).
-        indexUsage_[indexPath];
-        dataUsage_[dataPath];
-    }
-
-    dbStats_ += DbStats(dbStats.release());  // append to the global dbStats, which adopts it
+    accumulator.fieldQueue.push_back({std::move(unique), tocScope.lastDataPathIndex(), len});
 }
 
-void TocStatsReportVisitor::catalogueComplete(const Catalogue& catalogue) {}
+void TocStatsReportVisitor::catalogueComplete(const Catalogue& catalogue) {
+
+    // Run through the stored per-database stats, and aggregate
+
+    auto dbStats = std::make_unique<TocDbStats>();
+
+    // Consume as we go, not clear at the end, so that we don't double memory footprint inserting
+    // unique fingerprints into active_
+
+    while (!perIndexAccumulators_.empty()) {
+        auto acc = std::move(perIndexAccumulators_.front());
+        perIndexAccumulators_.pop_front();
+
+        for (const DataFile& dataFile : acc.dataPaths) {
+            if (dataFile.exists && allDataFiles_.insert(dataFile.path).second) {
+                if (dataFile.adopted) {
+                    dbStats->adoptedFilesSize_ += dataFile.size;
+                    dbStats->adoptedFilesCount_++;
+                } else {
+                    dbStats->ownedFilesSize_ += dataFile.size;
+                    dbStats->ownedFilesCount_++;
+                }
+            }
+        }
+
+        // Indexes which are non-owned will contribute no fields as a result of the filter in
+        // visitDatam. We exclude them here with the fieldsCount check.
+
+        if (acc.indexStats->fieldsCount() > 0 && allIndexFiles_.insert(acc.indexPath()).second) {
+            dbStats->indexFilesSize_ += acc.indexPathSize();
+            dbStats->indexFilesCount_++;
+        }
+
+        // Now that all index processing is complete, we can confidently process the fields
+        // in order and test for duplicates/masking
+
+        ASSERT(indexStats_.emplace(acc.index, IndexStats(acc.indexStats.release())).second);
+
+        for (FieldRecord& fieldRecord : acc.fieldQueue) {
+            const eckit::PathName& dataPath = acc.dataPaths[fieldRecord.dataFile].path;
+
+            if (active_.insert(std::move(fieldRecord.fingerprint)).second) {
+                indexUsage_[acc.indexPath()]++;
+                dataUsage_[dataPath]++;
+            } else {
+                indexStats_[acc.index].addDuplicatesCount(1);
+                indexStats_[acc.index].addDuplicatesSize(fieldRecord.length);
+
+                // Ensure these counts exist (as zero if otherwise unused).
+                indexUsage_[acc.indexPath()];
+                dataUsage_[dataPath];
+            }
+        }
+
+    }
+
+    ASSERT(perIndexAccumulators_.empty());
+    dbStats_ += DbStats(dbStats.release());
+}
 
 
 DbStats TocStatsReportVisitor::dbStatistics() const {

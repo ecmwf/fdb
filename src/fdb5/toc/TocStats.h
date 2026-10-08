@@ -15,10 +15,14 @@
 #ifndef fdb5_TocDbStats_H
 #define fdb5_TocDbStats_H
 
+#include <cstddef>
 #include <iosfwd>
+#include <list>
 #include <map>
-#include <mutex>
+#include <memory>
+#include <optional>
 #include <set>
+#include <vector>
 
 #include "eckit/filesystem/PathName.h"
 
@@ -26,6 +30,7 @@
 #include "fdb5/database/DbStats.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/IndexStats.h"
+#include "fdb5/database/OrderedParallelFor.h"
 #include "fdb5/database/StatsReportVisitor.h"
 #include "fdb5/toc/TocCatalogueReader.h"
 
@@ -174,9 +179,95 @@ public:
     IndexStats indexStatistics() const override;
     DbStats dbStatistics() const override;
 
+    bool supportsConcurrentIndexVisitation() const override { return true; }
+
+protected:  // types
+
+    /// A data file referenced by the index being accumulated, described once rather than per
+    /// field. Where the file is not on disk, exists is false and size/adopted are meaningless:
+    /// such a file is not counted towards the database totals, and does not enter allDataFiles_.
+    struct DataFile {
+        eckit::PathName path;
+        eckit::Length size{0};
+        bool adopted{false};
+        bool exists{false};
+    };
+
+    /// One accepted field, pending the merge in catalogueComplete(). dataFile indexes into the
+    /// owning accumulator's dataPaths.
+    struct FieldRecord {
+        std::string fingerprint;
+        size_t dataFile{0};
+        eckit::Length length{0};
+    };
+
+    struct PerIndexAccumulator {
+        PerIndexAccumulator(const Index& index) :
+            index(index),
+            indexStats(new TocIndexStats()) {}
+        Index index;
+
+        std::unique_ptr<TocIndexStats> indexStats;
+        std::vector<DataFile> dataPaths;
+        std::vector<FieldRecord> fieldQueue;
+
+        const eckit::PathName& indexPath() {
+            if (!indexPath_) indexPath_ = index.location().uri().path();
+            return indexPath_.value();
+        }
+        const eckit::Length& indexPathSize() {
+            if (!indexPathSize_) indexPathSize_ = indexPath().exists() ? indexPath().size() : eckit::Length(0);
+            return indexPathSize_.value();
+        }
+
+    private:
+        std::optional<eckit::PathName> indexPath_;
+        std::optional<eckit::Length> indexPathSize_;
+    };
+
+    class TocIndexScope : public IndexScope {
+
+    public:  // methods
+
+        TocIndexScope(const Catalogue& catalogue, const Index& index, const Rule& rule, PerIndexAccumulator& accumulator) :
+            IndexScope(catalogue, index, rule),
+            accumulator_(accumulator),
+            indexPath_(index.location().uri().path()),
+            indexParentPath_(indexPath_.dirName()) {}
+
+        ~TocIndexScope() override {}
+
+        const eckit::PathName& indexPath() const { return indexPath_; }
+        const eckit::PathName& indexParentPath() const { return indexParentPath_; }
+
+        PerIndexAccumulator& accumulator() { return accumulator_; }
+
+        const eckit::PathName& lastDataPath() const { return lastDataPath_; }
+        const eckit::URI& lastDataURI() const { return lastDataURI_; }
+        size_t lastDataPathIndex() const { return lastDataPathIndex_; }
+        void lastDataPath(const eckit::PathName& path) { lastDataPath_ = path; }
+        void lastDataURI(const eckit::URI& uri) { lastDataURI_ = uri; }
+        void lastDataPathIndex(size_t index) { lastDataPathIndex_ = index; }
+
+    private:  // members
+
+        PerIndexAccumulator& accumulator_;
+
+        // Cache frequently used values. URI resolution is expensive, and involves mutexes, so this
+        // was limiting parallelisation
+        eckit::PathName indexPath_;
+        eckit::PathName indexParentPath_;
+
+        eckit::PathName lastDataPath_;
+        size_t lastDataPathIndex_{0};
+        eckit::URI lastDataURI_;
+    };
+
 private:  // methods
 
     bool visitDatabase(const Catalogue& catalogue) override;
+
+    IndexScopePtr visitIndex(const Index& index, OrderedParallelFor::Order& order) override;
 
     void visitDatum(IndexScope& /*scope*/, const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
     void visitDatum(IndexScope& scope, const Field& field, const std::string& keyFingerprint) override;
@@ -185,8 +276,6 @@ private:  // methods
     void catalogueComplete(const Catalogue& catalogue) override;
 
 protected:  // members
-
-    mutable std::mutex statsMutex_;
 
     eckit::PathName directory_;
 
@@ -204,11 +293,10 @@ protected:  // members
 
     DbStats dbStats_;
 
-    eckit::PathName lastDataPath_;
-    eckit::PathName lastIndexPath_;
-
     // Where data has been adopted/fdb-mounted, should it be included in the stats?
     bool includeReferencedNonOwnedData_;
+
+    std::list<PerIndexAccumulator> perIndexAccumulators_;
 };
 
 

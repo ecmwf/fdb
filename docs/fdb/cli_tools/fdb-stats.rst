@@ -27,6 +27,8 @@ Options
 | ``--minimum-keys``                     | | Default is class,expver                                                                                           |
 |                                        | | Define the minimum set of keys that must be specified. This prevents inadvertently exploring the entire FDB.      |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
+| ``--threads``                          | Number of threads to use for index reading (default 8)                                                              |
++----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--all``                              | (Debug and testing only) Visit all FDB databases                                                                    |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--config=string``                    | FDB configuration filename.                                                                                         |
