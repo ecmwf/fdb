@@ -66,14 +66,13 @@ bool PurgeVisitor::visitDatabase(const Catalogue& catalogue) {
     return true;  // Explore contained indexes
 }
 
-EntryVisitor::IndexScopePtr PurgeVisitor::visitIndex(const Index& index, const Rule& rule,
-                                                     eckit::Queue<PurgeElement>& /*queue*/) {
-    auto inner = internalVisitor_->visitIndex(index, rule);
+EntryVisitor::IndexScopePtr PurgeVisitor::visitIndex(const Index& index, OrderedParallelFor::Order& order) {
+    auto inner = internalVisitor_->visitIndex(index, order);
     if (!inner) {
         return nullptr;  // Skip contained entries
     }
 
-    auto scope = std::make_unique<Scope>(*currentCatalogue_, index, rule);
+    auto scope = std::make_unique<Scope>(*currentCatalogue_, index, inner->rule());
     scope->inner = std::move(inner);
     return scope;  // Explore contained entries
 }
@@ -98,6 +97,11 @@ void PurgeVisitor::catalogueComplete(const Catalogue& catalogue) {
     // Cleanup
 
     internalVisitor_.reset();
+}
+
+bool PurgeVisitor::supportsConcurrentIndexVisitation() const {
+    ASSERT(internalVisitor_);
+    return internalVisitor_->supportsConcurrentIndexVisitation();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -31,14 +31,11 @@ class FDBPurge : public FDBVisitTool {
 public:  // methods
 
     FDBPurge(int argc, char** argv) :
-        FDBVisitTool(argc, argv, "class,expver,stream,date,time"),
-        doit_(false),
-        porcelain_(false),
-        ignoreNoData_(false) {
+        FDBVisitTool(argc, argv, "class,expver,stream,date,time"), doit_(false), porcelain_(false) {
 
         options_.push_back(new SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
-        options_.push_back(new SimpleOption<bool>("ignore-no-data", "No data available to delete is not an error"));
         options_.push_back(new SimpleOption<bool>("porcelain", "List only the deleted files"));
+        options_.push_back(new SimpleOption<long>("threads", "Number of threads to use for index reading (default 8)"));
     }
 
 private:  // methods
@@ -49,7 +46,7 @@ private:  // methods
 
     bool doit_;
     bool porcelain_;
-    bool ignoreNoData_;
+    int threads_{8};
 };
 
 
@@ -57,11 +54,15 @@ void FDBPurge::init(const CmdArgs& args) {
     FDBVisitTool::init(args);
     doit_ = args.getBool("doit", false);
     porcelain_ = args.getBool("porcelain", false);
-    ignoreNoData_ = args.getBool("ignore-no-data", false);
+    threads_ = args.getInt("threads", threads_);
 }
 
 void FDBPurge::execute(const CmdArgs& args) {
-    FDB fdb(config(args));
+
+    LocalConfiguration userConfig;
+    userConfig.set("readIndexThreads", threads_);
+    FDB fdb(config(args, userConfig));
+
     for (const FDBToolRequest& request : requests()) {
 
         if (!porcelain_) {
@@ -79,7 +80,7 @@ void FDBPurge::execute(const CmdArgs& args) {
             count++;
         }
 
-        if (count == 0 && fail() && !ignoreNoData_) {
+        if (count == 0 && failOnNoData()) {
             std::ostringstream ss;
             ss << "No FDB entries found for: " << request << std::endl;
             throw FDBToolException(ss.str());

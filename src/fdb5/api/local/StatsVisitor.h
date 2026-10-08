@@ -38,16 +38,18 @@ public:
 
     using QueryVisitor<StatsElement>::QueryVisitor;
 
-    // We should be able to do this in parallel, but this requires constructing and merging stats
-    // objects per-index - which is not yet implemented (just doing accumulation for now)
-    // bool supportsConcurrentIndexVisitation() const override { return true; }
-
     bool visitDatabase(const Catalogue& catalogue) override;
-    IndexScopePtr visitIndex(const Index& index, const Rule& rule, eckit::Queue<StatsElement>& queue) override;
+    IndexScopePtr visitIndex(const Index& index, OrderedParallelFor::Order& order) override;
     void catalogueComplete(const Catalogue& catalogue) override;
+
+    // Ensure that overrides of default behaviour can't be used (we've overridden the base using Order)
+    IndexScopePtr visitIndex(const Index&, const Rule&) final { NOTIMP; }
+    IndexScopePtr visitIndex(const Index&, const Rule&, eckit::Queue<ValueType>& queue) final { NOTIMP; }
 
     void visitDatum(IndexScope& scope, const Field& field, const std::string& keyFingerprint) override;
     void visitDatum(IndexScope& /*scope*/, const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
+
+    bool supportsConcurrentIndexVisitation() const override;
 
 private:  // types
 

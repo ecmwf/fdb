@@ -36,6 +36,7 @@ protected:  // methods
     void run() override;
 
     bool fail() const;
+    bool failOnNoData() const;
 
     std::vector<FDBToolRequest> requests(const std::string& verb = "retrieve") const;
 
@@ -49,6 +50,7 @@ private:  // members
 
     // Fail on errors?
     bool fail_;
+    bool ignoreNoData_;
 
     bool all_;
 
