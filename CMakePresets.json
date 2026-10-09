@@ -8,8 +8,7 @@
     {
       "cacheVariables": {
         "ENABLE_GRIB": "ON",
-        "ENABLE_TESTS": "ON",
-        "ENABLE_PYTHON_METKIT_INTERFACE":"ON" 
+        "ENABLE_TESTS": "ON"
       },
       "name": "ci"
     }

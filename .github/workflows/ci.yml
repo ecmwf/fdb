@@ -16,6 +16,7 @@ concurrency:
 
 env:
   ARTIFACT_POLL_INTERVAL: ${{ vars.ARTIFACT_POLL_INTERVAL || '60' }}
+  ARTIFACT_WAIT_TIMEOUT: ${{ vars.ARTIFACT_WAIT_TIMEOUT || '1800' }}
   ARTIFACT_S3_ENDPOINT: ${{ secrets.ARTIFACT_S3_ENDPOINT }}
   ARTIFACT_S3_BUCKET: ${{ secrets.ARTIFACT_S3_BUCKET }}
   SCCACHE_BUCKET: ${{ secrets.SCCACHE_BUCKET }}
@@ -50,6 +51,8 @@ jobs:
     outputs:
       build-matrix: ${{ steps.r.outputs.matrix-build }}
       build-hpc-matrix: ${{ steps.r.outputs.matrix-build-hpc }}
+      # resolve-deps declares matrix-<kind> outputs only for some kinds; json holds them all.
+      python-matrix: ${{ toJSON(fromJSON(steps.r.outputs.json).python) }}
     steps:
       - name: Announce image
         uses: ecmwf/ci-infrastructure/actions/announce-image@main
@@ -63,7 +66,7 @@ jobs:
       - id: r
         uses: ecmwf/ci-infrastructure/actions/resolve-deps@main
         with:
-          matrix: build,build-hpc
+          matrix: build,build-hpc,python
           token: ${{ steps.mint.outputs.token }}
           client-id: ${{ secrets.CI_PERMISSIONS_APP_CLIENT_ID }}
           app-private-key: ${{ secrets.CI_PERMISSIONS_APP_PRIVATE_KEY }}
@@ -111,7 +114,55 @@ jobs:
         if: ${{ matrix._resolved.ctest }}
         run: ctest --test-dir "${{ steps.build.outputs.build-dir }}" --output-on-failure ${{ matrix._resolved['ctest-args'] }}
 
-      - name: Publish metkit
+      - name: Publish fdb
+        uses: ecmwf/ci-infrastructure/actions/publish-artifact@main
+        with:
+          install-path: ${{ steps.build.outputs.install-path }}
+          artifact-name: ${{ matrix._resolved.own-artifact-name }}
+
+      - name: Print dependency table
+        if: always()
+        uses: ecmwf/ci-infrastructure/actions/print-dep-table@main
+        with:
+          resolved: ${{ toJSON(matrix._resolved) }}
+
+  python:
+    needs: [ci-approval, resolve]
+    name: python (${{ matrix._resolved['job-name'] }})
+    runs-on: ${{ matrix['runs-on'] }}
+    container:
+      image: ${{ matrix.container || '' }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.resolve.outputs.python-matrix) }}
+    steps:
+      - name: Announce image
+        uses: ecmwf/ci-infrastructure/actions/announce-image@main
+      - id: mint
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.CI_PERMISSIONS_APP_CLIENT_ID }}
+          private-key: ${{ secrets.CI_PERMISSIONS_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+      - uses: actions/checkout@v6
+
+      - name: Fetch resolved deps
+        id: deps
+        uses: ecmwf/ci-infrastructure/actions/fetch-deps@main
+        with:
+          deps-json: ${{ toJSON(matrix._resolved.deps) }}
+          token: ${{ steps.mint.outputs.token }}
+
+      - name: Build pyfdb
+        id: build
+        uses: ecmwf/ci-infrastructure/actions/run-job-script@main
+        with:
+          job-script: ${{ matrix.job-script }}
+          matrix-leg: ${{ toJSON(matrix) }}
+          package: pyfdb
+          cmake-prefix-path: ${{ steps.deps.outputs.cmake-prefix-path }}
+
+      - name: Publish pyfdb
         uses: ecmwf/ci-infrastructure/actions/publish-artifact@main
         with:
           install-path: ${{ steps.build.outputs.install-path }}
@@ -156,7 +207,7 @@ jobs:
           # here: they are consumed on the compute node, not in this container.
           install-python-deps: 'false'
 
-      - name: Build metkit on HPC
+      - name: Build fdb on HPC
         id: build
         uses: ecmwf/ci-infrastructure/actions/build-on-hpc@main
         with:

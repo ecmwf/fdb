@@ -13,7 +13,4 @@ for prefix in ${CMAKE_PREFIX_PATH//;/ }; do
   done
 done
 echo "eccodes data: ${ECCODES_SAMPLES_PATH:-(not found)}"
-python3 -m venv "${TMPDIR:-/tmp}/fdb-venv"
-source "${TMPDIR:-/tmp}/fdb-venv/bin/activate"
-uv pip install -r "python/requirements-build.txt"
 {% endblock %}

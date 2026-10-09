@@ -12,9 +12,9 @@ function(add_pyfdb_test scenario test)
     )
     set(_env
         "PYTHONPATH=${CMAKE_BINARY_DIR}/pyfdb-python-package-staging:${PYTHONPATH}"
-        "PATH=${CMAKE_BINARY_DIR}/bin:$ENV{PATH}"
+        "PATH=$<TARGET_FILE_DIR:fdb5>/../bin:$ENV{PATH}"
         #prevent findlibs in pyfdb to pickup any globally installed fdb
-        "FDB5_DIR=${CMAKE_BINARY_DIR}"
+        "FDB5_DIR=$<TARGET_FILE_DIR:fdb5>/.."
         #prevent findlibs in eccodes-python to pickup any globally installed eccodes
         "ECCODES_PYTHON_USE_FINDLIBS=1"
         "ECCODES_DIR=$<TARGET_FILE_DIR:eccodes>/.."

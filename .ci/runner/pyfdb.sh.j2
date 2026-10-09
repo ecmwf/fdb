@@ -1,0 +1,9 @@
+{# SPDX-FileCopyrightText: 2005- European Centre for Medium-Range Weather Forecasts (ECMWF)
+   SPDX-License-Identifier: Apache-2.0 #}
+{% extends "ci-infrastructure/cmake-runner.sh.j2" %}
+{% block set_environment %}
+{% import "ci-infrastructure/python.j2" as py %}
+{{ py.get_python_via_uv(python_version) }}
+uv pip install -r "python/requirements-build.txt"
+CI_SOURCE_DIR="$CI_SOURCE_DIR/python/pyfdb"
+{% endblock %}
