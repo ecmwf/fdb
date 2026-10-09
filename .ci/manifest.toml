@@ -14,6 +14,7 @@ name = "fdb"
 repo = "ecmwf/fdb"
 visibility = "public"
 compiler-inputs = ["cxx-compiler"]
+git-read = ["ecmwf/bindman", "ecmwf/rust-wrappers-playground"]
 
 [[deps]]
 repo = "ecmwf/ecbuild"
@@ -160,3 +161,25 @@ c_compiler_binary = "gcc"
 cxx_compiler_binary = "g++"
 time = "00:40:00"
 
+[packages.fdb-rust]
+compiler-inputs = ["cxx-compiler"]
+
+[[packages.fdb-rust.deps]]
+package = "fdb"
+options-input = "options"
+
+[matrix.rust]
+packages = ["fdb-rust"]
+publishes = false
+
+[matrix.rust.defaults]
+job-script = "./.ci/runner/rust.sh.j2"
+runs-on = "arc-runner-normal"
+build-type = "RelWithDebInfo"
+cxx-compiler = "g++-13"
+c-compiler = "gcc-13"
+container = "eccr.ecmwf.int/public-ci-images/ubuntu24.04-gcc13-gfortran13-boost-qt6-rust1.90"
+platform = "ubuntu-24.04"
+
+[[matrix.rust.include]]
+rust-compiler = "rust-1.90"
