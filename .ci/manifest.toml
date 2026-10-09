@@ -1,0 +1,185 @@
+# SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
+
+# Header written into the workflows that ci-infrastructure-generate renders
+# from this file, so that regeneration keeps them REUSE-compliant.
+[generated]
+header = """
+# SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
+"""
+
+[package]
+name = "fdb"
+repo = "ecmwf/fdb"
+visibility = "public"
+compiler-inputs = ["cxx-compiler"]
+git-read = ["ecmwf/bindman", "ecmwf/rust-wrappers-playground"]
+
+[[deps]]
+repo = "ecmwf/ecbuild"
+package = "ecbuild"
+ref = "develop"
+compiler-inputs = []
+
+[[deps]]
+repo = "ecmwf/eccodes"
+package = "eccodes"
+ref = "develop"
+compiler-inputs = ["cxx-compiler"]
+
+[[deps]]
+repo = "ecmwf/eckit"
+package = "eckit"
+ref = "develop"
+compiler-inputs = ["cxx-compiler"]
+
+[[deps]]
+repo = "ecmwf/metkit"
+package = "metkit"
+ref = "develop"
+compiler-inputs = ["cxx-compiler"]
+
+[packages.pyfdb]
+compiler-inputs = ["cxx-compiler"]
+
+[[packages.pyfdb.deps]]
+package = "fdb"
+
+[[packages.pyfdb.deps]]
+repo = "ecmwf/stack-dependencies"
+package = "pybind11"
+ref = "master"
+
+[matrix.build]
+packages = ["fdb"]
+triggers = ["upstream-change", "rebuild-request"]
+
+[matrix.build.defaults]
+job-script = "./.ci/runner/build.sh.j2"
+build-type = "RelWithDebInfo"
+runs-on = "arc-runner-very-large"
+
+[[matrix.build.include]]
+cxx-compiler = "clang++-18"
+c-compiler = "clang-18"
+container = "eccr.ecmwf.int/public-ci-images/ubuntu24.04-clang18"
+platform = "ubuntu-24.04"
+
+[[matrix.build.include]]
+cxx-compiler = "g++-13"
+c-compiler = "gcc-13"
+container = "eccr.ecmwf.int/public-ci-images/ubuntu24.04-gcc13-gfortran13"
+platform = "ubuntu-24.04"
+
+[[matrix.build.include]]
+cxx-compiler = "g++-15"
+c-compiler = "gcc-15"
+container = "eccr.ecmwf.int/public-ci-images/ubuntu26.04-gcc15-gfortran15"
+platform = "ubuntu-26.04"
+
+[[matrix.build.include]]
+cxx-compiler = "g++-8"
+c-compiler = "gcc-8"
+container = "eccr.ecmwf.int/public-ci-images/rocky8-gcc8-gfortran8"
+platform = "rocky-8"
+
+[[matrix.build.include]]
+cxx-compiler = "g++-11"
+c-compiler = "gcc-11"
+container = "eccr.ecmwf.int/public-ci-images/rocky9-gcc11-gfortran11"
+platform = "rocky-9"
+
+[[matrix.build.include]]
+cxx-compiler = "g++-14"
+c-compiler = "gcc-14"
+container = "eccr.ecmwf.int/public-ci-images/rocky10-gcc14-gfortran14"
+platform = "rocky-10"
+
+[[matrix.build.include]]
+cxx-compiler = "g++-10"
+c-compiler = "gcc-10"
+container = "eccr.ecmwf.int/public-ci-images/debian11-gcc10-gfortran10"
+platform = "debian-11"
+
+[[matrix.build.include]]
+cxx-compiler = "g++-12"
+c-compiler = "gcc-12"
+container = "eccr.ecmwf.int/public-ci-images/debian12-gcc12-gfortran12"
+platform = "debian-12"
+
+[[matrix.build.include]]
+cxx-compiler = "g++-14"
+c-compiler = "gcc-14"
+container = "eccr.ecmwf.int/public-ci-images/debian13-gcc14-gfortran14"
+platform = "debian-13"
+
+[matrix.python]
+packages = ["pyfdb"]
+triggers = ["upstream-change", "rebuild-request"]
+
+[matrix.python.defaults]
+job-script = "./.ci/runner/pyfdb.sh.j2"
+build-type = "RelWithDebInfo"
+runs-on = "arc-runner-normal"
+cxx-compiler = "g++-15"
+c-compiler = "gcc-15"
+container = "eccr.ecmwf.int/public-ci-images/ubuntu26.04-gcc15-gfortran15"
+platform = "ubuntu-26.04"
+
+[[matrix.python.include]]
+python-version = "3.11"
+
+[[matrix.python.include]]
+python-version = "3.12"
+
+[[matrix.python.include]]
+python-version = "3.13"
+
+[[matrix.python.include]]
+python-version = "3.14"
+
+[matrix.build-hpc]
+execution = "hpc-atos"
+container-credentials = true
+triggers = ["upstream-change", "rebuild-request"]
+
+[matrix.build-hpc.defaults]
+job-script = "./.ci/hpc/build.sh.j2"
+
+[[matrix.build-hpc.include]]
+cxx-compiler = "g++-8"
+build-type = "RelWithDebInfo"
+runs-on = "hpc-submit"
+container = "eccr.ecmwf.int/private-ci-images/ubuntu24.04-internal-tools"
+site = "hpc-batch"
+platform = "hpc-atos-gnu"
+# gcc/old, not a version number: as of now gives you 8.5.0
+# `module avail gcc` lists no 8.5.0 to pin directly.
+modules = ["load prgenv/gnu", "unload gcc", "load gcc/old", "load cmake", "load ninja", "load uv", "load python3/3.11.8-01"]
+c_compiler_binary = "gcc"
+cxx_compiler_binary = "g++"
+time = "00:40:00"
+
+[packages.fdb-rust]
+compiler-inputs = ["cxx-compiler"]
+
+[[packages.fdb-rust.deps]]
+package = "fdb"
+options-input = "options"
+
+[matrix.rust]
+packages = ["fdb-rust"]
+publishes = false
+
+[matrix.rust.defaults]
+job-script = "./.ci/runner/rust.sh.j2"
+runs-on = "arc-runner-normal"
+build-type = "RelWithDebInfo"
+cxx-compiler = "g++-13"
+c-compiler = "gcc-13"
+container = "eccr.ecmwf.int/public-ci-images/ubuntu24.04-gcc13-gfortran13-boost-qt6-rust1.90"
+platform = "ubuntu-24.04"
+
+[[matrix.rust.include]]
+rust-compiler = "rust-1.90"

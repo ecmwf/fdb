@@ -14,8 +14,8 @@ build = "build.rs"
 
 [features]
 default = ["vendored"]
-vendored = ["fdb-sys/vendored"]
-system = ["fdb-sys/system"]
+vendored = ["fdb-sys/vendored", "eckit/vendored", "metkit/vendored"]
+system = ["fdb-sys/system", "eckit/system", "metkit/system"]
 
 [build-dependencies]
 bindman-utils.workspace = true

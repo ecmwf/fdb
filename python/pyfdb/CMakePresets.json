@@ -1,0 +1,13 @@
+{
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "ci"
+    }
+  ],
+  "version": 3
+}
