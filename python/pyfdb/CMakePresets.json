@@ -6,10 +6,6 @@
   },
   "configurePresets": [
     {
-      "cacheVariables": {
-        "ENABLE_GRIB": "ON",
-        "ENABLE_TESTS": "ON"
-      },
       "name": "ci"
     }
   ],
