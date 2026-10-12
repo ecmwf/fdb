@@ -66,10 +66,21 @@ RemoteConfiguration::RemoteConfiguration(eckit::Stream& s) {
 
     if (v.contains("RemoteFieldLocation")) {
         eckit::Value rfl = v["RemoteFieldLocation"];
-        ASSERT(rfl.isList());
-        remoteFieldLocationVersions_.reserve(rfl.size());
-        for (size_t i = 0; i < rfl.size(); ++i) {
-            remoteFieldLocationVersions_.push_back(rfl[i]);
+        if (rfl.isList()) {
+            remoteFieldLocationVersions_.reserve(rfl.size());
+            for (size_t i = 0; i < rfl.size(); ++i) {
+                remoteFieldLocationVersions_.push_back(rfl[i]);
+            }
+        }
+        else {
+            if (rfl.isNumber()) {
+                remoteFieldLocationVersions_.push_back(rfl);
+            }
+            else {
+                std::ostringstream ss;
+                ss << "Invalid RemoteFieldLocation value: " << rfl;
+                throw eckit::SeriousBug(ss.str(), Here());
+            }
         }
     }
     else {
@@ -85,8 +96,14 @@ RemoteConfiguration::RemoteConfiguration(eckit::Stream& s) {
             }
         }
         else {
-            ASSERT(nc.isNumber());
-            numberOfConnections_ = std::vector<int>{nc};
+            if (nc.isNumber()) {
+                numberOfConnections_.push_back(nc);
+            }
+            else {
+                std::ostringstream ss;
+                ss << "Invalid NumberOfConnections value: " << nc;
+                throw eckit::SeriousBug(ss.str(), Here());
+            }
         }
     }
     else {
