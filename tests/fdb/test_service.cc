@@ -28,8 +28,8 @@
 #include "eckit/utils/Translator.h"
 
 #include "metkit/mars/MarsExpansion.h"
+#include "metkit/mars/MarsLanguage.h"
 #include "metkit/mars/MarsRequest.h"
-#include "metkit/mars/TypeAny.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -151,7 +151,7 @@ CASE("test_fdb_stepunit_archive") {
         EXPECT(!iter.next(el));
     }
 
-    req.setValuesTyped(new metkit::mars::TypeAny("step"), std::vector<std::string>{"2", "60"});
+    req.setValuesTyped(metkit::mars::MarsLanguage::get(req.verb()).type("step"), std::vector<std::string>{"2", "60"});
     {
         fdb5::FDBToolRequest r(req);
         fdb5::ListIterator iter = fdb.list(r, true);
@@ -352,10 +352,11 @@ CASE("test_fdb_service") {
             r.setValue("domain", "g");
             r.setValue("levtype", "pl");
 
-            r.setValuesTyped(new metkit::mars::TypeAny("param"), params);
-            r.setValuesTyped(new metkit::mars::TypeAny("step"), steps);
-            r.setValuesTyped(new metkit::mars::TypeAny("levelist"), levels);
-            r.setValuesTyped(new metkit::mars::TypeAny("date"), dates);
+            auto& lang = metkit::mars::MarsLanguage::get(r.verb());
+            r.setValuesTyped(lang.type("param"), params);
+            r.setValuesTyped(lang.type("step"), steps);
+            r.setValuesTyped(lang.type("levelist"), levels);
+            r.setValuesTyped(lang.type("date"), dates);
 
             Log::info() << r << std::endl;
 
@@ -528,10 +529,11 @@ CASE("test_fdb_service_subtoc") {
             r.setValue("domain", "g");
             r.setValue("levtype", "pl");
 
-            r.setValuesTyped(new metkit::mars::TypeAny("param"), params);
-            r.setValuesTyped(new metkit::mars::TypeAny("step"), steps);
-            r.setValuesTyped(new metkit::mars::TypeAny("levelist"), levels);
-            r.setValuesTyped(new metkit::mars::TypeAny("date"), dates);
+            auto& lang = metkit::mars::MarsLanguage::get(r.verb());
+            r.setValuesTyped(lang.type("param"), params);
+            r.setValuesTyped(lang.type("step"), steps);
+            r.setValuesTyped(lang.type("levelist"), levels);
+            r.setValuesTyped(lang.type("date"), dates);
 
             Log::info() << r << std::endl;
 
