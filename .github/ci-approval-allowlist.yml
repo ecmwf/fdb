@@ -3,7 +3,7 @@
 
 ---
 exempt:
-  - workflow: ci_legacy.yml
+  - workflow: old_CI.yml
   - workflow: build-ubuntu-rolling-fdb-build-env.yml
   - workflow: label-public-pr.yml
   - workflow: notify-pull-request.yml
