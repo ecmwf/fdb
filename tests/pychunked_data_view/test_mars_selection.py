@@ -25,12 +25,12 @@ from pychunked_data_view.chunked_data_view import _mars_selection_to_string
                 "date": "2020-01-01/to/2020-01-04",
                 "levtype": "sfc",
                 "step": 0,
-                "param": [167, 131, 132],
+                "param": [167, 228131, 228132],
                 "time": "0/to/21/by/3",
             },
             "type=an,class=ea,domain=g,expver=0001,stream=oper,"
             "date=2020-01-01/to/2020-01-04,levtype=sfc,step=0,"
-            "param=167/131/132,time=0/to/21/by/3",
+            "param=167/228131/228132,time=0/to/21/by/3",
         ),
         (
             {
@@ -126,13 +126,13 @@ def test_scalar_float_value():
 
 
 def test_list_of_ints_joined_with_slash():
-    assert _mars_selection_to_string({"param": [167, 131, 132]}) == "param=167/131/132"
+    assert _mars_selection_to_string({"param": [167, 228131, 228132]}) == "param=167/228131/228132"
 
 
 def test_list_of_various_types_joined_with_slash():
     assert (
-        _mars_selection_to_string({"param": [167, 131.0, "132"]})
-        == "param=167/131.0/132"
+        _mars_selection_to_string({"param": [167, 228131.0, "228132"]})
+        == "param=167/228131.0/228132"
     )
 
 
