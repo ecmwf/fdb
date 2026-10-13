@@ -84,7 +84,7 @@ public:  // methods
     virtual void put(const Key& key, const Field& field);
 
     virtual void encode(eckit::Stream& s, const int version) const;
-    virtual void entries(EntryVisitor& visitor) const = 0;
+    virtual void entries(EntryVisitor& visitor, EntryVisitor::IndexScope& scope) const = 0;
 
     /// @note default args on virtual methods is not best practice; no guarantee that overrides will have same defaults
     virtual void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const = 0;
@@ -173,7 +173,7 @@ public:  // methods
     void put(const Key& key, const Field& field) { content_->put(key, field); }
 
     void encode(eckit::Stream& s, const int version) const { content_->encode(s, version); }
-    void entries(EntryVisitor& v) const { content_->entries(v); }
+    void entries(EntryVisitor& v, EntryVisitor::IndexScope& scope) const { content_->entries(v, scope); }
     void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const {
         content_->dump(out, indent, simple, dumpFields);
     }

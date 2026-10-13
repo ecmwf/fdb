@@ -21,6 +21,8 @@
 
 #include "eckit/container/Queue.h"
 
+#include "fdb5/api/helpers/QueueTraits.h"
+
 #include <exception>
 #include <functional>
 #include <memory>
@@ -123,14 +125,17 @@ class AsyncIterationCancellation : public eckit::Exception {};
 // the APIAsyncIterator holds a shared_ptr<FDBBase>, so if the FDB object goes out-of-scope,
 // the actual implementation is kept alive until the iterator has been fully consumed
 
-template <typename ValueType>
+template <typename ValueType, typename QueueType = eckit::Queue<ValueType>>
 class APIAsyncIterator : public APIIteratorBase<ValueType> {
 
 public:  // methods
 
-    APIAsyncIterator(std::shared_ptr<FDBBase> fdb, std::function<void(eckit::Queue<ValueType>&)> workerFn,
-                     size_t queueSize = 100) :
-        fdb_(fdb), queue_(queueSize) {
+    /// The queue is sized from the configuration. How that is done depends on the QueueType - a
+    /// QueueOfQueues is bounded in two dimensions where a Queue is bounded in one - so it is
+    /// delegated to QueueTraits rather than spelled out at each call site.
+
+    APIAsyncIterator(std::shared_ptr<FDBBase> fdb, std::function<void(QueueType&)> workerFn, const Config& config) :
+        fdb_(fdb), queue_(QueueTraits<QueueType>::make(config)) {
 
         // Add a call to set_done() on the eckit::Queue.
         auto fullWorker = [workerFn, this] {
@@ -165,7 +170,7 @@ private:  // members
 
     std::shared_ptr<FDBBase> fdb_;
 
-    eckit::Queue<ValueType> queue_;
+    QueueType queue_;
 
     std::thread workerThread_;
 };

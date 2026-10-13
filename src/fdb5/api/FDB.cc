@@ -317,7 +317,7 @@ WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain,
         }
     };
 
-    return WipeIterator(new APIAsyncIterator<WipeElement>(internal_->shared(), async));
+    return WipeIterator(new APIAsyncIterator<WipeElement>(internal_->shared(), async, internal_->config()));
 }
 
 PurgeIterator FDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {

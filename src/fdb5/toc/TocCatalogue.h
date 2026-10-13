@@ -46,6 +46,8 @@ public:  // methods
 
     bool enabled(const ControlIdentifier& controlIdentifier) const override;
 
+    bool supportsConcurrentIndexReads() const override { return true; }
+
 public:  // constants
 
     static const std::string DUMP_PARAM_WALKSUBTOC;

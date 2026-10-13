@@ -40,12 +40,16 @@ public:  // methods
     bool visitIndexes() override { return false; }
     bool visitEntries() override { return false; }
 
+    bool supportsConcurrentIndexVisitation() const final { return false; }
+
     bool visitDatabase(const Catalogue& catalogue) override;
 
-    bool visitIndex(const Index& /*index*/) override { NOTIMP; }
+    IndexScopePtr visitIndex(const Index&, const Rule&, eckit::Queue<ValueType>&) override { NOTIMP; }
 
-    void visitDatum(const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
-    void visitDatum(const Field& /*field*/, const std::string& /*keyFingerprint*/) override { NOTIMP; }
+    void visitDatum(IndexScope& /*scope*/, const Field& /*field*/, const Key& /*datumKey*/) override { NOTIMP; }
+    void visitDatum(IndexScope& /*scope*/, const Field& /*field*/, const std::string& /*keyFingerprint*/) override {
+        NOTIMP;
+    }
 
 private:  // members
 

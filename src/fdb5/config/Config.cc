@@ -18,6 +18,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/filesystem/FileMode.h"
+#include "eckit/log/Log.h"
 #include "eckit/runtime/Main.h"
 
 #include <algorithm>
@@ -233,6 +234,30 @@ mode_t Config::umask() const {
     }
     static eckit::FileMode fdbFileMode(eckit::Resource<std::string>("fdbFileMode", std::string("0644")));
     return fdbFileMode.mask();
+}
+
+size_t Config::readIndexThreads() const {
+    constexpr long maxReadIndexThreads = 64;
+    static const long fromResource = eckit::Resource<long>("fdbReadIndexThreads;$FDB_READ_INDEX_THREADS", -1);
+    const long threads = fromResource > 0 ? fromResource : userConfig().getLong("readIndexThreads", 1);
+    return static_cast<size_t>(std::clamp(threads, 1L, maxReadIndexThreads));
+}
+
+size_t Config::apiQueueSize() const {
+    constexpr long maxApiQueueSize = 1024 * 1024;
+    static const long fromResource = eckit::Resource<long>("fdbApiQueueSize;$FDB_API_QUEUE_SIZE", -1);
+    const long size = fromResource > 0 ? fromResource : userConfig().getLong("apiQueueSize", 100);
+    return static_cast<size_t>(std::clamp(size, 1L, maxApiQueueSize));
+}
+
+size_t Config::apiMaxQueues() const {
+    constexpr long maxApiMaxQueues = 1024;
+    static const long fromResource = eckit::Resource<long>("fdbApiMaxQueues;$FDB_API_MAX_QUEUES", -1);
+    // A sub-queue is claimed per index being visited, so the default scales with the number of
+    // visitation threads, with headroom for queues that are filled but not yet drained.
+    const long byThreads = 2 * static_cast<long>(readIndexThreads());
+    const long queues = fromResource > 0 ? fromResource : userConfig().getLong("apiMaxQueues", byThreads);
+    return static_cast<size_t>(std::clamp(queues, 1L, maxApiMaxQueues));
 }
 
 std::vector<Config> Config::getSubConfigs(const std::string& name) const {

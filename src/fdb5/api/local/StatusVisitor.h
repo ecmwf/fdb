@@ -41,9 +41,9 @@ public:
         queue_.emplace(catalogue);
         return true;
     }
-    bool visitIndex(const Index&) override { NOTIMP; }
+    IndexScopePtr visitIndex(const Index&, const Rule&, eckit::Queue<ValueType>&) override { NOTIMP; }
     using QueryVisitor<StatusElement>::visitDatum;
-    void visitDatum(const Field&, const Key&) override { NOTIMP; }
+    void visitDatum(IndexScope& /*scope*/, const Field&, const Key&) override { NOTIMP; }
 };
 
 //----------------------------------------------------------------------------------------------------------------------

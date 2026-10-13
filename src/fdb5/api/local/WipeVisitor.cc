@@ -86,9 +86,9 @@ bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
     return true;  // Explore contained indexes
 }
 
-bool WipeCatalogueVisitor::visitIndex(const Index& index) {
+EntryVisitor::IndexScopePtr WipeCatalogueVisitor::visitIndex(const Index& index, const Rule& /*rule*/,
+                                                             Queue<CatalogueWipeState>& /*queue*/) {
 
-    EntryVisitor::visitIndex(index);
     ASSERT(catalogueWipeState_);
 
     // Is this index matched by the supplied request?
@@ -106,7 +106,8 @@ bool WipeCatalogueVisitor::visitIndex(const Index& index) {
             catalogueWipeState_->excludeData(dataURI);
         }
     }
-    return true;
+
+    return nullptr;  // visitEntries() is false, so the contents are never explored anyway
 }
 
 void WipeCatalogueVisitor::catalogueComplete(const Catalogue& catalogue) {

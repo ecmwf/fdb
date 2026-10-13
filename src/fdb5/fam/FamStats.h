@@ -32,6 +32,7 @@
 #include <cstddef>
 #include <iosfwd>
 #include <map>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -61,6 +62,7 @@ public:
     void add(const DbStatsContent& rhs) override;
 
     void report(std::ostream& out, const char* indent) const override;
+    void json(eckit::JSON& json) const override;
 
 public:  // For Streamable
 
@@ -104,6 +106,8 @@ public:
 
     void report(std::ostream& out, const char* indent) const override;
 
+    void json(eckit::JSON& json) const override;
+
 public:  // For Streamable
 
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
@@ -138,6 +142,8 @@ public:
 
 protected:  // members
 
+    mutable std::mutex statsMutex_;
+
     std::map<Index, IndexStats> indexStats_;
 
     std::unordered_set<std::string> seen_;
@@ -156,10 +162,10 @@ private:  // methods
 
     bool visitDatabase(const Catalogue& catalogue) override;
 
-    bool visitIndex(const Index& index) override;
+    IndexScopePtr visitIndex(const Index& index, const Rule& rule) override;
 
-    void visitDatum(const Field& field, const Key& datum_key) override;
-    void visitDatum(const Field& field, const std::string& key_fingerprint) override;
+    void visitDatum(IndexScope& scope, const Field& field, const Key& datum_key) override;
+    void visitDatum(IndexScope& scope, const Field& field, const std::string& key_fingerprint) override;
 
     void catalogueComplete(const Catalogue& catalogue) override;
 };

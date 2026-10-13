@@ -45,14 +45,14 @@ fn create_test_config(tmpdir: &std::path::Path) -> eckit::Config {
 #[test]
 fn test_fdb_version() {
     let version = fdb::version();
-    assert!(!version.is_empty());
+    assert_ne!(version, "", "expected non-empty FDB version");
     println!("FDB version: {version}");
 }
 
 #[test]
 fn test_fdb_git_sha1() {
     let sha = fdb::git_sha1();
-    assert!(!sha.is_empty());
+    assert_ne!(sha, "", "expected non-empty FDB git SHA1");
     println!("FDB git SHA1: {sha}");
 }
 

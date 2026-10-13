@@ -19,6 +19,8 @@
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/StatsReportVisitor.h"
 
+#include <memory>
+
 namespace fdb5 {
 namespace api {
 namespace local {
@@ -37,14 +39,20 @@ bool StatsVisitor::visitDatabase(const Catalogue& catalogue) {
     return true;  // Explore contained indexes
 }
 
-bool StatsVisitor::visitIndex(const Index& index) {
-    internalVisitor_->visitIndex(index);
+EntryVisitor::IndexScopePtr StatsVisitor::visitIndex(const Index& index, OrderedParallelFor::Order& order) {
 
-    return true;  // Explore contained entries
+    auto inner = internalVisitor_->visitIndex(index, order);
+    if (!inner) {
+        return nullptr;  // Skip contained entries
+    }
+
+    auto scope = std::make_unique<Scope>(*currentCatalogue_, index, inner->rule());
+    scope->inner = std::move(inner);
+    return scope;  // Explore contained entries
 }
 
-void StatsVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {
-    internalVisitor_->visitDatum(field, keyFingerprint);
+void StatsVisitor::visitDatum(IndexScope& indexScope, const Field& field, const std::string& keyFingerprint) {
+    internalVisitor_->visitDatum(*static_cast<Scope&>(indexScope).inner, field, keyFingerprint);
 }
 
 void StatsVisitor::catalogueComplete(const Catalogue& catalogue) {
@@ -57,6 +65,11 @@ void StatsVisitor::catalogueComplete(const Catalogue& catalogue) {
     // Cleanup
 
     internalVisitor_.reset();
+}
+
+bool StatsVisitor::supportsConcurrentIndexVisitation() const {
+    ASSERT(internalVisitor_);
+    return internalVisitor_->supportsConcurrentIndexVisitation();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
