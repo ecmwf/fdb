@@ -22,7 +22,6 @@
 #include "metkit/mars/MarsLanguage.h"
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
-#include "metkit/mars/TypeAny.h"
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/WipeIterator.h"

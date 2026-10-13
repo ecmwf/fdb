@@ -100,7 +100,7 @@ def build_grib_messages(data_path, session_tmp) -> pathlib.Path:
 
     dates = [20200101, 20200102, 20200103, 20200104]
     times = [0, 300, 600, 900, 1200, 1500, 1800, 2100]
-    parameters = [167, 131, 132]
+    parameters = [167, 228131, 228132]
 
     messages = session_tmp / "test_data.grib"
     with open(messages, "wb") as out:
@@ -219,7 +219,7 @@ def build_grib_messages_relative_dates(data_path, session_tmp) -> pathlib.Path:
 
     dates = [before_before_yesterday, before_yesterday, yesterday, today]
     times = [0, 300, 600, 900, 1200, 1500, 1800, 2100]
-    parameters = [167, 131, 132]
+    parameters = [167, 228131, 228132]
 
     messages = session_tmp / "test_data.grib"
     with open(messages, "wb") as out:
