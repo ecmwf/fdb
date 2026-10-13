@@ -14,14 +14,14 @@ categories = ["science", "database"]
 
 [workspace.dependencies]
 # Internal
-fdb-sys = { version = "5.23", path = "crates/fdb-sys" }
-fdb = { version = "5.23", path = "crates/fdb" }
+fdb-sys = { version = "5.25", path = "crates/fdb-sys" }
+fdb = { version = "5.25", path = "crates/fdb" }
 
 # Foundation crates
-eckit-sys = { version = "2.3", default-features = false, features = ["aio"] }
-eckit = "2.3"
-metkit-sys = { version = "1.21", default-features = false }
-metkit = "1.21"
+eckit-sys = { version = "2.5", default-features = false, features = ["aio"] }
+eckit = "2.5"
+metkit-sys = { version = "1.22", default-features = false }
+metkit = "1.22"
 eccodes-sys = { version = "2.49", default-features = false, features = ["eccodes-threads"] }
 
 # Build tools
