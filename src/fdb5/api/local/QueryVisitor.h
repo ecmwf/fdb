@@ -52,6 +52,16 @@ public:  // methods
 
     using EntryVisitor::visitIndex;
 
+    /// The cache is keyed by TypesRegistry pointers (hashed and compared by value), and registries
+    /// are owned by the catalogue's schema (e.g. FamCatalogue), so entries must not outlive it.
+    bool visitDatabase(const Catalogue& catalogue) override {
+        {
+            std::lock_guard<std::mutex> lock(canonicalisedMutex_);
+            canonicalised_.clear();
+        }
+        return EntryVisitor::visitDatabase(catalogue);
+    }
+
     /// If running in parallel, and the ordering of output matters, then typically we will
     /// have a per-thread per-index output queue. If that is the case, then acquiring this
     /// ordered slot is normally the only thing that needs to be done strictly in order, so
