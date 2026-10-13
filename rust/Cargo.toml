@@ -28,9 +28,9 @@ metkit = { git = "ssh://git@github.com/ecmwf/metkit.git", branch = "develop", de
 eccodes-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", rev = "d6b582fd", default-features = false }
 
 # Build tools
-bindman = { git = "ssh://git@github.com/ecmwf/bindman.git", rev = "47edf68" }
-bindman-build = { git = "ssh://git@github.com/ecmwf/bindman.git", rev = "47edf68" }
-bindman-utils = { git = "ssh://git@github.com/ecmwf/bindman.git", rev = "47edf68" }
+bindman = { git = "ssh://git@github.com/ecmwf/bindman.git", rev = "25726ab" }
+bindman-build = { git = "ssh://git@github.com/ecmwf/bindman.git", rev = "25726ab" }
+bindman-utils = { git = "ssh://git@github.com/ecmwf/bindman.git", rev = "25726ab" }
 
 # External
 thiserror = "2"
