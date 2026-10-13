@@ -10,7 +10,7 @@ Add the crate to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-fdb = "5.23"
+fdb = "5.25"
 ```
 
 The default `vendored` feature builds the FDB and its dependencies (eckit,
