@@ -12,6 +12,9 @@
 
 #include <pwd.h>
 #include <unistd.h>
+#include <cstdint>
+#include <cstdio>
+#include <random>
 
 #include "eckit/config/Resource.h"
 #include "eckit/filesystem/LocalPathName.h"
@@ -34,6 +37,24 @@ eckit::LocalPathName TocCommon::findRealPath(const eckit::LocalPathName& path) {
     }
 
     return findRealPath(path.dirName()) / path.baseName();
+}
+
+eckit::PathName TocCommon::uniquePath(const eckit::PathName& path) {
+
+    const auto unique = eckit::PathName::unique(path);
+
+    // Only a shared NFS directory can see another client generate the same host, pid and time.
+    if (unique.dirName().fileSystemType() != "nfs") {
+        return unique;
+    }
+
+    std::random_device device;
+    const std::uint64_t token = (static_cast<std::uint64_t>(device()) << 32) | device();
+
+    char suffix[32];
+    std::snprintf(suffix, sizeof(suffix), ".%016llx", static_cast<unsigned long long>(token));
+
+    return unique + suffix;
 }
 
 TocCommon::TocCommon(const eckit::PathName& directory) :

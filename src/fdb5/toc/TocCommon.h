@@ -37,6 +37,10 @@ public:
     static eckit::LocalPathName findRealPath(const eckit::LocalPathName& path);
     static std::string userName(uid_t uid);
 
+    /// @param path The base path to which the unique component will be appended.
+    /// @return eckit::PathName::unique, with a 64-bit random token appended if the directory is on NFS.
+    static eckit::PathName uniquePath(const eckit::PathName& path);
+
     virtual void checkUID() const;
 
     virtual const eckit::LocalPathName& basePath() const { return directory_; }

@@ -302,7 +302,6 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, Memory
     }
 }
 
-
 TocHandler::~TocHandler() {
     close();
 }

@@ -276,7 +276,7 @@ eckit::PathName TocStore::generateDataPath(const Key& key) const {
 
     eckit::PathName dpath(directory_);
     dpath /= key.valuesToString();
-    dpath = eckit::PathName::unique(dpath) + ".data";
+    dpath = uniquePath(dpath) + ".data";
     return dpath;
 }
 
