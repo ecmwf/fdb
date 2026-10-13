@@ -36,11 +36,10 @@ public:
     virtual size_t addFieldsSize(size_t i) { return i; }
     virtual size_t addDuplicatesSize(size_t i) { return i; }
 
-    virtual void add(const IndexStatsContent&) { NOTIMP; }
-
-    virtual void report(std::ostream& out, const char* indent) const { NOTIMP; }
-
-    virtual void encode(eckit::Stream& s) const { NOTIMP; }
+    void add(const IndexStatsContent&) override { NOTIMP; }
+    void report(std::ostream& out, const char* indent) const override { NOTIMP; }
+    void json(eckit::JSON& json) const override { NOTIMP; }
+    void encode(eckit::Stream& s) const override { NOTIMP; }
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -80,6 +79,10 @@ void IndexStats::add(const IndexStats& s) {
 
 void IndexStats::report(std::ostream& out, const char* indent) const {
     content_->report(out, indent);
+}
+
+void IndexStats::json(eckit::JSON& json) const {
+    content_->json(json);
 }
 
 void IndexStats::encode(eckit::Stream& s) const {

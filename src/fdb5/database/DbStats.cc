@@ -28,6 +28,8 @@ public:
 
     virtual void report(std::ostream& out, const char* indent) const { NOTIMP; }
 
+    void json(eckit::JSON& json) const override { NOTIMP; }
+
     virtual void encode(eckit::Stream& s) const { NOTIMP; }
 };
 
@@ -67,6 +69,10 @@ void DbStats::add(const DbStats& s) {
 
 void DbStats::report(std::ostream& out, const char* indent) const {
     content_->report(out, indent);
+}
+
+void DbStats::json(eckit::JSON& json) const {
+    content_->json(json);
 }
 
 void DbStats::encode(eckit::Stream& s) const {

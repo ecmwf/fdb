@@ -62,6 +62,7 @@ public:
     void add(const DbStatsContent& rhs) override;
 
     void report(std::ostream& out, const char* indent) const override;
+    void json(eckit::JSON& json) const override;
 
 public:  // For Streamable
 
@@ -104,6 +105,8 @@ public:
     void add(const IndexStatsContent& rhs) override;
 
     void report(std::ostream& out, const char* indent) const override;
+
+    void json(eckit::JSON& json) const override;
 
 public:  // For Streamable
 
