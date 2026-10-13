@@ -16,7 +16,7 @@ Add the safe wrapper to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-fdb = "5.23"
+fdb = "5.25"
 ```
 
 Building requires CMake, a C++17 compiler and Python 3. To link against an
@@ -25,7 +25,7 @@ feature:
 
 ```toml
 [dependencies]
-fdb = { version = "5.23", default-features = false, features = ["system"] }
+fdb = { version = "5.25", default-features = false, features = ["system"] }
 ```
 
 ## Crates
