@@ -221,7 +221,7 @@ def test_fdb_index_axis_in(read_only_fdb_setup):
     assert index_axis["expver"] == ["0001"]
     assert index_axis["levelist"] == [""]
     assert index_axis["levtype"] == ["sfc"]
-    assert index_axis["param"] == ["228131", "228132", "167"]
+    assert index_axis["param"] == [ "167", "228131", "228132"]
     assert index_axis["step"] == ["0"]
     assert index_axis["stream"] == ["oper"]
     assert index_axis["time"] == ["1800"]
@@ -447,7 +447,7 @@ def test_index_axis_equality_dict(read_only_fdb_setup):
             "time": ["1800"],
             "levelist": "",
             "levtype": ["sfc"],
-            "param": ["131", "132", "167"],
+            "param": ["167", "228131", "228132"],
             "step": "0",
             "type": "an",
         }
@@ -464,7 +464,7 @@ def test_index_axis_equality_dict(read_only_fdb_setup):
             "time": ["1900"],  # This differs
             "levelist": "",
             "levtype": ["sfc"],
-            "param": ["131", "132", "167"],
+            "param": ["167", "228131", "228132"],
             "step": "0",
             "type": "an",
         }
