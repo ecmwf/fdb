@@ -426,6 +426,13 @@ Depending on the given ``level`` different outputs are to be expected:
 
     {class=ea,expver=0001,stream=oper,date=20200101,time=1800,domain=g}
     {type=an,levtype=sfc}
+    {step=0,param=167},
+    TocFieldLocation[uri=URI[scheme=file,name=/<path-to-db_store>/db_store/ea:0001:oper:20200101:1800:g/an:sfc.20251118.151917.<?>.375861178007828.data],offset=0,length=10732,remapKey={}],
+    length=10732,
+    timestamp=1763479157
+
+    {class=ea,expver=0001,stream=oper,date=20200101,time=1800,domain=g}
+    {type=an,levtype=sfc}
     {step=0,param=228131},
     TocFieldLocation[uri=URI[scheme=file,name=/<path-to-db_store>/ea:0001:oper:20200101:1800:g/an:sfc.20251118.151917.<?>.375861178007828.data],offset=10732,length=10732,remapKey={}],
     length=10732,
@@ -435,13 +442,6 @@ Depending on the given ``level`` different outputs are to be expected:
     {type=an,levtype=sfc}
     {step=0,param=228132},
     TocFieldLocation[uri=URI[scheme=file,name=/<path-to-db_store>/db_store/ea:0001:oper:20200101:1800:g/an:sfc.20251118.151917.<?>.375861178007828.data],offset=21464,length=10732,remapKey={}],
-    length=10732,
-    timestamp=1763479157
-
-    {class=ea,expver=0001,stream=oper,date=20200101,time=1800,domain=g}
-    {type=an,levtype=sfc}
-    {step=0,param=167},
-    TocFieldLocation[uri=URI[scheme=file,name=/<path-to-db_store>/db_store/ea:0001:oper:20200101:1800:g/an:sfc.20251118.151917.<?>.375861178007828.data],offset=0,length=10732,remapKey={}],
     length=10732,
     timestamp=1763479157
 
