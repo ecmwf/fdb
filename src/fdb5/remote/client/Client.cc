@@ -48,7 +48,9 @@ Client::Client(const eckit::Configuration& config, const eckit::net::Endpoint& e
     connection_(ClientConnectionRouter::instance().connection(config, endpoint, defaultEndpoint)) {
 
     setClientID();
-    connection_->add(*this);
+    while (!connection_->add(*this)) {
+        connection_ = ClientConnectionRouter::instance().connection(config, endpoint, defaultEndpoint);
+    }
 }
 
 Client::Client(const eckit::Configuration& config,
@@ -56,7 +58,9 @@ Client::Client(const eckit::Configuration& config,
     connection_(ClientConnectionRouter::instance().connection(config, endpoints)) {
 
     setClientID();
-    connection_->add(*this);
+    while (!connection_->add(*this)) {
+        connection_ = ClientConnectionRouter::instance().connection(config, endpoints);
+    }
 }
 
 void Client::refreshConnection() {
@@ -66,8 +70,9 @@ void Client::refreshConnection() {
     eckit::Log::warning() << "Connection to " << connection_->controlEndpoint()
                           << " is invalid, attempting to reconnect" << std::endl;
     connection_->remove(id_);
-    connection_ = ClientConnectionRouter::instance().refresh(clientConfig(), connection_);
-    connection_->add(*this);
+    do {
+        connection_ = ClientConnectionRouter::instance().refresh(clientConfig(), connection_);
+    } while (!connection_->add(*this));
 }
 
 void Client::deregister() {
