@@ -38,12 +38,11 @@ This variable overrides the `useSubToc` flag provided by the user config.
 ``FDB_READ_INDEX_THREADS``
 ---------------------------
 
-How many threads FDB may use, per database, for read-side work that can be split across indexes:
-constructing the index objects, and visiting them on behalf of tools such as ``fdb-list``,
-``fdb-axes`` and ``fdb-stats``.
+How many threads FDB may use, per database, for read-side work that can be split across indexes.
 
-Defaults to ``1``, i.e. no threading, so applications see no change in behaviour unless they opt
-in. Values below 1 are treated as 1, and the value is capped at a sane maximum. Threading is only
+Defaults to ``1``, i.e. no threading, so applications using the FDB as a library see no change in
+behaviour unless they opt in (note that appropriate CLI tools use higher defaults). Values below
+1 are treated as 1, and the value is capped at a sane maximum. Threading is only
 used where both the operation and the storage backend support it; where they do not, the setting
 is ignored.
 
@@ -54,7 +53,7 @@ is set to.
 
    export FDB_READ_INDEX_THREADS=8
 
-This variable overrides the ``fdbReadIndexThreads`` value provided by the user config.
+This variable overrides the ``readIndexThreads`` value provided by the user config.
 
 
 ``FDB_LOAD_INDEX_THREADS``

@@ -38,6 +38,10 @@ public:
 
     void gatherAuxiliaryURIs() override;
 
+    /// @note Inherits concurrent visitor behaviour from TocStatsReportVisitor. All index visitation and ordering
+    ///       is done in TocStatsReportVisitor.
+    // bool supportsConcurrentIndexVisitation() const override { return true; }
+
 private:  // members
 
     const Store& store_;

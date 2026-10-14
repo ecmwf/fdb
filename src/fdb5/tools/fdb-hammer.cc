@@ -13,8 +13,6 @@
 #include "fdb5/message/MessageArchiver.h"
 #include "fdb5/tools/FDBTool.h"
 
-#include "metkit/mars/TypeAny.h"
-
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/config/Resource.h"
 #include "eckit/io/DataHandle.h"
@@ -33,6 +31,8 @@
 #include "eckit/serialisation/HandleStream.h"
 #include "eckit/utils/Literals.h"
 #include "eckit/utils/MD5.h"
+
+#include "metkit/mars/MarsLanguage.h"
 
 #include "eccodes.h"
 
@@ -1502,8 +1502,8 @@ std::pair<std::unique_ptr<DataHandle>, std::deque<Key>> FDBHammer::constructRead
 
     {
         metkit::mars::MarsRequest template_request = config_.templateRequest();
-        template_request.setValuesTyped(new metkit::mars::TypeAny("number"),
-                                        to_stringvec(config_.request.ensemblelist));
+        auto& lang = metkit::mars::MarsLanguage::get(template_request.verb());
+        template_request.setValuesTyped(lang.type("number"), to_stringvec(config_.request.ensemblelist));
 
         size_t first_level = config_.iteration.startAtChunk / nparams;
         size_t last_level = config_.iteration.stopAtChunk / nparams;
@@ -1514,10 +1514,10 @@ std::pair<std::unique_ptr<DataHandle>, std::deque<Key>> FDBHammer::constructRead
 
             std::vector<std::string> paramlist_body(paramlist.begin() + (config_.iteration.startAtChunk % nparams),
                                                     paramlist.begin() + (config_.iteration.stopAtChunk % nparams) + 1);
-            body_list_request.setValuesTyped(new metkit::mars::TypeAny("param"), paramlist_body);
+            body_list_request.setValuesTyped(lang.type("param"), paramlist_body);
 
             std::vector<std::string> levelist_body(levelist.begin() + last_level, levelist.begin() + last_level + 1);
-            body_list_request.setValuesTyped(new metkit::mars::TypeAny("levelist"), levelist_body);
+            body_list_request.setValuesTyped(lang.type("levelist"), levelist_body);
 
             mars_list_requests.push_back(body_list_request);
 
@@ -1529,10 +1529,10 @@ std::pair<std::unique_ptr<DataHandle>, std::deque<Key>> FDBHammer::constructRead
 
             std::vector<std::string> paramlist_tail(paramlist.begin(),
                                                     paramlist.begin() + (config_.iteration.stopAtChunk % nparams) + 1);
-            tail_list_request.setValuesTyped(new metkit::mars::TypeAny("param"), paramlist_tail);
+            tail_list_request.setValuesTyped(lang.type("param"), paramlist_tail);
 
             std::vector<std::string> levelist_tail(levelist.begin() + last_level, levelist.begin() + last_level + 1);
-            tail_list_request.setValuesTyped(new metkit::mars::TypeAny("levelist"), levelist_tail);
+            tail_list_request.setValuesTyped(lang.type("levelist"), levelist_tail);
 
             mars_list_requests.push_back(tail_list_request);
 
@@ -1544,10 +1544,10 @@ std::pair<std::unique_ptr<DataHandle>, std::deque<Key>> FDBHammer::constructRead
 
             std::vector<std::string> paramlist_head(paramlist.begin() + (config_.iteration.startAtChunk % nparams),
                                                     paramlist.end());
-            head_list_request.setValuesTyped(new metkit::mars::TypeAny("param"), paramlist_head);
+            head_list_request.setValuesTyped(lang.type("param"), paramlist_head);
 
             std::vector<std::string> levelist_head(levelist.begin() + first_level, levelist.begin() + first_level + 1);
-            head_list_request.setValuesTyped(new metkit::mars::TypeAny("levelist"), levelist_head);
+            head_list_request.setValuesTyped(lang.type("levelist"), levelist_head);
 
             mars_list_requests.push_back(head_list_request);
 
@@ -1556,8 +1556,8 @@ std::pair<std::unique_ptr<DataHandle>, std::deque<Key>> FDBHammer::constructRead
 
         if (levelist.size() > 0) {
             metkit::mars::MarsRequest body_list_request = template_request;
-            body_list_request.setValuesTyped(new metkit::mars::TypeAny("param"), paramlist);
-            body_list_request.setValuesTyped(new metkit::mars::TypeAny("levelist"), levelist);
+            body_list_request.setValuesTyped(lang.type("param"), paramlist);
+            body_list_request.setValuesTyped(lang.type("levelist"), levelist);
             mars_list_requests.push_back(body_list_request);
             levelist.erase(levelist.begin(), levelist.end());
         }
