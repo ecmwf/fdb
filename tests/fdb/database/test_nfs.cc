@@ -10,12 +10,15 @@
 
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/toc/TocCommon.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/detail/NFSLocks.h"
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/NFSMountInfo.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/TmpDir.h"
 #include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
 
@@ -24,6 +27,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cctype>
 #include <cerrno>
 #include <cstdlib>
 #include <string>
@@ -150,6 +154,39 @@ CASE("NFS locks: only the error policy throws") {
         EXPECT(what.find("/mnt/nolock/db") != std::string::npos);
         EXPECT(what.find("local_lock=posix") != std::string::npos);
     }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+CASE("NFS paths: only unique names on NFS get a random token") {
+    const auto dots = [](const std::string& path) { return std::count(path.begin(), path.end(), '.'); };
+
+    const eckit::TmpDir tmp;
+    const eckit::LocalPathName local{tmp};
+    if (!fdb5::nfs::isMounted(local)) {
+        const std::string name = fdb5::TocCommon::uniquePath(local / "field").asString();
+        EXPECT_EQUAL(dots(name), dots(eckit::LocalPathName::unique(local / "field")));
+    }
+
+    const eckit::PathName mount = nfsMountDir();
+    if (mount.path().empty() || !mount.exists()) {
+        eckit::Log::info() << "NFS mount (FDB_TEST_NFS_MOUNT) not available -- skipping NFS part of unique path test"
+                           << std::endl;
+        return;
+    }
+
+    const eckit::LocalPathName shared{mount.localPath()};
+    const std::string first = fdb5::TocCommon::uniquePath(shared / "field").asString();
+    const std::string second = fdb5::TocCommon::uniquePath(shared / "field").asString();
+
+    // One more component than eckit's own name: the 16 digit hexadecimal token.
+    EXPECT_EQUAL(dots(first), dots(eckit::LocalPathName::unique(shared / "field")) + 1);
+
+    const std::string token = first.substr(first.rfind('.') + 1);
+    EXPECT_EQUAL(token.size(), size_t{16});
+    EXPECT(std::all_of(token.begin(), token.end(),
+                       [](unsigned char character) { return std::isxdigit(character) && !std::isupper(character); }));
+    EXPECT(first != second);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

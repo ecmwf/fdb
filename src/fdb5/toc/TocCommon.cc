@@ -11,20 +11,25 @@
 #include "fdb5/toc/TocCommon.h"
 
 #include <pwd.h>
+#include <sys/stat.h>
 #include <unistd.h>
+#include <algorithm>
+#include <cerrno>
 #include <cstdint>
-#include <cstdio>
+#include <cstring>
+#include <iomanip>
+#include <ios>
 #include <random>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/LocalPathName.h"
-#include "eckit/filesystem/URIManager.h"
-#include "eckit/log/Timer.h"
 #include "eckit/os/Stat.h"
+#include "eckit/utils/Translator.h"
 
-#include "fdb5/LibFdb5.h"
-#include "fdb5/io/LustreSettings.h"
-#include "fdb5/toc/RootManager.h"
 #include "fdb5/toc/detail/NFSLocks.h"
 
 namespace fdb5 {
@@ -49,13 +54,14 @@ eckit::PathName TocCommon::uniquePath(const eckit::PathName& path) {
         return unique;
     }
 
+    // A fresh device per call: a shared generator would repeat its sequence in forked children.
     std::random_device device;
-    const std::uint64_t token = (static_cast<std::uint64_t>(device()) << 32) | device();
+    const auto token = std::uniform_int_distribution<std::uint64_t>{}(device);
 
-    char suffix[32];
-    std::snprintf(suffix, sizeof(suffix), ".%016llx", static_cast<unsigned long long>(token));
+    std::ostringstream suffix;
+    suffix << '.' << std::hex << std::setfill('0') << std::setw(16) << token;
 
-    return unique + suffix;
+    return unique + suffix.str();
 }
 
 TocCommon::TocCommon(const eckit::PathName& directory) :
