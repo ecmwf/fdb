@@ -16,15 +16,13 @@
 
 #include <dirent.h>
 
+#include <string>
+#include <vector>
+
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/PathName.h"
-#include "eckit/io/FileHandle.h"
-#include "eckit/serialisation/Streamable.h"
-#include "eckit/thread/ThreadPool.h"
 
 #include "fdb5/api/helpers/ControlIterator.h"
-#include "fdb5/config/Config.h"
-#include "fdb5/database/Key.h"
 
 namespace fdb5 {
 
