@@ -16,7 +16,6 @@
 
 #include <map>
 #include <memory>
-#include <optional>
 #include <utility>
 
 #include "eckit/filesystem/LocalPathName.h"
@@ -42,7 +41,8 @@ namespace fdb5 {
 
 class Key;
 class Index;
-class TocProcessLock;
+class TocLock;
+class TocLocking;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -211,7 +211,9 @@ private:  // methods
 
     void close() const;
 
-    bool isNFS() const;
+    /// The locking of the filesystem holding the TOC, validated once.
+    /// @throws eckit::UserError if the filesystem cannot be relied on.
+    const TocLocking& locking() const;
 
     void appendRaw(const void* data, size_t size);
     void appendRound(TocRecord& r, size_t payloadSize);
@@ -282,10 +284,9 @@ private:  // members
 
     mutable bool dirty_;
 
-    mutable std::optional<bool> isNFSCached_;              ///< cached as it is expensive
-    mutable std::unique_ptr<TocProcessLock> processLock_;  ///< lock for the toc file, if on NFS
+    mutable const TocLocking* locking_ = nullptr;   ///< n.b. non-owning, cached as it is expensive
+    mutable std::unique_ptr<TocLock> processLock_;  ///< held with the lock of the open toc file, if any
 };
-
 
 //-----------------------------------------------------------------------------
 

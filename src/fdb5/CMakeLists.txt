@@ -308,8 +308,10 @@ if( HAVE_TOCFDB )
         toc/EnvVarFileSpaceHandler.h
         toc/RootManager.cc
         toc/RootManager.h
-        toc/detail/NFSLocks.cc
-        toc/detail/NFSLocks.h
+        toc/detail/NFSTocLocking.cc
+        toc/detail/NFSTocLocking.h
+        toc/detail/TocLocking.cc
+        toc/detail/TocLocking.h
         toc/TocCommon.cc
         toc/TocCommon.h
         toc/TocCatalogue.cc

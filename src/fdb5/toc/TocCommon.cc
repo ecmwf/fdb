@@ -15,11 +15,7 @@
 #include <unistd.h>
 #include <algorithm>
 #include <cerrno>
-#include <cstdint>
 #include <cstring>
-#include <iomanip>
-#include <ios>
-#include <random>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -30,7 +26,7 @@
 #include "eckit/os/Stat.h"
 #include "eckit/utils/Translator.h"
 
-#include "fdb5/toc/detail/NFSLocks.h"
+#include "fdb5/toc/detail/TocLocking.h"
 
 namespace fdb5 {
 
@@ -46,22 +42,7 @@ eckit::LocalPathName TocCommon::findRealPath(const eckit::LocalPathName& path) {
 }
 
 eckit::PathName TocCommon::uniquePath(const eckit::PathName& path) {
-
-    const auto unique = eckit::PathName::unique(path);
-
-    // Only a shared NFS directory can see another client generate the same host, pid and time.
-    if (!nfs::isMounted(unique.dirName())) {
-        return unique;
-    }
-
-    // A fresh device per call: a shared generator would repeat its sequence in forked children.
-    std::random_device device;
-    const auto token = std::uniform_int_distribution<std::uint64_t>{}(device);
-
-    std::ostringstream suffix;
-    suffix << '.' << std::hex << std::setfill('0') << std::setw(16) << token;
-
-    return unique + suffix.str();
+    return TocLocking::forDirectory(eckit::LocalPathName{path.dirName()}).uniquePath(path);
 }
 
 TocCommon::TocCommon(const eckit::PathName& directory) :

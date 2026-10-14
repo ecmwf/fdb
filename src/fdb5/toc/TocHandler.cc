@@ -1,5 +1,5 @@
 /*
- i (C) Copyright 1996- ECMWF.
+ * (C) Copyright 1996- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -18,7 +18,6 @@
 #include <memory>
 #include <mutex>
 #include <string>
-#include <tuple>
 #include <utility>
 
 #include "eckit/config/Resource.h"
@@ -42,7 +41,7 @@
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
-#include "fdb5/toc/detail/NFSLocks.h"
+#include "fdb5/toc/detail/TocLocking.h"
 
 #if eckit_HAVE_AIO
 #include <aio.h>
@@ -69,87 +68,6 @@ const std::map<ControlIdentifier, const char*> controlfile_lookup{
     {ControlIdentifier::List, list_lock_file},
     {ControlIdentifier::Wipe, wipe_lock_file},
     {ControlIdentifier::UniqueRoot, allow_duplicates_file}};
-
-//----------------------------------------------------------------------------------------------------------------------
-
-namespace {
-
-/// Blocking whole-file advisory lock. Prefers open-file-description locks
-/// (F_OFD_*) so the lock is bound to this descriptor; falls back to classic
-/// POSIX locks if OFD is unavailable.
-void tocFileLock(int fd, short type, const eckit::PathName& path) {
-    struct flock lock{};
-    lock.l_type = type;
-    lock.l_whence = SEEK_SET;
-    lock.l_start = 0;
-    lock.l_len = 0;  // whole file
-
-    int cmd = F_SETLKW;
-#if defined(F_OFD_SETLKW)
-    cmd = F_OFD_SETLKW;
-#endif
-
-    for (;;) {
-        if (::fcntl(fd, cmd, &lock) == 0) {
-            return;
-        }
-        if (errno == EINTR) {
-            continue;  // interrupted by a signal, retry
-        }
-#if defined(F_OFD_SETLKW)
-        if (cmd == F_OFD_SETLKW && (errno == EINVAL || errno == ENOTSUP)) {
-            cmd = F_SETLKW;  // OFD unsupported at runtime, degrade to classic locks
-            continue;
-        }
-#endif
-        const int err = errno;
-        throw eckit::FailedSystemCall(
-            std::string("advisory lock on TOC ") + path.asString() + " (ensure NFS file locking is enabled)", Here(),
-            err);
-    }
-}
-
-}  // namespace
-
-//----------------------------------------------------------------------------------------------------------------------
-
-
-/// Serialises independent TOC handlers within a process when using process-scoped POSIX locks.
-/// File identity is based on device and inode so aliases share the same mutex.
-class TocProcessLock {
-
-    using FileIdentity = std::tuple<pid_t, dev_t, ino_t>;
-
-    struct Registry {
-        std::mutex mutex;
-        std::map<FileIdentity, std::weak_ptr<std::mutex>> locks;
-    };
-
-    static std::shared_ptr<std::mutex> mutexFor(int fd, const eckit::PathName& path) {
-        static Registry registry;
-
-        struct stat status{};
-        SYSCALL2(::fstat(fd, &status), path);
-
-        const std::lock_guard lock{registry.mutex};
-        auto& entry = registry.locks[FileIdentity{::getpid(), status.st_dev, status.st_ino}];
-        auto fileMutex = entry.lock();
-        if (!fileMutex) {
-            fileMutex = std::make_shared<std::mutex>();
-            entry = fileMutex;
-        }
-        return fileMutex;
-    }
-
-public:
-
-    TocProcessLock(int fd, const eckit::PathName& path) : mutex_{mutexFor(fd, path)}, lock_{*mutex_} {}
-
-private:
-
-    std::shared_ptr<std::mutex> mutex_;
-    std::unique_lock<std::mutex> lock_;
-};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -310,22 +228,20 @@ bool TocHandler::exists() const {
     return tocPath_.exists();
 }
 
-bool TocHandler::isNFS() const {
-    if (!isNFSCached_) {
-        const auto nfs = nfs::isMounted(directory());
-        if (nfs) {
-            nfs::enforceLockPolicy(directory());
-        }
-        isNFSCached_ = nfs;
+const TocLocking& TocHandler::locking() const {
+    if (!locking_) {
+        const auto& selected = TocLocking::forDirectory(directory());
+        selected.validate(directory());  // may throw: kept only once valid, so every call checks again
+        locking_ = &selected;
     }
-    return *isNFSCached_;
+    return *locking_;
 }
 
 void TocHandler::openForAppend() {
 
     checkUID();  // n.b. may openForRead
 
-    const bool nfs = isNFS();  // before any state changes: may throw
+    const TocLocking& locks = locking();  // before any state changes: may throw
 
     if (cachedToc_) {
         cachedToc_.reset();
@@ -347,19 +263,15 @@ void TocHandler::openForAppend() {
 #endif
     SYSCALL2((fd_ = ::open(tocPath_.localPath(), iomode, (mode_t)0777)), tocPath_);
 
-    if (nfs) {
-        // On NFS O_APPEND is not atomic, so serialize with a lock (released on close)
-        auto lock = std::make_unique<TocProcessLock>(fd_, tocPath_);
-        try {
-            tocFileLock(fd_, F_WRLCK, tocPath_);
-        }
-        catch (...) {
-            ::close(fd_);
-            fd_ = -1;
-            writeMode_ = false;
-            throw;
-        }
-        processLock_ = std::move(lock);
+    // On NFS O_APPEND is not atomic, so serialize with a lock (released on close)
+    try {
+        processLock_ = locks.lockForWrite(fd_, tocPath_);
+    }
+    catch (...) {
+        ::close(fd_);
+        fd_ = -1;
+        writeMode_ = false;
+        throw;
     }
 }
 
@@ -375,7 +287,7 @@ void TocHandler::openForRead() const {
 
     ASSERT(fd_ == -1);
 
-    const bool nfs = isNFS();  // before the open: may throw
+    const TocLocking& locks = locking();  // before the open: may throw
 
     writeMode_ = false;
 
@@ -401,14 +313,11 @@ void TocHandler::openForRead() const {
         const auto toc_fd = fd_;
         fd_ = -1;
 
-        std::unique_ptr<TocProcessLock> process_lock;
-        FileDescHandle toc(toc_fd, true);  // closes the file descriptor
+        std::unique_ptr<TocLock> process_lock;  // declared first: released after the descriptor is closed
+        FileDescHandle toc(toc_fd, true);       // closes the file descriptor
         AutoClose closer1(toc);
 
-        if (nfs) {
-            process_lock = std::make_unique<TocProcessLock>(toc_fd, tocPath_);
-            tocFileLock(toc_fd, F_RDLCK, tocPath_);
-        }
+        process_lock = locks.lockForRead(toc_fd, tocPath_);
 
         // n.b. the size must be taken *after* the lock is held
         eckit::Length tocSize = tocPath_.size();
@@ -420,17 +329,15 @@ void TocHandler::openForRead() const {
         toc.copyTo(*cachedToc_, buffersize, tocSize, tocReadStats_);
         cachedToc_->openForRead();
     }
-    else if (nfs) {
-        auto proc_lock = std::make_unique<TocProcessLock>(fd_, tocPath_);
+    else {
         try {
-            tocFileLock(fd_, F_RDLCK, tocPath_);  // released on close()
+            processLock_ = locks.lockForRead(fd_, tocPath_);  // released on close()
         }
         catch (...) {
             ::close(fd_);
             fd_ = -1;
             throw;
         }
-        processLock_ = std::move(proc_lock);
     }
 }
 
@@ -1171,14 +1078,14 @@ void TocHandler::writeInitRecord(const Key& key) {
         directory_.mkdir();
     }
 
-    const bool nfs = isNFS();  // before the TOC is created: may throw
+    const TocLocking& locks = locking();  // before the TOC is created: may throw
 
     // enforce lustre striping if requested
     if (stripeLustre() && !tocPath_.exists()) {
         fdb5LustreapiFileCreate(tocPath_, stripeIndexLustreSettings());
     }
 
-    if (nfs) {
+    if (locks.excludesWriters()) {
         initLock.unlock();  // the TOC lock serialises the rest, and may wait on another client for a long time
     }
 
@@ -1189,11 +1096,7 @@ void TocHandler::writeInitRecord(const Key& key) {
 
     TocHandlerCloser closer(*this);
 
-    if (nfs) {
-        auto proc_lock = std::make_unique<TocProcessLock>(fd_, tocPath_);
-        tocFileLock(fd_, F_WRLCK, tocPath_);
-        processLock_ = std::move(proc_lock);
-    }
+    processLock_ = locks.lockForWrite(fd_, tocPath_);
 
     auto r = std::make_unique<TocRecord>(
         serialisationVersion_.used());  // allocate (large) TocRecord on heap not stack (MARS-779)
