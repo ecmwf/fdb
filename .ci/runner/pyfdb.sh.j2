@@ -4,6 +4,6 @@
 {% block set_environment %}
 {% import "ci-infrastructure/python.j2" as py %}
 {{ py.get_python_via_uv(python_version) }}
-uv pip install -r "python/requirements-build.txt"
+uv pip install -r "python/requirements-build.txt" -r "python/requirements-test.txt"
 CI_SOURCE_DIR="$CI_SOURCE_DIR/python/pyfdb"
 {% endblock %}

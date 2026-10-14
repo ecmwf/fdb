@@ -134,7 +134,7 @@ jobs:
       - name: Display Python version
         run: python --version
       - name: Install build dependencies
-        run: pip install -r fdb-src/requirements.txt
+        run: pip install -r fdb-src/python/requirements-build.txt -r fdb-src/python/requirements-test.txt
       - name: Build fdb
         run: |
           export PATH=$(pwd)/dependencies/bin:$(pwd)/fdb-build/bin:$PATH
