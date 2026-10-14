@@ -211,7 +211,7 @@ private:  // methods
 
     void close() const;
 
-    bool needsNFSLock() const;
+    bool isNFS() const;
 
     void appendRaw(const void* data, size_t size);
     void appendRound(TocRecord& r, size_t payloadSize);

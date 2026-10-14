@@ -43,6 +43,7 @@
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
+#include "fdb5/toc/detail/NFSLocks.h"
 
 #if eckit_HAVE_AIO
 #include <aio.h>
@@ -310,9 +311,13 @@ bool TocHandler::exists() const {
     return tocPath_.exists();
 }
 
-bool TocHandler::needsNFSLock() const {
+bool TocHandler::isNFS() const {
     if (!isNFSCached_) {
-        isNFSCached_ = directory().fileSystemType() == "nfs";
+        const bool nfs = directory().fileSystemType() == "nfs";
+        if (nfs) {
+            nfs::enforceLockPolicy(directory());
+        }
+        isNFSCached_ = nfs;
     }
     return *isNFSCached_;
 }
@@ -320,6 +325,8 @@ bool TocHandler::needsNFSLock() const {
 void TocHandler::openForAppend() {
 
     checkUID();  // n.b. may openForRead
+
+    const bool nfs = isNFS();  // before any state changes: may throw
 
     if (cachedToc_) {
         cachedToc_.reset();
@@ -341,7 +348,7 @@ void TocHandler::openForAppend() {
 #endif
     SYSCALL2((fd_ = ::open(tocPath_.localPath(), iomode, (mode_t)0777)), tocPath_);
 
-    if (needsNFSLock()) {
+    if (nfs) {
         // On NFS O_APPEND is not atomic, so serialize with a lock (released on close)
         auto lock = std::make_unique<TocProcessLock>(fd_, tocPath_);
         try {
@@ -369,6 +376,8 @@ void TocHandler::openForRead() const {
 
     ASSERT(fd_ == -1);
 
+    const bool nfs = isNFS();  // before the open: may throw
+
     writeMode_ = false;
 
     LOG_DEBUG_LIB(LibFdb5) << "Opening for read TOC " << tocPath_ << std::endl;
@@ -388,8 +397,6 @@ void TocHandler::openForRead() const {
     numSubtocsRaw_ = 0;
     maskedEntries_.clear();
 
-    const bool needs_nfs_lock = needsNFSLock();
-
     if (fdbCacheTocsOnRead) {
 
         const auto toc_fd = fd_;
@@ -399,7 +406,7 @@ void TocHandler::openForRead() const {
         FileDescHandle toc(toc_fd, true);  // closes the file descriptor
         AutoClose closer1(toc);
 
-        if (needs_nfs_lock) {
+        if (nfs) {
             process_lock = std::make_unique<TocProcessLock>(toc_fd, tocPath_);
             tocFileLock(toc_fd, F_RDLCK, tocPath_);
         }
@@ -414,7 +421,7 @@ void TocHandler::openForRead() const {
         toc.copyTo(*cachedToc_, buffersize, tocSize, tocReadStats_);
         cachedToc_->openForRead();
     }
-    else if (needs_nfs_lock) {
+    else if (nfs) {
         auto proc_lock = std::make_unique<TocProcessLock>(fd_, tocPath_);
         try {
             tocFileLock(fd_, F_RDLCK, tocPath_);  // released on close()
@@ -1171,6 +1178,8 @@ void TocHandler::writeInitRecord(const Key& key) {
         directory_.mkdir();
     }
 
+    const bool nfs = isNFS();  // before the TOC is created: may throw
+
     // enforce lustre striping if requested
     if (stripeLustre() && !tocPath_.exists()) {
         fdb5LustreapiFileCreate(tocPath_, stripeIndexLustreSettings());
@@ -1183,7 +1192,7 @@ void TocHandler::writeInitRecord(const Key& key) {
 
     TocHandlerCloser closer(*this);
 
-    if (needsNFSLock()) {
+    if (nfs) {
         auto proc_lock = std::make_unique<TocProcessLock>(fd_, tocPath_);
         tocFileLock(fd_, F_WRLCK, tocPath_);
         processLock_ = std::move(proc_lock);
