@@ -36,6 +36,15 @@ static std::string logMessage(const eckit::LocalPathName& directory, const std::
     return msg.str();
 }
 
+bool isMounted(const eckit::PathName& directory) {
+    try {
+        return directory.fileSystemType() == "nfs";
+    }
+    catch (const eckit::NotImplemented&) {
+        return false;
+    }
+}
+
 LockPolicy parseLockPolicy(const std::string& value) {
     const auto lowered = eckit::StringTools::lower(value);
 

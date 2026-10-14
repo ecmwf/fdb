@@ -16,12 +16,17 @@
 #include <string>
 
 namespace eckit {
+class PathName;
 class LocalPathName;
-}
+}  // namespace eckit
 
 namespace fdb5::nfs {
 
 //----------------------------------------------------------------------------------------------------------------------
+
+/// Whether `directory` is on an NFS mount. False where the platform cannot tell the filesystem type.
+/// @throws eckit::FailedSystemCall if the filesystem cannot be examined.
+bool isMounted(const eckit::PathName& directory);
 
 /// What to do when an NFS mount has client-local locks.
 enum class LockPolicy {

@@ -312,7 +312,7 @@ bool TocHandler::exists() const {
 
 bool TocHandler::isNFS() const {
     if (!isNFSCached_) {
-        const auto nfs = directory().fileSystemType() == "nfs";
+        const auto nfs = nfs::isMounted(directory());
         if (nfs) {
             nfs::enforceLockPolicy(directory());
         }

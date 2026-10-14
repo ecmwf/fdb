@@ -25,6 +25,7 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/io/LustreSettings.h"
 #include "fdb5/toc/RootManager.h"
+#include "fdb5/toc/detail/NFSLocks.h"
 
 namespace fdb5 {
 
@@ -44,7 +45,7 @@ eckit::PathName TocCommon::uniquePath(const eckit::PathName& path) {
     const auto unique = eckit::PathName::unique(path);
 
     // Only a shared NFS directory can see another client generate the same host, pid and time.
-    if (unique.dirName().fileSystemType() != "nfs") {
+    if (!nfs::isMounted(unique.dirName())) {
         return unique;
     }
 

@@ -186,6 +186,7 @@ CASE("NFS mount: detection fires and a TOC round-trips on a real NFS export") {
     // The mount is present, so it must really be NFS; otherwise the harness is misconfigured
     // and this case would validate the wrong filesystem.
     EXPECT_EQUAL(mount.fileSystemType(), std::string("nfs"));
+    EXPECT(fdb5::nfs::isMounted(mount.localPath()));
 
     eckit::PathName dir = eckit::PathName::unique(mount / "fdb_nfs_test");
     dir.mkdir();
