@@ -36,6 +36,7 @@ def test_datahandle_repr(read_only_fdb_setup):
     assert "Closed" in repr(data_handle)
     data_handle.open()
     assert "Opened" in repr(data_handle)
+    data_handle.close()
 
 
 def test_datahandle_not_opened_before_read(read_only_fdb_setup):
@@ -89,6 +90,7 @@ def test_datahandle_consecutive_read(read_only_fdb_setup):
     data_handle.open()
     assert data_handle.read(4) == b"GRIB"
     assert data_handle.read(4) != b"GRIB"
+    data_handle.close()
 
 
 def test_datahandle_readinto(read_only_fdb_setup):
@@ -201,6 +203,9 @@ def test_datahandle_cmp_read_read_all(read_only_fdb_setup):
     data_handle.open()
     print(data_handle.read(4))
     print(data_handle_2.read(4))
+
+    data_handle.close()
+    data_handle_2.close()
 
 
 def test_datahandle_not_opened_before_read_context_manager(read_only_fdb_setup):
