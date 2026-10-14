@@ -284,7 +284,7 @@ private:  // members
 
     mutable bool dirty_;
 
-    mutable const TocLocking* locking_ = nullptr;   ///< n.b. non-owning, cached as it is expensive
+    mutable const TocLocking* locking_{nullptr};    ///< n.b. non-owning, cached as it is expensive
     mutable std::unique_ptr<TocLock> processLock_;  ///< held with the lock of the open toc file, if any
 };
 

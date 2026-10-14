@@ -32,7 +32,7 @@ namespace fdb5 {
 /// Locking for TOCs on NFS: blocking fcntl locks served by the NFS server, a mutex per file to keep the handlers of
 /// this process apart, and file names that another client cannot generate.
 class NFSTocLocking final : public TocLocking {
-public:
+public:  // types
 
     /// What to do when an NFS mount has client-local locks, which do not keep other clients out.
     enum class Policy {
@@ -48,12 +48,14 @@ public:
     /// @throws eckit::UserError for any other value.
     static Policy parsePolicy(const std::string& value);
 
+public:  // methods
+
+    NFSTocLocking(Policy policy, Lookup lookup);
+
     /// Takes the policy from $FDB_NFS_LOCAL_LOCK_POLICY (default "warn") and reads the mount options from the system.
     /// Only Linux reports them: elsewhere no mount is client-local as far as this class can tell.
     /// @throws eckit::UserError if the variable holds an unknown policy.
     NFSTocLocking();
-
-    NFSTocLocking(Policy policy, Lookup lookup);
 
     /// Applies the policy if the mount holding `directory` has client-local locks. A filesystem is looked up once.
     /// Warn reports it once, Error throws on every call.
@@ -68,7 +70,7 @@ public:
 
     eckit::PathName uniquePath(const eckit::PathName& path) const override;
 
-private:
+private:  // members
 
     Policy policy_;
     Lookup lookup_;

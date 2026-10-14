@@ -223,6 +223,19 @@ CASE("TOC locking: a local filesystem takes no locks, the NFS locking takes one 
     ::close(fd);
 }
 
+CASE("TOC locking: a directory that is not created yet counts as the filesystem it will be created on") {
+    const eckit::TmpDir tmp;
+    const eckit::LocalPathName directory{tmp};
+    const eckit::LocalPathName missing = directory / "missing" / "deeper";
+
+    EXPECT_EQUAL(&TocLocking::forDirectory(missing), &TocLocking::forDirectory(directory));
+    EXPECT_NO_THROW(TocCommon::uniquePath(missing / "field"));
+
+    const NFSTocLocking nfs{NFSTocLocking::Policy::Error,
+                            [](const std::string&) -> std::optional<std::string> { return std::nullopt; }};
+    EXPECT_NO_THROW(nfs.validate(missing));
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("NFS paths: only unique names on NFS get a random token") {

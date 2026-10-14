@@ -231,7 +231,7 @@ bool TocHandler::exists() const {
 const TocLocking& TocHandler::locking() const {
     if (!locking_) {
         const auto& selected = TocLocking::forDirectory(directory());
-        selected.validate(directory());  // may throw: kept only once valid, so every call checks again
+        selected.validate(directory());
         locking_ = &selected;
     }
     return *locking_;
@@ -241,7 +241,7 @@ void TocHandler::openForAppend() {
 
     checkUID();  // n.b. may openForRead
 
-    const TocLocking& locks = locking();  // before any state changes: may throw
+    const TocLocking& lock = locking();  // before any state changes: may throw
 
     if (cachedToc_) {
         cachedToc_.reset();
@@ -265,7 +265,7 @@ void TocHandler::openForAppend() {
 
     // On NFS O_APPEND is not atomic, so serialize with a lock (released on close)
     try {
-        processLock_ = locks.lockForWrite(fd_, tocPath_);
+        processLock_ = lock.lockForWrite(fd_, tocPath_);
     }
     catch (...) {
         ::close(fd_);
@@ -287,7 +287,7 @@ void TocHandler::openForRead() const {
 
     ASSERT(fd_ == -1);
 
-    const TocLocking& locks = locking();  // before the open: may throw
+    const TocLocking& lock = locking();  // before the open: may throw
 
     writeMode_ = false;
 
@@ -313,11 +313,10 @@ void TocHandler::openForRead() const {
         const auto toc_fd = fd_;
         fd_ = -1;
 
-        std::unique_ptr<TocLock> process_lock;  // declared first: released after the descriptor is closed
-        FileDescHandle toc(toc_fd, true);       // closes the file descriptor
-        AutoClose closer1(toc);
+        FileDescHandle toc(toc_fd, true);
+        AutoClose closer(toc);
 
-        process_lock = locks.lockForRead(toc_fd, tocPath_);
+        auto proc_lock = lock.lockForRead(toc_fd, tocPath_);
 
         // n.b. the size must be taken *after* the lock is held
         eckit::Length tocSize = tocPath_.size();
@@ -331,7 +330,7 @@ void TocHandler::openForRead() const {
     }
     else {
         try {
-            processLock_ = locks.lockForRead(fd_, tocPath_);  // released on close()
+            processLock_ = lock.lockForRead(fd_, tocPath_);  // released on close()
         }
         catch (...) {
             ::close(fd_);
@@ -1072,21 +1071,21 @@ static eckit::StaticMutex local_mutex;
 
 void TocHandler::writeInitRecord(const Key& key) {
 
+    const auto& lock = locking();
+
     std::unique_lock<eckit::StaticMutex> initLock(local_mutex);
 
     if (!directory_.exists()) {
         directory_.mkdir();
     }
 
-    const TocLocking& locks = locking();  // before the TOC is created: may throw
-
     // enforce lustre striping if requested
     if (stripeLustre() && !tocPath_.exists()) {
         fdb5LustreapiFileCreate(tocPath_, stripeIndexLustreSettings());
     }
 
-    if (locks.excludesWriters()) {
-        initLock.unlock();  // the TOC lock serialises the rest, and may wait on another client for a long time
+    if (lock.excludesWriters()) {
+        initLock.unlock();  // the TOC lock serialises the rest
     }
 
     ASSERT(fd_ == -1);
@@ -1096,7 +1095,7 @@ void TocHandler::writeInitRecord(const Key& key) {
 
     TocHandlerCloser closer(*this);
 
-    processLock_ = locks.lockForWrite(fd_, tocPath_);
+    processLock_ = lock.lockForWrite(fd_, tocPath_);
 
     auto r = std::make_unique<TocRecord>(
         serialisationVersion_.used());  // allocate (large) TocRecord on heap not stack (MARS-779)

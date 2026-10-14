@@ -38,6 +38,7 @@
 #include "eckit/log/CodeLocation.h"
 #include "eckit/log/Log.h"
 #include "eckit/utils/StringTools.h"
+#include "fdb5/toc/detail/TocLocking.h"
 
 namespace fdb5 {
 
@@ -45,9 +46,8 @@ namespace fdb5 {
 
 namespace {
 
-/// Blocking whole-file advisory lock. Prefers open-file-description locks
-/// (F_OFD_*) so the lock is bound to this descriptor; falls back to classic
-/// POSIX locks if OFD is unavailable.
+/// Blocking whole-file advisory lock.
+// Prefer open-file-description locks if available, otherwise fall back to classic POSIX locks.
 void fileLock(int fd, short type, const eckit::PathName& path) {
     struct flock lock{};
     lock.l_type = type;
@@ -55,7 +55,9 @@ void fileLock(int fd, short type, const eckit::PathName& path) {
     lock.l_start = 0;
     lock.l_len = 0;  // whole file
 
+    // Default to classic POSIX locks.
     int cmd = F_SETLKW;
+    // Attempt to use open-file-description locks (F_OFD_SETLKW) if available.
 #if defined(F_OFD_SETLKW)
     cmd = F_OFD_SETLKW;
 #endif
@@ -74,9 +76,9 @@ void fileLock(int fd, short type, const eckit::PathName& path) {
         }
 #endif
         const int err = errno;
-        throw eckit::FailedSystemCall(
-            std::string("advisory lock on TOC ") + path.asString() + " (ensure NFS file locking is enabled)", Here(),
-            err);
+        std::ostringstream msg;
+        msg << "Failed to acquire advisory lock on TOC " << path.asString() << " (ensure NFS file locking is enabled).";
+        throw eckit::FailedSystemCall(msg.str(), Here(), err);
     }
 }
 
@@ -117,7 +119,7 @@ private:
     std::unique_lock<std::mutex> lock_;
 };
 
-NFSTocLocking::Policy policyFromEnvironment() {
+NFSTocLocking::Policy policyFromEnv() {
     const std::string value = eckit::Resource<std::string>("fdbNfsLocalLockPolicy;$FDB_NFS_LOCAL_LOCK_POLICY", "warn");
     return NFSTocLocking::parsePolicy(value);
 }
@@ -137,7 +139,7 @@ std::string describe(const eckit::LocalPathName& directory, const std::string& o
 //----------------------------------------------------------------------------------------------------------------------
 
 NFSTocLocking::Policy NFSTocLocking::parsePolicy(const std::string& value) {
-    const std::string policy = eckit::StringTools::lower(value);
+    const auto policy = eckit::StringTools::lower(value);
 
     if (policy == "warn") {
         return Policy::Warn;
@@ -152,16 +154,16 @@ NFSTocLocking::Policy NFSTocLocking::parsePolicy(const std::string& value) {
     throw eckit::UserError("Invalid FDB_NFS_LOCAL_LOCK_POLICY=" + value, Here());
 }
 
-NFSTocLocking::NFSTocLocking() : NFSTocLocking{policyFromEnvironment(), mountOption} {}
-
 NFSTocLocking::NFSTocLocking(Policy policy, Lookup lookup) : policy_{policy}, lookup_{std::move(lookup)} {}
+
+NFSTocLocking::NFSTocLocking() : NFSTocLocking{policyFromEnv(), mountOption} {}
 
 void NFSTocLocking::validate(const eckit::LocalPathName& directory) const {
     if (policy_ == Policy::Ignore) {
         return;
     }
 
-    const std::string device = directory.device();
+    const std::string device = locateExistingDirectory(directory).device();
 
     const std::lock_guard lock{mutex_};
 
@@ -171,7 +173,7 @@ void NFSTocLocking::validate(const eckit::LocalPathName& directory) const {
         entry = options_.emplace(device, lookup_(device)).first;
     }
 
-    const std::optional<std::string>& option = entry->second;
+    const auto& option = entry->second;
     if (!option) {
         return;
     }
@@ -186,15 +188,15 @@ void NFSTocLocking::validate(const eckit::LocalPathName& directory) const {
 }
 
 std::unique_ptr<TocLock> NFSTocLocking::lockForRead(int fd, const eckit::PathName& path) const {
-    auto processLock = std::make_unique<ProcessLock>(fd, path);
+    auto lock = std::make_unique<ProcessLock>(fd, path);
     fileLock(fd, F_RDLCK, path);
-    return processLock;
+    return lock;
 }
 
 std::unique_ptr<TocLock> NFSTocLocking::lockForWrite(int fd, const eckit::PathName& path) const {
-    auto processLock = std::make_unique<ProcessLock>(fd, path);
+    auto lock = std::make_unique<ProcessLock>(fd, path);
     fileLock(fd, F_WRLCK, path);
-    return processLock;
+    return lock;
 }
 
 eckit::PathName NFSTocLocking::uniquePath(const eckit::PathName& path) const {

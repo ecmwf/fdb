@@ -37,12 +37,13 @@ public:
 
     virtual ~TocLocking() = default;
 
-    /// The locking for the filesystem holding `directory`. It lives for the whole process.
+    /// The locking for the filesystem holding `directory` (for the whole process).
     /// @throws eckit::UserError if the configured policy is invalid.
     /// @throws eckit::FailedSystemCall if the filesystem cannot be examined.
     static const TocLocking& forDirectory(const eckit::LocalPathName& directory);
 
-    /// Checks that the locking can be relied on for `directory`. Call it before creating or opening a TOC there.
+    /// Checks that the locking can be relied on for `directory`, which may not exist yet. Call it before creating or
+    /// opening a TOC there.
     /// @throws eckit::UserError if it cannot.
     virtual void validate(const eckit::LocalPathName& directory) const = 0;
 
@@ -57,6 +58,11 @@ public:
 
     /// A name for a new file next to `path` that no other client generates.
     virtual eckit::PathName uniquePath(const eckit::PathName& path) const = 0;
+
+protected:
+
+    /// `path` if it exists, else its closest parent that exists.
+    static eckit::LocalPathName locateExistingDirectory(const eckit::LocalPathName& path);
 };
 
 //----------------------------------------------------------------------------------------------------------------------
