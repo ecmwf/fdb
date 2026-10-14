@@ -28,8 +28,8 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Archiver::Archiver(const Config& dbConfig, const ArchiveCallback& callback) :
-    dbConfig_(dbConfig), db_(nullptr), callback_(callback) {}
+Archiver::Archiver(const Config& dbConfig, const ArchiveCallbacks& callbacks) :
+    dbConfig_(dbConfig), db_(nullptr), callbacks_(callbacks) {}
 
 Archiver::~Archiver() {
     flush();  // certify that all sessions are flushed before closing them
@@ -38,7 +38,7 @@ Archiver::~Archiver() {
 void Archiver::archive(const Key& key, const void* data, size_t len) {
     // Take the lock as visitor takes a reference to prev_ during construction
     std::lock_guard lock(flushMutex_);
-    auto visitor = ArchiveVisitor::create(*this, key, data, len, callback_);
+    auto visitor = ArchiveVisitor::create(*this, key, data, len, callbacks_);
     archive(key, *visitor);
 }
 

@@ -227,16 +227,17 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
 
     std::shared_ptr<const FieldLocation> location = ss.archive(idxKey, charData + s.position(), length - s.position());
 
-    std::promise<std::shared_ptr<const FieldLocation>> promise;
-    promise.set_value(location);
-
     eckit::StringDict dict = dbKey.keyDict();
     const auto& idxKeyDict = idxKey.keyDict();
     dict.insert(idxKeyDict.begin(), idxKeyDict.end());
 
     const Key fullkey(dict);  /// @note: we do not have the third level of the key.
 
-    callbacks_.archiveCallback_(fullkey, charData + s.position(), length - s.position(), promise.get_future());
+    for (const auto& callback : callbacks_.archiveCallbacks_) {
+        std::promise<std::shared_ptr<const FieldLocation>> promise;
+        promise.set_value(location);
+        callback(fullkey, charData + s.position(), length - s.position(), promise.get_future());
+    }
 
     Log::status() << "Archiving done: " << ss_key.str() << std::endl;
 
@@ -504,7 +505,7 @@ void StoreHandler::registerFlushCallback(FlushCallback callback) {
 }
 
 void StoreHandler::registerArchiveCallback(ArchiveCallback callback) {
-    callbacks_.archiveCallback_ = std::move(callback);
+    callbacks_.archiveCallbacks_.push_back(std::move(callback));
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -800,11 +800,18 @@ CASE("callbacks_reach_nested_sub_fdbs") {
     fdb5::FDB fdb(nestedConfig());
 
     size_t archiveCalls = 0;
+    size_t additionalArchiveCalls = 0;
     size_t flushCalls = 0;
 
     fdb.registerArchiveCallback(
         [&archiveCalls](const fdb5::Key&, const void*, size_t,
                         std::future<std::shared_ptr<const fdb5::FieldLocation>>) { archiveCalls += 1; });
+    fdb.registerArchiveCallback(
+        [&additionalArchiveCalls](const fdb5::Key&, const void*, size_t,
+                                  std::future<std::shared_ptr<const fdb5::FieldLocation>> future) {
+            EXPECT(!future.get());
+            additionalArchiveCalls += 1;
+        });
     fdb.registerFlushCallback([&flushCalls] { flushCalls += 1; });
 
     fdb5::Key k;
@@ -819,6 +826,7 @@ CASE("callbacks_reach_nested_sub_fdbs") {
 
     EXPECT_EQUAL(ApiSpy::knownSpies().size(), 2);
     EXPECT_EQUAL(archiveCalls, 2);
+    EXPECT_EQUAL(additionalArchiveCalls, 2);
 
     fdb.flush();
     EXPECT_EQUAL(flushCalls, 2);

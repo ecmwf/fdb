@@ -66,7 +66,7 @@ void FDBBase::registerFlushCallback(FlushCallback callback) {
 }
 
 void FDBBase::registerArchiveCallback(ArchiveCallback callback) {
-    callbacks_->archiveCallback_ = std::move(callback);
+    callbacks_->archiveCallbacks_.push_back(std::move(callback));
 }
 
 void FDBBase::setCallbacks(std::shared_ptr<Callbacks> callbacks) {

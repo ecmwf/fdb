@@ -34,11 +34,12 @@ class ArchiveVisitor : public BaseArchiveVisitor, public std::enable_shared_from
 public:  // methods
 
     static std::shared_ptr<ArchiveVisitor> create(Archiver& owner, const Key& dataKey, const void* data, size_t size,
-                                                  const ArchiveCallback& callback = CALLBACK_ARCHIVE_NOOP);
+                                                  const ArchiveCallbacks& callbacks = CALLBACKS_ARCHIVE_NOOP);
 
 protected:  // methods
 
-    ArchiveVisitor(Archiver& owner, const Key& dataKey, const void* data, size_t size, const ArchiveCallback& callback);
+    ArchiveVisitor(Archiver& owner, const Key& dataKey, const void* data, size_t size,
+                   const ArchiveCallbacks& callbacks);
 
     bool selectDatum(const Key& datumKey, const Key& fullKey) override;
 
@@ -47,7 +48,7 @@ protected:  // methods
 private:  // methods
 
     void callbacks(std::shared_ptr<CatalogueWriter> catalogue, const Key& idxKey, const Key& datumKey,
-                   std::shared_ptr<std::promise<std::shared_ptr<const FieldLocation>>> p,
+                   std::vector<std::promise<std::shared_ptr<const FieldLocation>>>& promises,
                    std::shared_ptr<const FieldLocation> fieldLocation);
 
 private:  // members
@@ -55,7 +56,7 @@ private:  // members
     const void* data_;
     size_t size_;
 
-    const ArchiveCallback& callback_;
+    const ArchiveCallbacks& callbacks_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

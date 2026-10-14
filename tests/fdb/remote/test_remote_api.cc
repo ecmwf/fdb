@@ -28,6 +28,7 @@
 #include <chrono>
 #include <cstddef>
 #include <exception>
+#include <future>
 #include <map>
 #include <memory>
 #include <ostream>
@@ -212,7 +213,24 @@ CASE("Remote protocol: the basics") {
     eckit::Log::info() << "[CLIENT]" << "Archiving " << Nfields << " fields." << std::endl;
     {
         FDB fdb{};  // Expects the config to be set in the environment
+        std::vector<std::future<std::shared_ptr<const FieldLocation>>> firstFutures;
+        std::vector<std::future<std::shared_ptr<const FieldLocation>>> secondFutures;
+        fdb.registerArchiveCallback(
+            [&](const Key&, const void*, size_t, std::future<std::shared_ptr<const FieldLocation>> future) {
+                firstFutures.push_back(std::move(future));
+            });
+        fdb.registerArchiveCallback(
+            [&](const Key&, const void*, size_t, std::future<std::shared_ptr<const FieldLocation>> future) {
+                secondFutures.push_back(std::move(future));
+            });
         keys = write_data(fdb, data_string, {"20000101", "20000102"}, {"fc", "pf"}, {"1", "2"});
+        EXPECT_EQUAL(firstFutures.size(), Nfields);
+        EXPECT_EQUAL(secondFutures.size(), Nfields);
+        for (size_t i = 0; i < Nfields; ++i) {
+            auto location = firstFutures[i].get();
+            EXPECT(location);
+            EXPECT(secondFutures[i].get() == location);
+        }
     }
     EXPECT_EQUAL(keys.size(), Nfields);
     std::this_thread::sleep_for(std::chrono::seconds(2));  // Ensure server has time to flush consolidated indexes.

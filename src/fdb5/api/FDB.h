@@ -257,7 +257,10 @@ public:  // methods
     /// @return true if an archive has happened and a flush is needed
     bool dirty() const;
 
-    /// Register an archive callback.
+    /// Register an additional archive callback without replacing existing callbacks.
+    /// Callbacks are invoked in registration order, each with its own future for the same field location.
+    /// If a callback throws, the exception propagates and subsequent callbacks are not invoked.
+    /// Registration must not overlap with archive operations or occur from within a callback.
     /// @param callback an archive callback which should be triggered during archive
     void registerArchiveCallback(ArchiveCallback callback);
 
