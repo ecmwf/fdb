@@ -11,7 +11,10 @@
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/toc/TocHandler.h"
+#include "fdb5/toc/detail/NFSLocks.h"
 
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/NFSMountInfo.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
@@ -23,6 +26,7 @@
 #include <atomic>
 #include <cerrno>
 #include <cstdlib>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -141,6 +145,61 @@ CASE("TOC init/read round-trips on a main TOC") {
     (dir / "toc").unlink();
     (dir / "schema").unlink();
     dir.rmdir();
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+CASE("NFS locks: the policy is parsed case-insensitively and rejects unknown values") {
+    EXPECT(fdb5::nfs::parseLockPolicy("warn") == fdb5::nfs::LockPolicy::Warn);
+    EXPECT(fdb5::nfs::parseLockPolicy("error") == fdb5::nfs::LockPolicy::Error);
+    EXPECT(fdb5::nfs::parseLockPolicy("ignore") == fdb5::nfs::LockPolicy::Ignore);
+    EXPECT(fdb5::nfs::parseLockPolicy("Error") == fdb5::nfs::LockPolicy::Error);
+    EXPECT(fdb5::nfs::parseLockPolicy("IGNORE") == fdb5::nfs::LockPolicy::Ignore);
+
+    EXPECT_THROWS_AS(fdb5::nfs::parseLockPolicy(""), eckit::UserError);
+    EXPECT_THROWS_AS(fdb5::nfs::parseLockPolicy("strict"), eckit::UserError);
+    EXPECT_THROWS_AS(fdb5::nfs::parseLockPolicy("warn "), eckit::UserError);
+}
+
+CASE("NFS locks: only the error policy throws") {
+    const eckit::LocalPathName directory{"/mnt/nolock/db"};
+
+    EXPECT_NO_THROW(fdb5::nfs::reportLocalLocks(fdb5::nfs::LockPolicy::Warn, directory, "nolock"));
+    EXPECT_NO_THROW(fdb5::nfs::reportLocalLocks(fdb5::nfs::LockPolicy::Ignore, directory, "nolock"));
+    EXPECT_THROWS_AS(fdb5::nfs::reportLocalLocks(fdb5::nfs::LockPolicy::Error, directory, "nolock"), eckit::UserError);
+
+    try {
+        fdb5::nfs::reportLocalLocks(fdb5::nfs::LockPolicy::Error, directory, "local_lock=posix");
+        EXPECT(false);
+    }
+    catch (const eckit::UserError& error) {
+        const std::string what = error.what();
+        EXPECT(what.find("/mnt/nolock/db") != std::string::npos);
+        EXPECT(what.find("local_lock=posix") != std::string::npos);
+        EXPECT(what.find("FDB_NFS_LOCAL_LOCK_POLICY") != std::string::npos);
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+CASE("NFS mount: the harness export has shared locking") {
+    const eckit::PathName mount = nfsMountDir();
+    if (mount.path().empty() || !mount.exists()) {
+        eckit::Log::info() << "NFS mount (FDB_TEST_NFS_MOUNT) not available -- skipping NFS lock option test"
+                           << std::endl;
+        return;
+    }
+
+#if defined(__linux__)
+    const eckit::LocalPathName directory{mount.localPath()};
+
+    // A client-local mount would make the contention cases below pass without testing the locks.
+    EXPECT(!eckit::filesystem::nfs::local_lock_option(directory.device()));
+
+    // Shared locks must pass under every policy, including a second call served from the per-device cache.
+    EXPECT_NO_THROW(fdb5::nfs::enforceLockPolicy(directory));
+    EXPECT_NO_THROW(fdb5::nfs::enforceLockPolicy(directory));
+#endif
 }
 
 //----------------------------------------------------------------------------------------------------------------------
