@@ -82,18 +82,12 @@ class PyDataHandle : public eckit::DataHandle, public py::trampoline_self_life_s
 };
 
 metkit::mars::MarsRequest mars_request_from_map(const std::map<std::string, std::vector<std::string>>& map) {
-    eckit::ValueMap value_map;
 
-    for (const auto& pair : map) {
-        eckit::ValueList value_list;
-        for (const auto& value : pair.second) {
-            value_list.emplace_back(value);
-        }
-        value_map.emplace(eckit::Value(pair.first), value_list);
+    auto mars_request = metkit::mars::MarsRequest("retrieve");
+
+    for (const auto& [k, v] : map) {
+        mars_request.values(k, v);
     }
-
-    // Expand the mars request
-    auto mars_request = metkit::mars::MarsRequest("retrieve", value_map);
 
     const bool inherit = false;
     const bool strict = true;
