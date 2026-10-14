@@ -10,7 +10,6 @@
 
 #include "fdb5/toc/detail/NFSLocks.h"
 
-#include <algorithm>
 #include <cctype>
 #include <map>
 #include <mutex>
@@ -18,7 +17,6 @@
 #include <ostream>
 #include <sstream>
 #include <string>
-#include <string_view>
 
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
@@ -26,15 +24,20 @@
 #include "eckit/filesystem/NFSMountInfo.h"
 #include "eckit/log/CodeLocation.h"
 #include "eckit/log/Log.h"
+#include "eckit/utils/StringTools.h"
 
 namespace fdb5::nfs {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-LockPolicy parseLockPolicy(std::string_view value) {
-    std::string lowered{value};
-    std::transform(lowered.begin(), lowered.end(), lowered.begin(),
-                   [](unsigned char character) { return static_cast<char>(std::tolower(character)); });
+static std::string logMessage(const eckit::LocalPathName& directory, const std::string& option) {
+    std::ostringstream msg;
+    msg << "NFS mount of " << directory << " has client-local locking (" << option << ")";
+    return msg.str();
+}
+
+LockPolicy parseLockPolicy(const std::string& value) {
+    const auto lowered = eckit::StringTools::lower(value);
 
     if (lowered == "warn") {
         return LockPolicy::Warn;
@@ -46,25 +49,19 @@ LockPolicy parseLockPolicy(std::string_view value) {
         return LockPolicy::Ignore;
     }
 
-    throw eckit::UserError(
-        "Invalid FDB_NFS_LOCAL_LOCK_POLICY '" + std::string{value} + "': expected warn, error or ignore", Here());
+    throw eckit::UserError("Invalid FDB_NFS_LOCAL_LOCK_POLICY=" + value, Here());
 }
 
-void reportLocalLocks(LockPolicy policy, const eckit::LocalPathName& directory, std::string_view option) {
-    if (policy == LockPolicy::Ignore) {
-        return;
+void enforceLockPolicy(LockPolicy policy, const eckit::LocalPathName& directory, const std::string& option) {
+    switch (policy) {
+        case LockPolicy::Ignore:
+            return;
+        case LockPolicy::Warn:
+            eckit::Log::warning() << logMessage(directory, option) << std::endl;
+            return;
+        case LockPolicy::Error:
+            throw eckit::UserError(logMessage(directory, option), Here());
     }
-
-    std::ostringstream message;
-    message << "NFS mount of " << directory << " has client-local locking (" << option
-            << "): FDB TOC locks do not protect against writers on other clients";
-
-    if (policy == LockPolicy::Error) {
-        message << " (FDB_NFS_LOCAL_LOCK_POLICY=error)";
-        throw eckit::UserError(message.str(), Here());
-    }
-
-    eckit::Log::warning() << message.str() << std::endl;
 }
 
 void enforceLockPolicy(const eckit::LocalPathName& directory) {
@@ -92,7 +89,7 @@ void enforceLockPolicy(const eckit::LocalPathName& directory) {
     }
 
     if (entry->second && (inserted || policy == LockPolicy::Error)) {
-        reportLocalLocks(policy, directory, *entry->second);
+        enforceLockPolicy(policy, directory, *entry->second);
     }
 }
 

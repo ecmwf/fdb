@@ -13,9 +13,11 @@
 
 #pragma once
 
-#include <string_view>
+#include <string>
 
-#include "eckit/filesystem/LocalPathName.h"
+namespace eckit {
+class LocalPathName;
+}
 
 namespace fdb5::nfs {
 
@@ -30,11 +32,12 @@ enum class LockPolicy {
 
 /// Parses "warn", "error" or "ignore" (case-insensitive).
 /// @throws eckit::UserError for any other value.
-LockPolicy parseLockPolicy(std::string_view value);
+LockPolicy parseLockPolicy(const std::string& value);
 
-/// Applies `policy` to a mount of `directory` whose locks are client-local because of `option`.
+/// Applies `policy` to a mount of `directory` whose locks are client-local because of `option`: Warn logs a
+/// warning, Error throws, Ignore does nothing.
 /// @throws eckit::UserError under LockPolicy::Error.
-void reportLocalLocks(LockPolicy policy, const eckit::LocalPathName& directory, std::string_view option);
+void enforceLockPolicy(LockPolicy policy, const eckit::LocalPathName& directory, const std::string& option);
 
 /// Applies the policy in $FDB_NFS_LOCAL_LOCK_POLICY (default "warn") if the NFS mount holding `directory` has
 /// client-local locks, as reported by eckit::filesystem::nfs::local_lock_option(). Linux only: elsewhere nothing

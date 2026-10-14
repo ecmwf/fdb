@@ -31,7 +31,6 @@
 #include "eckit/log/Log.h"
 #include "eckit/maths/Functions.h"
 #include "eckit/serialisation/MemoryStream.h"
-#include "eckit/thread/AutoLock.h"
 #include "eckit/thread/StaticMutex.h"
 #include "eckit/utils/Literals.h"
 
@@ -313,7 +312,7 @@ bool TocHandler::exists() const {
 
 bool TocHandler::isNFS() const {
     if (!isNFSCached_) {
-        const bool nfs = directory().fileSystemType() == "nfs";
+        const auto nfs = directory().fileSystemType() == "nfs";
         if (nfs) {
             nfs::enforceLockPolicy(directory());
         }
@@ -753,12 +752,6 @@ void TocHandler::close() const {
             SYSCALL2(eckit::fdatasync(fd_), tocPath_);
             dirty_ = false;
         }
-        const bool publishDirectory = writeMode_ && processLock_;
-
-        // Publish namespace changes while both the process-local and file locks are still held.
-        if (publishDirectory) {
-            tocPath_.syncParentDirectory();
-        }
 
         SYSCALL2(::close(fd_), tocPath_);
         fd_ = -1;
@@ -1172,7 +1165,7 @@ static eckit::StaticMutex local_mutex;
 
 void TocHandler::writeInitRecord(const Key& key) {
 
-    eckit::AutoLock<eckit::StaticMutex> lock(local_mutex);
+    std::unique_lock<eckit::StaticMutex> initLock(local_mutex);
 
     if (!directory_.exists()) {
         directory_.mkdir();
@@ -1183,6 +1176,10 @@ void TocHandler::writeInitRecord(const Key& key) {
     // enforce lustre striping if requested
     if (stripeLustre() && !tocPath_.exists()) {
         fdb5LustreapiFileCreate(tocPath_, stripeIndexLustreSettings());
+    }
+
+    if (nfs) {
+        initLock.unlock();  // the TOC lock serialises the rest, and may wait on another client for a long time
     }
 
     ASSERT(fd_ == -1);
@@ -1336,9 +1333,9 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
         if (!subTocWrite_) {
 
-            eckit::PathName subtoc = eckit::PathName::unique("toc");
+            const eckit::PathName subtoc = uniquePath(currentDirectory() / "toc");
 
-            subTocWrite_.reset(new TocHandler(currentDirectory() / subtoc, Key{}));
+            subTocWrite_.reset(new TocHandler(subtoc, Key{}));
 
             subTocWrite_->writeInitRecord(databaseKey());
 

@@ -84,37 +84,6 @@ bool runConcurrently(size_t thread_count, const Worker& worker) {
     return std::all_of(results.begin(), results.end(), [](int result) { return result == 0; });
 }
 
-template <typename Worker>
-bool runInProcesses(size_t process_count, const Worker& worker) {
-    std::vector<pid_t> processes;
-    processes.reserve(process_count);
-
-    for (size_t process = 0; process < process_count; ++process) {
-        const pid_t pid = ::fork();
-        if (pid == 0) {
-            try {
-                worker(process);
-                ::_exit(0);
-            }
-            catch (...) {
-                ::_exit(1);
-            }
-        }
-        if (pid < 0) {
-            return false;
-        }
-        processes.push_back(pid);
-    }
-
-    bool success = true;
-    for (const pid_t pid : processes) {
-        int status = 0;
-        while (::waitpid(pid, &status, 0) < 0 && errno == EINTR) {}
-        success = success && WIFEXITED(status) && WEXITSTATUS(status) == 0;
-    }
-    return success;
-}
-
 }  // namespace
 
 CASE("TOC init/read round-trips on a main TOC") {
@@ -150,11 +119,13 @@ CASE("TOC init/read round-trips on a main TOC") {
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("NFS locks: the policy is parsed case-insensitively and rejects unknown values") {
-    EXPECT(fdb5::nfs::parseLockPolicy("warn") == fdb5::nfs::LockPolicy::Warn);
-    EXPECT(fdb5::nfs::parseLockPolicy("error") == fdb5::nfs::LockPolicy::Error);
-    EXPECT(fdb5::nfs::parseLockPolicy("ignore") == fdb5::nfs::LockPolicy::Ignore);
-    EXPECT(fdb5::nfs::parseLockPolicy("Error") == fdb5::nfs::LockPolicy::Error);
-    EXPECT(fdb5::nfs::parseLockPolicy("IGNORE") == fdb5::nfs::LockPolicy::Ignore);
+    using fdb5::nfs::LockPolicy;
+
+    EXPECT(fdb5::nfs::parseLockPolicy("warn") == LockPolicy::Warn);
+    EXPECT(fdb5::nfs::parseLockPolicy("error") == LockPolicy::Error);
+    EXPECT(fdb5::nfs::parseLockPolicy("ignore") == LockPolicy::Ignore);
+    EXPECT(fdb5::nfs::parseLockPolicy("Error") == LockPolicy::Error);
+    EXPECT(fdb5::nfs::parseLockPolicy("IGNORE") == LockPolicy::Ignore);
 
     EXPECT_THROWS_AS(fdb5::nfs::parseLockPolicy(""), eckit::UserError);
     EXPECT_THROWS_AS(fdb5::nfs::parseLockPolicy("strict"), eckit::UserError);
@@ -162,21 +133,22 @@ CASE("NFS locks: the policy is parsed case-insensitively and rejects unknown val
 }
 
 CASE("NFS locks: only the error policy throws") {
+    using fdb5::nfs::LockPolicy;
+
     const eckit::LocalPathName directory{"/mnt/nolock/db"};
 
-    EXPECT_NO_THROW(fdb5::nfs::reportLocalLocks(fdb5::nfs::LockPolicy::Warn, directory, "nolock"));
-    EXPECT_NO_THROW(fdb5::nfs::reportLocalLocks(fdb5::nfs::LockPolicy::Ignore, directory, "nolock"));
-    EXPECT_THROWS_AS(fdb5::nfs::reportLocalLocks(fdb5::nfs::LockPolicy::Error, directory, "nolock"), eckit::UserError);
+    EXPECT_NO_THROW(fdb5::nfs::enforceLockPolicy(LockPolicy::Warn, directory, "nolock"));
+    EXPECT_NO_THROW(fdb5::nfs::enforceLockPolicy(LockPolicy::Ignore, directory, "nolock"));
+    EXPECT_THROWS_AS(fdb5::nfs::enforceLockPolicy(LockPolicy::Error, directory, "nolock"), eckit::UserError);
 
     try {
-        fdb5::nfs::reportLocalLocks(fdb5::nfs::LockPolicy::Error, directory, "local_lock=posix");
+        fdb5::nfs::enforceLockPolicy(LockPolicy::Error, directory, "local_lock=posix");
         EXPECT(false);
     }
     catch (const eckit::UserError& error) {
         const std::string what = error.what();
         EXPECT(what.find("/mnt/nolock/db") != std::string::npos);
         EXPECT(what.find("local_lock=posix") != std::string::npos);
-        EXPECT(what.find("FDB_NFS_LOCAL_LOCK_POLICY") != std::string::npos);
     }
 }
 
