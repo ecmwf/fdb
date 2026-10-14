@@ -98,8 +98,7 @@ bool runConcurrently(size_t thread_count, const Worker& worker) {
 }  // namespace
 
 CASE("TOC init/read round-trips on a main TOC") {
-    eckit::PathName dir = eckit::PathName::unique("nfs_toc_dir");
-    dir.mkdir();
+    const eckit::TmpDir dir;
 
     fdb5::Config config = fdb5::Config().expandConfig();
     fdb5::Key key{{{"class", "od"}, {"expver", "0001"}, {"stream", "oper"}}};
@@ -121,10 +120,6 @@ CASE("TOC init/read round-trips on a main TOC") {
         again.writeInitRecord(key);
         EXPECT_EQUAL(again.databaseKey(), key);
     }
-
-    (dir / "toc").unlink();
-    (dir / "schema").unlink();
-    dir.rmdir();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -307,8 +302,7 @@ CASE("NFS mount: detection fires and a TOC round-trips on a real NFS export") {
     EXPECT_EQUAL(mount.fileSystemType(), std::string("nfs"));
     EXPECT(usesNFSLocking(eckit::LocalPathName{mount.localPath()}));
 
-    eckit::PathName dir = eckit::PathName::unique(mount / "fdb_nfs_test");
-    dir.mkdir();
+    const eckit::TmpDir dir{mount.localPath()};
 
     fdb5::Config config = fdb5::Config().expandConfig();
     fdb5::Key key{{{"class", "od"}, {"expver", "0001"}, {"stream", "oper"}}};
@@ -323,10 +317,6 @@ CASE("NFS mount: detection fires and a TOC round-trips on a real NFS export") {
         EXPECT(reader.exists());
         EXPECT_EQUAL(reader.databaseKey(), key);
     }
-
-    (dir / "toc").unlink();
-    (dir / "schema").unlink();
-    dir.rmdir();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -351,8 +341,7 @@ CASE("NFS mount: concurrent creators and writers preserve complete TOC records")
 #endif
     constexpr size_t records_per_thread = 25;
 
-    const eckit::PathName dir = eckit::PathName::unique(mount / "fdb_nfs_contention");
-    dir.mkdir();
+    const eckit::TmpDir dir{mount.localPath()};
 
     const fdb5::Config config = fdb5::Config().expandConfig();
     const fdb5::Key key{{{"class", "od"}, {"expver", "0001"}, {"stream", "oper"}}};
@@ -415,11 +404,6 @@ CASE("NFS mount: concurrent creators and writers preserve complete TOC records")
     fdb5::TocHandler sub_toc_reader(sub_toc_path, key);
     EXPECT_EQUAL(sub_toc_reader.databaseKey(), key);
     EXPECT_EQUAL(sub_toc_reader.numberOfRecords(), 1 + thread_count * records_per_thread);
-
-    sub_toc_path.unlink();
-    (dir / "toc").unlink();
-    (dir / "schema").unlink();
-    dir.rmdir();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
