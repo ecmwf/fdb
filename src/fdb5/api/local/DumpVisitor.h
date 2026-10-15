@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 2018- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 2018- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the EC H2020 funded project NextGenIO
@@ -16,17 +9,14 @@
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_api_local_DumpVisitor_H
-#define fdb5_api_local_DumpVisitor_H
+#pragma once
 
 #include "fdb5/api/helpers/DumpIterator.h"
 #include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/api/local/QueueStringLogTarget.h"
 #include "fdb5/database/Catalogue.h"
 
-namespace fdb5 {
-namespace api {
-namespace local {
+namespace fdb5::api::local {
 
 /// @note Helper classes for LocalFDB
 
@@ -60,8 +50,5 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace local
-}  // namespace api
-}  // namespace fdb5
+}  // namespace fdb5::api::local
 
-#endif

@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the EC H2020 funded project NextGenIO
@@ -16,8 +9,7 @@
 /// @author Simon Smart
 /// @date   May 2019
 
-#ifndef fdb5_remote_AvailablePortList_H
-#define fdb5_remote_AvailablePortList_H
+#pragma once
 
 #include <sys/types.h>
 #include <ctime>
@@ -25,8 +17,7 @@
 
 #include "eckit/container/SharedMemArray.h"
 
-namespace fdb5 {
-namespace remote {
+namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -69,7 +60,5 @@ private:  // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace remote
-}  // namespace fdb5
+}  // namespace fdb5::remote
 
-#endif  // fdb5_remote_AvailablePortList_H
