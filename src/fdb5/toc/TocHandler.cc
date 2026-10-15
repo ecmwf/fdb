@@ -313,10 +313,11 @@ void TocHandler::openForRead() const {
         const auto toc_fd = fd_;
         fd_ = -1;
 
+        std::unique_ptr<TocLock> proc_lock;  // declared first: released after the descriptor is closed
         FileDescHandle toc(toc_fd, true);
         AutoClose closer(toc);
 
-        auto proc_lock = lock.holdForRead(toc_fd, tocPath_);
+        proc_lock = lock.holdForRead(toc_fd, tocPath_);
 
         // n.b. the size must be taken *after* the lock is held
         const auto tocSize = tocPath_.size();
