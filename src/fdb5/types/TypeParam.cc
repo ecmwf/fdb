@@ -2,6 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include <algorithm>
+#include <set>
+#include <string>
+#include <vector>
+
+#include "eckit/utils/Tokenizer.h"
 
 #include "metkit/mars/Param.h"
 #include "metkit/mars/ParamID.h"
@@ -82,13 +87,8 @@ bool TypeParam::match(const std::string&, const std::string& value1, const std::
         if (p1.paramId() == p2.paramId()) {
             return true;
         }
-        if (!strictMatching_) {
-            if ((p1.paramId() == p2.value()) || (p2.paramId() == p1.value())) {
-                return true;
-            }
-            if ((p1.value() == p2.value()) && (p1.table() == 0 || p2.table() == 0)) {
-                return true;
-            }
+        if (!strictMatching_ && (p1.value() == p2.value()) && (p1.table() == 0 || p2.table() == 0)) {
+            return true;
         }
     }
     return false;
