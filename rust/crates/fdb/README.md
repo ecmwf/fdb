@@ -114,6 +114,11 @@ on the distro's own `libfdb5` / `libeckit` / `libmetkit` / `libeccodes`
 packages for the shared libraries, with no directories to copy and no
 environment variables to set.
 
+The system eccodes must be built with `ENABLE_ECCODES_THREADS=ON`: this
+crate's `Send`/`Sync` types drive GRIB decoding from multiple threads,
+and without libeccodes' internal locking that corrupts its definitions
+parser. The vendored build always enables it.
+
 Typical packaging setups:
 
 - **RPM / deb**: depend on the distro's FDB `-devel` packages at build
