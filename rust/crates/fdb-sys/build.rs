@@ -135,6 +135,12 @@ fn build_system() {
     println!("cargo:rustc-link-lib=dylib=metkit");
     bindman_utils::link_cpp_stdlib();
 
+    // Rpaths for this crate's own test binaries; consumers emit their own.
+    println!("cargo:rustc-link-arg=-Wl,-rpath,{}", lib_dir.display());
+    println!("cargo:rustc-link-arg=-Wl,-rpath,{eckit_root}/lib");
+    println!("cargo:rustc-link-arg=-Wl,-rpath,{metkit_root}/lib");
+    println!("cargo:rustc-link-arg=-Wl,-rpath,{eccodes_root}/lib");
+
     // Re-publish each dependency's install lib dir so the downstream
     // `fdb` crate's build script can emit matching absolute rpath
     // entries on the final binary. `rustc-link-arg` emitted by a
