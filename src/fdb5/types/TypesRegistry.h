@@ -91,4 +91,3 @@ template <>
 struct std::equal_to<const fdb5::TypesRegistry*> {
     bool operator()(const fdb5::TypesRegistry* left, const fdb5::TypesRegistry* right) const { return *left == *right; }
 };
-

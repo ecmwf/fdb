@@ -30,4 +30,3 @@ using PurgeAggregateIterator = APIAggregateIterator<PurgeElement>;
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-

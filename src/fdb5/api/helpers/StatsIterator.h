@@ -49,4 +49,3 @@ using StatsAggregateIterator = APIAggregateIterator<StatsElement>;
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-

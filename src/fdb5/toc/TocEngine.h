@@ -57,4 +57,3 @@ protected:  // methods
 
 
 }  // namespace fdb5
-

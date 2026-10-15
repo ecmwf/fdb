@@ -36,4 +36,3 @@ using WhereAggregateIterator = APIAggregateIterator<WhereElement>;
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
