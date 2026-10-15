@@ -323,11 +323,13 @@ void TocHandler::openForRead() const {
         const auto tocSize = tocPath_.size();
 
         bool grow = true;
-        cachedToc_.reset(new eckit::MemoryHandle(tocSize, grow));
+        auto toc_cache = std::make_unique<eckit::MemoryHandle>(tocSize, grow);
 
         long buffersize = 4_MiB;
-        toc.copyTo(*cachedToc_, buffersize, tocSize, tocReadStats_);
-        cachedToc_->openForRead();
+        toc.copyTo(*toc_cache, buffersize, tocSize, tocReadStats_);
+        toc_cache->openForRead();
+
+        cachedToc_ = std::move(toc_cache);  // only a complete read is kept
     }
     else {
         try {

@@ -35,6 +35,7 @@
 #include <optional>
 #include <string>
 #include <thread>
+#include <typeinfo>
 #include <vector>
 
 #if defined(__SANITIZE_THREAD__)
@@ -120,6 +121,28 @@ CASE("TOC init/read round-trips on a main TOC") {
         again.writeInitRecord(key);
         EXPECT_EQUAL(again.databaseKey(), key);
     }
+}
+
+CASE("TOC read: a failed read is not cached") {
+    const eckit::TmpDir dir;
+    (dir / "toc").mkdir();  // opens for read, but cannot be read
+
+    fdb5::Config config = fdb5::Config().expandConfig();
+    fdb5::TocHandler handler(dir, config);
+
+    const auto failure = [&handler]() -> std::string {
+        try {
+            handler.databaseKey();
+        }
+        catch (const eckit::Exception& error) {
+            return typeid(error).name();
+        }
+        return {};
+    };
+
+    const std::string first = failure();
+    EXPECT(!first.empty());
+    EXPECT_EQUAL(failure(), first);  // the same failure again, not an error from a cache of the failed read
 }
 
 //----------------------------------------------------------------------------------------------------------------------
