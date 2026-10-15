@@ -53,7 +53,7 @@ public:
     /// Blocks until `fd` holds an exclusive lock. Returns what must outlive `fd`, or null if there is none.
     virtual std::unique_ptr<TocLock> holdForWrite(int fd, const eckit::PathName& path) const = 0;
 
-    /// Whether the lock from lockForWrite() alone keeps other writers out, in this process and in others.
+    /// Whether the lock from holdForWrite() alone keeps other writers out, in this process and in others.
     virtual bool excludesWriters() const = 0;
 
     /// A name for a new file next to `path` that no other client generates.
