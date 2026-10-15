@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
@@ -60,7 +53,8 @@ public:  // methods
     // Blocks until the data-writer thread has processed all data writes queued before this call.
     void flushDataWrites();
 
-    void add(Client& client);
+    // Registers the client; false if the connection is already torn down, then get another from the router.
+    [[nodiscard]] bool add(Client& client);
     bool remove(uint32_t clientID);
 
     bool connect(const eckit::Configuration& config, bool singleAttempt = false);
