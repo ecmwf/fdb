@@ -60,7 +60,8 @@ public:  // methods
     // Blocks until the data-writer thread has processed all data writes queued before this call.
     void flushDataWrites();
 
-    void add(Client& client);
+    // Registers the client; false if the connection is already torn down, then get another from the router.
+    [[nodiscard]] bool add(Client& client);
     bool remove(uint32_t clientID);
 
     bool connect(const eckit::Configuration& config, bool singleAttempt = false);

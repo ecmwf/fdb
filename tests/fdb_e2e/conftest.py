@@ -14,10 +14,8 @@ import shutil
 from collections.abc import Generator
 from dataclasses import dataclass
 
-import git
 import pytest
 import yaml
-from findlibs import Path
 
 from pyfdb.pyfdb import FDB
 
@@ -124,19 +122,10 @@ def data_path() -> pathlib.Path:
 
 @pytest.fixture(scope="function")
 def test_data_path() -> pathlib.Path:
-    """Provides path to test data (resolved via git root)."""
-    git_repo = git.Repo(__file__, search_parent_directories=True)
-    git_root = pathlib.Path(git_repo.git.rev_parse("--show-toplevel"))
-    path = git_root / "tests" / "fdb_e2e" / "data"
+    """Provides path to test data."""
+    path = pathlib.Path(__file__).resolve().parent / "data"
     assert path.exists()
     return path
-
-
-@pytest.fixture(scope="function")
-def get_git_root() -> Path:
-    git_repo = git.Repo(__file__, search_parent_directories=True)
-    git_root = git_repo.git.rev_parse("--show-toplevel")
-    return Path(git_root)
 
 
 @pytest.fixture(scope="session")

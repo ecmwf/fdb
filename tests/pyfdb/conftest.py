@@ -16,7 +16,6 @@ import pytest
 import itertools
 import shutil
 import yaml
-import git
 
 import eccodes as ec
 
@@ -47,9 +46,7 @@ def test_data_path() -> pathlib.Path:
     Provides path to test data
     """
 
-    git_repo = git.Repo(__file__, search_parent_directories=True)
-    git_root = pathlib.Path(git_repo.git.rev_parse("--show-toplevel"))
-    path = git_root / "tests" / "pyfdb" / "data"
+    path = pathlib.Path(__file__).resolve().parent / "data"
     assert path.exists()
     return path
 

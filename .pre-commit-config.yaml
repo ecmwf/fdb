@@ -1,0 +1,59 @@
+# SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
+
+---
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: check-merge-conflict
+
+  - repo: https://github.com/ecmwf/ci-infrastructure
+    rev: dac4b18ffe60c317fbab05246e851b6971f7eabf
+    hooks:
+      - id: check-ci-approval
+      
+  # Off until the tree is cleaned up; the counts are what each would flag today.
+  # - repo: https://github.com/astral-sh/ruff-pre-commit
+  #   rev: v0.15.11
+  #   hooks:
+  #     - id: ruff-check
+  #     - id: ruff-format
+  # - repo: https://github.com/pre-commit/mirrors-clang-format
+  #   rev: v19.1.7
+  #   hooks:
+  #     - id: clang-format
+  #       types_or: [c, c++]
+  #
+  # - repo: https://github.com/pre-commit/pre-commit-hooks
+  #   rev: v5.0.0
+  #   hooks:
+  #     - id: trailing-whitespace   # 6 files
+  #       exclude: '^LICENSES/'     # canonical licence texts are never edited
+  #     - id: end-of-file-fixer     # 10 files
+  #       exclude: '^LICENSES/'
+  #
+  # - repo: https://github.com/PyCQA/isort
+  #   rev: 6.0.1
+  #   hooks:
+  #     - id: isort                 # 4 files
+  #       types_or: [python, cython]
+  #       args: [--line-length=110, --force-single-line-imports, --profile=black]
+  #
+  # - repo: https://github.com/astral-sh/ruff-pre-commit
+  #   rev: v0.9.8
+  #   hooks:
+  #     - id: ruff                  # 2 errors, src/sandbox/server.py
+  #       types: [python]
+  #       exclude: '_\.py$'
+  #       args: [--line-length=110, --fix, --exit-non-zero-on-fix, --preview]
+  #
+  # - repo: https://github.com/adrienverge/yamllint.git
+  #   rev: v1.29.0
+  #   hooks:
+  #     - id: yamllint              # 44 files
+  #       args: [--strict, -d, '{extends: default, rules: {line-length: disable}}']
+  #       types: [yaml]
