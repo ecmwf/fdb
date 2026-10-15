@@ -79,7 +79,7 @@ public:
 class CachedFDProxy {
 public:  // methods
 
-    CachedFDProxy(const eckit::PathName& path, int fd, std::unique_ptr<eckit::MemoryHandle>& cached) :
+    CachedFDProxy(const eckit::LocalPathName& path, int fd, std::unique_ptr<eckit::MemoryHandle>& cached) :
         path_(path), fd_(fd), cached_(cached.get()) {
         ASSERT((fd != -1) != (!!cached));
     }
@@ -126,7 +126,7 @@ public:  // methods
 
 private:  // members
 
-    const eckit::PathName& path_;
+    const eckit::LocalPathName& path_;
     int fd_;
     MemoryHandle* cached_;
 };
