@@ -41,6 +41,8 @@ namespace fdb5 {
 
 class Key;
 class Index;
+class TocLock;
+class TocLocking;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -209,6 +211,10 @@ private:  // methods
 
     void close() const;
 
+    /// The locking of the filesystem holding the TOC, validated once.
+    /// @throws eckit::UserError if the filesystem cannot be relied on.
+    const TocLocking& locking() const;
+
     void appendRaw(const void* data, size_t size);
     void appendRound(TocRecord& r, size_t payloadSize);
 
@@ -277,8 +283,10 @@ private:  // members
     mutable bool writeMode_;
 
     mutable bool dirty_;
-};
 
+    mutable const TocLocking* locking_{nullptr};    ///< n.b. non-owning, cached as it is expensive
+    mutable std::unique_ptr<TocLock> processLock_;  ///< held with the lock of the open toc file, if any
+};
 
 //-----------------------------------------------------------------------------
 

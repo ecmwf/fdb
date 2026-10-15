@@ -334,6 +334,30 @@ Lustre stripe size, in bytes, applied to index files.
 Default: ``8 MiB`` (8388608).
 
 
+NFS
+---
+
+``FDB_NFS_LOCAL_LOCK_POLICY``
+-----------------------------
+
+On NFS the TOC backend relies on ``fcntl`` locks being enforced by the server. On Linux, an NFSv3
+mount with ``nolock`` or ``local_lock=posix|all`` grants them locally, so they no longer exclude
+writers on other clients and the TOC can be corrupted (NFSv4 mounts cannot be configured this way).
+This variable selects what happens when such a mount is detected when a TOC is opened:
+
+- ``warn``: log a warning, once per filesystem.
+- ``error``: throw an error, so no TOC is read or written on that mount.
+- ``ignore``: do nothing.
+
+Values are case-insensitive. Any other value is an error.
+
+Detection reads ``/proc/self/mountinfo``, so it is implemented on Linux only. It is not implemented
+on macOS and the BSDs, where the policy has no effect. Avoid ``locallocks`` on macOS (NFSv2/3) and
+``nolockd`` on FreeBSD (NFSv3 and NFSv4) there: they make locks client-local in the same way.
+
+Default: ``warn``.
+
+
 Indexing
 --------
 

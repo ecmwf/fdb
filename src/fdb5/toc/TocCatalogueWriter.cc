@@ -412,7 +412,7 @@ void TocCatalogueWriter::flush(size_t archivedFields) {
 eckit::PathName TocCatalogueWriter::generateIndexPath(const Key& key) const {
     eckit::PathName tocPath(directory_);
     tocPath /= key.valuesToString();
-    tocPath = eckit::PathName::unique(tocPath) + ".index";
+    tocPath = uniquePath(tocPath) + ".index";
     return tocPath;
 }
 
