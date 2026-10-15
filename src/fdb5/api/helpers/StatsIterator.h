@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /// @author Simon Smart
 /// @date   November 2018
@@ -16,8 +9,7 @@
  * (Project ID: 671951) www.nextgenio.eu
  */
 
-#ifndef fdb5_api_StatsIterator_H
-#define fdb5_api_StatsIterator_H
+#pragma once
 
 #include <string>
 
@@ -58,4 +50,3 @@ using StatsAggregateIterator = APIAggregateIterator<StatsElement>;
 
 }  // namespace fdb5
 
-#endif
