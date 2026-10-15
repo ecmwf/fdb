@@ -187,13 +187,13 @@ void NFSTocLocking::validate(const eckit::LocalPathName& directory) const {
     }
 }
 
-std::unique_ptr<TocLock> NFSTocLocking::lockForRead(int fd, const eckit::PathName& path) const {
+std::unique_ptr<TocLock> NFSTocLocking::holdForRead(int fd, const eckit::PathName& path) const {
     auto lock = std::make_unique<ProcessLock>(fd, path);
     fileLock(fd, F_RDLCK, path);
     return lock;
 }
 
-std::unique_ptr<TocLock> NFSTocLocking::lockForWrite(int fd, const eckit::PathName& path) const {
+std::unique_ptr<TocLock> NFSTocLocking::holdForWrite(int fd, const eckit::PathName& path) const {
     auto lock = std::make_unique<ProcessLock>(fd, path);
     fileLock(fd, F_WRLCK, path);
     return lock;

@@ -205,15 +205,15 @@ CASE("TOC locking: a local filesystem takes no locks, the NFS locking takes one 
     if (!usesNFSLocking(directory)) {
         const TocLocking& local = TocLocking::forDirectory(directory);
         EXPECT(!local.excludesWriters());
-        EXPECT(!local.lockForRead(fd, file));
-        EXPECT(!local.lockForWrite(fd, file));
+        EXPECT(!local.holdForRead(fd, file));
+        EXPECT(!local.holdForWrite(fd, file));
     }
 
     // Usable on any filesystem: the lookup is only needed to validate a directory.
     const NFSTocLocking nfs{NFSTocLocking::Policy::Ignore,
                             [](const std::string&) -> std::optional<std::string> { return std::nullopt; }};
     EXPECT(nfs.excludesWriters());
-    EXPECT(nfs.lockForWrite(fd, file));
+    EXPECT(nfs.holdForWrite(fd, file));
 
     ::close(fd);
 }

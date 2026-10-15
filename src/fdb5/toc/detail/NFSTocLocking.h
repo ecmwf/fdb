@@ -62,9 +62,9 @@ public:  // methods
     /// @throws eckit::UserError under Policy::Error.
     void validate(const eckit::LocalPathName& directory) const override;
 
-    std::unique_ptr<TocLock> lockForRead(int fd, const eckit::PathName& path) const override;
+    std::unique_ptr<TocLock> holdForRead(int fd, const eckit::PathName& path) const override;
 
-    std::unique_ptr<TocLock> lockForWrite(int fd, const eckit::PathName& path) const override;
+    std::unique_ptr<TocLock> holdForWrite(int fd, const eckit::PathName& path) const override;
 
     bool excludesWriters() const override { return true; }
 

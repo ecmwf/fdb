@@ -48,10 +48,10 @@ public:
     virtual void validate(const eckit::LocalPathName& directory) const = 0;
 
     /// Blocks until `fd` holds a shared lock. Returns what must outlive `fd`, or null if there is none.
-    virtual std::unique_ptr<TocLock> lockForRead(int fd, const eckit::PathName& path) const = 0;
+    virtual std::unique_ptr<TocLock> holdForRead(int fd, const eckit::PathName& path) const = 0;
 
     /// Blocks until `fd` holds an exclusive lock. Returns what must outlive `fd`, or null if there is none.
-    virtual std::unique_ptr<TocLock> lockForWrite(int fd, const eckit::PathName& path) const = 0;
+    virtual std::unique_ptr<TocLock> holdForWrite(int fd, const eckit::PathName& path) const = 0;
 
     /// Whether the lock from lockForWrite() alone keeps other writers out, in this process and in others.
     virtual bool excludesWriters() const = 0;

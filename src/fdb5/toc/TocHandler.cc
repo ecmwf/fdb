@@ -265,7 +265,7 @@ void TocHandler::openForAppend() {
 
     // On NFS O_APPEND is not atomic, so serialize with a lock (released on close)
     try {
-        processLock_ = lock.lockForWrite(fd_, tocPath_);
+        processLock_ = lock.holdForWrite(fd_, tocPath_);
     }
     catch (...) {
         ::close(fd_);
@@ -316,10 +316,10 @@ void TocHandler::openForRead() const {
         FileDescHandle toc(toc_fd, true);
         AutoClose closer(toc);
 
-        auto proc_lock = lock.lockForRead(toc_fd, tocPath_);
+        auto proc_lock = lock.holdForRead(toc_fd, tocPath_);
 
         // n.b. the size must be taken *after* the lock is held
-        eckit::Length tocSize = tocPath_.size();
+        const auto tocSize = tocPath_.size();
 
         bool grow = true;
         cachedToc_.reset(new eckit::MemoryHandle(tocSize, grow));
@@ -330,7 +330,7 @@ void TocHandler::openForRead() const {
     }
     else {
         try {
-            processLock_ = lock.lockForRead(fd_, tocPath_);  // released on close()
+            processLock_ = lock.holdForRead(fd_, tocPath_);  // released on close()
         }
         catch (...) {
             ::close(fd_);
@@ -1095,7 +1095,7 @@ void TocHandler::writeInitRecord(const Key& key) {
 
     TocHandlerCloser closer(*this);
 
-    processLock_ = lock.lockForWrite(fd_, tocPath_);
+    processLock_ = lock.holdForWrite(fd_, tocPath_);
 
     auto r = std::make_unique<TocRecord>(
         serialisationVersion_.used());  // allocate (large) TocRecord on heap not stack (MARS-779)
