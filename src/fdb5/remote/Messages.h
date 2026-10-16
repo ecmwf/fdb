@@ -68,6 +68,7 @@ enum class Message : uint16_t {
     Store,
     Axes,
     Exists,
+    Touch,
 
     // Wipe related messages
     DoWipeURIs = 150,
@@ -96,10 +97,16 @@ constexpr uint64_t toMask(const Message msg) {
     return static_cast<uint64_t>(1) << offset;
 }
 
-inline constexpr uint64_t maskOfDefaultFeatures =
+// legacy features --> Those in place before we implemented feature negotiation
+// default features --> Those enabled by default for the current version of the software
+
+inline constexpr uint64_t maskOfLegacyFeatures =
     toMask(Message::Flush) | toMask(Message::Archive) | toMask(Message::Retrieve) | toMask(Message::List) |
     toMask(Message::Stats) | toMask(Message::Inspect) | toMask(Message::Read) | toMask(Message::Store) |
     toMask(Message::Axes) | toMask(Message::Exists);
+
+inline constexpr uint64_t maskOfDefaultFeatures =
+    maskOfLegacyFeatures | toMask(Message::Status) | toMask(Message::Touch);
 
 std::string messageMask2String(uint64_t mm);
 

@@ -120,6 +120,17 @@ void TocMoveVisitor::move() {
                 dest_db.mkdir();
             }
 
+            // Unlike the lock files, which are managed separately for source and destination and
+            // are deliberately not carried across, the access timestamps describe the data and so
+            // travel with it. They are the only elements copied with their attributes preserved:
+            // their mtime is the entire content of the file, and their mode is what lets a
+            // non-owner record a read. Everything else below is content, and is written at the
+            // destination under the prevailing umask like any other new file.
+            for (const auto& timestamp : catalogue_.timestampPaths()) {
+                FileCopy fileCopy(catalogue_.basePath(), dest_db, timestamp.baseName(), false, true);
+                queue_.emplace(fileCopy);
+            }
+
             DIR* dirp = ::opendir(catalogue_.basePath().c_str());
             struct dirent* dp;
             while ((dp = readdir(dirp)) != NULL) {
@@ -143,6 +154,7 @@ void TocMoveVisitor::move() {
                 }
             }
             closedir(dirp);
+
             FileCopy folder(catalogue_.basePath(), "", "");
             queue_.emplace(folder);
         }

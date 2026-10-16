@@ -102,6 +102,9 @@ private:  // methods
 
     eckit::PathName generateIndexPath(const Key& key) const;
 
+    /// Create the access timestamps. Called only when this writer is what created the database.
+    void createAccessTimestamps() const;
+
 private:  // types
 
     typedef std::map<std::string, eckit::DataHandle*> HandleStore;

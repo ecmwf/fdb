@@ -75,6 +75,12 @@ protected:  // methods
 
     bool uriBelongs(const eckit::URI& uri) const override;
 
+    void markRead() const override;
+    void markWritten() const override;
+    bool touch(const AccessIdentifiers& identifiers, const AccessTime& when) const override;
+    time_t lastRead() const override;
+    time_t lastWrite() const override;
+
     std::vector<Index> indexes(bool sorted = false) const override;
 
     void allMasked(std::set<std::pair<eckit::URI, eckit::Offset>>& metadata, std::set<eckit::URI>& data) const override;

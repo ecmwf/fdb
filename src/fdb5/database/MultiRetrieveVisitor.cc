@@ -47,6 +47,9 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const Key& /* fullKe
         }
     }
 
+    // If the catalogue is being changed, we need to make sure any access has been recorded
+    markAccessed();
+
     /* is the DB already open ? */
 
     if (databases_.exists(dbKey)) {
@@ -103,15 +106,23 @@ bool MultiRetrieveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) 
 
         iterator_.emplace(
             {catalogue_->key(), catalogue_->indexKey(), simplifiedKey, field.stableLocation(), field.timestamp()});
+        accessed_ = true;
         return true;
     }
 
     return false;
 }
 
+void MultiRetrieveVisitor::markAccessed() {
+    if (accessed_ && catalogue_) {
+        catalogue_->markRead();
+    }
+    accessed_ = false;
+}
+
 void MultiRetrieveVisitor::deselectDatabase() {
+    markAccessed();
     catalogue_ = nullptr;
-    return;
 }
 
 void MultiRetrieveVisitor::print(std::ostream& out) const {

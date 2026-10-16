@@ -51,6 +51,8 @@ public:  // methods
 
     StatusIterator status(const FDBToolRequest& request) override;
 
+    StatusIterator touch(const FDBToolRequest& request, AccessIdentifiers identifiers, AccessTime when) override;
+
     WipeStateIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
 
     PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override;

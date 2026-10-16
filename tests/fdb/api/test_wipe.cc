@@ -306,19 +306,19 @@ CASE("Wipe tests") {
         EXPECT_EQUAL(countAll(fdb, {commonReq}), 1);
         EXPECT_EQUAL(countAll(fdb, {indexReq2}), 0);
         std::cout << "Wiped 1 index" << std::endl;
-        // check database2 only contains 4 files (toc, schema, index, data)
+        // check database2 only contains toc, schema, index, data and the two access timestamps
         if (configName == "localSingleRoot") {
             dbFiles.clear();
             dbDirs.clear();
             (wipe_tests_tmp_root() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
-            ASSERT(dbFiles.size() == 4);
+            ASSERT(dbFiles.size() == 6);
             ASSERT(dbDirs.size() == 0);
         }
         else if (configName == "localSeparateRoots") {
             dbFiles.clear();
             dbDirs.clear();
             (wipe_tests_tmp_root() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
-            ASSERT(dbFiles.size() == 3);
+            ASSERT(dbFiles.size() == 5);
             ASSERT(dbDirs.size() == 0);
             dbFiles.clear();
             dbDirs.clear();
@@ -384,24 +384,24 @@ CASE("Wipe tests") {
         EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 1);  // 1 index
         EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);        // no tocs or schemas wiped
         EXPECT_EQUAL(element_counts[WipeElementType::STORE_SAFE], 1);       // 1 data
-        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 6);   // 1 index, schema, toc and the 3 locks
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 8);
 
         EXPECT_EQUAL(countAll(fdb, {commonReq}), 2);
         EXPECT_EQUAL(countAll(fdb, {indexReq2}), 0);
         EXPECT_EQUAL(countAll(fdb, {indexReq3}), 2);
         EXPECT_EQUAL(countAll(fdb, {indexReq3}, true), 1);
         std::cout << "Wiped 1 index" << std::endl;
-        // check database2 only contains 4 files (toc, schema, index, data)
+        // check database2 only contains toc, schema, index, data and the two access timestamps
         std::vector<eckit::PathName> dbFiles;
         std::vector<eckit::PathName> dbDirs;
         if (configName == "localSingleRoot") {
             (wipe_tests_tmp_root() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
-            ASSERT(dbFiles.size() == 4);
+            ASSERT(dbFiles.size() == 6);
             ASSERT(dbDirs.size() == 0);
         }
         else if (configName == "localSeparateRoots") {
             (wipe_tests_tmp_root() / dbKey2.valuesToString()).children(dbFiles, dbDirs);
-            ASSERT(dbFiles.size() == 3);
+            ASSERT(dbFiles.size() == 5);
             ASSERT(dbDirs.size() == 0);
             dbFiles.clear();
             dbDirs.clear();

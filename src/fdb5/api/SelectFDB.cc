@@ -182,6 +182,13 @@ StatsIterator SelectFDB::stats(const FDBToolRequest& request) {
     return queryInternal(request, [](FDBBase& fdb, const FDBToolRequest& request) { return fdb.stats(request); });
 }
 
+StatusIterator SelectFDB::touch(const FDBToolRequest& request, AccessIdentifiers identifiers, AccessTime when) {
+    LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::touch() >> " << request << std::endl;
+    return queryInternal(request, [identifiers, when](FDBBase& fdb, const FDBToolRequest& request) {
+        return fdb.touch(request, identifiers, when);
+    });
+}
+
 ControlIterator SelectFDB::control(const FDBToolRequest& request, ControlAction action,
                                    ControlIdentifiers identifiers) {
     LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::control >> " << request << std::endl;
