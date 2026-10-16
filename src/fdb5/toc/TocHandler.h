@@ -108,7 +108,8 @@ public:  // methods
 
     bool exists() const;
 
-    void writeInitRecord(const Key& tocKey);
+    /// @returns true if this call initialised the database, false if it already existed.
+    bool writeInitRecord(const Key& tocKey);
     void writeClearRecord(const Index&);
     void writeClearAllRecord();
     void writeSubTocRecord(const TocHandler& subToc);
@@ -145,6 +146,41 @@ public:  // methods
     // Utilities for handling locks
     std::vector<eckit::PathName> lockfilePaths() const;
 
+    // Access timestamps
+    //
+    // Two zero-byte files whose mtimes record when this database was last meaningfully read and
+    // written. Unlike the lock files above, which carry their meaning in their mere existence,
+    // these always exist and carry it entirely in their mtime.
+    //
+    // Readers generally do not own the database directory and so cannot create files in it. Both
+    // files are therefore created by the writer, and readers only ever update the mtime of an
+    // existing one: POSIX allows that for any process with write permission on the *file*,
+    // regardless of the permissions of the containing directory.
+    //
+    // All of these are best-effort and never throw. A missing timestamp means "unknown" - never
+    // "not accessed".
+
+    /// Create both records. Called once, when the database itself is created; thereafter a
+    /// missing record is restored by markWritten() on the failure path, never by a check before
+    /// each update.
+    void createTimestamps(mode_t readMode) const;
+
+    void markRead(size_t granularity) const;
+
+    /// @param readMode the mode for the read record. Used only on the rare path where the records
+    ///                 turn out to be missing and have to be made.
+    void markWritten(size_t granularity, mode_t readMode) const;
+
+    bool touchRead(mode_t readMode, time_t when) const;
+    bool touchWritten(mode_t readMode, time_t when) const;
+
+    time_t tocTime() const;
+    time_t lastRead() const;
+    time_t lastWrite() const;
+
+    std::vector<eckit::PathName> timestampPaths() const;
+    static mode_t timestampMode(mode_t umask);
+
 protected:  // methods
 
     size_t tocFilesSize() const;
@@ -161,6 +197,20 @@ private:  // methods
     eckit::LocalPathName fullControlFilePath(const std::string& name) const;
     void createControlFile(const std::string& name) const;
     void removeControlFile(const std::string& name) const;
+
+    /// @note these deliberately do not go through createControlFile()/fullControlFilePath()'s
+    /// conventions for mutation: createControlFile() calls checkUID() and cannot force a mode,
+    /// whereas timestamp maintenance must never throw for a non-owner.
+    /// @param when 0 for the current time, otherwise an explicit instant.
+    bool markTimestamp(const char* name, size_t granularity, time_t when = 0) const;
+
+    /// As markTimestamp(), but repairs the records if - and only if - the update has already
+    /// failed because they are missing or no longer writable by this process. Used by the write
+    /// path and by an explicit touch, both of which may legitimately create a record; the
+    /// automatic read path must not, so markRead() does not come through here.
+    bool markTimestampRepairing(const char* name, mode_t readMode, size_t granularity, time_t when = 0) const;
+
+    time_t timestampOf(const char* name) const;
 
 protected:  // members
 

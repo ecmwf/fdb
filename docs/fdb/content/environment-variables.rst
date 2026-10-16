@@ -361,6 +361,43 @@ Multiple extensions can be specified as a comma or space separated list, e.g.:
 Default: ``gribjump``.
 
 
+Access timestamps
+-----------------
+
+The FDB records per-database timestamps for read and write activity. These are modified by the
+normal read and write pathways through the API, and left untouched by metadata-only operations.
+
+The updated behaviour of the API and tooling can be controlled by the following environment
+variables and resources.
+
+``FDB_ACCESS_TIMESTAMP_GRANULARITY``
+------------------------------------
+
+Minimum interval, in seconds, between successive updates of the same timestamp file by a single
+process. Within this window repeated accesses to the same database do not rewrite the file, which
+avoids loading the metadata server of a shared filesystem when many small requests hit the same
+data. ``0`` disables coarsening.
+
+Default: ``3600``.
+
+This overrides the ``accessTimestampGranularity`` value provided by the user config.
+
+
+``FDB_MARK_LIST_AS_ACCESS``
+---------------------------
+
+If set to a true value, a ``list`` also counts as a read.
+
+Off by default, because listing is a metadata-only operation and an estate-wide listing would
+otherwise refresh every read timestamp. It is intended for clients that bulk-read by calling
+``list()`` and then ``dataHandle()`` on the returned field locations, which bypasses the retrieve
+path and is otherwise invisible to FDB. Set it in the configuration of those clients only.
+
+Default: ``false``.
+
+This overrides the ``markListAsAccess`` flag provided by the user config.
+
+
 Serialisation version
 ---------------------
 

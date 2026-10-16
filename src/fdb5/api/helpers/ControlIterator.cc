@@ -133,7 +133,11 @@ using value_type = typename std::underlying_type<ControlIdentifier>::type;
 
 ControlElement::ControlElement() : location() {}
 
-ControlElement::ControlElement(const Catalogue& catalogue) : key(catalogue.key()), location(catalogue.uri()) {
+ControlElement::ControlElement(const Catalogue& catalogue) :
+    key(catalogue.key()),
+    location(catalogue.uri()),
+    lastRead(catalogue.lastRead()),
+    lastWrite(catalogue.lastWrite()) {
 
     controlIdentifiers = ControlIdentifier::None;
     for (auto id : ControlIdentifierList) {
@@ -143,12 +147,21 @@ ControlElement::ControlElement(const Catalogue& catalogue) : key(catalogue.key()
     }
 }
 
-ControlElement::ControlElement(eckit::Stream& s) : key(s), location(s), controlIdentifiers(s) {}
+ControlElement::ControlElement(eckit::Stream& s) : key(s), location(s), controlIdentifiers(s) {
+    int64_t read;
+    int64_t write;
+    s >> read;
+    s >> write;
+    lastRead = static_cast<time_t>(read);
+    lastWrite = static_cast<time_t>(write);
+}
 
 void ControlElement::encode(eckit::Stream& s) const {
     s << key;
     s << location;
     s << controlIdentifiers;
+    s << static_cast<int64_t>(lastRead);
+    s << static_cast<int64_t>(lastWrite);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
