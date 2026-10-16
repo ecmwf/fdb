@@ -13,6 +13,7 @@ All tools can be invoked through the :doc:`fdb <fdb>` wrapper command or directl
    fdb-stats
    grib2fdb
    info
+   last-access
    list
    purge
    read
@@ -30,6 +31,7 @@ All tools can be invoked through the :doc:`fdb <fdb>` wrapper command or directl
    hammer
    patch
    reconsolidate-toc
+   touch
 
 General Purpose Tools
 ---------------------
@@ -44,6 +46,8 @@ General Purpose Tools
      - Compare data between two FDBs or different data versions within one FDB.
    * - :doc:`fdb info <info>`
      - Show information about the FDB configuration and binaries.
+   * - :doc:`fdb last-access <last-access>`
+     - Identify databases which have, or have not, been recently written or accessed
    * - :doc:`fdb list <list>`
      - List the contents of FDB databases.
    * - :doc:`fdb purge <purge>`
@@ -80,6 +84,8 @@ Special Purpose Tools
      - Overlay entries from one database onto another. Advanced use only.
    * - :doc:`fdb root <root>`
      - Find the on-disk location of specified databases.
+   * - :doc:`fdb touch <touch>`
+     - Update the read or write timestamp of specified databases
 
 Debug Tools
 -----------
