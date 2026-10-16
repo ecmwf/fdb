@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/exception/FirstFailure.h"
 #include "eckit/io/AutoCloser.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/Mutex.h"
@@ -64,6 +65,15 @@ void Catalogue::visitEntries(EntryVisitor& visitor, bool sorted) {
     }
 
     visitor.catalogueComplete(*this);
+
+    // report first failed close
+    eckit::FirstFailure failure;
+    for (auto& closer : closers) {
+        if (closer) {
+            failure.run([&] { closer->close(); });
+        }
+    }
+    failure.rethrow();
 }
 
 const Key CatalogueWriter::currentIndexKey() {
