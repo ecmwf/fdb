@@ -175,7 +175,7 @@ cxx-compiler-binary = "g++"
 
 [[matrix.build-hpc.include]]
 options = "eckit-geo"
-cxx-compiler = "icpx"
+cxx-compiler = "icpx-2025.3.1"
 platform = "hpc-atos-intel"
 modules = ["load prgenv/intel-llvm", "unload intel", "load intel/2025.3.1", "load cmake", "load ninja"]
 c-compiler-binary = "icx"
@@ -192,7 +192,7 @@ cxx-compiler-binary = "nvc++"
 # Disabled for now because error in eckit
 # [[matrix.build-hpc.include]]
 # options = "eckit-geo"
-# cxx-compiler = "icpc-2023.2"
+# cxx-compiler = "icpc-2023.2.0"
 # platform = "hpc-atos-intel"
 # modules = ["load prgenv/intel", "unload intel", "load intel/2023.2.0", "load cmake", "load ninja"]
 # c-compiler-binary = "icc"
