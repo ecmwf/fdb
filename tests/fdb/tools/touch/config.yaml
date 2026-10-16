@@ -1,0 +1,6 @@
+---
+type: local
+engine: toc
+spaces:
+ - roots:
+   - path: ./localroot

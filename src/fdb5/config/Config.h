@@ -63,6 +63,14 @@ public:  // methods
     size_t apiQueueSize() const;
     size_t apiMaxQueues() const;
 
+    /// Minimum interval, in seconds, between successive timestamp updates by this process.
+    size_t accessTimestampGranularity() const;
+
+    /// Listing is metadata-only and normally must NOT count as a meaningful access.
+    /// But some very active users (PGen, GribJump) make use of list() --> dataHandle --> read(). This usage would
+    /// thus be untracked in the access timestamps. These clients can mark such use to be recorded in the userConfig
+    bool markListAsAccess() const;
+
     std::vector<Config> getSubConfigs(const std::string& name) const;
     std::vector<Config> getSubConfigs() const;
 

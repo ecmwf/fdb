@@ -124,6 +124,14 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 stats(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
+            case Message::Status:  // database-level status, including access timestamps
+                status(clientID, requestID, std::move(payload));
+                return Handled::Yes;
+
+            case Message::Touch:  // explicitly record a read and/or a write
+                touch(clientID, requestID, std::move(payload));
+                return Handled::Yes;
+
             case Message::Flush:  // flush catalogue
                 flush(clientID, requestID, std::move(payload));
                 return Handled::Yes;
@@ -291,6 +299,27 @@ struct StatsHelper : public BaseHelper<StatsElement> {
     StatsIterator apiCall(FDB& fdb, const FDBToolRequest& request) const { return fdb.stats(request); }
 };
 
+struct StatusHelper : public BaseHelper<StatusElement> {
+    StatusIterator apiCall(FDB& fdb, const FDBToolRequest& request) const { return fdb.status(request); }
+};
+
+struct TouchHelper : public BaseHelper<StatusElement> {
+
+    void extraDecode(eckit::Stream& s) {
+        identifiers_ = AccessIdentifiers(s);
+        when_ = AccessTime(s);
+    }
+
+    StatusIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        return fdb.touch(request, identifiers_, when_);
+    }
+
+private:
+
+    AccessIdentifiers identifiers_;
+    AccessTime when_;
+};
+
 template <typename HelperClass>
 void CatalogueHandler::handleApiCall(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
     HelperClass helper;
@@ -359,6 +388,14 @@ void CatalogueHandler::inspect(uint32_t clientID, uint32_t requestID, eckit::Buf
 
 void CatalogueHandler::stats(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
     handleApiCall<StatsHelper>(clientID, requestID, std::move(payload));
+}
+
+void CatalogueHandler::status(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    handleApiCall<StatusHelper>(clientID, requestID, std::move(payload));
+}
+
+void CatalogueHandler::touch(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    handleApiCall<TouchHelper>(clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::schema(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {

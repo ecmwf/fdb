@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+
+set -euxo pipefail
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+
+expect_fail() { if "$@"; then die "Expected failure but command succeeded => '$*'"; fi; }
+
+mtime() { stat -f %m "$1" 2>/dev/null || stat -c %Y "$1"; }
+
+########################################################################################################################
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB5_CONFIG_FILE=config.yaml
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+test_name=touch
+src_data="../../../od.oper.grib"
+src_dir=@CMAKE_CURRENT_SOURCE_DIR@
+bin_dir=@CMAKE_CURRENT_BINARY_DIR@
+
+cd $bin_dir
+rm -rf $test_name
+mkdir -p $test_name/localroot
+cd $test_name
+cp "$src_dir/config.yaml" ./
+ln -s "$bin_dir/$src_data" ./
+
+db=localroot/od:0001:oper:20240911:0000:g
+readts=$db/read.timestamp
+writets=$db/write.timestamp
+key="class=od,expver=0001,stream=oper,date=20240911,time=0000,domain=g"
+
+fdb-write "$src_data"
+[[ -e $readts && -e $writets ]] || die "Archiving did not create the access timestamps"
+
+########################################################################################################################
+# Guards. An under-specified or empty invocation must change nothing.
+
+expect_fail fdb-touch $key
+expect_fail fdb-touch --read class=od,expver=0001
+
+########################################################################################################################
+# --read and --write move exactly one timestamp each.
+
+touch -t 202001010000 $readts $writets
+r0=$(mtime $readts); w0=$(mtime $writets)
+
+fdb-touch $key --read
+[[ $(mtime $readts) -ne $r0 ]] || die "--read did not advance the read timestamp"
+[[ $(mtime $writets) -eq $w0 ]] || die "--read advanced the write timestamp"
+
+touch -t 202001010000 $readts $writets
+r0=$(mtime $readts); w0=$(mtime $writets)
+
+fdb-touch $key --write
+[[ $(mtime $writets) -ne $w0 ]] || die "--write did not advance the write timestamp"
+[[ $(mtime $readts) -eq $r0 ]] || die "--write advanced the read timestamp"
+
+# Both at once.
+touch -t 202001010000 $readts $writets
+r0=$(mtime $readts)
+fdb-touch $key --read --write
+[[ $(mtime $readts) -ne $r0 && $(mtime $writets) -ne $r0 ]] || die "--read --write did not advance both"
+
+########################################################################################################################
+# An explicit touch creates a missing record, for databases written before the feature existed.
+
+rm -f $readts
+fdb-touch $key --read
+[[ -e $readts ]] || die "--read did not create the missing read record"
+
+rm -f $writets
+fdb-touch $key --write
+[[ -e $writets ]] || die "--write did not create the missing write record"
+
+# ... and the created read record is still updatable by non-owners.
+perms=$(stat -f %Lp $readts 2>/dev/null || stat -c %a $readts)
+[[ "$perms" == "666" ]] || die "Created read record has mode $perms, expected 666"
+
+########################################################################################################################
+# An explicit touch is not rate limited: it must work even inside the granularity window.
+
+export FDB_ACCESS_TIMESTAMP_GRANULARITY=86400
+fdb-touch $key --read
+touch -t 202001010000 $readts
+r0=$(mtime $readts)
+fdb-touch $key --read
+[[ $(mtime $readts) -ne $r0 ]] || die "An explicit touch was suppressed by the rate limiter"
+unset FDB_ACCESS_TIMESTAMP_GRANULARITY
+
+########################################################################################################################
+# The database must still be wipeable.
+
+fdb-wipe $key --doit
+[[ ! -d $db ]] || die "Wipe did not remove the database"
+
+########################################################################################################################
+
+echo "cleanup"
+cd $bin_dir
+rm -rf $test_name
