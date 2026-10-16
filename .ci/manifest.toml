@@ -146,8 +146,6 @@ triggers = ["upstream-change", "rebuild-request"]
 
 [matrix.build-hpc.defaults]
 job-script = "./.ci/hpc/build.sh.j2"
-
-[[matrix.build-hpc.include]]
 cxx-compiler = "g++-8"
 build-type = "RelWithDebInfo"
 runs-on = "hpc-submit"
@@ -157,9 +155,48 @@ platform = "hpc-atos-gnu"
 # gcc/old, not a version number: as of now gives you 8.5.0
 # `module avail gcc` lists no 8.5.0 to pin directly.
 modules = ["load prgenv/gnu", "unload gcc", "load gcc/old", "load cmake", "load ninja", "load uv", "load python3/3.11.8-01"]
-c_compiler_binary = "gcc"
-cxx_compiler_binary = "g++"
+c-compiler-binary = "gcc"
+cxx-compiler-binary = "g++"
 time = "00:40:00"
+
+[[matrix.build-hpc.include]]
+options = ""
+
+[[matrix.build-hpc.include]]
+options = "eckit-geo"
+
+[[matrix.build-hpc.include]]
+options = "eckit-geo"
+cxx-compiler = "g++-15"
+platform = "hpc-atos-gnu"
+modules = ["load prgenv/gnu", "unload gcc", "load gcc/15.2.0", "load cmake", "load ninja"]
+c-compiler-binary = "gcc"
+cxx-compiler-binary = "g++"
+
+[[matrix.build-hpc.include]]
+options = "eckit-geo"
+cxx-compiler = "icpx"
+platform = "hpc-atos-intel"
+modules = ["load prgenv/intel-llvm", "unload intel", "load intel/2025.3.1", "load cmake", "load ninja"]
+c-compiler-binary = "icx"
+cxx-compiler-binary = "icpx"
+
+[[matrix.build-hpc.include]]
+options = "eckit-geo"
+cxx-compiler = "nvc++-26.1"
+platform = "hpc-atos-nvidia"
+modules = ["load prgenv/nvidia", "unload nvidia", "load nvidia/26.1", "load cmake", "load ninja"]
+c-compiler-binary = "nvc"
+cxx-compiler-binary = "nvc++"
+
+# Disabled for now because error in eckit
+# [[matrix.build-hpc.include]]
+# options = "eckit-geo"
+# cxx-compiler = "icpc-2023.2"
+# platform = "hpc-atos-intel"
+# modules = ["load prgenv/intel", "unload intel", "load intel/2023.2.0", "load cmake", "load ninja"]
+# c-compiler-binary = "icc"
+# cxx-compiler-binary = "icpc"
 
 [packages.fdb-rust]
 compiler-inputs = ["cxx-compiler"]
