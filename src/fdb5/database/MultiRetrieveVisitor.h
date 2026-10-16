@@ -49,6 +49,8 @@ private:  // methods
 
     const Schema& databaseSchema() const override;
 
+    void markAccessed();
+
 private:
 
     eckit::CacheLRU<Key, CatalogueReader*>& databases_;
@@ -56,6 +58,8 @@ private:
     InspectIterator& iterator_;
 
     Config config_;
+
+    bool accessed_{false};
 };
 
 //----------------------------------------------------------------------------------------------------------------------
