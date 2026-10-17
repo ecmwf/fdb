@@ -128,6 +128,9 @@ bool Key::match(const metkit::mars::MarsRequest& request) const {
 bool Key::partialMatch(const metkit::mars::MarsRequest& request) const {
 
     for (const auto& [keyword, value] : *this) {
+        if (value.empty()) {
+            continue;
+        }
 
         const auto& values = request.values(keyword, /* emptyOk */ true);
 
