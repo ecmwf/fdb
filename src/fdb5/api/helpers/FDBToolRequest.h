@@ -46,6 +46,9 @@ public:  // methods
 
     bool all() const;
 
+    /// Returns a copy with `a|b` alternatives converted to multiple values.
+    FDBToolRequest expandAlternatives() const;
+
     void print(std::ostream& s, const char* cr = "\n", const char* tab = "\t") const;
 
 protected:  // methods
