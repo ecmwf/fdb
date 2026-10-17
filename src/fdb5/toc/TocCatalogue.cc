@@ -161,6 +161,48 @@ bool TocCatalogue::markIndexForWipe(const Index& index, bool include, CatalogueW
     return include;
 }
 
+void TocCatalogue::markRead() const {
+    TocHandler::markRead(config_.accessTimestampGranularity());
+}
+
+void TocCatalogue::markWritten() const {
+    TocHandler::markWritten(config_.accessTimestampGranularity(), TocHandler::timestampMode(config_.umask()));
+}
+
+bool TocCatalogue::touch(const AccessIdentifiers& identifiers, const AccessTime& when) const {
+
+    // The instant is resolved here rather than by the caller: only the catalogue knows where its
+    // toc is, and over a remote connection the client cannot stat it at all.
+    const time_t instant = when.resolve(TocHandler::tocTime());
+
+    if (when.source() == AccessTime::Source::Catalogue && instant == 0) {
+        eckit::Log::warning() << "Cannot read the toc of " << basePath() << " to take its time" << std::endl;
+        return false;
+    }
+
+    const mode_t readMode = TocHandler::timestampMode(config_.umask());
+
+    bool ok = true;
+
+    if (identifiers.has(AccessIdentifier::Read)) {
+        ok = TocHandler::touchRead(readMode, instant) && ok;
+    }
+
+    if (identifiers.has(AccessIdentifier::Write)) {
+        ok = TocHandler::touchWritten(readMode, instant) && ok;
+    }
+
+    return ok;
+}
+
+time_t TocCatalogue::lastRead() const {
+    return TocHandler::lastRead();
+}
+
+time_t TocCatalogue::lastWrite() const {
+    return TocHandler::lastWrite();
+}
+
 bool TocCatalogue::uriBelongs(const eckit::URI& uri) const {
     if (!uri.path().dirName().sameAs(basePath())) {
         return false;
@@ -182,9 +224,15 @@ bool TocCatalogue::uriBelongs(const eckit::URI& uri) const {
         return true;
     }
 
-    // Check against lock files
+    // Check against lock files and access timestamps
     for (const auto& lck : lockfilePaths()) {
         if (basename == lck.baseName()) {
+            return true;
+        }
+    }
+
+    for (const auto& ts : timestampPaths()) {
+        if (basename == ts.baseName()) {
             return true;
         }
     }
@@ -237,6 +285,11 @@ void TocCatalogue::finaliseWipeState(CatalogueWipeState& wipeState) const {
     // lockfiles
     for (const auto& lck : lockfilePaths()) {
         controlURIs.emplace("file", lck);
+    }
+
+    // Timestamp paths
+    for (const auto& ts : timestampPaths()) {
+        controlURIs.emplace("file", ts);
     }
 
     std::stringstream ss;
