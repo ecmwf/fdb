@@ -69,7 +69,7 @@ std::vector<FDBToolRequest> FDBToolRequest::requestsFromString(const std::string
                 }
             }*/
             LOG_DEBUG_LIB(LibFdb5) << "Expanded request: " << request << std::endl;
-            requests.emplace_back(request, false, minimumKeys);
+            requests.emplace_back(request.expandAlternatives(), false, minimumKeys);
         }
     }
 
