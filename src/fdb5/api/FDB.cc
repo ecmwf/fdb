@@ -36,6 +36,7 @@
 
 #include "metkit/hypercube/HyperCube.h"
 #include "metkit/hypercube/HyperCubePayloaded.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/container/Queue.h"
@@ -271,7 +272,8 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
 }
 
 ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {
-    return internal_->inspect(request);
+    metkit::mars::MarsRequest expandedRequest = request.extract("data").expandAlternatives();
+    return internal_->inspect(expandedRequest);
 }
 
 ListIterator FDB::list(const FDBToolRequest& request, const ListMode mode, const int level) {

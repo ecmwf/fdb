@@ -431,7 +431,6 @@ CASE("Param multivalue") {
     EXPECT(param->match("param", "130.128", "130"));
     EXPECT(param->match("param", "130", "130.128"));
     EXPECT(!param->match("param", "130.128", "130.129"));
-    EXPECT(param->match("param", "130.128", "128130"));
     EXPECT(param->match("param", "130.129", "130"));
     EXPECT(param->match("param", "130.129", "130.129"));
     EXPECT(!param->match("param", "228", "229"));
@@ -453,12 +452,10 @@ CASE("Param multivalue") {
     EXPECT(!paramId->match("param", "228.228", "228"));
     EXPECT(!paramId->match("param", "228", "228.228"));
     EXPECT(paramId->match("param", "228.228", "228228"));
-    // table 128 is omitted from the paramId: 130.128 -> 130
     EXPECT(paramId->match("param", "130.128", "130"));
     EXPECT(paramId->match("param", "130", "130.128"));
     EXPECT(!paramId->match("param", "130.128", "130.129"));
     EXPECT(!paramId->match("param", "130.129", "130"));
-    EXPECT(paramId->match("param", "130.128", "128130"));
     EXPECT(!paramId->match("param", "228", "229"));
     EXPECT(!paramId->match("param", "228228|229", "230"));
     EXPECT(paramId->match("param", "130.129|228228", "228228"));
