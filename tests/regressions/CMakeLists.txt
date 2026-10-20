@@ -21,6 +21,7 @@ if (HAVE_FDB_BUILD_TOOLS) # test scripts use the fdb tools
         add_subdirectory(FDB-303)
         add_subdirectory(FDB-307)
         add_subdirectory(FDB-310)
+        add_subdirectory(FDB-331)
         add_subdirectory(FDB-332)
         add_subdirectory(FDB-533)
         add_subdirectory(FDB-535)
