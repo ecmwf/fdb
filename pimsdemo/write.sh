@@ -10,7 +10,6 @@ export PIMS_HACKAHON=1
 export PIMS_ENVIRONMENT="${PIMS_ENVIRONMENT:-demo}"
 export PIMS_HOST="${PIMS_HOST:-localhost}"
 export PIMS_PORT="${PIMS_PORT:-9999}"
-# The bundled gribjump plugin needs rebuilding after updating metkit.
-export AUTO_LOAD_PLUGINS=0
+#export AUTO_LOAD_PLUGINS=0 # if gribjump interferes...
 
 ../build/bin/fdb-write test1.grib test2.grib
