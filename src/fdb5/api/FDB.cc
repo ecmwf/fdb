@@ -79,11 +79,11 @@ FDB::FDB(const Config& config) :
     internal_(FDBFactory::instance().build(config)), dirty_(false), reportStats_(config.getBool("statistics", false)) {
     LibFdb5::instance().constructorCallback()(*internal_);
 
-    const char* enabled = std::getenv("FDB_PIMS_HACKAHON");
+    const char* enabled = std::getenv("PIMS_HACKAHON");
     if (enabled && std::string(enabled) == "1") {
         const char* portEnv = std::getenv("PIMS_PORT");
         if (!portEnv) {
-            throw eckit::UserError("PIMS_PORT must be set when FDB_PIMS_HACKAHON=1", Here());
+            throw eckit::UserError("PIMS_PORT must be set", Here());
         }
         int port = 0;
         try {
