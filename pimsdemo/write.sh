@@ -6,7 +6,7 @@ mkdir -p localroot
 
 export FDB_HOME="${FDB_HOME:-$(cd ../build/fdb5 && pwd)}"
 export FDB5_CONFIG_FILE="$PWD/local.yaml"
-export FDB_PIMS_HACKAHON=1
+export PIMS_HACKAHON=1
 export PIMS_ENVIRONMENT="${PIMS_ENVIRONMENT:-demo}"
 export PIMS_HOST="${PIMS_HOST:-localhost}"
 export PIMS_PORT="${PIMS_PORT:-9999}"
