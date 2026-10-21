@@ -51,17 +51,22 @@
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/log/CodeLocation.h"
+#include "eckit/log/JSON.h"
 #include "eckit/log/Log.h"
 #include "eckit/log/Timer.h"
+#include "eckit/net/UDPClient.h"
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
 
 #include <cctype>
 #include <cstddef>
+#include <cstdlib>
+#include <ctime>
 #include <memory>
 #include <mutex>
 #include <ostream>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -73,6 +78,45 @@ namespace fdb5 {
 FDB::FDB(const Config& config) :
     internal_(FDBFactory::instance().build(config)), dirty_(false), reportStats_(config.getBool("statistics", false)) {
     LibFdb5::instance().constructorCallback()(*internal_);
+
+    const char* enabled = std::getenv("FDB_PIMS_HACKAHON");
+    if (enabled && std::string(enabled) == "1") {
+        const char* portEnv = std::getenv("PIMS_PORT");
+        if (!portEnv) {
+            throw eckit::UserError("PIMS_PORT must be set when FDB_PIMS_HACKAHON=1", Here());
+        }
+        int port = 0;
+        try {
+            const std::string portString(portEnv);
+            size_t consumed = 0;
+            port            = std::stoi(portString, &consumed);
+            if (consumed != portString.size() || port < 1 || port > 65535) {
+                throw std::invalid_argument("invalid port");
+            }
+        }
+        catch (const std::exception&) {
+            throw eckit::UserError("PIMS_PORT must be a number between 1 and 65535", Here());
+        }
+
+        const char* hostEnv = std::getenv("PIMS_HOST");
+        const char* env     = std::getenv("PIMS_ENVIRONMENT");
+        auto client = std::make_shared<eckit::net::UDPClient>(hostEnv && *hostEnv ? hostEnv : "localhost", port);
+        const std::string environment = env ? env : "";
+        registerArchiveCallback([client, environment](const Key& key, const void*, size_t, auto) {
+            std::ostringstream out;
+            {
+                eckit::JSON json(out);
+                json.startObject();
+                json << "env" << environment;
+                json << "time" << static_cast<long long>(std::time(nullptr));
+                json << "key" << static_cast<std::string>(key);
+                json << "key_scheme" << "hypercube";
+                json.endObject();
+            }
+            const std::string payload = out.str();
+            client->send(payload.data(), payload.size());
+        });
+    }
 }
 
 
