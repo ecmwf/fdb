@@ -168,6 +168,20 @@ compiler-inputs = ["cxx-compiler"]
 package = "fdb"
 options-input = "options"
 
+[[packages.fdb-rust.deps]]
+repo = "ecmwf/eckit"
+package = "eckit"
+ref = "develop"
+compiler-inputs = ["cxx-compiler"]
+crates = ["eckit", "eckit-sys"]
+
+[[packages.fdb-rust.deps]]
+repo = "ecmwf/metkit"
+package = "metkit"
+ref = "develop"
+compiler-inputs = ["cxx-compiler"]
+crates = ["metkit", "metkit-sys"]
+
 [matrix.rust]
 packages = ["fdb-rust"]
 publishes = false
