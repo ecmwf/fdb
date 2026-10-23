@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Stages, builds and installs the pyfdb wheel, from fdb's own build
-# or from python/pyfdb against an installed fdb.
+# or from .ci/packages/pyfdb against an installed fdb.
 
 set(_pyfdb_src "${CMAKE_CURRENT_LIST_DIR}/../src")
 
