@@ -18,8 +18,10 @@ env:
   IMAGE_NAME: ubuntu_rolling_fdb_build_env
   PROJECT_NAME: ci-utils
 
+# Every job is off: they run outside the Kubernetes runners, which may trust the compromised eMudhra CAs (Oct 2026).
 jobs:
   build-and-push:
+    if: false
     runs-on: [self-hosted, Linux, platform-builder-docker]
     permissions:
       contents: read
