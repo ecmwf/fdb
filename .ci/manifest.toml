@@ -161,6 +161,13 @@ c_compiler_binary = "gcc"
 cxx_compiler_binary = "g++"
 time = "00:40:00"
 
+[[packages.metkit-rust.deps]]
+repo = "ecmwf/eckit"
+package = "eckit"
+ref = "develop"
+compiler-inputs = ["cxx-compiler"]
+crates = ["eckit", "eckit-sys", "metkit"]
+
 [packages.fdb-rust]
 compiler-inputs = ["cxx-compiler"]
 
