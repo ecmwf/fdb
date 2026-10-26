@@ -12,9 +12,10 @@ repos:
       - id: check-merge-conflict
 
   - repo: https://github.com/ecmwf/ci-infrastructure
-    rev: dac4b18ffe60c317fbab05246e851b6971f7eabf
+    rev: 8adba3f59f501cd1e6306538d3a806850c0d0f73
     hooks:
       - id: check-ci-approval
+      - id: check-ci-result
       
   # Off until the tree is cleaned up; the counts are what each would flag today.
   # - repo: https://github.com/astral-sh/ruff-pre-commit

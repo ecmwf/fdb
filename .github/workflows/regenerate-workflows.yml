@@ -20,6 +20,7 @@ jobs:
     uses: ecmwf/ci-infrastructure/.github/workflows/regenerate-workflows.yml@main
     secrets: inherit
     with:
+      mode: pr-auto-merge
       # Downstream CI runs the default branch's orchestrator, so it cannot test this PR.
       labels: downstream-ci-not-needed
 
