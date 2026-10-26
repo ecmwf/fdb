@@ -3,6 +3,8 @@
 Low-level Rust bindings to ECMWF's [FDB](https://github.com/ecmwf/fdb) (Fields DataBase) C++ library.
 
 This crate provides raw FFI bindings using [cxx](https://cxx.rs/). For a safe API, use the [`fdb`](https://crates.io/crates/fdb) crate instead.
+The design of both crates is described in the Rust interface section of the FDB
+documentation (`docs/rust` in the repository).
 
 ## Cargo build features
 
