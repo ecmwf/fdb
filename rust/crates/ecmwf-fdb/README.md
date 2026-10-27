@@ -27,10 +27,13 @@ schema (e.g. `class=od`, `stream=oper`) requires
 `class, expver, stream, date, time, type, levtype, step, param` at minimum.
 
 ```rust,no_run
-use fdb::{Fdb, Key, Request};
+use fdb::{Fdb, Key};
+use metkit::{Expanded, MarsRequest};
 use std::io::Read;
 
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
+eckit::init();
+
 // Open the FDB. Picks up its configuration from the environment
 // (`FDB_CONFIG_FILE` or similar); see the upstream FDB docs.
 let fdb = Fdb::open_default()?;
@@ -50,19 +53,13 @@ let data: &[u8] = b"...field bytes...";
 fdb.archive(&key, data)?;
 fdb.flush()?;
 
-// Retrieve uses the same fully-specified key (any unset key would match
-// every value, which is rarely what you want).
-let request = Request::new()
-    .with("class", "od")
-    .with("expver", "0001")
-    .with("stream", "oper")
-    .with("date", "20240101")
-    .with("time", "0000")
-    .with("type", "fc")
-    .with("levtype", "sfc")
-    .with("step", "0")
-    .with("param", "151130");
-let mut reader = fdb.retrieve(&request)?;
+// Retrieve takes a MARS request with the same keys (any unset key would
+// match every value, which is rarely what you want). The data handle it
+// returns is closed; open it to read.
+let request: MarsRequest<Expanded> = "retrieve, class=od, expver=0001, stream=oper, \
+    date=20240101, time=0000, type=fc, levtype=sfc, step=0, param=151130"
+    .parse()?;
+let (mut reader, _length) = fdb.retrieve(&request)?.open_for_read()?;
 let mut results = Vec::new();
 reader.read_to_end(&mut results)?;
 # Ok(())

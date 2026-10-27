@@ -54,7 +54,7 @@ pub fn sample_field(step: i64) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     handle.set("class", "rd")?;
     handle.set("expver", "xxxx")?;
     handle.set("stream", "oper")?;
-    handle.set("date", 20240101_i64)?;
+    handle.set("date", 20_240_101_i64)?;
     handle.set("time", 1200_i64)?;
     handle.set("type", "fc")?;
     handle.set("step", step)?;

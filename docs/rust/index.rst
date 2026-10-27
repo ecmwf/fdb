@@ -1,41 +1,28 @@
 .. _Rust_Introduction:
 
-Rust interface
+Rust Interface
 ==============
 
 :Version: |version|
 
-The FDB ships with a Rust interface. It lives in the ``rust/`` directory of
-the fdb repository, is built with Cargo, and calls the same C++ library that
-:ref:`pyfdb <PyFDB_Introduction>` and the :ref:`C API <api-reference>` wrap.
+The Rust interface lives in the ``rust/`` directory of the fdb repository
+and calls the same FDB client library as :ref:`pyfdb <PyFDB_Introduction>`.
+This chapter is for developers writing applications against the crates.
 
-The interface is a Cargo workspace with two crates:
+``ecmwf-fdb`` is the crate applications depend on; it gives the C++ library
+a Rust API, with ``Result`` instead of exceptions, iterators over query
+results and a handle that threads share. ``ecmwf-fdb-sys`` builds or links
+the C++ library underneath it.
 
-.. list-table::
-   :widths: 20 80
-   :header-rows: 1
+.. note::
 
-   * - Crate
-     - Purpose
-   * - ``fdb``
-     - The high-level crate. A safe Rust API: ``Result`` instead of
-       exceptions, iterators over list, dump and status results, ``std::io``
-       readers for retrieved data, and a handle that threads can share. This
-       is the crate applications depend on.
-   * - ``fdb-sys``
-     - The low-level crate. It builds (or locates) the C++ library, declares
-       the `cxx <https://cxx.rs>`__ bridge, and generates the error handler
-       from the exception headers of eckit and metkit. Bindings for packages
-       built on the FDB, such as GribJump, depend on it.
+   Use ``ecmwf-fdb`` in your code. ``ecmwf-fdb-sys`` goes into a
+   ``Cargo.toml`` only to switch on a storage backend of the C++ library
+   (:doc:`building`); calling it directly means handling ``cxx`` pointers
+   and raw exception strings yourself.
 
-Both crates carry the version of the FDB release they wrap, and both depend
-on the ``eckit-sys``, ``metkit-sys`` and ``eccodes-sys`` crates for the
-libraries underneath. The design they share with the other ECMWF Rust
-interfaces, and the parts of it that are specific to the FDB, are described
-in :doc:`approach`.
-
-What the Rust interface covers
-------------------------------
+Coverage
+--------
 
 .. list-table::
    :widths: 32 33 35
@@ -47,7 +34,7 @@ What the Rust interface covers
    * - ``fdb::Fdb``
      - ``fdb5::FDB``
      - Open from a configuration, archive, retrieve, read, list, axes, dump,
-       status, wipe, purge, stats, control, flush, and the archive and flush
+       status, wipe, purge, stats, control, flush and the archive and flush
        callbacks
    * - ``fdb::Key``
      - ``fdb5::Key``
@@ -71,59 +58,47 @@ What the Rust interface covers
      - The archiving path of the MARS client, with key modifiers
    * - ``fdb::ControlAction``, ``fdb::ControlIdentifier``
      - ``fdb5::ControlAction``, ``fdb5::ControlIdentifier``
-     - The C++ enums, bound directly
+     - The C++ enums
    * - ``fdb::version``, ``fdb::git_sha1``
      - ``fdb5_version_str``, ``fdb5_git_sha1``
      - Version of the linked library
    * - ``fdb::Error``
-     - ``eckit::Exception`` and subclasses, ``std::io::Error``
-     - See :doc:`approach`
+     - The ``eckit::Exception`` classes, ``std::io::Error``
+     - ``Eckit`` for an exception thrown by the C++ libraries, ``Io`` and
+       ``SizeOverflow`` for failures in Rust code
 
-Five methods of ``fdb5::FDB`` are not bridged: ``inspect`` and ``reindex``,
-``axesIterator`` (an internal of the distributed FDB; ``axes`` is the
-supported query), ``config`` (returns what the caller passed in) and
-``move``, which drives an MPI transport between storage roots. Programs that
-relocate data run the ``fdb-move`` tool.
-
-Quick start
+Quick Start
 -----------
 
-Add the high-level crate to ``Cargo.toml``, together with the ``metkit``
-crate for requests and the ``eckit`` crate for initialisation, data handles
-and configuration:
+Add the crates:
 
-.. code-block:: toml
+.. code-block:: bash
 
-   [dependencies]
-   fdb = "5.25"
-   metkit = "1.22"
-   eckit = "2.5"
+   cargo add ecmwf-fdb metkit eckit
 
-The crate version is the version of the FDB release it wraps. By default the
-build compiles eckit, ecCodes, metkit and the FDB from source as part of
-``cargo build``, so a C++17 compiler, CMake, git and Python 3 are required.
-To link libraries that are already installed, see :doc:`building`.
+The crate version is the version of the FDB release it wraps. ``metkit``
+provides the requests and ``eckit`` provides ``eckit::init``, the
+configuration and the data handles that the FDB API takes and returns.
+:doc:`building` lists the requirements and the alternative of linking
+installed libraries.
 
-The program below opens the FDB described by the environment, the same
-``FDB_CONFIG``, ``FDB_CONFIG_FILE`` or ``FDB_HOME`` lookup the C++ library and
-the command-line tools use, lists the fields of one experiment and retrieves
-one of them:
+The program creates an FDB in a temporary directory, archives one field
+under its key, lists the experiment and retrieves the field:
 
-.. literalinclude:: examples/quickstart.rs
+.. literalinclude:: ../../rust/crates/ecmwf-fdb/examples/quickstart.rs
    :language: rust
+   :start-after: // [main]
+   :end-before: // [end main]
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Contents
    :hidden:
 
    approach
    usage
    building
 
-The per-item API reference is generated by rustdoc from the crate sources:
-
-.. code-block:: bash
-
-   cd rust
-   cargo doc -p fdb -p fdb-sys --no-deps --open
+The per-item API reference is on docs.rs: `ecmwf-fdb
+<https://docs.rs/ecmwf-fdb>`_ and `ecmwf-fdb-sys
+<https://docs.rs/ecmwf-fdb-sys>`_.
