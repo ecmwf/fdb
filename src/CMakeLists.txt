@@ -4,9 +4,9 @@
 ecbuild_find_project_files()
 
 add_subdirectory(fdb5)
-add_subdirectory(chunked_data_view)
 
 if (HAVE_PYTHON_ZARR_INTERFACE)
+    add_subdirectory(chunked_data_view)
     # We create the complete python package layout at this location.
     # This allows us to run python wheel creation at this path and 
     # to put this path on the PYTHONPATH to allow direct use of
