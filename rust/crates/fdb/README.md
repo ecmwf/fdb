@@ -73,10 +73,13 @@ reader.read_to_end(&mut results)?;
   ecCodes) from source.
 - `system` - Link against a system-installed FDB.
 
-Lower-level feature flags (GRIB support, storage backends, experimental
-features) live on the [`fdb-sys`](https://crates.io/crates/fdb-sys) crate;
-see its README for the full list. The defaults inherited here enable GRIB,
-the filesystem TOC backend, and remote FDB client support.
+- `grib`, `tocfdb`, `fdb-remote`, `memfs` (default) - GRIB support, the
+  filesystem TOC backend, the remote FDB client and the embedded ecCodes
+  definitions, forwarded to `fdb-sys`. Disable the defaults to drop one.
+
+The remaining flags (optional storage backends, experimental features) live
+on the [`fdb-sys`](https://crates.io/crates/fdb-sys) crate; see its README
+for the full list.
 
 ## Running
 

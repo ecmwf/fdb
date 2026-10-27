@@ -13,9 +13,15 @@ links = "fdb_rs"
 build = "build.rs"
 
 [features]
-default = ["vendored"]
+default = ["vendored", "grib", "tocfdb", "fdb-remote", "memfs"]
 vendored = ["fdb-sys/vendored", "eckit/vendored", "metkit/vendored"]
 system = ["fdb-sys/system", "eckit/system", "metkit/system"]
+
+# Backends, forwarded to fdb-sys; the defaults match the FDB CMake defaults.
+grib = ["fdb-sys/grib"]
+tocfdb = ["fdb-sys/tocfdb"]
+fdb-remote = ["fdb-sys/fdb-remote"]
+memfs = ["fdb-sys/memfs"]
 
 [build-dependencies]
 bindman-utils.workspace = true
