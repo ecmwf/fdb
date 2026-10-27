@@ -102,8 +102,7 @@ and configuration:
 The crate version is the version of the FDB release it wraps. By default the
 build compiles eckit, ecCodes, metkit and the FDB from source as part of
 ``cargo build``, so a C++17 compiler, CMake, git and Python 3 are required.
-To link libraries that are already installed, and for the backend features
-to enable, see :doc:`building`.
+To link libraries that are already installed, see :doc:`building`.
 
 The program below opens the FDB described by the environment, the same
 ``FDB_CONFIG``, ``FDB_CONFIG_FILE`` or ``FDB_HOME`` lookup the C++ library and
