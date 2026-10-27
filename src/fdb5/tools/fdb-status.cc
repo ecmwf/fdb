@@ -9,6 +9,7 @@
  */
 
 #include "eckit/log/Log.h"
+#include "eckit/log/TimeStamp.h"
 #include "eckit/option/CmdArgs.h"
 
 #include "fdb5/api/FDB.h"
@@ -64,6 +65,12 @@ void FDBStatus::execute(const CmdArgs& args) {
             }
             if (!elem.controlIdentifiers.enabled(ControlIdentifier::UniqueRoot)) {
                 Log::info() << "  multi-root: PERMITTED" << std::endl;
+            }
+            if (elem.lastRead != 0) {
+                Log::info() << "  last-read: " << TimeStamp(elem.lastRead) << std::endl;
+            }
+            if (elem.lastWrite != 0) {
+                Log::info() << "  last-write: " << TimeStamp(elem.lastWrite) << std::endl;
             }
 
             count++;

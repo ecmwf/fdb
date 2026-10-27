@@ -21,6 +21,7 @@
 
 #include <memory>
 
+#include "fdb5/api/helpers/AccessIterator.h"
 #include "fdb5/api/helpers/AxesIterator.h"
 #include "fdb5/api/helpers/Callback.h"
 #include "fdb5/api/helpers/ControlIterator.h"
@@ -75,6 +76,8 @@ public:  // methods
     virtual void archive(const Key& key, const void* data, size_t length) = 0;
 
     virtual void reindex(const Key& key, const FieldLocation& location) { NOTIMP; }
+
+    virtual StatusIterator touch(const FDBToolRequest& request, AccessIdentifiers identifiers, AccessTime when) { NOTIMP; }
 
     virtual void flush() = 0;
 

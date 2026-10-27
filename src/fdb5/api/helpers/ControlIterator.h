@@ -14,6 +14,7 @@
 #pragma once
 
 #include <cstdint>
+#include <ctime>
 
 #include "eckit/filesystem/URI.h"
 
@@ -141,6 +142,11 @@ struct ControlElement {
     eckit::URI location;
 
     ControlIdentifiers controlIdentifiers;
+
+    // Last recorded read and write access.
+    // A time of zero records "unknown" rather than "never"
+    time_t lastRead{0};
+    time_t lastWrite{0};
 
 protected:  // methods
 

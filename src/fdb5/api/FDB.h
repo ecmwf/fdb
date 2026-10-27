@@ -19,6 +19,7 @@
 #pragma once
 
 #include "fdb5/api/FDBStats.h"
+#include "fdb5/api/helpers/AccessIterator.h"
 #include "fdb5/api/helpers/AxesIterator.h"
 #include "fdb5/api/helpers/Callback.h"
 #include "fdb5/api/helpers/ControlIterator.h"
@@ -186,6 +187,11 @@ public:  // methods
 
     // TODO(kkratz): Provide doc!
     StatusIterator status(const FDBToolRequest& request);
+
+    /// Explicitly record the identified kinds of access against each matching database. For data
+    /// accessed by means FDB cannot observe, and for seeding timestamps on an existing archive.
+    StatusIterator touch(const FDBToolRequest& request, AccessIdentifiers identifiers,
+                         AccessTime when = AccessTime());
 
     /// Wipe data from the database.
     ///

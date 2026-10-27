@@ -293,6 +293,10 @@ DumpIterator FDB::dump(const FDBToolRequest& request, bool simple) {
     return internal_->dump(request, simple);
 }
 
+StatusIterator FDB::touch(const FDBToolRequest& request, AccessIdentifiers identifiers, AccessTime when) {
+    return internal_->touch(request, identifiers, when);
+}
+
 StatusIterator FDB::status(const FDBToolRequest& request) {
     return internal_->status(request);
 }
