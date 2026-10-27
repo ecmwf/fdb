@@ -27,6 +27,7 @@ repo = "ecmwf/eccodes"
 package = "eccodes"
 ref = "develop"
 compiler-inputs = ["cxx-compiler"]
+options-input = "options"
 
 [[deps]]
 repo = "ecmwf/eckit"
@@ -39,6 +40,7 @@ repo = "ecmwf/metkit"
 package = "metkit"
 ref = "develop"
 compiler-inputs = ["cxx-compiler"]
+options-input = "options"
 
 [packages.pyfdb]
 compiler-inputs = ["cxx-compiler"]
