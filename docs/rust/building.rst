@@ -103,20 +103,16 @@ name.
      - off
      - Experimental upstream features
 
-The ``fdb`` crate forwards only ``vendored`` and ``system`` to ``fdb-sys``,
-and declares it without default features. A project that depends on ``fdb``
-alone therefore builds an FDB with ``grib``, ``tocfdb`` and ``fdb-remote``
-off, and ``archive`` fails with ``No CatalogueWriterBuilder called toc``.
-Add ``fdb-sys`` next to ``fdb`` and enable the backends there:
+The four defaults are features of the ``fdb`` crate too, forwarded to
+``fdb-sys``, so turning off the ``fdb`` crate's default features drops them
+along with ``vendored``. An optional backend is switched on through
+``fdb-sys`` directly:
 
 .. code-block:: toml
 
    [dependencies]
    fdb = "5.25"
-   fdb-sys = { version = "5.25", features = ["grib", "tocfdb", "fdb-remote", "memfs"] }
-
-The same block is where an optional backend such as ``radosfdb`` is switched
-on.
+   fdb-sys = { version = "5.25", features = ["radosfdb"] }
 
 Run-time configuration
 ----------------------
