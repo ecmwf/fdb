@@ -245,6 +245,7 @@ mod ffi {
 
     unsafe extern "C++" {
         include!("FdbBridge.h");
+        include!("fdb_exceptions.h");
 
         // =====================================================================
         // Library — runtime initialisation and metadata
