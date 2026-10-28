@@ -78,6 +78,11 @@ public:  // methods
 
     std::unique_ptr<TocLock> holdForWrite(int fd, const eckit::PathName& path) const override;
 
+    /// O_APPEND uses the client's cached file size, which may be stale. Seeking to the end revalidates it with the
+    /// server, and positions the offset at the true end should the client not honour O_APPEND.
+    /// Only correct under the lock from holdForWrite().
+    void openedForAppend(int fd, const eckit::PathName& path) const override;
+
     bool excludesWriters() const override { return true; }
 
     eckit::PathName uniquePath(const eckit::PathName& path) const override;

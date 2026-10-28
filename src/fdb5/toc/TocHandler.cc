@@ -256,13 +256,11 @@ void TocHandler::openForAppend() {
 #endif
     SYSCALL2((fd_ = ::open(tocPath_.localPath(), iomode, (mode_t)0777)), tocPath_);
 
-    // Serialise appenders (a no-op where O_APPEND is atomic), released on close(). On NFS, O_APPEND relies on the
-    // client's view of the file size, which may be stale: once the lock is held, seek to the true end.
+    // Serialise appenders (a no-op where O_APPEND is atomic), then let the locking make sure the next write lands
+    // at the true end of the file. Both are released on close().
     try {
         tocLock_ = toc_locking.holdForWrite(fd_, tocPath_);
-        if (toc_locking.excludesWriters()) {
-            SYSCALL2(::lseek(fd_, 0, SEEK_END), tocPath_);
-        }
+        toc_locking.openedForAppend(fd_, tocPath_);
     }
     catch (...) {
         ::close(fd_);

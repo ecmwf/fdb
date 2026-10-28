@@ -294,6 +294,29 @@ CASE("TOC locking: a local filesystem takes no locks, the NFS locking takes one 
     ::close(fd);
 }
 
+CASE("TOC locking: only the NFS locking moves an append descriptor to the end") {
+    const eckit::TmpDir tmp;
+    const eckit::LocalPathName directory{tmp};
+    const eckit::LocalPathName file = directory / "toc";
+
+    const int fd = ::open(file.localPath(), O_CREAT | O_RDWR | O_APPEND, 0644);
+    EXPECT(fd >= 0);
+    EXPECT_EQUAL(::write(fd, "0123456789", 10), 10);
+    EXPECT_EQUAL(::lseek(fd, 0, SEEK_SET), 0);
+
+    if (!usesNFSLocking(directory)) {
+        TocLocking::forDirectory(directory).openedForAppend(fd, file);
+        EXPECT_EQUAL(::lseek(fd, 0, SEEK_CUR), 0);
+    }
+
+    const NFSTocLocking nfs{NFSTocLocking::Policy::Allow,
+                            [](const std::string&) -> std::optional<std::string> { return std::nullopt; }};
+    nfs.openedForAppend(fd, file);
+    EXPECT_EQUAL(::lseek(fd, 0, SEEK_CUR), 10);
+
+    ::close(fd);
+}
+
 CASE("TOC locking: a directory that is not created yet counts as the filesystem it will be created on") {
     const eckit::TmpDir tmp;
     const eckit::LocalPathName directory{tmp};

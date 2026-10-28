@@ -238,6 +238,10 @@ std::unique_ptr<TocLock> NFSTocLocking::holdForWrite(int fd, const eckit::PathNa
     return lock;
 }
 
+void NFSTocLocking::openedForAppend(int fd, const eckit::PathName& path) const {
+    SYSCALL2(::lseek(fd, 0, SEEK_END), path);
+}
+
 eckit::PathName NFSTocLocking::uniquePath(const eckit::PathName& path) const {
 
     const auto unique = eckit::PathName::unique(path);

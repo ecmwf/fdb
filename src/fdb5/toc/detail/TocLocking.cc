@@ -36,6 +36,8 @@ public:
         return nullptr;
     }
 
+    void openedForAppend(int /*fd*/, const eckit::PathName& /*path*/) const override {}
+
     bool excludesWriters() const override { return false; }
 
     eckit::PathName uniquePath(const eckit::PathName& path) const override { return eckit::PathName::unique(path); }

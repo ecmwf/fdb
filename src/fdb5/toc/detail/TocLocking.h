@@ -56,6 +56,10 @@ public:
     /// Blocks until `fd` holds an exclusive lock. Returns what must outlive `fd`, or null if there is none.
     virtual std::unique_ptr<TocLock> holdForWrite(int fd, const eckit::PathName& path) const = 0;
 
+    /// Called on a descriptor opened with O_APPEND once holdForWrite() returned, before anything is written. Makes
+    /// sure the next write lands at the end of the file, where O_APPEND alone does not.
+    virtual void openedForAppend(int fd, const eckit::PathName& path) const = 0;
+
     /// Whether the lock from holdForWrite() alone keeps other writers out, in this process and in others.
     virtual bool excludesWriters() const = 0;
 
