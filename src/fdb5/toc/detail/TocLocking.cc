@@ -42,7 +42,7 @@ public:
 };
 
 /// False where the platform cannot tell the filesystem type.
-bool isOnNFS(const eckit::LocalPathName& directory) {
+bool is_on_nfs(const eckit::LocalPathName& directory) {
     try {
         return directory.fileSystemType() == "nfs";
     }
@@ -67,7 +67,7 @@ const TocLocking& TocLocking::forDirectory(const eckit::LocalPathName& directory
 
     static const NoTocLocking none;
 
-    if (!isOnNFS(locateExistingDirectory(directory))) {
+    if (!is_on_nfs(locateExistingDirectory(directory))) {
         return none;
     }
 
