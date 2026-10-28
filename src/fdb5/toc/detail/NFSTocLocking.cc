@@ -17,6 +17,7 @@
 
 #include <cerrno>
 #include <cstdint>
+#include <cstdio>
 #include <iomanip>
 #include <ios>
 #include <map>
@@ -58,7 +59,7 @@ void fileLock(int fd, short type, const eckit::PathName& path) {
     // Default to classic POSIX locks.
     int cmd = F_SETLKW;
     // Attempt to use open-file-description locks (F_OFD_SETLKW) if available.
-#if defined(F_OFD_SETLKW)
+#ifdef F_OFD_SETLKW
     cmd = F_OFD_SETLKW;
 #endif
 
@@ -69,7 +70,7 @@ void fileLock(int fd, short type, const eckit::PathName& path) {
         if (errno == EINTR) {
             continue;  // interrupted by a signal, retry
         }
-#if defined(F_OFD_SETLKW)
+#ifdef F_OFD_SETLKW
         if (cmd == F_OFD_SETLKW && (errno == EINVAL || errno == ENOTSUP)) {
             cmd = F_SETLKW;  // OFD unsupported at runtime, degrade to classic locks
             continue;
@@ -99,14 +100,14 @@ class ProcessLock final : public TocLock {
         struct stat status{};
         SYSCALL2(::fstat(fd, &status), path);
 
-        const std::lock_guard lock{registry.mutex};
+        const std::scoped_lock lock{registry.mutex};
         auto& entry = registry.locks[FileIdentity{::getpid(), status.st_dev, status.st_ino}];
-        auto fileMutex = entry.lock();
-        if (!fileMutex) {
-            fileMutex = std::make_shared<std::mutex>();
-            entry = fileMutex;
+        auto file_mutex = entry.lock();
+        if (!file_mutex) {
+            file_mutex = std::make_shared<std::mutex>();
+            entry = file_mutex;
         }
-        return fileMutex;
+        return file_mutex;
     }
 
 public:
@@ -119,12 +120,12 @@ private:
     std::unique_lock<std::mutex> lock_;
 };
 
-NFSTocLocking::Policy policyFromEnv() {
+NFSTocLocking::Policy policy_from_env() {
     const std::string value = eckit::Resource<std::string>("fdbNfsLocalLockPolicy;$FDB_NFS_LOCAL_LOCK_POLICY", "error");
     return NFSTocLocking::parsePolicy(value);
 }
 
-std::optional<std::string> mountOption(const std::string& device) {
+std::optional<std::string> mount_option(const std::string& device) {
     return eckit::filesystem::nfs::local_lock_option(device);
 }
 
@@ -156,7 +157,7 @@ NFSTocLocking::Policy NFSTocLocking::parsePolicy(const std::string& value) {
 
 NFSTocLocking::NFSTocLocking(Policy policy, Lookup lookup) : policy_{policy}, lookup_{std::move(lookup)} {}
 
-NFSTocLocking::NFSTocLocking() : NFSTocLocking{policyFromEnv(), mountOption} {}
+NFSTocLocking::NFSTocLocking() : NFSTocLocking{policy_from_env(), mount_option} {}
 
 void NFSTocLocking::validate(const eckit::LocalPathName& directory) const {
     if (policy_ == Policy::Ignore) {
@@ -165,11 +166,11 @@ void NFSTocLocking::validate(const eckit::LocalPathName& directory) const {
 
     const std::string device = locateExistingDirectory(directory).device();
 
-    const std::lock_guard lock{mutex_};
+    const std::scoped_lock lock{mutex_};
 
     auto entry = options_.find(device);
-    const bool firstLookup = (entry == options_.end());
-    if (firstLookup) {
+    const bool first_lookup = (entry == options_.end());
+    if (first_lookup) {
         entry = options_.emplace(device, lookup_(device)).first;
     }
 
@@ -182,7 +183,7 @@ void NFSTocLocking::validate(const eckit::LocalPathName& directory) const {
         throw eckit::UserError(describe(directory, *option), Here());
     }
 
-    if (firstLookup) {
+    if (first_lookup) {
         eckit::Log::warning() << describe(directory, *option) << std::endl;
     }
 }
