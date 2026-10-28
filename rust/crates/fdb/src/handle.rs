@@ -575,10 +575,9 @@ impl MessageArchiver {
     where
         R: std::io::Read + std::io::Seek + Send + 'static,
     {
-        let mut handle =
-            eckit_sys::DataHandleWrapper::from_reader(eckit_sys::make_reader_box(source))?;
+        let mut handle = DataHandle::from_reader(source)?;
         let mut guard = self.inner.lock();
-        let bytes = guard.pin_mut().archive(handle.pin_mut())?;
+        let bytes = guard.pin_mut().archive(handle.as_sys_mut()?)?;
         drop(guard);
         Ok(bytes)
     }
