@@ -11,6 +11,10 @@
         "ENABLE_TESTS": "ON"
       },
       "name": "ci"
+    },
+    {
+      "inherits": "ci",
+      "name": "eckit-geo"
     }
   ],
   "version": 3
