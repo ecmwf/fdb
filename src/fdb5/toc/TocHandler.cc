@@ -259,6 +259,12 @@ void TocHandler::openForAppend() {
     // On NFS O_APPEND is not atomic, so serialize with a lock (released on close)
     try {
         processLock_ = lock.holdForWrite(fd_, tocPath_);
+        // On NFS, O_APPEND relies on the client's view of the file size, which may be stale (attribute caching).
+        // Once the lock is held, seek to the end: this revalidates the size with the server and positions the
+        // offset at the true end, should the client not honour O_APPEND.
+        if (lock.excludesWriters()) {
+            SYSCALL2(::lseek(fd_, 0, SEEK_END), tocPath_);
+        }
     }
     catch (...) {
         ::close(fd_);
