@@ -204,7 +204,7 @@ void NFSTocLocking::validate(const eckit::LocalPathName& directory) const {
 void NFSTocLocking::validate(const eckit::LocalPathName& directory, Policy policy) const {
     const std::string device = locateExistingDirectory(directory).device();
 
-    const std::lock_guard lock{mutex_};
+    const std::scoped_lock lock{mutex_};
 
     auto entry = options_.find(device);
     const bool first_lookup = (entry == options_.end());
