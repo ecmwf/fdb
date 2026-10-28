@@ -120,7 +120,7 @@ private:
 };
 
 NFSTocLocking::Policy policyFromEnv() {
-    const std::string value = eckit::Resource<std::string>("fdbNfsLocalLockPolicy;$FDB_NFS_LOCAL_LOCK_POLICY", "warn");
+    const std::string value = eckit::Resource<std::string>("fdbNfsLocalLockPolicy;$FDB_NFS_LOCAL_LOCK_POLICY", "error");
     return NFSTocLocking::parsePolicy(value);
 }
 
