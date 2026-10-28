@@ -345,9 +345,8 @@ mount with ``nolock`` or ``local_lock=posix|all`` grants them locally, so they n
 writers on other clients and the TOC can be corrupted (NFSv4 mounts cannot be configured this way).
 This variable selects what happens when such a mount is detected when a TOC is opened:
 
-- ``warn``: log a warning, once per filesystem.
 - ``error``: throw an error, so no TOC is read or written on that mount.
-- ``ignore``: do nothing.
+- ``allow``: go ahead, logging a warning once per filesystem.
 
 Values are case-insensitive. Any other value is an error.
 

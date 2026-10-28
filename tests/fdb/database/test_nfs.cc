@@ -23,6 +23,7 @@
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
+#include "eckit/utils/StringTools.h"
 
 #include <fcntl.h>
 #include <sys/wait.h>
@@ -34,6 +35,7 @@
 #include <cerrno>
 #include <cstdlib>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <typeinfo>
@@ -148,18 +150,36 @@ CASE("TOC read: a failed read is not cached") {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-CASE("NFS locks: the policy is parsed case-insensitively and rejects unknown values") {
+CASE("NFS locks: each policy round-trips through its name, parsed case-insensitively") {
     using Policy = NFSTocLocking::Policy;
 
-    EXPECT(NFSTocLocking::parsePolicy("warn") == Policy::Warn);
-    EXPECT(NFSTocLocking::parsePolicy("error") == Policy::Error);
-    EXPECT(NFSTocLocking::parsePolicy("ignore") == Policy::Ignore);
-    EXPECT(NFSTocLocking::parsePolicy("Error") == Policy::Error);
-    EXPECT(NFSTocLocking::parsePolicy("IGNORE") == Policy::Ignore);
+    for (const auto policy : {Policy::Error, Policy::Allow}) {
+        EXPECT(NFSTocLocking::parsePolicy(to_string(policy)) == policy);
+        EXPECT(NFSTocLocking::parsePolicy(eckit::StringTools::upper(to_string(policy))) == policy);
 
-    EXPECT_THROWS_AS(NFSTocLocking::parsePolicy(""), eckit::UserError);
-    EXPECT_THROWS_AS(NFSTocLocking::parsePolicy("strict"), eckit::UserError);
-    EXPECT_THROWS_AS(NFSTocLocking::parsePolicy("warn "), eckit::UserError);
+        std::ostringstream out;
+        out << policy;
+        EXPECT_EQUAL(out.str(), to_string(policy));
+    }
+
+    EXPECT_EQUAL(to_string(Policy::Error), "error");
+    EXPECT_EQUAL(to_string(Policy::Allow), "allow");
+}
+
+CASE("NFS locks: an unknown policy is rejected, naming its source and the accepted values") {
+    for (const std::string value : {"", "warn", "ignore", "allow "}) {
+        EXPECT_THROWS_AS(NFSTocLocking::parsePolicy(value), eckit::UserError);
+    }
+
+    try {
+        NFSTocLocking::parsePolicy("strict", "nfsLocalLockPolicy");
+        EXPECT(false);
+    }
+    catch (const eckit::UserError& error) {
+        const std::string what = error.what();
+        EXPECT(what.find("nfsLocalLockPolicy=strict") != std::string::npos);
+        EXPECT(what.find("error, allow") != std::string::npos);
+    }
 }
 
 CASE("NFS locks: the environment overrides the user config, which overrides the default") {
@@ -170,28 +190,28 @@ CASE("NFS locks: the environment overrides the user config, which overrides the 
     ::unsetenv("FDB_NFS_LOCAL_LOCK_POLICY");
 
     eckit::LocalConfiguration empty;
-    eckit::LocalConfiguration ignore;
-    ignore.set("nfsLocalLockPolicy", "ignore");
+    eckit::LocalConfiguration allow;
+    allow.set("nfsLocalLockPolicy", "allow");
     eckit::LocalConfiguration invalid;
     invalid.set("nfsLocalLockPolicy", "strict");
 
     EXPECT(NFSTocLocking::resolvePolicy(empty, Policy::Error) == Policy::Error);
-    EXPECT(NFSTocLocking::resolvePolicy(ignore, Policy::Error) == Policy::Ignore);
+    EXPECT(NFSTocLocking::resolvePolicy(allow, Policy::Error) == Policy::Allow);
     EXPECT_THROWS_AS(NFSTocLocking::resolvePolicy(invalid, Policy::Error), eckit::UserError);
 
-    ::setenv("FDB_NFS_LOCAL_LOCK_POLICY", "warn", 1);
-    EXPECT(NFSTocLocking::resolvePolicy(empty, Policy::Error) == Policy::Warn);
-    EXPECT(NFSTocLocking::resolvePolicy(ignore, Policy::Error) == Policy::Warn);
-    EXPECT(NFSTocLocking::resolvePolicy(invalid, Policy::Error) == Policy::Warn);
+    ::setenv("FDB_NFS_LOCAL_LOCK_POLICY", "error", 1);
+    EXPECT(NFSTocLocking::resolvePolicy(empty, Policy::Allow) == Policy::Error);
+    EXPECT(NFSTocLocking::resolvePolicy(allow, Policy::Allow) == Policy::Error);
+    EXPECT(NFSTocLocking::resolvePolicy(invalid, Policy::Allow) == Policy::Error);
 
     const eckit::TmpDir tmp;
     const eckit::LocalPathName directory{tmp};
     const NFSTocLocking nfs{Policy::Error,
                             [](const std::string&) -> std::optional<std::string> { return "local_lock=posix"; }};
-    EXPECT_NO_THROW(nfs.validate(directory, ignore));
+    EXPECT_THROWS_AS(nfs.validate(directory, allow), eckit::UserError);
 
     ::unsetenv("FDB_NFS_LOCAL_LOCK_POLICY");
-    EXPECT_NO_THROW(nfs.validate(directory, ignore));
+    EXPECT_NO_THROW(nfs.validate(directory, allow));
     EXPECT_THROWS_AS(nfs.validate(directory, empty), eckit::UserError);
 
     if (previous) {
@@ -208,11 +228,10 @@ CASE("NFS locks: only the error policy throws, and only for client-local mounts"
     const auto clientLocal = [](const std::string&) -> std::optional<std::string> { return "local_lock=posix"; };
     const auto shared = [](const std::string&) -> std::optional<std::string> { return std::nullopt; };
 
-    EXPECT_NO_THROW(NFSTocLocking(Policy::Warn, clientLocal).validate(directory));
-    EXPECT_NO_THROW(NFSTocLocking(Policy::Ignore, clientLocal).validate(directory));
+    EXPECT_NO_THROW(NFSTocLocking(Policy::Allow, clientLocal).validate(directory));
     EXPECT_THROWS_AS(NFSTocLocking(Policy::Error, clientLocal).validate(directory), eckit::UserError);
 
-    EXPECT_NO_THROW(NFSTocLocking(Policy::Warn, shared).validate(directory));
+    EXPECT_NO_THROW(NFSTocLocking(Policy::Allow, shared).validate(directory));
     EXPECT_NO_THROW(NFSTocLocking(Policy::Error, shared).validate(directory));
 
     try {
@@ -226,7 +245,7 @@ CASE("NFS locks: only the error policy throws, and only for client-local mounts"
     }
 }
 
-CASE("NFS locks: a filesystem is looked up once, and not at all when ignored") {
+CASE("NFS locks: a filesystem is looked up once per locking") {
     using Policy = NFSTocLocking::Policy;
 
     const eckit::TmpDir tmp;
@@ -243,13 +262,9 @@ CASE("NFS locks: a filesystem is looked up once, and not at all when ignored") {
     EXPECT_THROWS_AS(error.validate(directory), eckit::UserError);  // not remembered as accepted
     EXPECT_EQUAL(lookups, 1);
 
-    const NFSTocLocking warn{Policy::Warn, clientLocal};
-    EXPECT_NO_THROW(warn.validate(directory));
-    EXPECT_NO_THROW(warn.validate(directory));
-    EXPECT_EQUAL(lookups, 2);
-
-    const NFSTocLocking ignore{Policy::Ignore, clientLocal};
-    EXPECT_NO_THROW(ignore.validate(directory));
+    const NFSTocLocking allow{Policy::Allow, clientLocal};
+    EXPECT_NO_THROW(allow.validate(directory));
+    EXPECT_NO_THROW(allow.validate(directory));
     EXPECT_EQUAL(lookups, 2);
 }
 
@@ -271,7 +286,7 @@ CASE("TOC locking: a local filesystem takes no locks, the NFS locking takes one 
     }
 
     // Usable on any filesystem: the lookup is only needed to validate a directory.
-    const NFSTocLocking nfs{NFSTocLocking::Policy::Ignore,
+    const NFSTocLocking nfs{NFSTocLocking::Policy::Allow,
                             [](const std::string&) -> std::optional<std::string> { return std::nullopt; }};
     EXPECT(nfs.excludesWriters());
     EXPECT(nfs.holdForWrite(fd, file));

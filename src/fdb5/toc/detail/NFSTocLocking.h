@@ -18,6 +18,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <ostream>
 #include <string>
 
 #include "eckit/filesystem/LocalPathName.h"
@@ -36,17 +37,16 @@ public:  // types
 
     /// What to do when an NFS mount has client-local locks, which do not keep other clients out.
     enum class Policy {
-        Warn,   ///< log a warning, once per filesystem
         Error,  ///< throw eckit::UserError
-        Ignore  ///< do nothing
+        Allow   ///< go ahead, logging a warning once per filesystem
     };
 
     /// The mount option that makes the locks of a device ("major:minor") client-local, if there is one.
     using Lookup = std::function<std::optional<std::string>(const std::string& device)>;
 
-    /// Parses "warn", "error" or "ignore" (case-insensitive).
+    /// Parses the name of a policy (case-insensitive). `source` names where `value` came from, for the error.
     /// @throws eckit::UserError for any other value.
-    static Policy parsePolicy(const std::string& value);
+    static Policy parsePolicy(const std::string& value, const std::string& source = "NFS local lock policy");
 
     /// The policy from $FDB_NFS_LOCAL_LOCK_POLICY if set, else from "nfsLocalLockPolicy" in `userConfig`, else
     /// `fallback`.
@@ -70,7 +70,7 @@ public:  // methods
     void validate(const eckit::LocalPathName& directory) const;
 
     /// Applies `policy` if the mount holding `directory` has client-local locks. A filesystem is looked up once.
-    /// Warn reports it once, Error throws on every call.
+    /// Allow warns once, Error throws on every call.
     /// @throws eckit::UserError under Policy::Error.
     void validate(const eckit::LocalPathName& directory, Policy policy) const;
 
@@ -90,6 +90,11 @@ private:  // members
     mutable std::mutex mutex_;
     mutable std::map<std::string, std::optional<std::string>> options_;  ///< by device
 };
+
+/// The name parsePolicy() accepts for `policy`.
+std::string to_string(NFSTocLocking::Policy policy);
+
+std::ostream& operator<<(std::ostream& out, NFSTocLocking::Policy policy);
 
 //----------------------------------------------------------------------------------------------------------------------
 

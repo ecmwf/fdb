@@ -15,6 +15,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <array>
 #include <cerrno>
 #include <cstdint>
 #include <cstdio>
@@ -28,6 +29,7 @@
 #include <random>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <utility>
 
@@ -131,34 +133,58 @@ std::string describe(const eckit::LocalPathName& directory, const std::string& o
     return message.str();
 }
 
+using Policy = NFSTocLocking::Policy;
+
+constexpr std::array<std::pair<Policy, std::string_view>, 2> policy_names{
+    {
+        {Policy::Error, "error"},
+        {Policy::Allow, "allow"},
+    },
+};
+
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
-NFSTocLocking::Policy NFSTocLocking::parsePolicy(const std::string& value) {
-    const auto policy = eckit::StringTools::lower(value);
-
-    if (policy == "warn") {
-        return Policy::Warn;
+std::string to_string(Policy policy) {
+    for (const auto& [value, name] : policy_names) {
+        if (value == policy) {
+            return std::string{name};
+        }
     }
-    if (policy == "error") {
-        return Policy::Error;
-    }
-    if (policy == "ignore") {
-        return Policy::Ignore;
-    }
-
-    throw eckit::UserError("Invalid FDB_NFS_LOCAL_LOCK_POLICY=" + value, Here());
+    NOTIMP;
 }
 
-NFSTocLocking::Policy NFSTocLocking::resolvePolicy(const eckit::Configuration& userConfig, Policy fallback) {
+std::ostream& operator<<(std::ostream& out, Policy policy) {
+    return out << to_string(policy);
+}
+
+Policy NFSTocLocking::parsePolicy(const std::string& value, const std::string& source) {
+    const auto lowered = eckit::StringTools::lower(value);
+
+    for (const auto& [policy, name] : policy_names) {
+        if (lowered == name) {
+            return policy;
+        }
+    }
+
+    std::ostringstream message;
+    message << "Invalid " << source << "=" << value << " (expected ";
+    for (size_t i = 0; i < policy_names.size(); ++i) {
+        message << (i == 0 ? "" : ", ") << policy_names[i].second;
+    }
+    message << ")";
+    throw eckit::UserError(message.str(), Here());
+}
+
+Policy NFSTocLocking::resolvePolicy(const eckit::Configuration& userConfig, Policy fallback) {
     const std::string fromResource =
         eckit::Resource<std::string>("fdbNfsLocalLockPolicy;$FDB_NFS_LOCAL_LOCK_POLICY", "");
     if (!fromResource.empty()) {
-        return parsePolicy(fromResource);
+        return parsePolicy(fromResource, "FDB_NFS_LOCAL_LOCK_POLICY");
     }
     if (userConfig.has("nfsLocalLockPolicy")) {
-        return parsePolicy(userConfig.getString("nfsLocalLockPolicy"));
+        return parsePolicy(userConfig.getString("nfsLocalLockPolicy"), "nfsLocalLockPolicy");
     }
     return fallback;
 }
@@ -176,13 +202,9 @@ void NFSTocLocking::validate(const eckit::LocalPathName& directory) const {
 }
 
 void NFSTocLocking::validate(const eckit::LocalPathName& directory, Policy policy) const {
-    if (policy == Policy::Ignore) {
-        return;
-    }
-
     const std::string device = locateExistingDirectory(directory).device();
 
-    const std::scoped_lock lock{mutex_};
+    const std::lock_guard lock{mutex_};
 
     auto entry = options_.find(device);
     const bool first_lookup = (entry == options_.end());
