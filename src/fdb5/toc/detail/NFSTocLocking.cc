@@ -31,6 +31,7 @@
 #include <tuple>
 #include <utility>
 
+#include "eckit/config/Configuration.h"
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/LocalPathName.h"
@@ -120,11 +121,6 @@ private:
     std::unique_lock<std::mutex> lock_;
 };
 
-NFSTocLocking::Policy policy_from_env() {
-    const std::string value = eckit::Resource<std::string>("fdbNfsLocalLockPolicy;$FDB_NFS_LOCAL_LOCK_POLICY", "error");
-    return NFSTocLocking::parsePolicy(value);
-}
-
 std::optional<std::string> mount_option(const std::string& device) {
     return eckit::filesystem::nfs::local_lock_option(device);
 }
@@ -155,12 +151,32 @@ NFSTocLocking::Policy NFSTocLocking::parsePolicy(const std::string& value) {
     throw eckit::UserError("Invalid FDB_NFS_LOCAL_LOCK_POLICY=" + value, Here());
 }
 
+NFSTocLocking::Policy NFSTocLocking::resolvePolicy(const eckit::Configuration& userConfig, Policy fallback) {
+    const std::string fromResource =
+        eckit::Resource<std::string>("fdbNfsLocalLockPolicy;$FDB_NFS_LOCAL_LOCK_POLICY", "");
+    if (!fromResource.empty()) {
+        return parsePolicy(fromResource);
+    }
+    if (userConfig.has("nfsLocalLockPolicy")) {
+        return parsePolicy(userConfig.getString("nfsLocalLockPolicy"));
+    }
+    return fallback;
+}
+
 NFSTocLocking::NFSTocLocking(Policy policy, Lookup lookup) : policy_{policy}, lookup_{std::move(lookup)} {}
 
-NFSTocLocking::NFSTocLocking() : NFSTocLocking{policy_from_env(), mount_option} {}
+NFSTocLocking::NFSTocLocking() : NFSTocLocking{Policy::Error, mount_option} {}
+
+void NFSTocLocking::validate(const eckit::LocalPathName& directory, const eckit::Configuration& userConfig) const {
+    validate(directory, resolvePolicy(userConfig, policy_));
+}
 
 void NFSTocLocking::validate(const eckit::LocalPathName& directory) const {
-    if (policy_ == Policy::Ignore) {
+    validate(directory, policy_);
+}
+
+void NFSTocLocking::validate(const eckit::LocalPathName& directory, Policy policy) const {
+    if (policy == Policy::Ignore) {
         return;
     }
 
@@ -179,7 +195,7 @@ void NFSTocLocking::validate(const eckit::LocalPathName& directory) const {
         return;
     }
 
-    if (policy_ == Policy::Error) {
+    if (policy == Policy::Error) {
         throw eckit::UserError(describe(directory, *option), Here());
     }
 

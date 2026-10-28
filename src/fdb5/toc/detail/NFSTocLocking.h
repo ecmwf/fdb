@@ -48,19 +48,31 @@ public:  // types
     /// @throws eckit::UserError for any other value.
     static Policy parsePolicy(const std::string& value);
 
+    /// The policy from $FDB_NFS_LOCAL_LOCK_POLICY if set, else from "nfsLocalLockPolicy" in `userConfig`, else
+    /// `fallback`.
+    /// @throws eckit::UserError if the value is not a policy.
+    static Policy resolvePolicy(const eckit::Configuration& userConfig, Policy fallback);
+
 public:  // methods
 
+    /// `policy` is the default, used when neither the environment nor the user config selects one.
     NFSTocLocking(Policy policy, Lookup lookup);
 
-    /// Takes the policy from $FDB_NFS_LOCAL_LOCK_POLICY (default "warn") and reads the mount options from the system.
+    /// Defaults to Policy::Error and reads the mount options from the system.
     /// Only Linux reports them: elsewhere no mount is client-local as far as this class can tell.
-    /// @throws eckit::UserError if the variable holds an unknown policy.
     NFSTocLocking();
 
-    /// Applies the policy if the mount holding `directory` has client-local locks. A filesystem is looked up once.
+    /// Applies the policy resolved from `userConfig` (see resolvePolicy()).
+    /// @throws eckit::UserError if the policy is invalid, or under Policy::Error.
+    void validate(const eckit::LocalPathName& directory, const eckit::Configuration& userConfig) const override;
+
+    /// Applies the default policy.
+    void validate(const eckit::LocalPathName& directory) const;
+
+    /// Applies `policy` if the mount holding `directory` has client-local locks. A filesystem is looked up once.
     /// Warn reports it once, Error throws on every call.
     /// @throws eckit::UserError under Policy::Error.
-    void validate(const eckit::LocalPathName& directory) const override;
+    void validate(const eckit::LocalPathName& directory, Policy policy) const;
 
     std::unique_ptr<TocLock> holdForRead(int fd, const eckit::PathName& path) const override;
 

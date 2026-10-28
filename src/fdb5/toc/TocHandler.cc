@@ -224,7 +224,7 @@ bool TocHandler::exists() const {
 const TocLocking& TocHandler::locking() const {
     if (!locking_) {
         const auto& selected = TocLocking::forDirectory(directory());
-        selected.validate(directory());
+        selected.validate(directory(), dbConfig_.userConfig());
         locking_ = &selected;
     }
     return *locking_;

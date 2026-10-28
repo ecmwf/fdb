@@ -15,6 +15,7 @@
 #include "fdb5/toc/detail/NFSTocLocking.h"
 #include "fdb5/toc/detail/TocLocking.h"
 
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/NFSMountInfo.h"
@@ -159,6 +160,43 @@ CASE("NFS locks: the policy is parsed case-insensitively and rejects unknown val
     EXPECT_THROWS_AS(NFSTocLocking::parsePolicy(""), eckit::UserError);
     EXPECT_THROWS_AS(NFSTocLocking::parsePolicy("strict"), eckit::UserError);
     EXPECT_THROWS_AS(NFSTocLocking::parsePolicy("warn "), eckit::UserError);
+}
+
+CASE("NFS locks: the environment overrides the user config, which overrides the default") {
+    using Policy = NFSTocLocking::Policy;
+
+    const char* saved = ::getenv("FDB_NFS_LOCAL_LOCK_POLICY");
+    const std::optional<std::string> previous = saved ? std::optional<std::string>{saved} : std::nullopt;
+    ::unsetenv("FDB_NFS_LOCAL_LOCK_POLICY");
+
+    eckit::LocalConfiguration empty;
+    eckit::LocalConfiguration ignore;
+    ignore.set("nfsLocalLockPolicy", "ignore");
+    eckit::LocalConfiguration invalid;
+    invalid.set("nfsLocalLockPolicy", "strict");
+
+    EXPECT(NFSTocLocking::resolvePolicy(empty, Policy::Error) == Policy::Error);
+    EXPECT(NFSTocLocking::resolvePolicy(ignore, Policy::Error) == Policy::Ignore);
+    EXPECT_THROWS_AS(NFSTocLocking::resolvePolicy(invalid, Policy::Error), eckit::UserError);
+
+    ::setenv("FDB_NFS_LOCAL_LOCK_POLICY", "warn", 1);
+    EXPECT(NFSTocLocking::resolvePolicy(empty, Policy::Error) == Policy::Warn);
+    EXPECT(NFSTocLocking::resolvePolicy(ignore, Policy::Error) == Policy::Warn);
+    EXPECT(NFSTocLocking::resolvePolicy(invalid, Policy::Error) == Policy::Warn);
+
+    const eckit::TmpDir tmp;
+    const eckit::LocalPathName directory{tmp};
+    const NFSTocLocking nfs{Policy::Error,
+                            [](const std::string&) -> std::optional<std::string> { return "local_lock=posix"; }};
+    EXPECT_NO_THROW(nfs.validate(directory, ignore));
+
+    ::unsetenv("FDB_NFS_LOCAL_LOCK_POLICY");
+    EXPECT_NO_THROW(nfs.validate(directory, ignore));
+    EXPECT_THROWS_AS(nfs.validate(directory, empty), eckit::UserError);
+
+    if (previous) {
+        ::setenv("FDB_NFS_LOCAL_LOCK_POLICY", previous->c_str(), 1);
+    }
 }
 
 CASE("NFS locks: only the error policy throws, and only for client-local mounts") {
@@ -306,8 +344,8 @@ CASE("NFS mount: the harness export has shared locking") {
     // Shared locks must pass under every policy, including a second call served from the per-device cache.
     const TocLocking& locking = TocLocking::forDirectory(directory);
     EXPECT(dynamic_cast<const NFSTocLocking*>(&locking));
-    EXPECT_NO_THROW(locking.validate(directory));
-    EXPECT_NO_THROW(locking.validate(directory));
+    EXPECT_NO_THROW(locking.validate(directory, eckit::LocalConfiguration{}));
+    EXPECT_NO_THROW(locking.validate(directory, eckit::LocalConfiguration{}));
 #endif
 }
 

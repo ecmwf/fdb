@@ -28,7 +28,7 @@ namespace {
 class NoTocLocking final : public TocLocking {
 public:
 
-    void validate(const eckit::LocalPathName& /*directory*/) const override {}
+    void validate(const eckit::LocalPathName& /*directory*/, const eckit::Configuration& /*userConfig*/) const override {}
 
     std::unique_ptr<TocLock> holdForRead(int /*fd*/, const eckit::PathName& /*path*/) const override { return nullptr; }
 
@@ -71,7 +71,7 @@ const TocLocking& TocLocking::forDirectory(const eckit::LocalPathName& directory
         return none;
     }
 
-    // Constructed on first use: an invalid policy throws here, and is reported again on the next call.
+    // Constructed on first use. The policy is resolved per TOC, from its user config, by validate().
     static const NFSTocLocking nfs;
 
     return nfs;

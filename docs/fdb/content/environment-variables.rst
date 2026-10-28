@@ -351,11 +351,14 @@ This variable selects what happens when such a mount is detected when a TOC is o
 
 Values are case-insensitive. Any other value is an error.
 
+The policy can also be set per FDB in the user config, with the key ``nfsLocalLockPolicy``. The
+environment variable, if set, takes precedence over the user config.
+
 Detection reads ``/proc/self/mountinfo``, so it is implemented on Linux only. It is not implemented
 on macOS and the BSDs, where the policy has no effect. Avoid ``locallocks`` on macOS (NFSv2/3) and
 ``nolockd`` on FreeBSD (NFSv3 and NFSv4) there: they make locks client-local in the same way.
 
-Default: ``warn``.
+Default: ``error``.
 
 
 Indexing
