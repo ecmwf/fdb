@@ -14,7 +14,6 @@ name = "fdb"
 repo = "ecmwf/fdb"
 visibility = "public"
 compiler-inputs = ["cxx-compiler"]
-git-read = ["ecmwf/bindman", "ecmwf/rust-wrappers-playground"]
 
 [[deps]]
 repo = "ecmwf/ecbuild"
@@ -184,7 +183,7 @@ c-compiler-binary = "icc"
 cxx-compiler-binary = "icpc"
 
 [packages.fdb-rust]
-compiler-inputs = ["cxx-compiler"]
+compiler-inputs = ["cxx-compiler", "rust-compiler"]
 
 [[packages.fdb-rust.deps]]
 package = "fdb"
@@ -218,6 +217,24 @@ platform = "ubuntu-24.04"
 
 [[matrix.rust.include]]
 rust-compiler = "rust-1.90"
+
+# Publishing the crates, only from publish-crates.yml: no patches and the default features, as a
+# crates.io user gets them, so the -sys crate builds its C++ from the release tag.
+[packages.fdb-crates]
+compiler-inputs = ["cxx-compiler", "rust-compiler"]
+
+[matrix.rust-publish]
+packages = ["fdb-crates"]
+publishes = false
+
+[[matrix.rust-publish.include]]
+job-script = "./.ci/runner/rust-publish.sh.j2"
+runs-on = "arc-runner-very-large"
+cxx-compiler = "g++-13"
+c-compiler = "gcc-13"
+rust-compiler = "rust-1.90"
+container = "eccr.ecmwf.int/public-ci-images/ubuntu24.04-gcc13-gfortran13-boost-qt6-rust1.90"
+platform = "ubuntu-24.04"
 
 [[trigger-downstream]]
 repo = "ecmwf/gribjump"

@@ -1675,6 +1675,53 @@ fn test_fdb_archive_reader() {
     assert_eq!(item.length, grib_len as u64);
 }
 
+/// Test `MessageArchiver::archive()` streams a Rust `Read + Seek` source
+/// through an `eckit::DataHandle` and reports the bytes it consumed.
+#[test]
+fn test_message_archiver_archive_reader() {
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let config = create_test_config(tmpdir.path());
+
+    let grib_path = fixtures_dir().join("synth11.grib");
+    let grib_data = fs::read(&grib_path).expect("failed to read synth11.grib");
+    let grib_len = grib_data.len();
+
+    let archiver = fdb::MessageArchiver::new(&Key::new(), false, false, &config)
+        .expect("failed to create MessageArchiver");
+    let bytes = archiver
+        .archive(std::io::Cursor::new(grib_data))
+        .expect("MessageArchiver::archive failed");
+    archiver.flush().expect("MessageArchiver::flush failed");
+    assert_eq!(
+        bytes,
+        i64::try_from(grib_len).expect("fixture length fits i64")
+    );
+
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
+    let mut request = metkit::MarsRequest::new("retrieve");
+    request.set("class", "od");
+    request.set("expver", "0001");
+    let items: Vec<_> = fdb
+        .list(
+            &request,
+            ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
+        .expect("failed to list")
+        .collect::<Result<_, _>>()
+        .expect("list iterator returned an error");
+
+    assert_eq!(
+        items.len(),
+        1,
+        "expected exactly one entry after MessageArchiver::archive, got {}: {items:#?}",
+        items.len()
+    );
+    assert_eq!(items[0].length, grib_len as u64);
+}
+
 /// Test `archive_reader()` surfaces I/O errors from the supplied
 /// reader. The C++ side throws `eckit::ReadError` when
 /// `invoke_reader_read` returns `-1`, which the global trycatch turns
