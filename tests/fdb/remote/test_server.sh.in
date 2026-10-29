@@ -52,5 +52,7 @@ fdb_remote_start_server STORE "$store_config" "$(fdb_remote_config_port "$store_
 fdb_remote_wait_for_servers
 
 # --- Run the client test
+# (index 1 is the store; tests that need to kill it use this)
+export FDB_REMOTE_STORE_PGID="${FDB_REMOTE_SERVER_PGIDS[1]}"
 FDB5_CONFIG_FILE="$client_config" "$test"
 exit $?
