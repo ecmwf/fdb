@@ -452,6 +452,9 @@ void ClientConnection::handleConnectionError(const std::exception_ptr& eptr) {
     ss << "Connection to " << controlEndpoint_ << " lost: " << reason;
     failPendingRequests(std::make_exception_ptr(RemoteFDBException(ss.str(), controlEndpoint_)));
 
+    // wake up anyone waiting on a request, nothing else will
+    closeConnection();
+
     teardown();
 }
 
