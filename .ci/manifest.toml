@@ -23,13 +23,6 @@ ref = "develop"
 compiler-inputs = []
 
 [[deps]]
-repo = "ecmwf/eccodes"
-package = "eccodes"
-ref = "develop"
-compiler-inputs = ["cxx-compiler"]
-options-input = "options"
-
-[[deps]]
 repo = "ecmwf/eckit"
 package = "eckit"
 ref = "develop"
@@ -40,7 +33,6 @@ repo = "ecmwf/metkit"
 package = "metkit"
 ref = "develop"
 compiler-inputs = ["cxx-compiler"]
-options-input = "options"
 
 [packages.pyfdb]
 compiler-inputs = ["cxx-compiler"]
@@ -162,13 +154,8 @@ cxx-compiler-binary = "g++"
 time = "00:40:00"
 
 [[matrix.build-hpc.include]]
-options = ""
 
 [[matrix.build-hpc.include]]
-options = "eckit-geo"
-
-[[matrix.build-hpc.include]]
-options = "eckit-geo"
 cxx-compiler = "g++-15"
 platform = "hpc-atos-gnu"
 modules = ["load prgenv/gnu", "unload gcc", "load gcc/15.2.0", "load cmake", "load ninja"]
@@ -176,7 +163,6 @@ c-compiler-binary = "gcc"
 cxx-compiler-binary = "g++"
 
 [[matrix.build-hpc.include]]
-options = "eckit-geo"
 cxx-compiler = "icpx-2025.3.1"
 platform = "hpc-atos-intel"
 modules = ["load prgenv/intel-llvm", "unload intel", "load intel/2025.3.1", "load cmake", "load ninja"]
@@ -184,7 +170,6 @@ c-compiler-binary = "icx"
 cxx-compiler-binary = "icpx"
 
 [[matrix.build-hpc.include]]
-options = "eckit-geo"
 cxx-compiler = "nvc++-26.1"
 platform = "hpc-atos-nvidia"
 modules = ["load prgenv/nvidia", "unload nvidia", "load nvidia/26.1", "load cmake", "load ninja"]
@@ -192,7 +177,6 @@ c-compiler-binary = "nvc"
 cxx-compiler-binary = "nvc++"
 
 [[matrix.build-hpc.include]]
-options = "eckit-geo"
 cxx-compiler = "icpc-2023.2.0"
 platform = "hpc-atos-intel"
 modules = ["load prgenv/intel", "unload intel", "load intel/2023.2.0", "load cmake", "load ninja"]
@@ -204,7 +188,6 @@ compiler-inputs = ["cxx-compiler"]
 
 [[packages.fdb-rust.deps]]
 package = "fdb"
-options-input = "options"
 
 [[packages.fdb-rust.deps]]
 repo = "ecmwf/eckit"
@@ -235,3 +218,7 @@ platform = "ubuntu-24.04"
 
 [[matrix.rust.include]]
 rust-compiler = "rust-1.90"
+
+[[trigger-downstream]]
+repo = "ecmwf/gribjump"
+ref = "develop"
