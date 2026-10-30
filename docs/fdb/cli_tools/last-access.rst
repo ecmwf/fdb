@@ -4,8 +4,6 @@ fdb last-access
 Reports the last access and modification timestamps for each matching FDB database. Meaningful access in this
 context means *read* or *write* (pure metadata operations are not included).
 
-The ``--older-than`` and ``--newer-than`` flags enable filtering for old (stale) or recent datasets.
-
 A database with no timestamp, for example one produced with an older version of the FDB, is marked as
 ``UNKNOWN``, and is omitted by the ``--older-than`` and ``--newer-than`` tests to avoid data being incorrectly
 removed as stale. It is still reported when no such filter is given.
