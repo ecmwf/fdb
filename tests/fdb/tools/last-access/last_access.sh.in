@@ -84,7 +84,7 @@ fdb-touch --all --minimum-keys="" --read --write --from-toc
 [[ -e $readts ]] || die "--from-toc did not create a read timestamp"
 
 # Seeded in 2020, so cold - rather than fresh, which is what recording "now" would have given.
-fdb-last-access --all --older-than=52w --simple | tee out
+fdb-last-access --all --older-than=364d --simple | tee out
 grep_count "time=0000,domain=g" 1
 
 # An explicit instant is recorded exactly.
@@ -101,7 +101,7 @@ expect_fail fdb-touch --all --minimum-keys="" --read --time=not-a-date
 
 touch -t 202001010000 $readts $writets
 fdb-list --all --minimum-keys="" > /dev/null
-fdb-last-access --all --older-than=52w --simple | tee out
+fdb-last-access --all --older-than=364d --simple | tee out
 grep_count "time=0000,domain=g" 1
 
 cat > req.mars <<EOF
@@ -114,11 +114,11 @@ fdb-read req.mars out.grib
 fdb-last-access --all --read --newer-than=1h --simple | tee out
 grep_count "time=0000,domain=g" 1
 
-fdb-last-access --all --write --older-than=52w --simple | tee out
+fdb-last-access --all --write --older-than=364d --simple | tee out
 grep_count "time=0000,domain=g" 1
 
 # With neither flag the more recent of the two is used, so the database is no longer cold.
-fdb-last-access --all --older-than=52w --simple | tee out
+fdb-last-access --all --older-than=364d --simple | tee out
 grep_count "time=0000,domain=g" 0
 
 # --read and --write each select one timestamp, so they are mutually exclusive.
@@ -202,7 +202,7 @@ grep_count "^0 database wiped$" 1
 fdb-touch --all --minimum-keys="" --read --write --time=20200101
 
 # A dry run names both of them and deletes nothing.
-fdb-last-access --all --older-than=52w --wipe | tee out
+fdb-last-access --all --older-than=364d --wipe | tee out
 grep_count "^  database:   \{class=od,expver=0001," 2
 grep_count "^2 databases would be wiped$" 1
 [[ -d $db ]] || die "A dry run deleted data"
@@ -212,7 +212,7 @@ grep_count "^2 databases would be wiped$" 1
 fdb-touch --read --write class=od,expver=0001,stream=oper,date=20240911,time=1200
 
 # Committed, the cold database goes and the warm one stays.
-fdb-last-access --all --older-than=52w --wipe --doit | tee out
+fdb-last-access --all --older-than=364d --wipe --doit | tee out
 grep_count "^  database:   \{class=od,expver=0001,stream=oper,date=20240911,time=0000," 1
 grep_count "^1 database wiped$" 1
 [[ ! -d $db ]] || die "The cold database was not wiped"
