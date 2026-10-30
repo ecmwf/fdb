@@ -82,9 +82,14 @@ ClientConnection::ClientConnection(const net::Endpoint& controlEndpoint, const s
     LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::ClientConnection() controlEndpoint: " << controlEndpoint << std::endl;
 }
 
-void ClientConnection::add(Client& client) {
+bool ClientConnection::add(Client& client) {
     std::lock_guard lock(clientsMutex_);
+    // remove() tears the connection down under this lock once its last client is gone
+    if (!valid()) {
+        return false;
+    }
     clients_[client.id()] = &client;
+    return true;
 }
 
 bool ClientConnection::remove(uint32_t clientID) {

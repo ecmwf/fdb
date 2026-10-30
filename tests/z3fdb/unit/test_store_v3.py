@@ -30,7 +30,7 @@ _MARS_REQUEST = {
     "date": "2020-01-01/to/2020-01-04",
     "levtype": "sfc",
     "step": "0",
-    "param": "167/131/132",
+    "param": "167/228131/228132",
     "time": "0/to/21/by/3",
 }
 
@@ -97,7 +97,7 @@ def test_store_list_chunks_complete(read_only_fdb_setup) -> None:
 
     Setup (build_grib_messages in conftest.py):
       - 4 dates (2020-01-01 .. 2020-01-04) × 8 times (0,3,..,21h) = 32 datetime chunks
-      - 3 params (167, 131, 132) = 3 param chunks
+      - 3 params (167, 228131, 228132) = 3 param chunks
       - 96 total GRIB fields → 96 chunk keys + 1 zarr.json = 97 store keys
       - All fields carry identical values: range(0, grid_points) as float32
     """
@@ -108,7 +108,7 @@ def test_store_list_chunks_complete(read_only_fdb_setup) -> None:
     # Expected key counts derived from the fixture's data generation
     EXPECTED_DATES = 4
     EXPECTED_TIMES = 8  # 0, 3, 6, 9, 12, 15, 18, 21
-    EXPECTED_PARAMS = 3  # 167, 131, 132
+    EXPECTED_PARAMS = 3  # 167, 228131, 228132
     EXPECTED_CHUNKS = EXPECTED_DATES * EXPECTED_TIMES * EXPECTED_PARAMS  # 96
 
     all_keys = sync(_collect_aiterator(store.list()))

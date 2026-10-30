@@ -1,5 +1,4 @@
-#ifndef fdb5_fdb5_version_h
-#define fdb5_fdb5_version_h
+#pragma once
 
 #define fdb5_VERSION_STR "@fdb5_VERSION_STR@"
 #define fdb5_VERSION     "@fdb5_VERSION@"
@@ -22,6 +21,4 @@ const char * fdb5_git_sha1();
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

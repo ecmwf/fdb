@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2025 European Centre for Medium-Range Weather Forecasts (ECMWF)
 # SPDX-License-Identifier: Apache-2.0
 
-from findlibs import Path
 import pyfdb
 import pytest
 import pathlib
@@ -9,7 +8,6 @@ import pathlib
 import itertools
 import shutil
 import yaml
-import git
 
 import eccodes as ec
 
@@ -35,18 +33,12 @@ pytest_collect_file = Sybil(
 ).pytest()
 
 
-def get_git_root(path) -> Path:
-    git_repo = git.Repo(path, search_parent_directories=True)
-    git_root = git_repo.git.rev_parse("--show-toplevel")
-    return Path(git_root)
-
-
 @pytest.fixture(scope="function")
 def data_path(doctest_namespace) -> pathlib.Path:
     """
     Provides path to test data
     """
-    path = get_git_root(__file__).resolve() / "tests" / "pyfdb" / "data"
+    path = pathlib.Path(__file__).resolve().parents[2] / "tests" / "pyfdb" / "data"
     assert path.exists()
     doctest_namespace["data_path"] = path
     return path
@@ -58,9 +50,7 @@ def test_data_path() -> pathlib.Path:
     Provides path to test data
     """
 
-    git_repo = git.Repo(__file__, search_parent_directories=True)
-    git_root = pathlib.Path(git_repo.git.rev_parse("--show-toplevel"))
-    path = git_root / "tests" / "pyfdb" / "data"
+    path = pathlib.Path(__file__).resolve().parents[2] / "tests" / "pyfdb" / "data"
     assert path.exists()
     return path
 
@@ -95,7 +85,7 @@ def build_grib_messages(data_path, test_case_tmp) -> pathlib.Path:
 
     dates = [20200101, 20200102, 20200103, 20200104]
     times = [0, 300, 600, 900, 1200, 1500, 1800, 2100]
-    parameters = [167, 131, 132]
+    parameters = [167, 228131, 228132]
 
     messages = test_case_tmp / "test_data.grib"
     with open(messages, "wb") as out:

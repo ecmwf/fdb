@@ -1,12 +1,5 @@
-/*
- i (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #include <fcntl.h>
 #include <pwd.h>
@@ -98,7 +91,7 @@ public:
 class CachedFDProxy {
 public:  // methods
 
-    CachedFDProxy(const eckit::PathName& path, int fd, std::unique_ptr<eckit::MemoryHandle>& cached) :
+    CachedFDProxy(const eckit::LocalPathName& path, int fd, std::unique_ptr<eckit::MemoryHandle>& cached) :
         path_(path), fd_(fd), cached_(cached.get()) {
         ASSERT((fd != -1) != (!!cached));
     }
@@ -145,7 +138,7 @@ public:  // methods
 
 private:  // members
 
-    const eckit::PathName& path_;
+    const eckit::LocalPathName& path_;
     int fd_;
     MemoryHandle* cached_;
 };

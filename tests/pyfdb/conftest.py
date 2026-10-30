@@ -1,10 +1,5 @@
-# (C) Copyright 2025- ECMWF.
-#
-# This software is licensed under the terms of the Apache Licence Version 2.0
-# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
-# In applying this licence, ECMWF does not waive the privileges and immunities
-# granted to it by virtue of its status as an intergovernmental organisation
-# nor does it submit to any jurisdiction.
+# SPDX-FileCopyrightText: 2025- European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
 
 import logging
 import pathlib
@@ -16,7 +11,6 @@ import pytest
 import itertools
 import shutil
 import yaml
-import git
 
 import eccodes as ec
 
@@ -47,9 +41,7 @@ def test_data_path() -> pathlib.Path:
     Provides path to test data
     """
 
-    git_repo = git.Repo(__file__, search_parent_directories=True)
-    git_root = pathlib.Path(git_repo.git.rev_parse("--show-toplevel"))
-    path = git_root / "tests" / "pyfdb" / "data"
+    path = pathlib.Path(__file__).resolve().parent / "data"
     assert path.exists()
     return path
 
@@ -100,7 +92,7 @@ def build_grib_messages(data_path, session_tmp) -> pathlib.Path:
 
     dates = [20200101, 20200102, 20200103, 20200104]
     times = [0, 300, 600, 900, 1200, 1500, 1800, 2100]
-    parameters = [167, 131, 132]
+    parameters = [167, 228131, 228132]
 
     messages = session_tmp / "test_data.grib"
     with open(messages, "wb") as out:
@@ -219,7 +211,7 @@ def build_grib_messages_relative_dates(data_path, session_tmp) -> pathlib.Path:
 
     dates = [before_before_yesterday, before_yesterday, yesterday, today]
     times = [0, 300, 600, 900, 1200, 1500, 1800, 2100]
-    parameters = [167, 131, 132]
+    parameters = [167, 228131, 228132]
 
     messages = session_tmp / "test_data.grib"
     with open(messages, "wb") as out:

@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 2018- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 2018- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the EC H2020 funded project NextGenIO
@@ -52,13 +45,26 @@ public:  // methods
 
     using EntryVisitor::visitIndex;
 
-    /// If running in parallel, and the ordering of output matters, then we will have a per-thread
-    /// per-index output queue. We need to take that, and close it appropriately.
+    /// The cache is keyed by TypesRegistry pointers (hashed and compared by value), and registries
+    /// are owned by the catalogue's schema (e.g. FamCatalogue), so entries must not outlive it.
+    bool visitDatabase(const Catalogue& catalogue) override {
+        {
+            std::lock_guard<std::mutex> lock(canonicalisedMutex_);
+            canonicalised_.clear();
+        }
+        return EntryVisitor::visitDatabase(catalogue);
+    }
+
+    /// If running in parallel, and the ordering of output matters, then typically we will
+    /// have a per-thread per-index output queue. If that is the case, then acquiring this
+    /// ordered slot is normally the only thing that needs to be done strictly in order, so
+    /// we can release the ordering once that is done.
     ///
-    /// We should always release the ordering imposed by the OrderedParallelFor once everything that
-    /// requires strict index ordering is done. Do this in this class, such that we only have
-    /// to implement this logic once, no matter how many visitors can be parallelised.
-    IndexScopePtr visitIndex(const Index& index, OrderedParallelFor::Order& order) final {
+    /// If a specific visitor either does not make use of this queue ordering, or if it
+    /// needs to do something else ordered (e.g. toc-stats creates per-index accumulators
+    /// which need to be ordered, but are merged before output), then this function should
+    /// be overridden.
+    IndexScopePtr visitIndex(const Index& index, OrderedParallelFor::Order& order) {
 
         const Rule& rule = indexRule(index);
 

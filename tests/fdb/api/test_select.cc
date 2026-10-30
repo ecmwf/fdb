@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the EC H2020 funded project NextGenIO
@@ -22,7 +15,6 @@
 #include "metkit/mars/MarsLanguage.h"
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
-#include "metkit/mars/TypeAny.h"
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/WipeIterator.h"
@@ -180,15 +172,16 @@ CASE("retrieves_distributed_according_to_select") {
     // Do some archiving
 
     metkit::mars::MarsRequest req{"retrieve"};
-    req.setValuesTyped(new metkit::mars::TypeAny("class"), std::vector<std::string>{"od"});
-    req.setValuesTyped(new metkit::mars::TypeAny("expver"), std::vector<std::string>{"xxxx"});
+    auto& lang = metkit::mars::MarsLanguage::get(req.verb());
+    req.setValuesTyped(lang.type("class"), std::vector<std::string>{"od"});
+    req.setValuesTyped(lang.type("expver"), std::vector<std::string>{"xxxx"});
     fdb.inspect(req);
 
     EXPECT_EQUAL(spy_od.counts().inspect, 1);
     EXPECT_EQUAL(spy_rd1.counts().inspect, 0);
     EXPECT_EQUAL(spy_rd2.counts().inspect, 0);
 
-    req.setValuesTyped(new metkit::mars::TypeAny("class"), std::vector<std::string>{std::string("rd")});
+    req.setValuesTyped(lang.type("class"), std::vector<std::string>{std::string("rd")});
     fdb.inspect(req);
 
     EXPECT_EQUAL(spy_od.counts().inspect, 1);
@@ -207,14 +200,14 @@ CASE("retrieves_distributed_according_to_select") {
 
     // Now match all the rd lanes
 
-    req.setValuesTyped(new metkit::mars::TypeAny("expver"), std::vector<std::string>{"xx12", "yy21"});
+    req.setValuesTyped(lang.type("expver"), std::vector<std::string>{"xx12", "yy21"});
     fdb.inspect(req);
 
     EXPECT_EQUAL(spy_od.counts().inspect, 1);
     EXPECT_EQUAL(spy_rd1.counts().inspect, 2);
     EXPECT_EQUAL(spy_rd2.counts().inspect, 1);
 
-    req.setValuesTyped(new metkit::mars::TypeAny("class"), std::vector<std::string>{"od", "rd"});
+    req.setValuesTyped(lang.type("class"), std::vector<std::string>{"od", "rd"});
     fdb.inspect(req);
 
     EXPECT_EQUAL(spy_od.counts().inspect, 2);

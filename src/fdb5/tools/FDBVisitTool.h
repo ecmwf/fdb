@@ -1,24 +1,15 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_tools_FDBVisitTool_H
-#define fdb5_tools_FDBVisitTool_H
+#pragma once
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/tools/FDBTool.h"
 
-namespace fdb5 {
-namespace tools {
+namespace fdb5::tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -36,6 +27,7 @@ protected:  // methods
     void run() override;
 
     bool fail() const;
+    bool failOnNoData() const;
 
     std::vector<FDBToolRequest> requests(const std::string& verb = "retrieve") const;
 
@@ -49,6 +41,7 @@ private:  // members
 
     // Fail on errors?
     bool fail_;
+    bool ignoreNoData_;
 
     bool all_;
 
@@ -58,7 +51,4 @@ private:  // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace tools
-}  // namespace fdb5
-
-#endif
+}  // namespace fdb5::tools
