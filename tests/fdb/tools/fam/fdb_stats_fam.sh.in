@@ -102,3 +102,14 @@ echo "$out"
 echo "$out" | grep -qE "Number of databases[[:space:]]*:?[[:space:]]*1" || die "Expected 1 database in stats output"
 echo "$out" | grep -qE "Fields" || die "Expected field statistics in stats output"
 echo "$out" | grep -qE "Data objects" || die "Expected data object statistics in stats output"
+
+########################################################################################################################
+# the same statistics should be reported as a JSON object with --json
+
+out=$(fdb-stats --json --details "$request")
+echo "$out"
+
+echo "$out" | grep -q '"databases":1' || die "Expected 1 database in JSON stats output"
+echo "$out" | grep -q '"fields":3' || die "Expected field statistics in JSON stats output"
+echo "$out" | grep -q '"dataObjects"' || die "Expected data object statistics in JSON stats output"
+echo "$out" | grep -q '"details":\[{' || die "Expected per-database statistics in JSON stats output"

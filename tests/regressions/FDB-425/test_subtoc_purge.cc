@@ -1,11 +1,5 @@
-//  (C) Copyright 1996- ECMWF.
-//
-//  This software is licensed under the terms of the Apache Licence Version 2.0
-//  which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
-//  In applying this licence, ECMWF does not waive the privileges and immunities
-//  granted to it by virtue of its status as an intergovernmental organisation nor
-//  does it submit to any jurisdiction.
-//
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 // ----------------------------------------------------------------------------------------------------------------------
 // Based on FDB-425:
@@ -29,8 +23,7 @@ using namespace eckit::testing;
 using namespace eckit;
 
 
-namespace fdb5 {
-namespace test {
+namespace fdb5::test {
 
 //----------------------------------------------------------------------------------------------------------------------
 std::string foldername = "fdb-425-root";
@@ -251,8 +244,7 @@ CASE("Check more finer-grained purge behaviour (note no forks)") {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace test
-}  // namespace fdb5
+}  // namespace fdb5::test
 
 int main(int argc, char** argv) {
     int err = run_tests(argc, argv);

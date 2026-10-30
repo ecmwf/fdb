@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -19,8 +12,7 @@
 using namespace eckit;
 using namespace eckit::option;
 
-namespace fdb5 {
-namespace tools {
+namespace fdb5::tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -31,14 +23,11 @@ class FDBPurge : public FDBVisitTool {
 public:  // methods
 
     FDBPurge(int argc, char** argv) :
-        FDBVisitTool(argc, argv, "class,expver,stream,date,time"),
-        doit_(false),
-        porcelain_(false),
-        ignoreNoData_(false) {
+        FDBVisitTool(argc, argv, "class,expver,stream,date,time"), doit_(false), porcelain_(false) {
 
         options_.push_back(new SimpleOption<bool>("doit", "Delete the files (data and indexes)"));
-        options_.push_back(new SimpleOption<bool>("ignore-no-data", "No data available to delete is not an error"));
         options_.push_back(new SimpleOption<bool>("porcelain", "List only the deleted files"));
+        options_.push_back(new SimpleOption<long>("threads", "Number of threads to use for index reading (default 8)"));
     }
 
 private:  // methods
@@ -49,7 +38,7 @@ private:  // methods
 
     bool doit_;
     bool porcelain_;
-    bool ignoreNoData_;
+    int threads_{8};
 };
 
 
@@ -57,11 +46,15 @@ void FDBPurge::init(const CmdArgs& args) {
     FDBVisitTool::init(args);
     doit_ = args.getBool("doit", false);
     porcelain_ = args.getBool("porcelain", false);
-    ignoreNoData_ = args.getBool("ignore-no-data", false);
+    threads_ = args.getInt("threads", threads_);
 }
 
 void FDBPurge::execute(const CmdArgs& args) {
-    FDB fdb(config(args));
+
+    LocalConfiguration userConfig;
+    userConfig.set("readIndexThreads", threads_);
+    FDB fdb(config(args, userConfig));
+
     for (const FDBToolRequest& request : requests()) {
 
         if (!porcelain_) {
@@ -79,7 +72,7 @@ void FDBPurge::execute(const CmdArgs& args) {
             count++;
         }
 
-        if (count == 0 && fail() && !ignoreNoData_) {
+        if (count == 0 && failOnNoData()) {
             std::ostringstream ss;
             ss << "No FDB entries found for: " << request << std::endl;
             throw FDBToolException(ss.str());
@@ -97,8 +90,7 @@ void FDBPurge::finish(const CmdArgs&) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace tools
-}  // namespace fdb5
+}  // namespace fdb5::tools
 
 
 int main(int argc, char** argv) {

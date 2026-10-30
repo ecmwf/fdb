@@ -11,11 +11,10 @@ function(add_py_test_marker_combo test_file config_marker op_marker)
     set(_env
         "PYTHONPATH=${CMAKE_BINARY_DIR}/pyfdb-python-package-staging:$ENV{PYTHONPATH}"
         #prevent findlibs in pyfdb to pickup any globally installed fdb
-        "PATH=${CMAKE_BINARY_DIR}/bin:$ENV{PATH}"
+        "PATH=${CMAKE_BINARY_DIR}/bin:${ECCODES_INSTALL_BIN_DIR}:$ENV{PATH}"
         "FDB5_DIR=${CMAKE_BINARY_DIR}"
         #prevent findlibs in eccodes-python to pickup any globally installed eccodes
         "ECCODES_PYTHON_USE_FINDLIBS=1"
-        "ECCODES_DIR=$<TARGET_FILE_DIR:eccodes>/.."
     )
     file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/pytest-tmp/")
     set_tests_properties(${stem}_fdb_tools_${config_marker}_${op_marker}

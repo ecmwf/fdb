@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #include "eckit/exception/Exceptions.h"
 
@@ -36,11 +29,10 @@ public:
     virtual size_t addFieldsSize(size_t i) { return i; }
     virtual size_t addDuplicatesSize(size_t i) { return i; }
 
-    virtual void add(const IndexStatsContent&) { NOTIMP; }
-
-    virtual void report(std::ostream& out, const char* indent) const { NOTIMP; }
-
-    virtual void encode(eckit::Stream& s) const { NOTIMP; }
+    void add(const IndexStatsContent&) override { NOTIMP; }
+    void report(std::ostream& out, const char* indent) const override { NOTIMP; }
+    void json(eckit::JSON& json) const override { NOTIMP; }
+    void encode(eckit::Stream& s) const override { NOTIMP; }
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -80,6 +72,10 @@ void IndexStats::add(const IndexStats& s) {
 
 void IndexStats::report(std::ostream& out, const char* indent) const {
     content_->report(out, indent);
+}
+
+void IndexStats::json(eckit::JSON& json) const {
+    content_->json(json);
 }
 
 void IndexStats::encode(eckit::Stream& s) const {

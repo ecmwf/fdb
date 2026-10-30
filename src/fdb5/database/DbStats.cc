@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #include "eckit/exception/Exceptions.h"
 
@@ -27,6 +20,8 @@ public:
     virtual void add(const DbStatsContent&) { NOTIMP; }
 
     virtual void report(std::ostream& out, const char* indent) const { NOTIMP; }
+
+    void json(eckit::JSON& json) const override { NOTIMP; }
 
     virtual void encode(eckit::Stream& s) const { NOTIMP; }
 };
@@ -67,6 +62,10 @@ void DbStats::add(const DbStats& s) {
 
 void DbStats::report(std::ostream& out, const char* indent) const {
     content_->report(out, indent);
+}
+
+void DbStats::json(eckit::JSON& json) const {
+    content_->json(json);
 }
 
 void DbStats::encode(eckit::Stream& s) const {

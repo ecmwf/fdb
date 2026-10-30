@@ -1,10 +1,5 @@
-# (C) Copyright 2025- ECMWF.
-#
-# This software is licensed under the terms of the Apache Licence Version 2.0
-# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
-# In applying this licence, ECMWF does not waive the privileges and immunities
-# granted to it by virtue of its status as an intergovernmental organisation
-# nor does it submit to any jurisdiction.
+# SPDX-FileCopyrightText: 2025- European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
 
 """Top-level pytest configuration."""
 
@@ -215,7 +210,7 @@ def build_grib_messages(data_path, session_tmp) -> pathlib.Path:
 
     dates = [20200101, 20200102, 20200103, 20200104]
     times = [0, 300, 600, 900, 1200, 1500, 1800, 2100]
-    parameters = [167, 131, 132]
+    parameters = [167, 228131, 228132]
 
     messages = session_tmp / "test_data.grib"
     with open(messages, "wb") as out:

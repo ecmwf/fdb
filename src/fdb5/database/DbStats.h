@@ -1,26 +1,22 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /// @file   DbStats.h
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date   April 2016
 
-#ifndef fdb5_DbStats_H
-#define fdb5_DbStats_H
+#pragma once
 
 #include <iosfwd>
 
 #include "eckit/log/Statistics.h"
 #include "eckit/memory/Counted.h"
 #include "eckit/serialisation/Streamable.h"
+
+namespace eckit {
+class JSON;
+}  // namespace eckit
 
 namespace fdb5 {
 
@@ -34,6 +30,7 @@ public:
     virtual void add(const DbStatsContent&) = 0;
 
     virtual void report(std::ostream& out, const char* indent) const = 0;
+    virtual void json(eckit::JSON& json) const = 0;
 
 public:  // For Streamable
 
@@ -66,6 +63,7 @@ public:  // methods
     void add(const DbStats&);
 
     void report(std::ostream& out, const char* indent = "") const;
+    void json(eckit::JSON& json) const;
 
     //    template <class T>
     //    T& as() {
@@ -95,5 +93,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

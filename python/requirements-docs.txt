@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: 2025 European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
+Sphinx~=8.2.3
+breathe~=4.35
+pydata-sphinx-theme==0.16.1
+sphinxcontrib-mermaid~=1.0
+sphinx-autoapi~=3.6.0
