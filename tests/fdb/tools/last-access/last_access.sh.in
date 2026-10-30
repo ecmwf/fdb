@@ -127,11 +127,16 @@ expect_fail fdb-last-access --all --read --write
 # --simple and --json are alternative formats, so they are too.
 expect_fail fdb-last-access --all --simple --json
 
+# An unbounded query would select everything, so some selection is required.
+expect_fail fdb-last-access --all
+expect_fail fdb-last-access --all --simple
+expect_fail fdb-last-access --all --read
+
 ########################################################################################################################
 # Output formats.
 
 # The default form reports both timestamps and an age in days, one block per database.
-fdb-last-access --all | tee out
+fdb-last-access --all --newer-than=36500d | tee out
 grep_count "^  database:   \{class=od,expver=0001," 2
 grep_count "^  location:   .*localroot/od:0001:oper:20240911:" 2
 grep_count "^  last read:  [0-9]{4}-[0-9]{2}-[0-9]{2} " 2
@@ -139,7 +144,7 @@ grep_count "^  last write: [0-9]{4}-[0-9]{2}-[0-9]{2} " 2
 grep_count "^  age:        [0-9]+ days$" 2
 
 # --json is a list of objects carrying the age, both timestamps, the location and the key.
-fdb-last-access --all --json | tee out
+fdb-last-access --all --newer-than=36500d --json | tee out
 python3 -c '
 import json, sys
 elems = json.load(open("out"))
@@ -153,17 +158,17 @@ for e in elems:
     assert e["key"]["class"] == "od"
 ' || die "Unexpected --json output"
 
-# A database with no record is UNKNOWN in every format, and never merely old.
+# A database with no record is UNKNOWN in every format, and never merely old: no age bound selects it.
 rm -f localroot/*/read.timestamp localroot/*/write.timestamp
 
-fdb-last-access --all | tee out
+fdb-last-access --all --unknown | tee out
 grep_count "^  last read:  UNKNOWN$" 2
 grep_count "^  age:        UNKNOWN$" 2
 
-fdb-last-access --all --simple | tee out
+fdb-last-access --all --unknown --simple | tee out
 grep_count "^UNKNOWN \{class=od," 2
 
-fdb-last-access --all --json | tee out
+fdb-last-access --all --unknown --json | tee out
 python3 -c '
 import json
 elems = json.load(open("out"))
@@ -172,6 +177,9 @@ for e in elems:
     assert e["age"] == "UNKNOWN", e
     assert e["lastRead"] == 0 and e["lastWrite"] == 0, e
 ' || die "Unexpected --json output for an unknown database"
+
+fdb-last-access --all --newer-than=36500d --simple | tee out
+grep_count "." 0
 
 ########################################################################################################################
 # Combining --older-than and --newer-than brackets an age range: older-than <= age <= newer-than.
@@ -217,11 +225,12 @@ db2=localroot/od:0001:oper:20240911:1200:g
 # A wipe must be bounded by an age; must not be pointed at databases whose age is unknown or at
 # ones that are deliberately recent; and has no machine readable form.
 expect_fail fdb-last-access --all --wipe
+expect_fail fdb-last-access --all --wipe --newer-than=36500d
 expect_fail fdb-last-access --all --wipe --unknown
 expect_fail fdb-last-access --all --wipe --older-than=1s --newer-than=1h
 expect_fail fdb-last-access --all --wipe --older-than=1s --json
 expect_fail fdb-last-access --all --wipe --older-than=1s --simple
-expect_fail fdb-last-access --all --doit
+expect_fail fdb-last-access --all --older-than=1s --doit
 
 # The records are still absent from the previous section, so both databases are of UNKNOWN age.
 # Nothing is known about their age, so nothing licenses deleting them - not even with --doit.
