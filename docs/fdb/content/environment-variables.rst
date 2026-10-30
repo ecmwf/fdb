@@ -397,6 +397,9 @@ Default: ``false``.
 
 This overrides the ``markListAsAccess`` flag provided by the user config.
 
+Note that with RemoteFDB, this configuration is not currently transmitted to the remote
+side. This is still TODO.
+
 
 Serialisation version
 ---------------------
