@@ -7,7 +7,7 @@ die() { yell "$*"; exit 1; }
 
 expect_fail() { if "$@"; then die "Expected failure but command succeeded => '$*'"; fi; }
 
-mtime() { stat -f %m "$1" 2>/dev/null || stat -c %Y "$1"; }
+mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1"; }
 
 grep_count() {
   [[ $# -eq 2 ]] || die "grep_count requires 2; regex and expected count"
