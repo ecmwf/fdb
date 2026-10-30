@@ -22,7 +22,7 @@
 #include "eckit/log/TimeStamp.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
-#include "eckit/utils/Translator.h"
+#include "eckit/types/Time.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -38,44 +38,6 @@ namespace fdb5::tools {
 //----------------------------------------------------------------------------------------------------------------------
 
 namespace {
-
-/// Parse a duration of the form <n>[s|m|h|d|w]. A bare number is seconds.
-time_t parseDuration(const std::string& spec) {
-
-    if (spec.empty()) {
-        throw UserError("Empty duration", Here());
-    }
-
-    const char suffix = spec.back();
-    std::string digits = spec;
-    time_t multiplier = 1;
-
-    switch (suffix) {
-        case 's': multiplier = 1; break;
-        case 'm': multiplier = 60; break;
-        case 'h': multiplier = 60 * 60; break;
-        case 'd': multiplier = 24 * 60 * 60; break;
-        case 'w': multiplier = 7 * 24 * 60 * 60; break;
-        default:
-            if (!::isdigit(static_cast<unsigned char>(suffix))) {
-                throw UserError("Unrecognised duration suffix in '" + spec + "'; expected one of s, m, h, d, w",
-                                Here());
-            }
-            break;
-    }
-
-    if (multiplier != 1 || !::isdigit(static_cast<unsigned char>(suffix))) {
-        digits = spec.substr(0, spec.size() - 1);
-    }
-
-    for (char c : digits) {
-        if (!::isdigit(static_cast<unsigned char>(c))) {
-            throw UserError("Malformed duration '" + spec + "'", Here());
-        }
-    }
-
-    return eckit::Translator<std::string, long>()(digits) * multiplier;
-}
 
 /// A database with no timestamp - one written by an older FDB, say - has an access history that
 /// is unknown. That is emphatically not the same as "not accessed recently", and is reported as
@@ -138,8 +100,8 @@ private:  // methods
 
     void wipeDatabase(FDB& fdb, const StatusElement& elem);
 
-    time_t olderThan_{0};
-    time_t newerThan_{0};
+    Second olderThan_{0};
+    Second newerThan_{0};
     bool haveOlderThan_{false};
     bool haveNewerThan_{false};
     bool unknownOnly_{false};
@@ -174,12 +136,16 @@ void FDBLastAccess::init(const CmdArgs& args) {
     access_ = read ? Access::Read : (write ? Access::Write : Access::MostRecent);
 
     if (args.has("older-than")) {
-        olderThan_ = parseDuration(args.getString("older-than"));
+        olderThan_ = Time(args.getString("older-than"), true);
         haveOlderThan_ = true;
     }
     if (args.has("newer-than")) {
-        newerThan_ = parseDuration(args.getString("newer-than"));
+        newerThan_ = Time(args.getString("newer-than"), true);
         haveNewerThan_ = true;
+    }
+
+    if (olderThan_ < 0 || newerThan_ < 0) {
+        throw UserError("--older-than and --newer-than must not be negative", Here());
     }
 
     if (haveOlderThan_ && haveNewerThan_ && newerThan_ > olderThan_) {
