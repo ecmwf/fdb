@@ -75,6 +75,24 @@ rm -f $writets
 fdb-touch $key --write
 [[ -e $writets ]] || die "--write did not create the missing write record"
 
+# On a database with neither record, an explicit touch creates only the record it names. A
+# repaired-but-unrequested record would read "now", and make historical data look recent.
+rm -f $readts $writets
+fdb-touch $key --read --time=20200101
+[[ -e $readts ]] || die "--read --time did not create the missing read record"
+[[ $(mtime $readts) -eq $(date -u -j -f "%Y%m%d %H%M%S" "20200101 000000" +%s 2>/dev/null || date -u -d "2020-01-01 00:00:00" +%s) ]] \
+  || die "--read --time did not record the requested instant"
+[[ ! -e $writets ]] || die "--read created an unrequested write record"
+
+rm -f $readts $writets
+fdb-touch $key --write --from-toc
+[[ -e $writets ]] || die "--write --from-toc did not create the missing write record"
+[[ ! -e $readts ]] || die "--write created an unrequested read record"
+
+rm -f $readts $writets
+fdb-touch $key --read --write
+[[ -e $readts && -e $writets ]] || die "--read --write did not create both missing records"
+
 # ... and the created read record is still updatable by non-owners.
 perms=$(stat -c %a $readts 2>/dev/null || stat -f %Lp $readts)
 [[ "$perms" == "666" ]] || die "Created read record has mode $perms, expected 666"
