@@ -183,13 +183,11 @@ bool TocCatalogue::touch(const AccessIdentifiers& identifiers, const AccessTime&
     const mode_t readMode = TocHandler::timestampMode(config_.umask());
 
     bool ok = true;
-
     if (identifiers.has(AccessIdentifier::Read)) {
-        ok = TocHandler::touchRead(readMode, instant) && ok;
+        ok = TocHandler::touchRead(readMode, instant);
     }
-
-    if (identifiers.has(AccessIdentifier::Write)) {
-        ok = TocHandler::touchWritten(readMode, instant) && ok;
+    if (ok && identifiers.has(AccessIdentifier::Write)) {
+        ok = TocHandler::touchWritten(readMode, instant);
     }
 
     return ok;
