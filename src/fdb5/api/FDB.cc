@@ -36,6 +36,7 @@
 
 #include "metkit/hypercube/HyperCube.h"
 #include "metkit/hypercube/HyperCubePayloaded.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/container/Queue.h"
@@ -271,11 +272,12 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
 }
 
 ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {
-    return internal_->inspect(request);
+    metkit::mars::MarsRequest expandedRequest = request.expandAlternatives();
+    return internal_->inspect(expandedRequest);
 }
 
 ListIterator FDB::list(const FDBToolRequest& request, const ListMode mode, const int level) {
-    return {internal_->list(request, level), mode};
+    return {internal_->list(request.expandAlternatives(), level), mode};
 }
 
 ListIterator FDB::list(const FDBToolRequest& request, const bool deduplicate, const int level) {
@@ -283,16 +285,17 @@ ListIterator FDB::list(const FDBToolRequest& request, const bool deduplicate, co
 }
 
 DumpIterator FDB::dump(const FDBToolRequest& request, bool simple) {
-    return internal_->dump(request, simple);
+    return internal_->dump(request.expandAlternatives(), simple);
 }
 
 StatusIterator FDB::status(const FDBToolRequest& request) {
-    return internal_->status(request);
+    return internal_->status(request.expandAlternatives());
 }
 
-WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
+WipeIterator FDB::wipe(const FDBToolRequest& toolRequest, bool doit, bool porcelain, bool unsafeWipeAll) {
 
     auto internal = internal_->shared();
+    const FDBToolRequest request = toolRequest.expandAlternatives();
 
     auto async = [internal, request, doit, porcelain, unsafeWipeAll](eckit::Queue<WipeElement>& queue) {
         // Visit the catalogues to determine what they would wipe
@@ -314,19 +317,19 @@ WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain,
 }
 
 PurgeIterator FDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {
-    return internal_->purge(request, doit, porcelain);
+    return internal_->purge(request.expandAlternatives(), doit, porcelain);
 }
 
 StatsIterator FDB::stats(const FDBToolRequest& request) {
-    return internal_->stats(request);
+    return internal_->stats(request.expandAlternatives());
 }
 
 ControlIterator FDB::control(const FDBToolRequest& request, ControlAction action, ControlIdentifiers identifiers) {
-    return internal_->control(request, action, identifiers);
+    return internal_->control(request.expandAlternatives(), action, identifiers);
 }
 
 MoveIterator FDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
-    return internal_->move(request, dest);
+    return internal_->move(request.expandAlternatives(), dest);
 }
 
 FDBStats FDB::stats() const {
@@ -371,7 +374,7 @@ IndexAxis FDB::axes(const FDBToolRequest& request, int level) {
 }
 
 AxesIterator FDB::axesIterator(const FDBToolRequest& request, int level) {
-    return internal_->axesIterator(request, level);
+    return internal_->axesIterator(request.expandAlternatives(), level);
 }
 
 bool FDB::dirty() const {
