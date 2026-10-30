@@ -148,8 +148,8 @@ void FDBLastAccess::init(const CmdArgs& args) {
         throw UserError("--older-than and --newer-than must not be negative", Here());
     }
 
-    if (haveOlderThan_ && haveNewerThan_ && newerThan_ > olderThan_) {
-        throw UserError("--newer-than must be shorter than --older-than; otherwise nothing can match", Here());
+    if (haveOlderThan_ && haveNewerThan_ && olderThan_ > newerThan_) {
+        throw UserError("--older-than must not exceed --newer-than; otherwise nothing can match", Here());
     }
 
     if (unknownOnly_ && (haveOlderThan_ || haveNewerThan_)) {
