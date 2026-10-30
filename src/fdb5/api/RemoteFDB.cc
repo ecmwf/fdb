@@ -110,6 +110,7 @@ struct ListHelper : BaseAPIHelper<ListElement, Message::List> {
         return ListElement(elem.keys(), remoteLocation, elem.timestamp());
     }
 
+    // TODO: Include config flag to update the timestamp on list operation, if appropriate.
     void encodeExtra(Stream& s) const { s << depth_; }
 
 private:
