@@ -4,17 +4,23 @@
 #include <fcntl.h>
 #include <pwd.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <algorithm>
+#include <cerrno>
 #include <cstddef>
+#include <cstring>
+#include <mutex>
 #include <utility>
 
 #include "eckit/config/Resource.h"
+#include "eckit/container/CacheLRU.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/FileDescHandle.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/log/BigNum.h"
 #include "eckit/log/Log.h"
 #include "eckit/maths/Functions.h"
+#include "eckit/os/Stat.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/StaticMutex.h"
@@ -27,6 +33,8 @@
 #include "fdb5/toc/TocCommon.h"
 #include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocHandler.h"
+
+#include "eckit/cmd/Arg.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
 
@@ -47,6 +55,17 @@ constexpr const char* archive_lock_file = "archive.lock";
 constexpr const char* list_lock_file = "list.lock";
 constexpr const char* wipe_lock_file = "wipe.lock";
 constexpr const char* allow_duplicates_file = "duplicates.allow";
+
+// Access timestamps. Unlike the control files above, these carry their meaning in their mtime
+// rather than in their existence.
+//
+// n.b. must not begin with "toc": TocCatalogue::uriBelongs() prefix-matches those. Must not
+// contain ".lock": TocMoveVisitor filters on that substring.
+constexpr const char* read_timestamp_file = "read.timestamp";
+constexpr const char* write_timestamp_file = "write.timestamp";
+
+// Ensure timestamps non-executable
+constexpr mode_t timestamp_mode_mask = 0666;
 }  // namespace
 
 const std::map<ControlIdentifier, const char*> controlfile_lookup{
@@ -1016,7 +1035,7 @@ void TocHandler::populateMaskedEntriesList() const {
 
 static eckit::StaticMutex local_mutex;
 
-void TocHandler::writeInitRecord(const Key& key) {
+bool TocHandler::writeInitRecord(const Key& key) {
 
     eckit::AutoLock<eckit::StaticMutex> lock(local_mutex);
 
@@ -1078,13 +1097,14 @@ void TocHandler::writeInitRecord(const Key& key) {
         s << isSubToc_;
         append(*r2, s.position());
         dbUID_ = r2->header_.uid_;
+        return true;
     }
-    else {
-        ASSERT(r->header_.tag_ == TocRecord::TOC_INIT);
-        eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
-        ASSERT(key == Key(s));
-        dbUID_ = r->header_.uid_;
-    }
+
+    ASSERT(r->header_.tag_ == TocRecord::TOC_INIT);
+    eckit::MemoryStream s(&r->payload_[0], r->maxPayloadSize);
+    ASSERT(key == Key(s));
+    dbUID_ = r->header_.uid_;
+    return false;
 }
 
 void TocHandler::writeClearRecord(const Index& index) {
@@ -1893,6 +1913,235 @@ bool TocHandler::enabled(const ControlIdentifier& controlIdentifier) const {
     const std::string& control_file(it->second);
     return !fullControlFilePath(control_file).exists();
 };
+
+//----------------------------------------------------------------------------------------------------------------------
+// Access timestamps
+
+namespace {
+
+/// Has this **process** already written to `path` within the last `interval` seconds?
+bool recentlyTouched(const std::string& path, time_t now, size_t interval) {
+
+    if (interval == 0) {
+        return false;
+    }
+
+    // May be reached in parallel if when visiting, due to supportsCurrentIndexReads()
+    static std::mutex mutex;
+    static eckit::CacheLRU<std::string, time_t> touched(1024);
+
+    std::lock_guard<std::mutex> lock(mutex);
+
+    if (touched.exists(path)) {
+        const time_t last = touched.access(path);
+        if (now >= last && static_cast<size_t>(now - last) < interval) {
+            return true;
+        }
+    }
+
+    touched.insert(path, now);
+    return false;
+}
+
+}  // namespace
+
+namespace {
+
+bool createTimestampFileAt(const eckit::PathName& path, mode_t mode) {
+
+    // O_EXCL: concurrent writers must not race to reset the mtime of an existing file.
+    const int fd = ::open(path.localPath(), O_CREAT | O_EXCL | O_WRONLY, mode & timestamp_mode_mask);
+    if (fd < 0) {
+        if (errno != EEXIST) {
+            Log::warning() << "Could not create timestamp file " << path << ": " << strerror(errno) << std::endl;
+            return false;
+        }
+        return true;
+    }
+
+    ::close(fd);
+    return true;
+}
+
+/// Set the mtime of an existing record. Returns 0 on success, otherwise errno.
+///
+/// A null `times` requests the current time, which on Lustre and NFS is supplied by the server, so
+/// client clock skew does not matter. It also requires only write permission on the file, which is
+/// what lets readers who do not own the database record their access.
+
+int setTimestamp(const eckit::PathName& path, time_t when) {
+
+    struct timespec times[2];
+    if (when != 0) {
+        times[0].tv_sec = when;
+        times[0].tv_nsec = 0;
+        times[1].tv_sec = when;
+        times[1].tv_nsec = 0;
+    }
+
+    if (::utimensat(AT_FDCWD, path.localPath(), when == 0 ? nullptr : times, 0) < 0) {
+        return errno;
+    }
+
+    return 0;
+}
+
+/// Could creating the record, or correcting its permissions, plausibly fix this failure?
+bool repairable(int err) {
+    return err == ENOENT || err == EACCES || err == EPERM;
+}
+
+}  // namespace
+
+mode_t TocHandler::timestampMode(mode_t umask) {
+    // Anyone who can read the data should be able to record that they did, and nobody else. The
+    // timestamps hold no data of their own, so their mode is derived rather than configured:
+    // take the read bits that FDB grants its own files, and grant write alongside each of them.
+    //
+    //   data 0644 -> timestamp 0666
+    //   data 0640 -> timestamp 0660
+    //   data 0600 -> timestamp 0600
+    //
+    // POSIX allows utimensat(..., nullptr) for any process with write permission on the file,
+    // independently of the containing directory, which is what lets a reader who does not own the
+    // database record its access without being able to create or delete anything.
+    //
+    // Never executable: only read and write bits are ever set.
+    const mode_t fileMode = timestamp_mode_mask & ~umask;
+    const mode_t readBits = fileMode & mode_t(0444);
+    return readBits | (readBits >> 1);
+}
+
+void TocHandler::createTimestamps(mode_t readMode) const {
+    createTimestamp(read_timestamp_file, readMode);
+    createTimestamp(write_timestamp_file, readMode);
+}
+
+void TocHandler::createTimestamp(const char* name, mode_t readMode) const {
+
+    const PathName path = directory_ / name;
+
+    if (std::strcmp(name, read_timestamp_file) != 0) {
+        createTimestampFileAt(path, 0666);
+        return;
+    }
+
+    // The read timestamp is the only file in a database that a non-owner ever modifies, so it is
+    // the only one given an unusual mode - and that mode must be forced, because the writer holds
+    // an AutoUmask from Config::umask() which would override this on open(O_CREAT)
+
+    if (createTimestampFileAt(path, readMode) && ::chmod(path.localPath(), readMode & timestamp_mode_mask) < 0) {
+        Log::warning() << "Setting read timestamp umask failed on " << path << ": " << strerror(errno) << std::endl;
+    }
+}
+
+bool TocHandler::markTimestamp(const char* name, size_t granularity, time_t when) const {
+
+    const PathName path = fullControlFilePath(name);
+
+    if (recentlyTouched(path.asString(), ::time(nullptr), granularity)) {
+        return true;
+    }
+
+    const int err = setTimestamp(path, when);
+    if (err != 0) {
+        Log::warning() << "Could not update timestamp file " << path << ": " << strerror(err) << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+bool TocHandler::markTimestampRepairing(const char* name, mode_t readMode, size_t granularity, bool repairAll,
+                                        time_t when) const {
+
+    const PathName path = fullControlFilePath(name);
+
+    if (recentlyTouched(path.asString(), ::time(nullptr), granularity)) {
+        return true;
+    }
+
+    // The update comes first and is, in the overwhelmingly common case, the only syscall made.
+
+    int err = setTimestamp(path, when);
+
+    if (repairable(err)) {
+        if (repairAll) {
+            createTimestamps(readMode);
+        }
+        else {
+            createTimestamp(name, readMode);
+        }
+        err = setTimestamp(path, when);
+    }
+
+    if (err != 0) {
+        Log::warning() << "Could not update timestamp file " << path << ": " << strerror(err) << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+time_t TocHandler::timestampOf(const char* name) const {
+
+    eckit::Stat::Struct info;
+    if (eckit::Stat::stat(fullControlFilePath(name).localPath(), &info) < 0) {
+        return 0;
+    }
+    return info.st_mtime;
+}
+
+bool TocHandler::touchRead(mode_t readMode, time_t when) const {
+    return markTimestampRepairing(read_timestamp_file, readMode, 0, false, when);
+}
+
+bool TocHandler::touchWritten(mode_t readMode, time_t when) const {
+    return markTimestampRepairing(write_timestamp_file, readMode, 0, false, when);
+}
+
+time_t TocHandler::tocTime() const {
+
+    eckit::Stat::Struct info;
+    if (eckit::Stat::stat(tocPath_.localPath(), &info) < 0) {
+        return 0;
+    }
+    return info.st_mtime;
+}
+
+void TocHandler::markRead(size_t granularity) const {
+    markTimestamp(read_timestamp_file, granularity);
+}
+
+void TocHandler::markWritten(size_t granularity, mode_t readMode) const {
+    // Only a writer reaches here, so this is also where a database whose records are missing
+    // acquires them - at the first flush rather than on every writer construction.
+    markTimestampRepairing(write_timestamp_file, readMode, granularity, true);
+}
+
+time_t TocHandler::lastRead() const {
+    return timestampOf(read_timestamp_file);
+}
+
+time_t TocHandler::lastWrite() const {
+    return timestampOf(write_timestamp_file);
+}
+
+std::vector<PathName> TocHandler::timestampPaths() const {
+
+    std::vector<PathName> paths;
+
+    for (const auto& name : {read_timestamp_file, write_timestamp_file}) {
+        PathName fullPath = fullControlFilePath(name);
+        if (fullPath.exists()) {
+            paths.emplace_back(std::move(fullPath));
+        }
+    }
+
+    return paths;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 
 std::vector<PathName> TocHandler::lockfilePaths() const {
 

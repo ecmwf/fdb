@@ -87,6 +87,14 @@ public:
             ret = false;
         }
 
+        // Listing is metadata-only and normally must NOT count as a meaningful access.
+        // But some very active users (PGen, GribJump) make use of list() --> dataHandle --> read(). This usage would
+        // thus be untracked in the access timestamps. These clients can mark such use to be recorded in the userConfig
+
+        if (catalogue.config().markListAsAccess()) {
+            catalogue.markRead();
+        }
+
         return ret;
     }
 
