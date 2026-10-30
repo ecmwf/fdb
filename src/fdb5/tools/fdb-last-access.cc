@@ -156,6 +156,10 @@ void FDBLastAccess::init(const CmdArgs& args) {
         throw UserError("--unknown cannot be combined with --older-than or --newer-than", Here());
     }
 
+    if (!unknownOnly_ && !haveOlderThan_ && !haveNewerThan_) {
+        throw UserError("At least one of --older-than, --newer-than or --unknown must be supplied", Here());
+    }
+
     wipe_ = args.getBool("wipe", wipe_);
     doit_ = args.getBool("doit", doit_);
 
@@ -202,7 +206,7 @@ bool FDBLastAccess::report(const StatusElement& elem, time_t now) const {
     const time_t when = selected(elem);
 
     if (when == 0) {
-        return unknownOnly_ || !(haveOlderThan_ || haveNewerThan_);
+        return unknownOnly_;
     }
 
     if (unknownOnly_) {
