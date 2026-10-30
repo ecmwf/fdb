@@ -27,7 +27,7 @@ Options
 | ``--write``                            | Consider only the write timestamp. May not be combined with ``--read``.                                             |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--older-than=duration``              | Only report databases not accessed within this period.                                                              |
-|                                        | A duration is ``<n>`` followed by one of ``s``, ``m``, ``h``, ``d``, ``w``; a bare number is seconds.               |
+|                                        | Durations of the form "5d12h" with smhd supported. A bare number is interpreted as hours.                           |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--newer-than=duration``              | Only report databases accessed within this period.                                                                  |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
@@ -75,7 +75,7 @@ Example 2
 Find databases that are still being written but nobody reads — candidates for a retention review
 ::
 
-  % fdb last-access --read --older-than=52w --simple --all
+  % fdb last-access --read --older-than=364d --simple --all
 
   40348800 {class=od,expver=0001,stream=oper,date=20240911,time=0000,domain=g}
 
@@ -110,7 +110,7 @@ Example 4
 Delete matching data which has not been touched for a year
 ::
 
-  % fdb last-access --older-than=52w --wipe class=rd,expver=xxxx
+  % fdb last-access --older-than=364d --wipe class=rd,expver=xxxx
 
     database:   {class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g}
     location:   /data/fdb5/rd:xxxx:oper:20201102:0000:g
@@ -126,5 +126,5 @@ Delete matching data which has not been touched for a year
   1 database(s) would be wiped
   Rerun command with --doit flag to delete the data
 
-  % fdb last-access --older-than=52w --wipe --doit class=rd,expver=xxxx
+  % fdb last-access --older-than=364d --wipe --doit class=rd,expver=xxxx
   ...
