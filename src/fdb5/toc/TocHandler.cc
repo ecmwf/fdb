@@ -2013,18 +2013,26 @@ mode_t TocHandler::timestampMode(mode_t umask) {
 }
 
 void TocHandler::createTimestamps(mode_t readMode) const {
+    createTimestamp(read_timestamp_file, readMode);
+    createTimestamp(write_timestamp_file, readMode);
+}
+
+void TocHandler::createTimestamp(const char* name, mode_t readMode) const {
+
+    const PathName path = directory_ / name;
+
+    if (std::strcmp(name, read_timestamp_file) != 0) {
+        createTimestampFileAt(path, 0666);
+        return;
+    }
 
     // The read timestamp is the only file in a database that a non-owner ever modifies, so it is
     // the only one given an unusual mode - and that mode must be forced, because the writer holds
     // an AutoUmask from Config::umask() which would override this on open(O_CREAT)
 
-    const PathName readPath = directory_ / read_timestamp_file;
-    if (createTimestampFileAt(readPath, readMode) &&
-        ::chmod(readPath.localPath(), readMode & timestamp_mode_mask) < 0) {
-        Log::warning() << "Setting read timestamp umask failed on " << readPath << ": " << strerror(errno) << std::endl;
+    if (createTimestampFileAt(path, readMode) && ::chmod(path.localPath(), readMode & timestamp_mode_mask) < 0) {
+        Log::warning() << "Setting read timestamp umask failed on " << path << ": " << strerror(errno) << std::endl;
     }
-
-    createTimestampFileAt(directory_ / write_timestamp_file, 0666);
 }
 
 bool TocHandler::markTimestamp(const char* name, size_t granularity, time_t when) const {
@@ -2044,7 +2052,8 @@ bool TocHandler::markTimestamp(const char* name, size_t granularity, time_t when
     return true;
 }
 
-bool TocHandler::markTimestampRepairing(const char* name, mode_t readMode, size_t granularity, time_t when) const {
+bool TocHandler::markTimestampRepairing(const char* name, mode_t readMode, size_t granularity, bool repairAll,
+                                        time_t when) const {
 
     const PathName path = fullControlFilePath(name);
 
@@ -2057,7 +2066,12 @@ bool TocHandler::markTimestampRepairing(const char* name, mode_t readMode, size_
     int err = setTimestamp(path, when);
 
     if (repairable(err)) {
-        createTimestamps(readMode);
+        if (repairAll) {
+            createTimestamps(readMode);
+        }
+        else {
+            createTimestamp(name, readMode);
+        }
         err = setTimestamp(path, when);
     }
 
@@ -2079,11 +2093,11 @@ time_t TocHandler::timestampOf(const char* name) const {
 }
 
 bool TocHandler::touchRead(mode_t readMode, time_t when) const {
-    return markTimestampRepairing(read_timestamp_file, readMode, 0, when);
+    return markTimestampRepairing(read_timestamp_file, readMode, 0, false, when);
 }
 
 bool TocHandler::touchWritten(mode_t readMode, time_t when) const {
-    return markTimestampRepairing(write_timestamp_file, readMode, 0, when);
+    return markTimestampRepairing(write_timestamp_file, readMode, 0, false, when);
 }
 
 time_t TocHandler::tocTime() const {
@@ -2102,7 +2116,7 @@ void TocHandler::markRead(size_t granularity) const {
 void TocHandler::markWritten(size_t granularity, mode_t readMode) const {
     // Only a writer reaches here, so this is also where a database whose records are missing
     // acquires them - at the first flush rather than on every writer construction.
-    markTimestampRepairing(write_timestamp_file, readMode, granularity);
+    markTimestampRepairing(write_timestamp_file, readMode, granularity, true);
 }
 
 time_t TocHandler::lastRead() const {

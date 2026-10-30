@@ -160,9 +160,9 @@ public:  // methods
     // All of these are best-effort and never throw. A missing timestamp means "unknown" - never
     // "not accessed".
 
-    /// Create both records. Called once, when the database itself is created; thereafter a
-    /// missing record is restored by markWritten() on the failure path, never by a check before
-    /// each update.
+    /// Create both records. Called once, when the database itself is created; thereafter missing
+    /// records are restored by markWritten() on the failure path, never by a check before each
+    /// update. An explicit touch creates only the record it names, see markTimestampRepairing().
     void createTimestamps(mode_t readMode) const;
 
     void markRead(size_t granularity) const;
@@ -208,7 +208,15 @@ private:  // methods
     /// failed because they are missing or no longer writable by this process. Used by the write
     /// path and by an explicit touch, both of which may legitimately create a record; the
     /// automatic read path must not, so markRead() does not come through here.
-    bool markTimestampRepairing(const char* name, mode_t readMode, size_t granularity, time_t when = 0) const;
+    ///
+    /// @param repairAll true to restore both records, as the write path does; false to create only
+    ///                  `name`. An explicit touch must pass false: a record it was not asked for
+    ///                  would be created at the current time, and make historical data look recent.
+    bool markTimestampRepairing(const char* name, mode_t readMode, size_t granularity, bool repairAll,
+                                time_t when = 0) const;
+
+    /// Create the single record `name`, if missing. `readMode` applies only to the read record.
+    void createTimestamp(const char* name, mode_t readMode) const;
 
     time_t timestampOf(const char* name) const;
 
