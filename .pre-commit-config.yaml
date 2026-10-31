@@ -12,7 +12,7 @@ repos:
       - id: check-merge-conflict
 
   - repo: https://github.com/ecmwf/ci-infrastructure
-    rev: 57f9c841bf6375fce65e8a86257733efa39b0f7b
+    rev: ba2597d42e47cf088eaf3b272e939323c63e76e8
     hooks:
       - id: check-ci-approval
       - id: check-ci-result
