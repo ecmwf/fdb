@@ -52,7 +52,7 @@ triggers = ["upstream-change", "rebuild-request"]
 [matrix.build.defaults]
 job-script = "./.ci/runner/build.sh.j2"
 build-type = "RelWithDebInfo"
-runs-on = "arc-runner-very-large"
+runs-on = "arc-runner-large"
 
 [[matrix.build.include]]
 cxx-compiler = "clang++-18"
