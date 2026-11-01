@@ -6,6 +6,7 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Benchmark and stress test tool for FDB"
+publish = false
 
 [[bin]]
 name = "fdb-hammer"

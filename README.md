@@ -75,6 +75,13 @@ Now proceed with installation as follows: :
     make -j10
     make install
 
+## Rust interface
+
+The FDB can be used from Rust. The `fdb` crate provides a safe API on top of
+the C++ library, and `fdb-sys` provides the low-level bindings that other
+ECMWF packages build on. Both live in [rust/](rust/) and are documented in the
+[Rust interface](docs/rust/index.rst) section of the documentation.
+
 ## How to reference FDB5
 
 Two publications, co-authored by Simon D. Smart, Tiago Quintino,

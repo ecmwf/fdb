@@ -1,11 +1,11 @@
 [package]
 name = "fdb-sys"
-version = "5.25.0"
+version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-readme.workspace = true
+readme = "README.md"
 keywords.workspace = true
 categories.workspace = true
 description = "C++ bindings to ECMWF FDB5 library using cxx"

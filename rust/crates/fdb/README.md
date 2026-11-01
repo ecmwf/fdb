@@ -4,10 +4,23 @@ Safe Rust wrapper for ECMWF's [FDB](https://github.com/ecmwf/fdb) (Fields DataBa
 
 The FDB is a domain-specific object store for meteorological data, developed at ECMWF for high-performance storage and retrieval of weather and climate data.
 
+## Installation
+
+Add the crate to your `Cargo.toml`:
+
+```toml
+[dependencies]
+fdb = "5.25"
+```
+
+The default `vendored` feature builds the FDB and its dependencies (eckit,
+metkit, ecCodes) from source, which requires CMake, a C++17 compiler and
+Python 3.
+
 ## Usage
 
-Archive and retrieve always work on a fully-specified key — every key the
-schema requires before bottoming out at a datum must be set. A typical
+Archive and retrieve work on a fully-specified key: every key the schema
+requires before bottoming out at a datum must be set. A typical
 schema (e.g. `class=od`, `stream=oper`) requires
 `class, expver, stream, date, time, type, levtype, step, param` at minimum.
 
@@ -54,7 +67,7 @@ reader.read_to_end(&mut results)?;
 # }
 ```
 
-## Features
+## Cargo build features
 
 - `vendored` (default) - Build the FDB and its dependencies (eckit, metkit,
   ecCodes) from source.
@@ -67,8 +80,8 @@ the filesystem TOC backend, and remote FDB client support.
 
 ## Running
 
-Binaries and `cargo run` work out of the box on both macOS and Linux —
-no `LD_LIBRARY_PATH` / `DYLD_LIBRARY_PATH` setup required.
+Binaries and `cargo run` need no `LD_LIBRARY_PATH` / `DYLD_LIBRARY_PATH`
+setup on macOS or Linux.
 
 All C++ shared libraries use `@rpath` install names. Binary crates that
 depend on `fdb` should add a one-line `build.rs`:
@@ -84,10 +97,9 @@ dependency's build output, so the dynamic linker finds them automatically.
 
 ### System / FHS-packaged installs (e.g. RPM, deb)
 
-When the target system already provides FDB and its dependencies —
-typically via separate distro packages installed under `/usr/lib{,64}`
-with headers under `/usr/include` — you don't need the colocated
-layout at all. Build against the system libraries with:
+When the target system already provides FDB and its dependencies,
+typically as distro packages installed under `/usr/lib{,64}` with headers
+under `/usr/include`, you don't need the colocated layout. Build against the system libraries with:
 
 ```bash
 cargo build --release --no-default-features --features system
@@ -99,8 +111,13 @@ libraries, and stamps absolute RPATH entries pointing at the lib
 directories the CMake search resolved. A downstream package can then
 install the binary to a standard location such as `/usr/bin` and rely
 on the distro's own `libfdb5` / `libeckit` / `libmetkit` / `libeccodes`
-packages for the shared libraries — no need to copy any directories
-around or set environment variables.
+packages for the shared libraries, with no directories to copy and no
+environment variables to set.
+
+The system eccodes must be built with `ENABLE_ECCODES_THREADS=ON`: this
+crate's `Send`/`Sync` types drive GRIB decoding from multiple threads,
+and without libeccodes' internal locking that corrupts its definitions
+parser. The vendored build always enables it.
 
 Typical packaging setups:
 
@@ -113,6 +130,10 @@ Typical packaging setups:
   `CMAKE_PREFIX_PATH=/opt/ecmwf cargo build --features system`).
   Everything else is automatic.
 
-## License
+## Copyright and License
 
-Apache-2.0
+Copyright 1996- European Centre for Medium-Range Weather Forecasts (ECMWF).
+
+This software is licensed under the terms of the [Apache License, Version 2.0](LICENSE) which can also be obtained at http://www.apache.org/licenses/LICENSE-2.0.
+
+In applying this licence, ECMWF does not waive the privileges and immunities granted to it by virtue of its status as an intergovernmental organisation nor does it submit to any jurisdiction.

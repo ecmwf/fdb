@@ -13,6 +13,7 @@ FDB documentation
    fdb/index
    pyfdb/index
    z3fdb/index
+   rust/index
    indices_and_tables
 
 The :ref:`FDB <FDB_Introduction>` is part of `ECMWF <https://www.ecmwf.int>`__’s high‑performance data infrastructure and stores
@@ -39,3 +40,6 @@ containing the data of the MARS request. For further information, see
 :ref:`Z3FDB <Z3FDB_Introduction>` or visit the `Zarr project
 <https://github.com/zarr-developers/zarr-python>`__.
 
+:ref:`The Rust interface <Rust_Introduction>` is the ``fdb`` crate, a safe
+Rust API over the same client library, with the ``fdb-sys`` crate underneath
+it for other ECMWF Rust bindings to build on.
