@@ -43,7 +43,8 @@ class Archiver {
 
 public:  // methods
 
-    Archiver(const Config& dbConfig = Config().expandConfig(), const ArchiveCallback& callback = CALLBACK_ARCHIVE_NOOP);
+    Archiver(const Config& dbConfig = Config().expandConfig(),
+             const ArchiveCallbacks& callbacks = CALLBACKS_ARCHIVE_NOOP);
 
     Archiver(const Archiver&) = delete;
     Archiver& operator=(const Archiver&) = delete;
@@ -90,7 +91,7 @@ private:  // members
 
     std::recursive_mutex flushMutex_;
     std::mutex cacheMutex_;
-    const ArchiveCallback& callback_;
+    const ArchiveCallbacks& callbacks_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
