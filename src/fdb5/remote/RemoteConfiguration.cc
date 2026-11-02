@@ -58,6 +58,9 @@ RemoteConfiguration::RemoteConfiguration(const eckit::Configuration& config) {
     if (config.getBool("wipe", true)) {
         enabledFeatures_ |= toMask(Message::Wipe);
     }
+
+    // check for disabled features set by the server for clients connecting from a restricted network
+    enabledFeatures_ &= ~static_cast<uint64_t>(config.getInt64("DisabledFeatures", 0));
 }
 
 RemoteConfiguration::RemoteConfiguration(eckit::Stream& s) {
@@ -125,6 +128,11 @@ RemoteConfiguration::RemoteConfiguration(eckit::Stream& s) {
     }
     else {
         enabledFeatures_ = maskOfDefaultFeatures;
+    }
+
+    // check for disabled features set by the server for clients connecting from a restricted network
+    if (v.contains("DisabledFeatures")) {
+        enabledFeatures_ &= ~static_cast<uint64_t>(v["DisabledFeatures"]);
     }
 }
 
