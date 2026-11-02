@@ -1,9 +1,60 @@
 {# SPDX-FileCopyrightText: 2005- European Centre for Medium-Range Weather Forecasts (ECMWF)
    SPDX-License-Identifier: Apache-2.0 #}
 {% extends "ci-infrastructure/cmake-runner.sh.j2" %}
+{% block setup %}
+{{ super() }}
+# Each dep puts its tools in <prefix>/bin and its wheels in <prefix>/wheels;
+# ";" on a runner, ":" on HPC.
+IFS=';:' read -ra dep_prefixes <<<"${CMAKE_PREFIX_PATH:-}"
+{% endblock %}
+
 {% block set_environment %}
 {% import "ci-infrastructure/python.j2" as py %}
 {{ py.get_python_via_uv(python_version) }}
 uv pip install -r "python/requirements-build.txt" -r "python/requirements-test.txt"
 CI_SOURCE_DIR="$CI_SOURCE_DIR/.ci/packages/pyfdb"
+{% endblock %}
+
+{% block build %}
+{{ super() }}
+# The base's `test` block runs before its `install`, so the wheel is installed
+# here, from the build tree cmake/pyfdb.cmake built it into: this lane has no
+# $CI_INSTALL_PREFIX/wheels/ like the python lane does, and `cmake --install`
+# only copies the wheel out to the prefix for publishing.
+wheels="$build"
+dep_wheels=()
+for prefix in ${dep_prefixes[@]+"${dep_prefixes[@]}"}; do
+  for whl in "$prefix"/wheels/*.whl; do
+    if [ -e "$whl" ]; then dep_wheels+=("$whl"); fi
+  done
+done
+own_wheels=("$wheels"/pyfdb-*.whl)
+if [ ! -e "${own_wheels[0]}" ] || [ -n "${own_wheels[1]:-}" ]; then
+  echo "::error::expected one pyfdb wheel in $wheels, found: ${own_wheels[*]}"
+  exit 1
+fi
+# The +-expansions keep empty arrays working under set -u in bash < 4.4.
+# One resolve, so the deps' wheels win over the same packages from the index.
+uv pip install ${dep_wheels[@]+"${dep_wheels[@]}"} "${own_wheels[0]}{{ ('[' ~ extras ~ ']') if extras | default('') else '' }}" {% block test_requirements %}{% if tests %}pytest{% endif %}{% endblock %}
+
+{% endblock %}
+
+{% block test %}
+# The fdb5 tools (fdb-create, fdb-write, fdb-list, ...) the e2e tests run come
+# from the dep prefixes, so they go in front of PATH. In prefix order, so an
+# earlier dep wins a name clash. 
+dep_path=""
+for prefix in ${dep_prefixes[@]+"${dep_prefixes[@]}"}; do
+  if [ -d "$prefix/bin" ]; then dep_path="$dep_path${dep_path:+:}$prefix/bin"; fi
+done
+if [ -n "$dep_path" ]; then
+  PATH="$dep_path:$PATH"
+  export PATH
+fi
+
+cd "$CI_SOURCE_DIR"/../../../tests/pyfdb
+python -m pytest -n auto {{ pytest_args | default("") }}
+
+cd "$CI_SOURCE_DIR"/../../../tests/fdb_e2e
+python -m pytest -n auto {{ pytest_args | default("") }}
 {% endblock %}
