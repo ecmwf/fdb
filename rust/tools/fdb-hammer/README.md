@@ -43,7 +43,7 @@ cd fdb/tools/fdb-hammer/test_config
 
 ```bash
 cargo run -p fdb-hammer --release -- \
-  ../../../crates/fdb/tests/fixtures/template.grib \
+  ../../../crates/ecmwf-fdb/tests/fixtures/template.grib \
   --config ./config.yaml \
   --expver test --class od \
   --nsteps 10 --nlevels 5 --nparams 3
@@ -53,7 +53,7 @@ cargo run -p fdb-hammer --release -- \
 
 ```bash
 cargo run -p fdb-hammer --release -- \
-  ../../../crates/fdb/tests/fixtures/template.grib \
+  ../../../crates/ecmwf-fdb/tests/fixtures/template.grib \
   --config ./config.yaml \
   --expver test --class od \
   --nsteps 10 --nlevels 5 --nparams 3 \
@@ -64,7 +64,7 @@ cargo run -p fdb-hammer --release -- \
 
 ```bash
 cargo run -p fdb-hammer --release -- \
-  ../../../crates/fdb/tests/fixtures/template.grib \
+  ../../../crates/ecmwf-fdb/tests/fixtures/template.grib \
   --config ./config.yaml \
   --expver test --class od \
   --nsteps 10 --nlevels 5 --nparams 3 \
@@ -75,7 +75,7 @@ cargo run -p fdb-hammer --release -- \
 
 ```bash
 cargo run -p fdb-hammer --release -- \
-  ../../../crates/fdb/tests/fixtures/template.grib \
+  ../../../crates/ecmwf-fdb/tests/fixtures/template.grib \
   --config ./config.yaml \
   --expver test --class od \
   --nsteps 3 --nlevels 2 --nparams 2 \

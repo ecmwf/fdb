@@ -1,21 +1,23 @@
-// fdb ControlIteratorHandle bridge — implementation.
+// fdb WipeIteratorHandle bridge — implementation.
 
 #include "fdb_exceptions.h"
 
-#include "ControlIteratorHandle.h"
-#include "fdb-sys/src/lib.rs.h"
+#include "WipeIteratorHandle.h"
+#include "ecmwf-fdb-sys/src/lib.rs.h"
 
 #include "eckit/exception/Exceptions.h"
+
+#include <sstream>
 
 namespace fdb_bridge {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ControlIteratorHandle::ControlIteratorHandle(fdb5::ControlIterator&& it) : impl_(std::move(it)) {}
+WipeIteratorHandle::WipeIteratorHandle(fdb5::WipeIterator&& it) : impl_(std::move(it)) {}
 
-ControlIteratorHandle::~ControlIteratorHandle() = default;
+WipeIteratorHandle::~WipeIteratorHandle() = default;
 
-bool ControlIteratorHandle::hasNext() {
+bool WipeIteratorHandle::hasNext() {
     if (exhausted_) {
         return false;
     }
@@ -31,18 +33,17 @@ bool ControlIteratorHandle::hasNext() {
     return false;
 }
 
-ControlElementData ControlIteratorHandle::next() {
+WipeElementData WipeIteratorHandle::next() {
     if (!has_current_ && !hasNext()) {
         throw eckit::OutOfRange("Iterator exhausted", Here());
     }
 
     has_current_ = false;
 
-    ControlElementData data;
-    data.location = rust::String(current_.location.asString());
-    for (const auto& id : current_.controlIdentifiers) {
-        data.identifiers.push_back(id);
-    }
+    WipeElementData data;
+    std::ostringstream ss;
+    ss << current_;
+    data.content = rust::String(ss.str());
     return data;
 }
 

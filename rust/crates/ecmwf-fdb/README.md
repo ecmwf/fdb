@@ -1,4 +1,4 @@
-# fdb
+# ecmwf-fdb
 
 Safe Rust wrapper for ECMWF's [FDB](https://github.com/ecmwf/fdb) (Fields DataBase).
 
@@ -10,8 +10,10 @@ Add the crate to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-fdb = "5.25"
+ecmwf-fdb = "5.25"
 ```
+
+The library crate is `fdb`, so code uses `use fdb::Fdb;`.
 
 The default `vendored` feature builds the FDB and its dependencies (eckit,
 metkit, ecCodes) from source, which requires CMake, a C++17 compiler and
@@ -75,10 +77,10 @@ reader.read_to_end(&mut results)?;
 
 - `grib`, `tocfdb`, `fdb-remote`, `memfs` (default) - GRIB support, the
   filesystem TOC backend, the remote FDB client and the embedded ecCodes
-  definitions, forwarded to `fdb-sys`. Disable the defaults to drop one.
+  definitions, forwarded to `ecmwf-fdb-sys`. Disable the defaults to drop one.
 
 The remaining flags (optional storage backends, experimental features) live
-on the [`fdb-sys`](https://crates.io/crates/fdb-sys) crate; see its README
+on the [`ecmwf-fdb-sys`](https://crates.io/crates/ecmwf-fdb-sys) crate; see its README
 for the full list.
 
 ## Running
@@ -87,7 +89,7 @@ Binaries and `cargo run` need no `LD_LIBRARY_PATH` / `DYLD_LIBRARY_PATH`
 setup on macOS or Linux.
 
 All C++ shared libraries use `@rpath` install names. Binary crates that
-depend on `fdb` should add a one-line `build.rs`:
+depend on `ecmwf-fdb` should add a one-line `build.rs`:
 
 ```rust
 fn main() {

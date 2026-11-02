@@ -1,5 +1,5 @@
 [package]
-name = "fdb-sys"
+name = "ecmwf-fdb-sys"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -11,6 +11,9 @@ categories.workspace = true
 description = "C++ bindings to ECMWF FDB5 library using cxx"
 links = "fdb_sys"
 build = "build.rs"
+
+[lib]
+name = "fdb_sys"
 
 [features]
 # Defaults match CMake defaults (without external library dependencies),

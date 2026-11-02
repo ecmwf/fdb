@@ -1,7 +1,7 @@
 //! C++ bindings to ECMWF's FDB (Fields `DataBase`) library using cxx.
 //!
 //! This crate provides raw C++ bindings to the FDB. For a safe, idiomatic
-//! Rust interface, use the `fdb` crate instead.
+//! Rust interface, use the `ecmwf-fdb` crate instead.
 
 #![allow(clippy::needless_lifetimes)]
 #![allow(clippy::must_use_candidate)]

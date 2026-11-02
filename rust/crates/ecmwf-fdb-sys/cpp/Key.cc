@@ -3,7 +3,7 @@
 #include "fdb_exceptions.h"
 
 #include "Key.h"
-#include "fdb-sys/src/lib.rs.h"
+#include "ecmwf-fdb-sys/src/lib.rs.h"
 
 namespace fdb_bridge {
 

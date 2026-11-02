@@ -1,5 +1,5 @@
 [package]
-name = "fdb"
+name = "ecmwf-fdb"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -12,22 +12,25 @@ description = "Safe Rust wrapper for ECMWF's FDB (Fields DataBase)"
 links = "fdb_rs"
 build = "build.rs"
 
+[lib]
+name = "fdb"
+
 [features]
 default = ["vendored", "grib", "tocfdb", "fdb-remote", "memfs"]
-vendored = ["fdb-sys/vendored", "eckit/vendored", "metkit/vendored"]
-system = ["fdb-sys/system", "eckit/system", "metkit/system"]
+vendored = ["ecmwf-fdb-sys/vendored", "eckit/vendored", "metkit/vendored"]
+system = ["ecmwf-fdb-sys/system", "eckit/system", "metkit/system"]
 
-# Backends, forwarded to fdb-sys; the defaults match the FDB CMake defaults.
-grib = ["fdb-sys/grib"]
-tocfdb = ["fdb-sys/tocfdb"]
-fdb-remote = ["fdb-sys/fdb-remote"]
-memfs = ["fdb-sys/memfs"]
+# Backends, forwarded to ecmwf-fdb-sys; the defaults match the FDB CMake defaults.
+grib = ["ecmwf-fdb-sys/grib"]
+tocfdb = ["ecmwf-fdb-sys/tocfdb"]
+fdb-remote = ["ecmwf-fdb-sys/fdb-remote"]
+memfs = ["ecmwf-fdb-sys/memfs"]
 
 [build-dependencies]
 bindman-utils.workspace = true
 
 [dependencies]
-fdb-sys.workspace = true
+ecmwf-fdb-sys.workspace = true
 eckit.workspace = true
 metkit.workspace = true
 parking_lot.workspace = true

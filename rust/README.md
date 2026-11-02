@@ -16,8 +16,10 @@ Add the safe wrapper to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-fdb = "5.25"
+ecmwf-fdb = "5.25"
 ```
+
+The library crate is `fdb`, so code uses `use fdb::Fdb;`.
 
 Building requires CMake, a C++17 compiler and Python 3. To link against an
 existing FDB installation instead of building from source, use the `system`
@@ -25,14 +27,14 @@ feature:
 
 ```toml
 [dependencies]
-fdb = { version = "5.25", default-features = false, features = ["system"] }
+ecmwf-fdb = { version = "5.25", default-features = false, features = ["system"] }
 ```
 
 ## Crates
 
-- **fdb**: the safe API. Archive, retrieve, list and the administrative
+- **ecmwf-fdb**: the safe API. Archive, retrieve, list and the administrative
   iterators, with FDB and eckit exceptions surfaced as typed Rust errors.
-- **fdb-sys**: the low-level FFI layer using [CXX](https://cxx.rs/). Builds
+- **ecmwf-fdb-sys**: the low-level FFI layer using [CXX](https://cxx.rs/). Builds
   the FDB C++ library from source (`vendored`) or links against a system
   installation (`system`), and exposes the raw bridge. Its Cargo features
   control which parts of the C++ library are compiled.

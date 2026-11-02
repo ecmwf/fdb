@@ -1,23 +1,21 @@
-// fdb WipeIteratorHandle bridge — implementation.
+// fdb DumpIteratorHandle bridge — implementation.
 
 #include "fdb_exceptions.h"
 
-#include "WipeIteratorHandle.h"
-#include "fdb-sys/src/lib.rs.h"
+#include "DumpIteratorHandle.h"
+#include "ecmwf-fdb-sys/src/lib.rs.h"
 
 #include "eckit/exception/Exceptions.h"
-
-#include <sstream>
 
 namespace fdb_bridge {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-WipeIteratorHandle::WipeIteratorHandle(fdb5::WipeIterator&& it) : impl_(std::move(it)) {}
+DumpIteratorHandle::DumpIteratorHandle(fdb5::DumpIterator&& it) : impl_(std::move(it)) {}
 
-WipeIteratorHandle::~WipeIteratorHandle() = default;
+DumpIteratorHandle::~DumpIteratorHandle() = default;
 
-bool WipeIteratorHandle::hasNext() {
+bool DumpIteratorHandle::hasNext() {
     if (exhausted_) {
         return false;
     }
@@ -33,17 +31,15 @@ bool WipeIteratorHandle::hasNext() {
     return false;
 }
 
-WipeElementData WipeIteratorHandle::next() {
+DumpElementData DumpIteratorHandle::next() {
     if (!has_current_ && !hasNext()) {
         throw eckit::OutOfRange("Iterator exhausted", Here());
     }
 
     has_current_ = false;
 
-    WipeElementData data;
-    std::ostringstream ss;
-    ss << current_;
-    data.content = rust::String(ss.str());
+    DumpElementData data;
+    data.content = rust::String(current_);
     return data;
 }
 

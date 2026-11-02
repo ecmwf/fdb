@@ -1,9 +1,9 @@
-// fdb DumpIteratorHandle bridge — implementation.
+// fdb ControlIteratorHandle bridge — implementation.
 
 #include "fdb_exceptions.h"
 
-#include "DumpIteratorHandle.h"
-#include "fdb-sys/src/lib.rs.h"
+#include "ControlIteratorHandle.h"
+#include "ecmwf-fdb-sys/src/lib.rs.h"
 
 #include "eckit/exception/Exceptions.h"
 
@@ -11,11 +11,11 @@ namespace fdb_bridge {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-DumpIteratorHandle::DumpIteratorHandle(fdb5::DumpIterator&& it) : impl_(std::move(it)) {}
+ControlIteratorHandle::ControlIteratorHandle(fdb5::ControlIterator&& it) : impl_(std::move(it)) {}
 
-DumpIteratorHandle::~DumpIteratorHandle() = default;
+ControlIteratorHandle::~ControlIteratorHandle() = default;
 
-bool DumpIteratorHandle::hasNext() {
+bool ControlIteratorHandle::hasNext() {
     if (exhausted_) {
         return false;
     }
@@ -31,15 +31,18 @@ bool DumpIteratorHandle::hasNext() {
     return false;
 }
 
-DumpElementData DumpIteratorHandle::next() {
+ControlElementData ControlIteratorHandle::next() {
     if (!has_current_ && !hasNext()) {
         throw eckit::OutOfRange("Iterator exhausted", Here());
     }
 
     has_current_ = false;
 
-    DumpElementData data;
-    data.content = rust::String(current_);
+    ControlElementData data;
+    data.location = rust::String(current_.location.asString());
+    for (const auto& id : current_.controlIdentifiers) {
+        data.identifiers.push_back(id);
+    }
     return data;
 }
 

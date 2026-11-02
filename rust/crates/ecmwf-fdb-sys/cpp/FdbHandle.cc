@@ -12,7 +12,7 @@
 #include "StatusIteratorHandle.h"
 #include "WipeIteratorHandle.h"
 
-#include "fdb-sys/src/lib.rs.h"
+#include "ecmwf-fdb-sys/src/lib.rs.h"
 #include "metkit-sys/src/lib.rs.h"
 
 #include "fdb5/api/helpers/FDBToolRequest.h"

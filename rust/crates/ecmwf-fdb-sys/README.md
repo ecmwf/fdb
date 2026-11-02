@@ -1,8 +1,8 @@
-# fdb-sys
+# ecmwf-fdb-sys
 
 Low-level Rust bindings to ECMWF's [FDB](https://github.com/ecmwf/fdb) (Fields DataBase) C++ library.
 
-This crate provides raw FFI bindings using [cxx](https://cxx.rs/). For a safe API, use the [`fdb`](https://crates.io/crates/fdb) crate instead.
+This crate provides raw FFI bindings using [cxx](https://cxx.rs/). For a safe API, use the [`ecmwf-fdb`](https://crates.io/crates/ecmwf-fdb) crate instead.
 
 ## Cargo build features
 
@@ -13,9 +13,9 @@ These flags control what the underlying C++ FDB library is compiled with.
 - `vendored` - Build the FDB and its dependencies (eckit, metkit, ecCodes) from source.
 - `system` - Link against system-installed FDB.
 
-Note: neither is enabled by default on `fdb-sys` itself. End users should
-depend on the higher-level [`fdb`](https://crates.io/crates/fdb) crate, which
-defaults to `vendored`. If you depend on `fdb-sys` directly you must select
+Note: neither is enabled by default on `ecmwf-fdb-sys` itself. End users should
+depend on the higher-level [`ecmwf-fdb`](https://crates.io/crates/ecmwf-fdb) crate, which
+defaults to `vendored`. If you depend on `ecmwf-fdb-sys` directly you must select
 one explicitly.
 
 ### Core (enabled by default)

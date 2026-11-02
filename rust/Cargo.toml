@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/fdb-sys", "crates/fdb", "tools/fdb-hammer"]
+members = ["crates/ecmwf-fdb-sys", "crates/ecmwf-fdb", "tools/fdb-hammer"]
 
 [workspace.package]
 version = "5.25.1"
@@ -14,8 +14,8 @@ categories = ["science", "database"]
 
 [workspace.dependencies]
 # Internal
-fdb-sys = { version = "5.25", path = "crates/fdb-sys", default-features = false }
-fdb = { version = "5.25", path = "crates/fdb" }
+ecmwf-fdb-sys = { version = "5.25", path = "crates/ecmwf-fdb-sys", default-features = false }
+ecmwf-fdb = { version = "5.25", path = "crates/ecmwf-fdb" }
 
 # Foundation crates
 eckit-sys = { version = "2.5", default-features = false, features = ["aio"] }

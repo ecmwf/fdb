@@ -4,7 +4,7 @@
 
 #include "Key.h"
 #include "ListIteratorHandle.h"
-#include "fdb-sys/src/lib.rs.h"
+#include "ecmwf-fdb-sys/src/lib.rs.h"
 
 #include "eckit/exception/Exceptions.h"
 
