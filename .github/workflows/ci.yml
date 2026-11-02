@@ -138,13 +138,6 @@ jobs:
           package: fdb
           cmake-prefix-path: ${{ steps.deps.outputs.cmake-prefix-path }}
 
-      # Invocation comes from .ci/manifest.toml's [matrix.build], the same place
-      # the generated cross-repo-trigger.yml renders its Test step from. Spelling
-      # it out again here is how the two lanes drift apart.
-      - name: Test
-        if: ${{ matrix._resolved.ctest }}
-        run: ctest --test-dir "${{ steps.build.outputs.build-dir }}" --output-on-failure ${{ matrix._resolved['ctest-args'] }}
-
       - name: Publish fdb
         uses: ecmwf/ci-infrastructure/actions/publish-artifact@main
         with:
