@@ -20,7 +20,7 @@ expect_output() {
   local pattern="$1"; shift
   local out
   out=$("$@") || die "Command failed => '$*'"
-  echo "$out" | grep -qF "$pattern" || die "Expected '$pattern' in output of '$*', got: $out"
+  grep -qF -- "$pattern" <<< "$out" || die "Expected '$pattern' in output of '$*', got: $out"
   echo "$out"
 }
 
@@ -29,7 +29,7 @@ expect_match() {
   local pattern="$1"; shift
   local out
   out=$("$@") || die "Command failed => '$*'"
-  echo "$out" | grep -qE "$pattern" || die "Expected regex '$pattern' in output of '$*', got: $out"
+  grep -qE -- "$pattern" <<< "$out" || die "Expected regex '$pattern' in output of '$*', got: $out"
   echo "$out"
 }
 
@@ -79,7 +79,7 @@ echo "--- TEST: create duplicate region (graceful failure) ---"
 if out=$(fdb-fam --endpoint="$fam_endpoint" --create --size=4096 --perm=0640 "/$test_region" 2>/dev/null); then
     die "Expected non-zero exit for duplicate region create, got success: $out"
 fi
-echo "$out" | grep -qF "Failed to create" || die "Expected 'Failed to create' for duplicate region, got: $out"
+grep -qF -- "Failed to create" <<< "$out" || die "Expected 'Failed to create' for duplicate region, got: $out"
 
 ########################################################################################################################
 # 4. Delete the region
@@ -97,7 +97,7 @@ echo "--- TEST: lookup deleted region (graceful failure) ---"
 if out=$(fdb-fam --endpoint="$fam_endpoint" --lookup "/$test_region" 2>/dev/null); then
     die "Expected non-zero exit for lookup of deleted region, got success: $out"
 fi
-echo "$out" | grep -qF "Failed to lookup" || die "Expected 'Failed to lookup' for deleted region, got: $out"
+grep -qF -- "Failed to lookup" <<< "$out" || die "Expected 'Failed to lookup' for deleted region, got: $out"
 
 ########################################################################################################################
 # 6. Delete non-existent region — expect failure exit code
@@ -107,7 +107,7 @@ echo "--- TEST: delete non-existent region (graceful failure) ---"
 if out=$(fdb-fam --endpoint="$fam_endpoint" --delete "/$test_region" 2>/dev/null); then
     die "Expected non-zero exit for delete of non-existent region, got success: $out"
 fi
-echo "$out" | grep -qF "Failed to delete" || die "Expected 'Failed to delete' for non-existent region, got: $out"
+grep -qF -- "Failed to delete" <<< "$out" || die "Expected 'Failed to delete' for non-existent region, got: $out"
 
 ########################################################################################################################
 # 7. Create, then delete, then re-create (lifecycle roundtrip)
@@ -129,7 +129,7 @@ echo "--- TEST: no action flag (validation failure) ---"
 if out=$(fdb-fam --endpoint="$fam_endpoint" "/$test_region" 2>&1); then
     die "Expected non-zero exit when no action flag is given, got success: $out"
 fi
-echo "$out" | grep -qF "exactly one of" || die "Expected 'exactly one of' for no action flag, got: $out"
+grep -qF -- "exactly one of" <<< "$out" || die "Expected 'exactly one of' for no action flag, got: $out"
 
 ########################################################################################################################
 # 9. Argument validation: multiple action flags — expect failure exit code
@@ -139,7 +139,7 @@ echo "--- TEST: multiple action flags (validation failure) ---"
 if out=$(fdb-fam --endpoint="$fam_endpoint" --create --delete --size=4096 "/$test_region" 2>&1); then
     die "Expected non-zero exit when multiple action flags are given, got success: $out"
 fi
-echo "$out" | grep -qF "exactly one of" || die "Expected 'exactly one of' for multiple action flags, got: $out"
+grep -qF -- "exactly one of" <<< "$out" || die "Expected 'exactly one of' for multiple action flags, got: $out"
 
 ########################################################################################################################
 # 10. Argument validation: missing [path] argument — expect failure exit code
@@ -149,7 +149,7 @@ echo "--- TEST: missing path argument (validation failure) ---"
 if out=$(fdb-fam --endpoint="$fam_endpoint" --lookup 2>&1); then
     die "Expected non-zero exit when path argument is missing, got success: $out"
 fi
-echo "$out" | grep -qF "missing argument" || die "Expected 'missing argument' for missing path, got: $out"
+grep -qF -- "missing argument" <<< "$out" || die "Expected 'missing argument' for missing path, got: $out"
 
 ########################################################################################################################
 # 11. Argument validation: --create without --size — expect failure exit code
@@ -159,7 +159,7 @@ echo "--- TEST: create without size (validation failure) ---"
 if out=$(fdb-fam --endpoint="$fam_endpoint" --create --perm=0640 "/$test_region" 2>&1); then
     die "Expected non-zero exit when --size is missing for --create, got success: $out"
 fi
-echo "$out" | grep -qF "missing option [size]" || die "Expected 'missing option [size]' for create without size, got: $out"
+grep -qF -- "missing option [size]" <<< "$out" || die "Expected 'missing option [size]' for create without size, got: $out"
 
 ########################################################################################################################
 
