@@ -1,0 +1,18 @@
+---
+type: store
+serverPort: 10042
+serverThreaded: true
+networks:
+- name: trusted
+  netmask: 127.0.0.0/8
+  wipe: true
+- name: others-low
+  netmask: 0.0.0.0/1
+  wipe: false
+- name: others-high
+  netmask: 128.0.0.0/1
+  wipe: false
+spaces:
+- handler: Default
+  roots:
+  - path: @CMAKE_CURRENT_BINARY_DIR@/store_allowed_root
