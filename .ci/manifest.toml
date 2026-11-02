@@ -37,6 +37,7 @@ compiler-inputs = ["cxx-compiler"]
 
 [packages.pyfdb]
 compiler-inputs = ["cxx-compiler"]
+allow-stale-deps = true
 
 [[packages.pyfdb.deps]]
 package = "fdb"
@@ -187,6 +188,7 @@ cxx-compiler-binary = "icpc"
 
 [packages.fdb-rust]
 compiler-inputs = ["cxx-compiler"]
+allow-stale-deps = true
 
 [[packages.fdb-rust.deps]]
 package = "fdb"
