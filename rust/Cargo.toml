@@ -24,9 +24,9 @@ metkit = { git = "ssh://git@github.com/ecmwf/metkit.git", branch = "develop", de
 eccodes-sys = { version = "2.50", default-features = false }
 
 # Build tools
-bindman = { git = "ssh://git@github.com/ecmwf/bindman.git", rev = "25726ab" }
-bindman-build = { git = "ssh://git@github.com/ecmwf/bindman.git", rev = "25726ab" }
-bindman-utils = { git = "ssh://git@github.com/ecmwf/bindman.git", rev = "25726ab" }
+bindman = "0.2"
+bindman-build = "0.2"
+bindman-utils = "0.2"
 
 # External
 thiserror = "2"
