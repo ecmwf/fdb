@@ -86,14 +86,14 @@ ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& 
                     clientNetwork_ = net.getString("name");
                     netConfig = net.has("wipe") ? std::optional<bool>{net.getBool("wipe")} : std::nullopt;
                 }
-                if (net.getBool("wipe", false)) {
+                if (net.has("wipe")) {
                     wipeEnabled = true;
                 }
             }
         }
 
         long long disabledFeatures = 0ll;
-        if (wipeEnabled && netConfig && !netConfig.value()) {
+        if (wipeEnabled && (!netConfig || !netConfig.value())) {
             disabledFeatures |= toMask(Message::Wipe);
         }
         config_.set("DisabledFeatures", disabledFeatures);
