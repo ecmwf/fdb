@@ -7,6 +7,7 @@
 #include "metkit-sys/src/lib.rs.h"  // MarsRequestWrapper
 
 #include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/AccessIterator.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 
 #include "rust/cxx.h"
@@ -92,6 +93,9 @@ public:
     rust::Vec<AxisEntry> axes(const metkit_bridge::MarsRequestWrapper& request, int32_t level);
     std::unique_ptr<DumpIteratorHandle> dump(const metkit_bridge::MarsRequestWrapper& request, bool simple);
     std::unique_ptr<StatusIteratorHandle> status(const metkit_bridge::MarsRequestWrapper& request);
+    std::unique_ptr<StatusIteratorHandle> touch(const metkit_bridge::MarsRequestWrapper& request,
+                                                rust::Slice<const fdb5::AccessIdentifier> identifiers,
+                                                const AccessTimeData& when);
     std::unique_ptr<WipeIteratorHandle> wipe(const metkit_bridge::MarsRequestWrapper& request, bool doit,
                                              bool porcelain, bool unsafe_wipe_all);
     std::unique_ptr<PurgeIteratorHandle> purge(const metkit_bridge::MarsRequestWrapper& request, bool doit,

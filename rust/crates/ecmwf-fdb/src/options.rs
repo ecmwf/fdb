@@ -39,6 +39,7 @@
 //!   masked entries hidden, matching `fdb-list`'s defaults.
 //! - `DumpOptions`: `simple = false` — verbose dump by default, matching
 //!   `fdb-dump`.
+//! - `AccessTime`: `Now` — record the current time, matching `fdb-touch`.
 
 /// Per-instance FDB user configuration.
 ///
@@ -151,4 +152,29 @@ pub struct DumpOptions {
     /// `false` produces the verbose multi-line format that matches
     /// upstream `fdb-dump`.
     pub simple: bool,
+}
+
+/// The instant to be recorded by [`Fdb::touch`](crate::Fdb::touch).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum AccessTime {
+    /// The current time.
+    #[default]
+    Now,
+    /// The best approximation available from the database's catalogue, normally
+    /// the modification time of its toc.
+    Catalogue,
+    /// The given instant, in seconds since the Unix epoch.
+    At(i64),
+}
+
+impl AccessTime {
+    /// Convert to the `fdb-sys` transport type.
+    pub(crate) const fn to_sys(self) -> fdb_sys::AccessTimeData {
+        let (source, time) = match self {
+            Self::Now => (fdb_sys::AccessTimeSource::Now, 0),
+            Self::Catalogue => (fdb_sys::AccessTimeSource::Catalogue, 0),
+            Self::At(time) => (fdb_sys::AccessTimeSource::Explicit, time),
+        };
+        fdb_sys::AccessTimeData { source, time }
+    }
 }
