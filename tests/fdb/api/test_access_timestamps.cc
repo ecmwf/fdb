@@ -78,7 +78,7 @@ void archiveSome(FDB& fdb, const std::vector<std::string>& steps = {"1", "2"}) {
     key.set("domain", "g");
     key.set("type", "fc");
     key.set("levtype", "sfc");
-    key.set("param", "130");
+    key.set("param", "167");
 
     for (const auto& step : steps) {
         key.set("step", step);
@@ -131,9 +131,14 @@ time_t lastWrite(const eckit::PathName& directory) {
 /// An arbitrary time well in the past, used as a baseline that any real access must move away from.
 constexpr time_t longAgo = 1000000000;  // 2001-09-09
 
-void drain(ListIterator& it) {
+/// Consume the iterator, returning how many elements it yielded.
+size_t drain(ListIterator& it) {
     ListElement elem;
-    while (it.next(elem)) {}
+    size_t count = 0;
+    while (it.next(elem)) {
+        count++;
+    }
+    return count;
 }
 
 }  // namespace
@@ -306,11 +311,11 @@ CASE("Inspect counts as a read and not as a write") {
     const eckit::PathName db = tmpdir / dbDirName;
 
     const metkit::mars::MarsRequest request =
-        FDBToolRequest::requestsFromString(dbKeyString + ",type=fc,levtype=sfc,param=130,step=1")[0].request();
+        FDBToolRequest::requestsFromString(dbKeyString + ",type=fc,levtype=sfc,param=167,step=1")[0].request();
 
     setTimes(db, longAgo);
     auto it = fdb.inspect(request);
-    drain(it);
+    EXPECT_EQUAL(drain(it), size_t(1));
     EXPECT(lastRead(db) > longAgo);
     EXPECT_EQUAL(lastWrite(db), longAgo);
 }
@@ -339,11 +344,11 @@ CASE("An inspect that matches nothing does not count as access") {
 
     // step=99 was never archived, so no datum is resolved from this database.
     const metkit::mars::MarsRequest request =
-        FDBToolRequest::requestsFromString(dbKeyString + ",type=fc,levtype=sfc,param=130,step=99")[0].request();
+        FDBToolRequest::requestsFromString(dbKeyString + ",type=fc,levtype=sfc,param=167,step=99")[0].request();
 
     setTimes(db, longAgo);
     auto it = fdb.inspect(request);
-    drain(it);
+    EXPECT_EQUAL(drain(it), size_t(0));
     EXPECT_EQUAL(lastRead(db), longAgo);
     EXPECT_EQUAL(lastWrite(db), longAgo);
 }
@@ -385,11 +390,11 @@ CASE("Updates are coarsened within the granularity window") {
     const eckit::PathName db = tmpdir / dbDirName;
 
     const metkit::mars::MarsRequest request =
-        FDBToolRequest::requestsFromString(dbKeyString + ",type=fc,levtype=sfc,param=130,step=1")[0].request();
+        FDBToolRequest::requestsFromString(dbKeyString + ",type=fc,levtype=sfc,param=167,step=1")[0].request();
 
     {
         auto it = fdb.inspect(request);
-        drain(it);
+        EXPECT_EQUAL(drain(it), size_t(1));
     }
     EXPECT(lastRead(db) != 0);
 
@@ -397,7 +402,7 @@ CASE("Updates are coarsened within the granularity window") {
     setTime(db, readFile, longAgo);
     {
         auto it = fdb.inspect(request);
-        drain(it);
+        EXPECT_EQUAL(drain(it), size_t(1));
     }
     EXPECT_EQUAL(lastRead(db), longAgo);
 
@@ -405,7 +410,7 @@ CASE("Updates are coarsened within the granularity window") {
     FDB unthrottled(makeConfig(tmpdir, false, /* granularity */ 0));
     {
         auto it = unthrottled.inspect(request);
-        drain(it);
+        EXPECT_EQUAL(drain(it), size_t(1));
     }
     EXPECT(lastRead(db) > longAgo);
 }
@@ -424,9 +429,9 @@ CASE("A missing timestamp is unknown, and reading still works") {
     // Readers must never create a timestamp: they generally cannot write to the directory, and a
     // file created on read would record the wrong thing anyway.
     const metkit::mars::MarsRequest request =
-        FDBToolRequest::requestsFromString(dbKeyString + ",type=fc,levtype=sfc,param=130,step=1")[0].request();
+        FDBToolRequest::requestsFromString(dbKeyString + ",type=fc,levtype=sfc,param=167,step=1")[0].request();
     auto it = fdb.inspect(request);
-    drain(it);
+    EXPECT_EQUAL(drain(it), size_t(1));
 
     EXPECT_NOT((db / readFile).exists());
     EXPECT_EQUAL(lastRead(db), 0);
@@ -493,10 +498,10 @@ CASE("An explicit touch creates a missing record; automatic marking does not") {
     // - it generally cannot write to the directory, and the event it would record is the wrong one.
     (db / readFile).unlink();
     const metkit::mars::MarsRequest datum =
-        FDBToolRequest::requestsFromString(dbKeyString + ",type=fc,levtype=sfc,param=130,step=1")[0].request();
+        FDBToolRequest::requestsFromString(dbKeyString + ",type=fc,levtype=sfc,param=167,step=1")[0].request();
     {
         auto it = fdb.inspect(datum);
-        drain(it);
+        EXPECT_EQUAL(drain(it), size_t(1));
     }
     EXPECT_NOT((db / readFile).exists());
 
