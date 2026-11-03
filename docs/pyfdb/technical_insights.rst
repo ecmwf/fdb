@@ -79,7 +79,7 @@ Install the Python build toolchain and ``PyFDB``'s runtime dependencies:
 .. code-block:: sh
 
    uv pip install build setuptools wheel pybind11 \
-                  findlibs PyYAML pytest eccodes GitPython
+                  findlibs PyYAML pytest eccodes
 
 .. note::
 

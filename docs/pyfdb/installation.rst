@@ -41,7 +41,6 @@ Python Dependencies
     eccodes
     build
     setuptools
-    GitPython
     sphinx
     sphinxcontrib-mermaid
     pydata-sphinx-theme
@@ -116,9 +115,9 @@ and activate a ``venv`` in the root of this bundle (where the ``CMakeLists.txt``
 
    uv venv
    source .venv/bin/activate
-   uv pip install -r fdb/requirements.txt
+   uv pip install -r fdb/python/requirements-build.txt -r fdb/python/requirements-test.txt
    # Add those requirements if you want to build the docs locally
-   uv pip install -r fdb/docs/fdb/requirements.txt
+   uv pip install -r fdb/python/requirements-docs.txt
 
 After configuration with ``cmake`` run ``ninja`` in the created ``build`` folder:
 
