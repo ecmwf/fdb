@@ -48,10 +48,10 @@ pub use iterator::{
     StatsIterator, StatusElement, StatusIterator, WipeElement, WipeIterator,
 };
 pub use key::Key;
-pub use options::{DumpOptions, ListOptions, PurgeOptions, UserConfig, WipeOptions};
+pub use options::{AccessTime, DumpOptions, ListOptions, PurgeOptions, UserConfig, WipeOptions};
 
-// Re-export control enums from the cxx bindings
-pub use fdb_sys::{ControlAction, ControlIdentifier};
+// Re-export control and access enums from the cxx bindings
+pub use fdb_sys::{AccessIdentifier, ControlAction, ControlIdentifier};
 
 /// Version string of the underlying FDB C++ library.
 #[must_use]
