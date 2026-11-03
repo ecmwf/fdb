@@ -1,20 +1,12 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /** @author Emanuele Danovaro */
 /** @author Simon Smart */
 /** @author Tiago Quintino */
 /** @date   Apr 2020 */
 
-#ifndef fdb5_api_fdb_c_H
-#define fdb5_api_fdb_c_H
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -481,5 +473,4 @@ int fdb_purge_element_string(fdb_purge_element_t* element, const char** str);
 } /* extern "C" */
 #endif
 
-#endif
 // fdb5_api_fdb_H

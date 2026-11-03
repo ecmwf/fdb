@@ -1,19 +1,13 @@
 import pathlib
 from pathlib import Path
 
-import git
 import pytest
 
 from fdb_e2e.conftest import ALL_LOCAL_SPECS
 
 
-def _get_git_root(path) -> Path:
-    git_repo = git.Repo(path, search_parent_directories=True)
-    return Path(git_repo.git.rev_parse("--show-toplevel"))
-
-
 def _tool_tests_dir() -> Path:
-    return _get_git_root(__file__) / "tests" / "fdb_e2e" / "tool_tests"
+    return Path(__file__).resolve().parent
 
 
 def search_scripts(case: str, subtocs: bool) -> list[Path]:
@@ -24,10 +18,8 @@ def search_scripts(case: str, subtocs: bool) -> list[Path]:
 
 @pytest.fixture(scope="function")
 def test_data_path() -> pathlib.Path:
-    """Provides path to test data (resolved via git root)."""
-    git_repo = git.Repo(__file__, search_parent_directories=True)
-    git_root = pathlib.Path(git_repo.git.rev_parse("--show-toplevel"))
-    path = git_root / "tests" / "fdb_e2e" / "data"
+    """Provides path to test data."""
+    path = Path(__file__).resolve().parent.parent / "data"
     assert path.exists()
     return path
 
