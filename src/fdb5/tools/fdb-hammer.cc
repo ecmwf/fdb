@@ -1495,7 +1495,7 @@ std::pair<std::unique_ptr<DataHandle>, std::deque<Key>> FDBHammer::constructRead
 
     {
         metkit::mars::MarsRequest template_request = config_.templateRequest();
-        auto& lang = metkit::mars::MarsLanguage::get(template_request.verb());
+        metkit::mars::MarsLanguage lang{template_request.verb()};
         template_request.setValuesTyped(lang.type("number"), to_stringvec(config_.request.ensemblelist));
 
         size_t first_level = config_.iteration.startAtChunk / nparams;
