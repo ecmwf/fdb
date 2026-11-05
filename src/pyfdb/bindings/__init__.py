@@ -4,6 +4,8 @@ try:
     findlibs.load("fdb5")
 
     from ._pyfdb_bindings import (
+        AccessIdentifier,
+        AccessTime,
         Config,
         ControlAction,
         ControlElement,
@@ -33,6 +35,8 @@ except ImportError as exc:
 init_bindings()
 
 __all__ = [
+    "AccessIdentifier",
+    "AccessTime",
     "Config",
     "ControlAction",
     "ControlElement",
