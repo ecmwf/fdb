@@ -16,6 +16,8 @@ _URI = _bindings.URI
 _DataHandle = _bindings.DataHandle
 _ControlAction = _bindings.ControlAction
 _ControlIdentifier = _bindings.ControlIdentifier
+_AccessIdentifier = _bindings.AccessIdentifier
+_AccessTime = _bindings.AccessTime
 
 # Types forwarded to Python wrapper classes in pyfdb_iterator / pyfdb_type.
 Config = _bindings.Config

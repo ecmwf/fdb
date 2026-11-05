@@ -35,6 +35,12 @@ FDB - Auxiliary Objects
 .. autoapiclass:: pyfdb.pyfdb.ControlIdentifier 
    :members:
 
+.. autoapiclass:: pyfdb.pyfdb.AccessIdentifier
+   :members:
+
+.. autoapiclass:: pyfdb.pyfdb.AccessTime
+   :members:
+
 FDB - Iterator Objects
 ----------------------
 .. autoapiclass:: pyfdb.pyfdb.ControlElement
