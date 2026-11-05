@@ -19,7 +19,7 @@ name = "fdb_sys"
 # Defaults match CMake defaults (without external library dependencies),
 # plus `memfs` so the eccodes definition tables are baked into libeccodes
 # and end users don't have to ship an `eccodes_resources/` directory.
-default = ["grib", "tocfdb", "fdb-remote", "memfs"]
+default = ["vendored", "grib", "tocfdb", "fdb-remote", "memfs"]
 
 # Build strategy (mutually exclusive)
 vendored = ["eckit-sys/vendored", "metkit-sys/vendored", "eccodes-sys/vendored"]
