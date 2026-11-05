@@ -107,7 +107,35 @@ cmp out listX6
 
 $fdboverlay --variable-keys=expver class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g class=rd,expver=xxxz,stream=oper,date=20201102,time=0000,domain=g
 
+### The access timestamps travel with the data: fdb-move copies them like any other file, and the
+### copy reproduces the source's mode and mtime. The mtime is the entire content of these files, so
+### a move that restamped them would make every moved database look freshly accessed.
+
+mode_of() { stat -c %a "$1" 2>/dev/null || stat -f %Lp "$1"; }
+mtime_of() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1"; }
+
+src_db=${bindir}/root/rd:xxxz:oper:20201102:0000:g
+dest_db=${bindir}/root2/rd:xxxz:oper:20201102:0000:g
+
+[[ -e $src_db/read.timestamp ]] || { echo "No read timestamp to move"; exit 1; }
+[[ -e $src_db/write.timestamp ]] || { echo "No write timestamp to move"; exit 1; }
+
+# Backdate them, so that a restamped destination would be obvious.
+touch -t 202001010000 $src_db/read.timestamp $src_db/write.timestamp
+
+read_mode=$(mode_of $src_db/read.timestamp)
+write_mode=$(mode_of $src_db/write.timestamp)
+read_mtime=$(mtime_of $src_db/read.timestamp)
+write_mtime=$(mtime_of $src_db/write.timestamp)
+
 $fdbmove --threads=2 --dest=./root2 class=rd,expver=xxxz,stream=oper,date=20201102,time=0000,domain=g
+
+[[ ! -d $src_db ]] || { echo "Source database $src_db was not removed"; exit 1; }
+
+[[ $(mode_of $dest_db/read.timestamp) == $read_mode ]] || { echo "read.timestamp lost its mode"; exit 1; }
+[[ $(mode_of $dest_db/write.timestamp) == $write_mode ]] || { echo "write.timestamp lost its mode"; exit 1; }
+[[ $(mtime_of $dest_db/read.timestamp) -eq $read_mtime ]] || { echo "read.timestamp lost its mtime"; exit 1; }
+[[ $(mtime_of $dest_db/write.timestamp) -eq $write_mtime ]] || { echo "write.timestamp lost its mtime"; exit 1; }
 
 $fdblist class=rd,expver=xxxz,stream=oper,date=20201102,time=0000,domain=g --porcelain | tee out
 cmp out listZ6

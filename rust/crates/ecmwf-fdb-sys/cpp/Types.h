@@ -22,6 +22,7 @@ struct IndexStatsData;
 struct DbStatsData;
 struct StatsElementData;
 struct ControlElementData;
+struct AccessTimeData;
 
 //----------------------------------------------------------------------------------------------------------------------
 

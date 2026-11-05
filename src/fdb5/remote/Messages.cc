@@ -103,6 +103,9 @@ std::ostream& operator<<(std::ostream& s, const Message& m) {
         case Message::Control:
             s << "Control";
             break;
+        case Message::Touch:
+            s << "Touch";
+            break;
         case Message::Inspect:
             s << "Inspect";
             break;
