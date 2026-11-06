@@ -76,6 +76,9 @@ private:  // methods
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
 
+    // used by tests for direct access to messageQueues_/messageQueueMutex_
+    friend class RemoteFDBTestHarness;
+
 private:  // members
 
     std::unordered_map<eckit::net::Endpoint, eckit::net::Endpoint> storesReadMapping_;
