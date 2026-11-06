@@ -172,7 +172,7 @@ CASE("retrieves_distributed_according_to_select") {
     // Do some archiving
 
     metkit::mars::MarsRequest req{"retrieve"};
-    auto& lang = metkit::mars::MarsLanguage::get(req.verb());
+    metkit::mars::MarsLanguage lang{req.verb()};
     req.setValuesTyped(lang.type("class"), std::vector<std::string>{"od"});
     req.setValuesTyped(lang.type("expver"), std::vector<std::string>{"xxxx"});
     fdb.inspect(req);
