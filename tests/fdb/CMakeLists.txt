@@ -80,6 +80,7 @@ endif()
 if (HAVE_FDB_BUILD_TOOLS)
     add_subdirectory( timespan )
     add_subdirectory( tools )
+    add_subdirectory( mtg2 )
 endif()
 
 if (HAVE_FDB_REMOTE)
