@@ -44,13 +44,24 @@ fdb_remote_init "$testdir/remote_servers"
 
 # --- Start the servers in the background.
 
-fdb_remote_start_server CATALOGUE "$catalogue_config" "$(fdb_remote_config_port "$catalogue_config")" \
-  FDB5_SUB_TOCS=1 FDB_DEBUG=1 FDB_WIPE_SECRET=123 -- "$server"
-fdb_remote_start_server STORE "$store_config" "$(fdb_remote_config_port "$store_config")" \
-  FDB5_SUB_TOCS=1 FDB_DEBUG=1 FDB_WIPE_SECRET=123 -- "$server"
+catalogue_args=(CATALOGUE "$catalogue_config" "$(fdb_remote_config_port "$catalogue_config")"
+  FDB5_SUB_TOCS=1 FDB_DEBUG=1 FDB_WIPE_SECRET=123 -- "$server")
+store_args=(STORE "$store_config" "$(fdb_remote_config_port "$store_config")"
+  FDB5_SUB_TOCS=1 FDB_DEBUG=1 FDB_WIPE_SECRET=123 -- "$server")
+
+fdb_remote_start_server "${catalogue_args[@]}"
+fdb_remote_start_server "${store_args[@]}"
 
 fdb_remote_wait_for_servers
 
 # --- Run the client test
+# (index 0 is the catalogue, index 1 the store; tests that need to kill them use these)
+export FDB_REMOTE_CATALOGUE_PGID="${FDB_REMOTE_SERVER_PGIDS[0]}"
+export FDB_REMOTE_STORE_PGID="${FDB_REMOTE_SERVER_PGIDS[1]}"
+# Tests that restart a server they have killed run these scripts
+export FDB_REMOTE_CATALOGUE_RESTART="$FDB_REMOTE_STATE_DIR/restart_catalogue.sh"
+export FDB_REMOTE_STORE_RESTART="$FDB_REMOTE_STATE_DIR/restart_store.sh"
+fdb_remote_write_restart_script "$FDB_REMOTE_CATALOGUE_RESTART" "${catalogue_args[@]}"
+fdb_remote_write_restart_script "$FDB_REMOTE_STORE_RESTART" "${store_args[@]}"
 FDB5_CONFIG_FILE="$client_config" "$test"
 exit $?
