@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/ecmwf-fdb-sys", "crates/ecmwf-fdb", "tools/fdb-hammer"]
 
 [workspace.package]
-version = "5.25.1"
+version = "5.25.3"
 edition = "2024"
 license = "Apache-2.0"
 repository = "https://github.com/ecmwf/fdb"
