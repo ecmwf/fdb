@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+# Starts two catalogue/store server pairs, one whose `networks` grant wipe to the test client's netmask and
+# one whose `networks` grant it to a different netmask, then runs the client test against both.
+
+if [[ $# -lt 7 ]]; then
+    echo "Usage: $0 <test_directory> <client_allowed> <catalogue_allowed> <store_allowed> <client_denied> <catalogue_denied> <store_denied>" >&2
+    exit 1
+fi
+
+set -eux
+
+source "@FDB_REMOTE_TEST_HELPER@"
+
+testdir=$1
+client_allowed="$testdir/$2"
+catalogue_allowed="$testdir/$3"
+store_allowed="$testdir/$4"
+client_denied="$testdir/$5"
+catalogue_denied="$testdir/$6"
+store_denied="$testdir/$7"
+
+roots=("$testdir/catalogue_allowed_root" "$testdir/store_allowed_root"
+       "$testdir/catalogue_denied_root" "$testdir/store_denied_root")
+
+server="$<TARGET_FILE:fdb-server>"
+test="$<TARGET_FILE:fdb_test_remote_wipe_netmask>"
+
+cleanup() {
+    local exit_code=$?
+
+    fdb_remote_cleanup "$exit_code"
+    rm -rf "${roots[@]}"
+    return "$exit_code"
+}
+
+trap cleanup EXIT
+trap 'exit 1' INT TERM
+
+rm -rf "${roots[@]}"
+mkdir -p "${roots[@]}"
+fdb_remote_init "$testdir/remote_servers"
+
+for server_config in "CATALOGUE_ALLOWED:$catalogue_allowed" "STORE_ALLOWED:$store_allowed" \
+                     "CATALOGUE_DENIED:$catalogue_denied" "STORE_DENIED:$store_denied"; do
+    label=${server_config%%:*}
+    config=${server_config#*:}
+    fdb_remote_start_server "$label" "$config" "$(fdb_remote_config_port "$config")" \
+        FDB_DEBUG=1 FDB_WIPE_SECRET=123 -- "$server"
+done
+
+fdb_remote_wait_for_servers
+
+FDB_TEST_CLIENT_ALLOWED="$client_allowed" FDB_TEST_CLIENT_DENIED="$client_denied" "$test"
+exit $?

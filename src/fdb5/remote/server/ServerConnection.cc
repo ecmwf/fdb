@@ -21,6 +21,8 @@
 #include "eckit/log/CodeLocation.h"
 #include "eckit/log/Log.h"
 #include "eckit/net/Endpoint.h"
+#include "eckit/net/IPAddress.h"
+#include "eckit/net/NetMask.h"
 #include "eckit/net/TCPServer.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/runtime/SessionID.h"
@@ -35,6 +37,7 @@
 #include <iterator>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <ostream>
 #include <sstream>
 #include <string>
@@ -66,6 +69,35 @@ ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& 
     controlSocket_(socket) {
 
     innerConfig_ = config_.has("fdb") ? Config{config_.getSubConfiguration("fdb"), config_.userConfig()} : config_;
+
+    clientNetwork_ = "";
+    if (config_.has("networks")) {
+        eckit::net::IPAddress clientIPaddress{controlSocket_.remoteAddr()};
+        std::optional<bool> netConfig;
+
+        // Check if any network has the "wipe" enabled, if so, we only enable wipe for the networks that have it
+        // explicitly set
+        bool wipeEnabled = false;
+        for (const auto& net : config_.getSubConfigurations("networks")) {
+            if (net.has("name") && net.has("netmask")) {
+                eckit::net::NetMask netmask{net.getString("netmask")};
+                // The first network containing the client address wins
+                if (clientNetwork_.empty() && netmask.contains(clientIPaddress)) {
+                    clientNetwork_ = net.getString("name");
+                    netConfig = net.has("wipe") ? std::optional<bool>{net.getBool("wipe")} : std::nullopt;
+                }
+                if (net.has("wipe")) {
+                    wipeEnabled = true;
+                }
+            }
+        }
+
+        long long disabledFeatures = 0ll;
+        if (wipeEnabled && (!netConfig || !netConfig.value())) {
+            disabledFeatures |= toMask(Message::Wipe);
+        }
+        config_.set("DisabledFeatures", disabledFeatures);
+    }
 
     LOG_DEBUG_LIB(LibFdb5) << "ServerConnection::ServerConnection initialized" << std::endl;
 }

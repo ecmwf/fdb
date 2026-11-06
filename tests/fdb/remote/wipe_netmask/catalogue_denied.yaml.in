@@ -1,0 +1,22 @@
+---
+type: catalogue
+serverPort: 10043
+serverThreaded: true
+# Wipe is only granted to 10.0.0.0/8; the test client (127.0.0.1) falls in the catch-all networks.
+networks:
+- name: trusted
+  netmask: 10.0.0.0/8
+  wipe: true
+- name: others-low
+  netmask: 0.0.0.0/1
+  wipe: false
+- name: others-high
+  netmask: 128.0.0.0/1
+  wipe: false
+stores:
+- default: "localhost:10044"
+schema: @CMAKE_CURRENT_SOURCE_DIR@/../schema
+spaces:
+- handler: Default
+  roots:
+    - path: @CMAKE_CURRENT_BINARY_DIR@/catalogue_denied_root
