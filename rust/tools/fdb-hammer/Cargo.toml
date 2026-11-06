@@ -6,6 +6,7 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Benchmark and stress test tool for FDB"
+publish = false
 
 [[bin]]
 name = "fdb-hammer"
@@ -16,15 +17,15 @@ bindman-utils.workspace = true
 
 [features]
 default = ["vendored"]
-vendored = ["fdb/vendored"]
-system = ["fdb/system"]
+vendored = ["ecmwf-fdb/vendored"]
+system = ["ecmwf-fdb/system"]
 
 [dependencies]
 md-5 = "0.10"
 clap = { version = "4", features = ["derive"] }
 eckit.workspace = true
 metkit.workspace = true
-fdb = { path = "../../crates/fdb", default-features = false }
+ecmwf-fdb = { path = "../../crates/ecmwf-fdb", default-features = false }
 hostname = "0.4"
 rand = "0.9"
 nix = { version = "0.29", features = ["fs", "signal", "user"] }

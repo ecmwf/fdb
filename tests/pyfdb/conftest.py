@@ -20,6 +20,16 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
+def pytest_addoption(parser):
+    # Stated to silence pytest-asyncio.
+    parser.addini(
+        "asyncio_default_fixture_loop_scope",
+        help="default scope of the asyncio event loop used to execute async fixtures",
+        type="string",
+        default="function",
+    )
+
+
 @pytest.fixture
 def test_logger():
     return logger
@@ -205,9 +215,7 @@ def build_grib_messages_relative_dates(data_path, session_tmp) -> pathlib.Path:
     today = int(today_date.strftime("%Y%m%d"))
     yesterday = int((today_date - datetime.timedelta(days=1)).strftime("%Y%m%d"))
     before_yesterday = int((today_date - datetime.timedelta(days=2)).strftime("%Y%m%d"))
-    before_before_yesterday = int(
-        (today_date - datetime.timedelta(days=3)).strftime("%Y%m%d")
-    )
+    before_before_yesterday = int((today_date - datetime.timedelta(days=3)).strftime("%Y%m%d"))
 
     dates = [before_before_yesterday, before_yesterday, yesterday, today]
     times = [0, 300, 600, 900, 1200, 1500, 1800, 2100]
