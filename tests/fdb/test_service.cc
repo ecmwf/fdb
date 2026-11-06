@@ -144,7 +144,7 @@ CASE("test_fdb_stepunit_archive") {
         EXPECT(!iter.next(el));
     }
 
-    req.setValuesTyped(metkit::mars::MarsLanguage::get(req.verb()).type("step"), std::vector<std::string>{"2", "60"});
+    req.setValuesTyped(metkit::mars::MarsLanguage{req.verb()}.type("step"), std::vector<std::string>{"2", "60"});
     {
         fdb5::FDBToolRequest r(req);
         fdb5::ListIterator iter = fdb.list(r, true);
@@ -345,7 +345,7 @@ CASE("test_fdb_service") {
             r.setValue("domain", "g");
             r.setValue("levtype", "pl");
 
-            auto& lang = metkit::mars::MarsLanguage::get(r.verb());
+            metkit::mars::MarsLanguage lang{r.verb()};
             r.setValuesTyped(lang.type("param"), params);
             r.setValuesTyped(lang.type("step"), steps);
             r.setValuesTyped(lang.type("levelist"), levels);
@@ -522,7 +522,7 @@ CASE("test_fdb_service_subtoc") {
             r.setValue("domain", "g");
             r.setValue("levtype", "pl");
 
-            auto& lang = metkit::mars::MarsLanguage::get(r.verb());
+            metkit::mars::MarsLanguage lang{r.verb()};
             r.setValuesTyped(lang.type("param"), params);
             r.setValuesTyped(lang.type("step"), steps);
             r.setValuesTyped(lang.type("levelist"), levels);
