@@ -36,6 +36,11 @@ on:
         required: false
         type: string
         default: main
+      pin:
+        description: owner/repo@sha the dispatching consumer was pinned to; only with rebuild-request
+        required: false
+        default: ''
+        type: string
   workflow_dispatch:
     inputs:
       dispatch-id:
@@ -70,6 +75,11 @@ on:
         required: false
         type: string
         default: main
+      pin:
+        description: owner/repo@sha the dispatching consumer was pinned to; only with rebuild-request
+        required: false
+        default: ''
+        type: string
 concurrency:
   group: cross-repo-trigger-runner-fdb-${{ github.ref }}
   cancel-in-progress: false
@@ -84,16 +94,12 @@ env:
 jobs:
   resolve:
     if: contains(fromJSON(inputs.from-jobs), 'metkit/build') || contains(fromJSON(inputs.from-jobs), 'eccodes/build') || contains(fromJSON(inputs.from-jobs), 'ecbuild/build') || contains(fromJSON(inputs.from-jobs), 'stack-deps/build') || contains(fromJSON(inputs.from-jobs), 'eckit/build') || inputs.rebuild-request
-    runs-on: arc-runner-normal
-    container:
-      image: eccr.ecmwf.int/public-ci-images/ubuntu24.04-base:latest
+    runs-on: ubuntu-latest
     outputs:
       ref: ${{ steps.pick.outputs.ref }}
       matrix-build: ${{ toJSON(fromJSON(steps.r.outputs.json)['build']) }}
       matrix-python: ${{ toJSON(fromJSON(steps.r.outputs.json)['python']) }}
     steps:
-    - name: Announce image
-      uses: ecmwf/ci-infrastructure/actions/announce-image@main
     - id: mint
       uses: actions/create-github-app-token@v3
       with:
@@ -117,7 +123,7 @@ jobs:
       uses: ecmwf/ci-infrastructure/actions/resolve-deps@main
       with:
         current-branch: ${{ steps.pick.outputs.ref }}
-        pin: ${{ !inputs.rebuild-request && format('{0}@{1}', inputs.from-repo, inputs.from-sha) || '' }}
+        pin: ${{ !inputs.rebuild-request && format('{0}@{1}', inputs.from-repo, inputs.from-sha) || inputs.pin }}
         matrix: build,python
         token: ${{ steps.mint.outputs.token }}
         client-id: ${{ secrets.CI_PERMISSIONS_APP_CLIENT_ID }}
@@ -195,14 +201,6 @@ jobs:
       with:
         deps-json: ${{ steps.m.outputs.deps-json }}
         token: ${{ steps.mint.outputs.token }}
-    - id: git-read
-      uses: actions/create-github-app-token@v3
-      with:
-        client-id: ${{ secrets.CI_PERMISSIONS_APP_CLIENT_ID }}
-        private-key: ${{ secrets.CI_PERMISSIONS_APP_PRIVATE_KEY }}
-        owner: ${{ github.repository_owner }}
-        repositories: bindman,rust-wrappers-playground
-        permission-contents: read
     - name: Build
       id: build
       uses: ecmwf/ci-infrastructure/actions/run-job-script@main
@@ -211,7 +209,6 @@ jobs:
         matrix-leg: ${{ toJSON(matrix) }}
         package: fdb
         cmake-prefix-path: ${{ steps.deps.outputs.cmake-prefix-path }}
-        git-token: ${{ steps.git-read.outputs.token }}
     - name: Publish
       uses: ecmwf/ci-infrastructure/actions/publish-artifact@main
       with:
@@ -303,14 +300,6 @@ jobs:
       with:
         deps-json: ${{ steps.m.outputs.deps-json }}
         token: ${{ steps.mint.outputs.token }}
-    - id: git-read
-      uses: actions/create-github-app-token@v3
-      with:
-        client-id: ${{ secrets.CI_PERMISSIONS_APP_CLIENT_ID }}
-        private-key: ${{ secrets.CI_PERMISSIONS_APP_PRIVATE_KEY }}
-        owner: ${{ github.repository_owner }}
-        repositories: bindman,rust-wrappers-playground
-        permission-contents: read
     - name: Build
       id: build
       uses: ecmwf/ci-infrastructure/actions/run-job-script@main
@@ -319,7 +308,6 @@ jobs:
         matrix-leg: ${{ toJSON(matrix) }}
         package: fdb
         cmake-prefix-path: ${{ steps.deps.outputs.cmake-prefix-path }}
-        git-token: ${{ steps.git-read.outputs.token }}
     - name: Publish
       uses: ecmwf/ci-infrastructure/actions/publish-artifact@main
       with:
