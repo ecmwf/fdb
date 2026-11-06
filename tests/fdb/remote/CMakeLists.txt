@@ -34,7 +34,7 @@ if (HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB)
         LABELS remotefdb
     )
 
-    # A request waiting for the store must be woken up, not resumed, when the connection is lost and the store restarts
+    # A request waiting for a server must be woken up, not resumed, when the connection is lost and the server restarts
     ecbuild_add_executable(
         TARGET    fdb_test_remote_connection_restart_bin
         SOURCES   test_remote_connection_restart.cc
