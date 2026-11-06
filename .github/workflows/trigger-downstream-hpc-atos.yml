@@ -74,12 +74,8 @@ jobs:
     - context
   validate:
     if: ${{ (needs.context.outputs.ci-conclusion == 'success') && needs['label-gate'].outputs.run == 'true' }}
-    runs-on: arc-runner-normal
-    container:
-      image: eccr.ecmwf.int/public-ci-images/ubuntu24.04-base:latest
+    runs-on: ubuntu-latest
     steps:
-    - name: Announce image
-      uses: ecmwf/ci-infrastructure/actions/announce-image@main
     - id: mint
       uses: actions/create-github-app-token@v3
       with:
@@ -91,6 +87,7 @@ jobs:
         ref: ${{ needs.context.outputs.head-sha }}
         token: ${{ steps.mint.outputs.token }}
         persist-credentials: false
+        allow-unsafe-pr-checkout: true
     - uses: ecmwf/ci-infrastructure/actions/validate-generated-workflows@main
       with:
         token: ${{ steps.mint.outputs.token }}
@@ -154,6 +151,37 @@ jobs:
       fallback-ref: develop
     secrets: inherit
     if: ${{ needs['label-gate'].outputs.run == 'true' && (needs['label-gate'].outputs.depth == 'all' || needs['label-gate'].outputs.depth >= 1) }}
+  zfdb:
+    name: zfdb
+    needs:
+    - ci-approval
+    - context
+    - label-gate
+    - validate
+    - gribjump
+    runs-on: ubuntu-latest
+    steps:
+    - id: mint
+      uses: actions/create-github-app-token@v3
+      with:
+        client-id: ${{ secrets.CI_PERMISSIONS_APP_CLIENT_ID }}
+        private-key: ${{ secrets.CI_PERMISSIONS_APP_PRIVATE_KEY }}
+        owner: ${{ github.repository_owner }}
+    - name: Dispatch zfdb (private consumer)
+      uses: ecmwf/ci-infrastructure/actions/dispatch-and-wait@main
+      with:
+        consumer-repo: ecmwf/zfdb
+        workflow-file: cross-repo-trigger-hpc-atos.yml
+        ref: develop
+        from-repo: ${{ github.repository }}
+        from-sha: ${{ needs.context.outputs.head-sha }}
+        from-jobs: '["fdb/build-hpc"]'
+        branch: ${{ needs.context.outputs.head-branch }}
+        fallback-ref: develop
+        token: ${{ steps.mint.outputs.token }}
+        artifact-names: ''
+        wait-for-run-conclusion: 'true'
+    if: ${{ needs['label-gate'].outputs.run == 'true' && (needs['label-gate'].outputs.depth == 'all' || needs['label-gate'].outputs.depth >= 2) }}
   report-result:
     needs:
     - ci-approval
@@ -161,6 +189,7 @@ jobs:
     - label-gate
     - validate
     - gribjump
+    - zfdb
     if: ${{ (always() && needs.context.outputs.ci-conclusion == 'success') && needs['label-gate'].outputs.run == 'true' }}
     runs-on: ubuntu-latest
     permissions:
@@ -171,7 +200,7 @@ jobs:
         GH_TOKEN: ${{ github.token }}
       run: |
         state=success
-        for r in ${{ needs.validate.result }} ${{ needs.gribjump.result }}; do
+        for r in ${{ needs.validate.result }} ${{ needs.gribjump.result }} ${{ needs.zfdb.result }}; do
           if [ "$r" = failure ] || [ "$r" = cancelled ]; then
             state=failure
           fi
