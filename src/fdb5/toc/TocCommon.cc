@@ -4,17 +4,22 @@
 #include "fdb5/toc/TocCommon.h"
 
 #include <pwd.h>
+#include <sys/stat.h>
 #include <unistd.h>
+#include <algorithm>
+#include <cerrno>
+#include <cstring>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/LocalPathName.h"
-#include "eckit/filesystem/URIManager.h"
-#include "eckit/log/Timer.h"
 #include "eckit/os/Stat.h"
+#include "eckit/utils/Translator.h"
 
-#include "fdb5/LibFdb5.h"
-#include "fdb5/io/LustreSettings.h"
-#include "fdb5/toc/RootManager.h"
+#include "fdb5/toc/detail/TocLocking.h"
 
 namespace fdb5 {
 
@@ -27,6 +32,10 @@ eckit::LocalPathName TocCommon::findRealPath(const eckit::LocalPathName& path) {
     }
 
     return findRealPath(path.dirName()) / path.baseName();
+}
+
+eckit::PathName TocCommon::uniquePath(const eckit::PathName& path) {
+    return TocLocking::forDirectory(eckit::LocalPathName{path.dirName()}).uniquePath(path);
 }
 
 TocCommon::TocCommon(const eckit::PathName& directory) :
