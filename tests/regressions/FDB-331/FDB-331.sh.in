@@ -1,0 +1,193 @@
+#!/usr/bin/env bash
+
+# Regression test for FDB-331:
+# Root selection in FDB historically uses the ``regex:`` selector, which
+# matches against the colon-joined string form of a Key. When a request
+# omits a keyword that appears in the regex (e.g. ``stream``), the regex
+# fails to match and the corresponding root is silently skipped from
+# fdb-list / fdb-where output.
+#
+# ``regex:`` is widely used in production and its behaviour is preserved
+# unchanged. FDB-331 introduces ``match:`` as an additional, opt-in
+# selector that operates on the structured Key: missing keywords are
+# tolerated, restoring full-coverage visitation for partial requests.
+#
+# Phase 1 -- ``regex:`` selector: documents the existing production
+#            behaviour (and exhibits FDB-331 on partial requests).
+# Phase 2 -- ``match:`` selector: shows the new keyword-aware behaviour.
+# Phase 3 -- a single space cannot specify both ``regex:`` and ``match:``.
+
+set -eux
+
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdblist="$<TARGET_FILE:fdb-list>"
+fdbwhere="$<TARGET_FILE:fdb-where>"
+
+gribset="$<TARGET_FILE:grib_set>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+export FDB_HOME=$bindir
+
+# Keep stdout clean: assertions below grep verbatim tool output
+# FDB/eckit debug streams contaminate those outputs
+export FDB_DEBUG=0
+export ECKIT_DEBUG=0
+
+### cleanup and prepare test
+
+rm -rf  ${bindir}/root_primary ${bindir}/root_fallback
+mkdir -p ${bindir}/root_primary ${bindir}/root_fallback
+
+cp $srcdir/schema  $bindir/schema
+cp $srcdir/x.grib  $bindir/x.grib
+
+cd $bindir
+
+### Stage data: one DB per stream value.
+###  - 'oper' is a "narrow" stream listed in the primary space
+###  - 'enda' is NOT in the primary space's narrow set
+$gribset -s class=od,expver=0001,stream=oper x.grib data.oper.grib
+$gribset -s class=od,expver=0001,stream=enda x.grib data.enda.grib
+
+### Configs ###########################################################
+
+# Two roots simulating the FDB-331 production layout: a "primary" space
+# narrowed by stream and a "fallback" space matching any od/0001 key.
+
+# regex.yaml: production-style configuration (unchanged semantics).
+cat > regex.yaml <<EOF
+---
+type: local
+engine: toc
+schema: ./schema
+spaces:
+ - regex: ^od:(0001):(scda|scwv|oper|wave|enfo|waef):.*
+   handler: Default
+   roots:
+    - path: ./root_primary
+ - regex: ^od:(0001):?.*
+   handler: Default
+   roots:
+    - path: ./root_fallback
+EOF
+
+# match.yaml: equivalent layout expressed with the new keyword-aware
+# selector. Same routing on full keys; tolerant of partial requests.
+cat > match.yaml <<EOF
+---
+type: local
+engine: toc
+schema: ./schema
+spaces:
+ - match:
+     class: od
+     expver: '0001'
+     stream: [scda, scwv, oper, wave, enfo, waef]
+   handler: Default
+   roots:
+    - path: ./root_primary
+ - match:
+     class: od
+     expver: '0001'
+   handler: Default
+   roots:
+    - path: ./root_fallback
+EOF
+
+# invalid.yaml: regex and match are mutually exclusive within a space.
+cat > invalid.yaml <<EOF
+---
+type: local
+engine: toc
+schema: ./schema
+spaces:
+ - regex: ^od:.*
+   match:
+     class: od
+   handler: Default
+   roots:
+    - path: ./root_primary
+EOF
+
+### Write the data using the regex config (writer routes by full key) #
+
+export FDB5_CONFIG_FILE=$bindir/regex.yaml
+
+$fdbwrite data.oper.grib
+$fdbwrite data.enda.grib
+
+# Sanity: data was routed to the expected roots.
+test -d "$(find root_primary  -type d -name 'od:0001:oper:*' | head -n1)"
+test -d "$(find root_fallback -type d -name 'od:0001:enda:*' | head -n1)"
+
+### Phase 1 -- regex selector: existing production behaviour ###########
+
+export FDB5_CONFIG_FILE=$bindir/regex.yaml
+
+# Full key -> primary root is visited.
+$fdbwhere class=od,expver=0001,stream=oper > where_regex_full.out
+grep -q root_primary where_regex_full.out
+
+# Partial key (no stream): the primary regex requires the stream slot
+# to be filled, so it does not match -- only the fallback is visited.
+# This is the existing production behaviour and stays unchanged.
+$fdbwhere class=od,expver=0001 > where_regex_partial.out
+grep -q root_fallback where_regex_partial.out
+! grep -q root_primary where_regex_partial.out
+
+# fdb-list mirrors the behaviour: only entries from the visited root
+# are reported on a partial key.
+$fdblist class=od,expver=0001,stream=oper --porcelain > list_regex_full.out
+test -s list_regex_full.out
+
+$fdblist class=od,expver=0001 --porcelain > list_regex_partial.out
+grep -q stream=enda list_regex_partial.out
+! grep -q stream=oper list_regex_partial.out
+
+echo "Phase 1 OK: regex selector preserves existing production behaviour"
+
+### Phase 2 -- match selector: keyword-aware addition ##################
+
+export FDB5_CONFIG_FILE=$bindir/match.yaml
+
+# Full key still routes the same way as regex.
+$fdbwhere class=od,expver=0001,stream=oper > where_match_full.out
+grep -q root_primary where_match_full.out
+
+# Partial key: BOTH roots are visited because the absent ``stream``
+# keyword no longer disqualifies the primary space.
+$fdbwhere class=od,expver=0001 > where_match_partial.out
+grep -q root_primary  where_match_partial.out
+grep -q root_fallback where_match_partial.out
+
+# Stream NOT in the primary's allowed set -- only the fallback is
+# visited (the constraint is still enforced when the keyword IS
+# present).
+$fdbwhere class=od,expver=0001,stream=enda > where_match_enda.out
+grep -q root_fallback where_match_enda.out
+! grep -q root_primary where_match_enda.out
+
+# fdb-list partial key now finds BOTH oper and enda entries.
+$fdblist class=od,expver=0001 --porcelain > list_match_partial.out
+grep -q stream=oper list_match_partial.out
+grep -q stream=enda list_match_partial.out
+
+# A different class matches neither space.
+$fdbwhere class=rd,expver=0001 > where_match_rd.out || true
+! grep -qE "root_primary|root_fallback" where_match_rd.out
+
+echo "Phase 2 OK: match selector recovers full-coverage visitation on partial keys"
+
+### Phase 3 -- regex and match in the same space are mutually exclusive
+
+export FDB5_CONFIG_FILE=$bindir/invalid.yaml
+
+if $fdbwhere class=od,expver=0001 >/dev/null 2>&1; then
+    echo "Invalid config (regex + match) was accepted!" >&2
+    exit 1
+fi
+
+echo "Phase 3 OK: regex + match in the same space is rejected"
+echo "FDB-331 reproducer passed."
