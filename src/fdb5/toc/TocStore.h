@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <exception>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -32,7 +33,15 @@ public:  // methods
     TocStore(const Key& key, const Config& config);
     TocStore(const eckit::URI& uri, const Config& config);
 
-    ~TocStore() override {}
+    ~TocStore() override {
+        try {
+            close();
+        }
+        catch (const std::exception& e) {
+            // close() can throw (e.g. FDBFileHandle::close() on a failed fclose());
+            eckit::Log::error() << e.what() << std::endl;
+        }
+    }
 
     eckit::URI uri() const override;
     static eckit::URI uri(const eckit::URI& dataURI);
