@@ -457,15 +457,51 @@ RemoteStore& RemoteStore::get(const eckit::URI& uri) {
     static std::mutex storeMutex_;
     // we memoise one read store for each endpoint. Do not need to have one for each key
     static std::map<std::string, std::unique_ptr<RemoteStore>> readStores_;
+    // Read stores replaced after losing their connection. Kept alive, as other threads may still hold a reference.
+    static std::vector<std::unique_ptr<RemoteStore>> retiredStores_;
 
-    std::lock_guard lock(storeMutex_);
-    const std::string& endpoint = uri.hostport();
-    auto it = readStores_.find(endpoint);
-    if (it != readStores_.end()) {
-        return *(it->second);
+    const std::string endpoint = uri.hostport();
+    {
+        std::lock_guard lock(storeMutex_);
+        auto it = readStores_.find(endpoint);
+        if (it != readStores_.end() && it->second->connection_->valid()) {
+            return *(it->second);
+        }
     }
 
-    return *(readStores_[endpoint] = std::make_unique<RemoteStore>(uri, Config()));
+    // A store whose connection was lost (e.g. the store server restarted) never reconnects: replace it. The new store
+    // has a new client ID, so requests of the old one (in the ReadLimiter or in DataHandles) cannot mix with new ones.
+    // Connect outside the lock, so that an unreachable store does not block reads from other stores.
+    auto store = std::make_unique<RemoteStore>(uri, Config());
+
+    RemoteStore* retired = nullptr;
+    RemoteStore* current = nullptr;
+    {
+        std::lock_guard lock(storeMutex_);
+        auto& slot = readStores_[endpoint];
+        if (slot && slot->connection_->valid()) {
+            return *slot;  // another thread replaced it first; ours is discarded
+        }
+        if (slot) {
+            eckit::Log::warning() << "Connection to remote store " << endpoint << " was lost, reconnecting"
+                                  << std::endl;
+            retired = slot.get();
+            retiredStores_.push_back(std::move(slot));
+        }
+        slot = std::move(store);
+        current = slot.get();
+    }
+
+    if (retired != nullptr) {
+        // Fail its waiting requests: the connection may be marked invalid before its listening thread has done so,
+        // and once deregistered, that thread no longer reaches this store. Then release what its requests hold in
+        // the ReadLimiter.
+        retired->closeConnection();
+        retired->deregister();
+        ReadLimiter::evictClient(retired->id());
+    }
+
+    return *current;
 }
 
 // low-level methods for wipe/purge
