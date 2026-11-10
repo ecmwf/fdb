@@ -73,8 +73,12 @@ private:  // methods
 
     // Client
     const eckit::Configuration& clientConfig() const override;
+    void closeConnection() override;
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
+
+    // used by tests for direct access to messageQueues_/messageQueueMutex_
+    friend class RemoteFDBTestHarness;
 
 private:  // members
 
