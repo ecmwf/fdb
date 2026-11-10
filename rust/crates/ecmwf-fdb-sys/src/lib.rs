@@ -135,6 +135,12 @@ mod ffi {
         pub location: String,
         /// Status information as key-value pairs
         pub status: Vec<KeyValue>,
+        /// Last recorded read access (Unix epoch seconds). Zero means unknown,
+        /// rather than never.
+        pub last_read: i64,
+        /// Last recorded write access (Unix epoch seconds). Zero means unknown,
+        /// rather than never.
+        pub last_write: i64,
     }
 
     /// Result from wipe iteration.
@@ -237,6 +243,44 @@ mod ffi {
         include!("fdb5/api/helpers/ControlIterator.h");
         type ControlAction;
         type ControlIdentifier;
+    }
+
+    /// Identify which access timestamp is under consideration
+    #[namespace = "fdb5"]
+    #[repr(u16)]
+    #[derive(Debug)]
+    pub enum AccessIdentifier {
+        /// No access. Selects nothing.
+        None = 0,
+        /// The read timestamp.
+        Read = 1,
+        /// The write timestamp.
+        Write = 2,
+    }
+
+    #[namespace = "fdb5"]
+    unsafe extern "C++" {
+        include!("fdb5/api/helpers/AccessIterator.h");
+        type AccessIdentifier;
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    pub enum AccessTimeSource {
+        /// The current time.
+        Now,
+        /// The modification time of the database's catalogue (its toc).
+        Catalogue,
+        /// The instant in [`AccessTimeData::time`].
+        Explicit,
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    pub struct AccessTimeData {
+        /// Where the instant comes from.
+        pub source: AccessTimeSource,
+        /// Unix epoch seconds. Only meaningful for
+        /// [`AccessTimeSource::Explicit`].
+        pub time: i64,
     }
 
     // =========================================================================
@@ -462,6 +506,14 @@ mod ffi {
         fn status(
             self: Pin<&mut FdbHandle>,
             request: &MarsRequestWrapper,
+        ) -> Result<UniquePtr<StatusIteratorHandle>>;
+
+        /// Explicitly update access timestamp
+        fn touch(
+            self: Pin<&mut FdbHandle>,
+            request: &MarsRequestWrapper,
+            identifiers: &[AccessIdentifier],
+            when: &AccessTimeData,
         ) -> Result<UniquePtr<StatusIteratorHandle>>;
 
         /// Wipe (delete) data matching a request.

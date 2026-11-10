@@ -28,6 +28,7 @@
 #include "fdb5/api/local/PurgeVisitor.h"
 #include "fdb5/api/local/StatsVisitor.h"
 #include "fdb5/api/local/StatusVisitor.h"
+#include "fdb5/api/local/TouchVisitor.h"
 #include "fdb5/api/local/WipeVisitor.h"
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/EntryVisitMechanism.h"
@@ -118,6 +119,10 @@ ListIterator LocalFDB::list(const FDBToolRequest& request, const int level) {
 DumpIterator LocalFDB::dump(const FDBToolRequest& request, bool simple) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::dump() : " << request << std::endl;
     return queryInternal<DumpVisitor>(request, simple);
+}
+
+StatusIterator LocalFDB::touch(const FDBToolRequest& request, AccessIdentifiers identifiers, AccessTime when) {
+    return queryInternal<TouchVisitor>(request, identifiers, when);
 }
 
 StatusIterator LocalFDB::status(const FDBToolRequest& request) {

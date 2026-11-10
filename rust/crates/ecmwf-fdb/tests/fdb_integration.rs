@@ -1518,6 +1518,315 @@ fn test_fdb_control_lock_unlock() {
     }
 }
 
+/// An instant well before anything these tests archive.
+const LONG_AGO: i64 = 1_000_000_000;
+
+/// Archive one field, returning the FDB, a request matching its database, and
+/// the database's directory.
+fn archive_for_touch(tmpdir: &std::path::Path) -> (Fdb, metkit::MarsRequest, PathBuf) {
+    let config = create_test_config(tmpdir);
+    let fdb = Fdb::open(Some(&config), None).expect("failed to create FDB from YAML");
+
+    let grib_data = fs::read(fixtures_dir().join("template.grib")).expect("failed to read grib");
+    let key = Key::new()
+        .with("class", "rd")
+        .with("expver", "xxxx")
+        .with("stream", "oper")
+        .with("date", "20230508")
+        .with("time", "1200")
+        .with("type", "fc")
+        .with("levtype", "sfc")
+        .with("step", "0")
+        .with("param", "151130");
+    fdb.archive(&key, &grib_data).expect("failed to archive");
+    fdb.flush().expect("flush failed");
+
+    let mut request = metkit::MarsRequest::new("retrieve");
+    request.set("class", "rd");
+    request.set("expver", "xxxx");
+
+    let db = fs::read_dir(tmpdir)
+        .expect("failed to read temp dir")
+        .map(|entry| entry.expect("failed to read dir entry").path())
+        .find(|path| path.join("toc").exists())
+        .expect("no database found after archive");
+
+    (fdb, request, db)
+}
+
+/// Touch a request, draining the iterator and returning the elements.
+fn touch(
+    fdb: &Fdb,
+    request: &metkit::MarsRequest,
+    identifiers: &[fdb::AccessIdentifier],
+    when: fdb::AccessTime,
+) -> Vec<fdb::StatusElement> {
+    fdb.touch(request, identifiers, when)
+        .expect("touch failed")
+        .collect::<Result<_, _>>()
+        .expect("touch iterator returned an error")
+}
+
+fn mtime(path: &std::path::Path) -> i64 {
+    let modified = fs::metadata(path)
+        .and_then(|metadata| metadata.modified())
+        .expect("failed to read mtime");
+    let elapsed = modified
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("mtime before epoch");
+    i64::try_from(elapsed.as_secs()).expect("mtime out of range")
+}
+
+#[test]
+fn test_fdb_touch_records_explicit_instant() {
+    use fdb::{AccessIdentifier, AccessTime};
+
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let (fdb, request, db) = archive_for_touch(tmpdir.path());
+    let (read, write) = (db.join("read.timestamp"), db.join("write.timestamp"));
+
+    let elements = touch(
+        &fdb,
+        &request,
+        &[AccessIdentifier::Read, AccessIdentifier::Write],
+        AccessTime::At(LONG_AGO),
+    );
+    assert_eq!(elements.len(), 1, "expected the one matching database");
+    assert_ne!(elements[0].location, "");
+    assert_eq!(mtime(&read), LONG_AGO);
+    assert_eq!(mtime(&write), LONG_AGO);
+
+    // Each identifier selects only its own timestamp.
+    touch(
+        &fdb,
+        &request,
+        &[AccessIdentifier::Read],
+        AccessTime::At(LONG_AGO + 1),
+    );
+    assert_eq!(mtime(&read), LONG_AGO + 1);
+    assert_eq!(mtime(&write), LONG_AGO);
+
+    touch(
+        &fdb,
+        &request,
+        &[AccessIdentifier::Write],
+        AccessTime::At(LONG_AGO + 2),
+    );
+    assert_eq!(mtime(&read), LONG_AGO + 1);
+    assert_eq!(mtime(&write), LONG_AGO + 2);
+}
+
+#[test]
+fn test_fdb_touch_defaults_to_now() {
+    use fdb::{AccessIdentifier, AccessTime};
+
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let (fdb, request, db) = archive_for_touch(tmpdir.path());
+    let (read, write) = (db.join("read.timestamp"), db.join("write.timestamp"));
+
+    touch(
+        &fdb,
+        &request,
+        &[AccessIdentifier::Read, AccessIdentifier::Write],
+        AccessTime::At(LONG_AGO),
+    );
+
+    touch(
+        &fdb,
+        &request,
+        &[AccessIdentifier::Read],
+        AccessTime::default(),
+    );
+    assert!(mtime(&read) > LONG_AGO, "read should be recent");
+    assert_eq!(mtime(&write), LONG_AGO, "write should be unchanged");
+}
+
+#[test]
+fn test_fdb_touch_from_catalogue() {
+    use fdb::{AccessIdentifier, AccessTime};
+    use std::time::{Duration, UNIX_EPOCH};
+
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let (fdb, request, db) = archive_for_touch(tmpdir.path());
+    let (read, write) = (db.join("read.timestamp"), db.join("write.timestamp"));
+
+    touch(
+        &fdb,
+        &request,
+        &[AccessIdentifier::Read, AccessIdentifier::Write],
+        AccessTime::At(LONG_AGO),
+    );
+
+    let toc_time = LONG_AGO + 500;
+    fs::File::options()
+        .write(true)
+        .open(db.join("toc"))
+        .expect("failed to open toc")
+        .set_modified(UNIX_EPOCH + Duration::from_secs(toc_time.unsigned_abs()))
+        .expect("failed to set toc mtime");
+
+    touch(
+        &fdb,
+        &request,
+        &[AccessIdentifier::Read],
+        AccessTime::Catalogue,
+    );
+    assert_eq!(mtime(&read), toc_time);
+    assert_eq!(mtime(&write), LONG_AGO);
+}
+
+#[test]
+fn test_fdb_touch_creates_missing_record() {
+    use fdb::{AccessIdentifier, AccessTime};
+
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let (fdb, request, db) = archive_for_touch(tmpdir.path());
+    let read = db.join("read.timestamp");
+
+    fs::remove_file(&read).expect("failed to remove read timestamp");
+
+    touch(
+        &fdb,
+        &request,
+        &[AccessIdentifier::Read],
+        AccessTime::At(LONG_AGO),
+    );
+    assert_eq!(mtime(&read), LONG_AGO);
+}
+
+#[test]
+fn test_fdb_touch_selection() {
+    use fdb::{AccessIdentifier, AccessTime};
+
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let (fdb, request, db) = archive_for_touch(tmpdir.path());
+    let (read, write) = (db.join("read.timestamp"), db.join("write.timestamp"));
+
+    touch(
+        &fdb,
+        &request,
+        &[AccessIdentifier::Read, AccessIdentifier::Write],
+        AccessTime::At(LONG_AGO),
+    );
+
+    // Selecting no identifiers records nothing, but still reports the database.
+    let elements = touch(&fdb, &request, &[], AccessTime::Now);
+    assert_eq!(elements.len(), 1);
+    assert_eq!(mtime(&read), LONG_AGO);
+    assert_eq!(mtime(&write), LONG_AGO);
+
+    // A request matching no database touches nothing, and reports nothing.
+    let mut other = metkit::MarsRequest::new("retrieve");
+    other.set("class", "rd");
+    other.set("expver", "yyyy");
+    let elements = touch(&fdb, &other, &[AccessIdentifier::Read], AccessTime::Now);
+    assert!(elements.is_empty());
+    assert_eq!(mtime(&read), LONG_AGO);
+
+    // Nor does a database match a request with keys beyond the database level.
+    let mut other = metkit::MarsRequest::new("retrieve");
+    other.set("class", "rd");
+    other.set("expver", "xxxx");
+    other.set("type", "fc");
+    let elements = touch(&fdb, &other, &[AccessIdentifier::Read], AccessTime::Now);
+    assert!(elements.is_empty());
+    assert_eq!(mtime(&read), LONG_AGO);
+
+    // A request with no keys visits every database.
+    let all = metkit::MarsRequest::new("retrieve");
+    let elements = touch(
+        &fdb,
+        &all,
+        &[AccessIdentifier::Read],
+        AccessTime::At(LONG_AGO + 1),
+    );
+    assert_eq!(elements.len(), 1);
+    assert_eq!(mtime(&read), LONG_AGO + 1);
+}
+
+#[test]
+fn test_fdb_status_reports_access_times() {
+    use fdb::{AccessIdentifier, AccessTime};
+
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let (fdb, request, db) = archive_for_touch(tmpdir.path());
+
+    let status = |request: &metkit::MarsRequest| -> fdb::StatusElement {
+        let mut elements: Vec<_> = fdb
+            .status(request)
+            .expect("failed to get status")
+            .collect::<Result<_, _>>()
+            .expect("status iterator returned an error");
+        assert_eq!(elements.len(), 1, "expected the one matching database");
+        elements.remove(0)
+    };
+
+    // The elements from touch itself carry the updated times...
+    touch(
+        &fdb,
+        &request,
+        &[AccessIdentifier::Read],
+        AccessTime::At(LONG_AGO),
+    );
+    let elements = touch(
+        &fdb,
+        &request,
+        &[AccessIdentifier::Write],
+        AccessTime::At(LONG_AGO + 1),
+    );
+    assert_eq!(elements[0].last_read, Some(LONG_AGO));
+    assert_eq!(elements[0].last_write, Some(LONG_AGO + 1));
+
+    // ... as do those from status, which leaves them alone.
+    for _ in 0..2 {
+        let element = status(&request);
+        assert_eq!(element.last_read, Some(LONG_AGO));
+        assert_eq!(element.last_write, Some(LONG_AGO + 1));
+    }
+
+    // A missing record is unknown, and doesn't affect the other.
+    fs::remove_file(db.join("read.timestamp")).expect("failed to remove read timestamp");
+    let element = status(&request);
+    assert_eq!(element.last_read, None);
+    assert_eq!(element.last_write, Some(LONG_AGO + 1));
+
+    fs::remove_file(db.join("write.timestamp")).expect("failed to remove write timestamp");
+    let element = status(&request);
+    assert_eq!(element.last_read, None);
+    assert_eq!(element.last_write, None);
+}
+
+#[test]
+fn test_fdb_touch_reports_failure_through_iterator() {
+    use fdb::{AccessIdentifier, AccessTime};
+    use std::os::unix::fs::PermissionsExt;
+
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let (fdb, request, db) = archive_for_touch(tmpdir.path());
+
+    // A missing record cannot be recreated in a read-only database.
+    fs::remove_file(db.join("read.timestamp")).expect("failed to remove read timestamp");
+    let writable = fs::metadata(&db).expect("failed to stat db").permissions();
+    fs::set_permissions(&db, fs::Permissions::from_mode(0o555)).expect("failed to chmod db");
+
+    // Permissions don't constrain root, so there is nothing to test there.
+    let constrained = fs::File::create(db.join("probe")).is_err();
+
+    let results: Vec<_> = fdb
+        .touch(&request, &[AccessIdentifier::Read], AccessTime::Now)
+        .expect("touch should start")
+        .collect();
+
+    fs::set_permissions(&db, writable).expect("failed to restore db permissions");
+
+    if constrained {
+        assert!(
+            results.iter().any(Result::is_err),
+            "expected an error element: {results:?}"
+        );
+    }
+}
+
 #[test]
 fn test_fdb_enabled_identifiers() {
     use fdb::ControlIdentifier;

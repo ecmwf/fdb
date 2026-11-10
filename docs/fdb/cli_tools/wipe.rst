@@ -9,6 +9,9 @@ It expects a minimum set of keys to be set, but it can be overridden with the op
 
 This tool deletes either whole databases, or whole indexes within databases
 
+To delete data on the basis of *when it was last used* rather than which key it carries, see
+``fdb last-access --wipe``.
+
 Usage
 -----
 
