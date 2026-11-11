@@ -38,12 +38,11 @@ fn main() {
     println!("cargo:rerun-if-env-changed=DOCS_RS");
 
     if bindman_utils::is_docs_rs() {
+        generate_exceptions(&docs_source_include());
         return;
     }
 
     bindman_utils::validate_build_mode(cfg!(feature = "system"), cfg!(feature = "vendored"));
-
-    generate_exceptions();
 
     if cfg!(feature = "system") {
         build_system();
@@ -52,22 +51,46 @@ fn main() {
     }
 }
 
-/// Generate `fdb_exceptions.{h,rs}` for fdb-sys's cxx bridge.
+/// Generate `fdb_exceptions.{h,rs}` for fdb-sys's cxx bridge: the FDB's own
+/// exception classes from the headers under `include`, plus the catch blocks
+/// inherited from the upstream `-sys` crates (eckit-sys, metkit-sys) via
+/// [`bindman_build::collect_dep_exception_sources`].
 ///
-/// fdb-sys does not introduce its own exception subclasses (the higher-level
-/// `fdb` crate maps `cxx::Exception` directly), so the `own` list is empty
-/// and we inherit C++ catch blocks from upstream `-sys` crates (eckit-sys,
-/// metkit-sys) via [`bindman_build::collect_dep_exception_sources`].
-fn generate_exceptions() {
+/// `SchemaError` derives from `eckit::StreamParser::Error`, which no inherited
+/// catch block covers. The remote client's classes derive from
+/// `eckit::RemoteException`, whose inherited catch block precedes any own one
+/// in the generated handler, so they are not listed: they arrive as that
+/// eckit variant.
+fn generate_exceptions(include: &std::path::Path) {
     let out_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR not set"));
+
+    let own = vec![bindman_build::ExceptionSource {
+        header: include.join("fdb5/api/exceptions/SchemaError.h"),
+        include_path: "fdb5/api/exceptions/SchemaError.h".to_string(),
+        cpp_namespace: "fdb5".to_string(),
+        message_prefix: "fdb".to_string(),
+        base_class: "eckit::StreamParser::Error".to_string(),
+        recursive: true,
+    }];
+
     let inherited = bindman_build::collect_dep_exception_sources();
 
     bindman_build::generate_exception_bridge(&bindman_build::ExceptionBridgeConfig {
         primary_namespace: "fdb",
         out_dir: &out_dir,
-        own: &[],
+        own: &own,
         inherited: &inherited,
     });
+
+    bindman_build::publish_exception_sources(&own, &out_dir);
+}
+
+/// Header root for docs builds (`DOCS_RS=1`), where the native FDB build is
+/// skipped. `docs-headers/` mirrors the include-tree layout with symlinks
+/// into this repo's `src/`; `cargo package` embeds the linked files' content.
+fn docs_source_include() -> std::path::PathBuf {
+    std::path::PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"))
+        .join("docs-headers")
 }
 
 /// Build using system-installed fdb5 via `CMake` `find_package`
@@ -93,6 +116,8 @@ fn build_system() {
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
 
     let (root, fdb_include, lib_dir) = bindman_utils::cmake_find_package("fdb5", "5.10.0");
+
+    generate_exceptions(&fdb_include);
 
     println!("cargo:rustc-link-search=native={}", lib_dir.display());
     println!("cargo:rustc-link-lib=dylib=fdb5");
@@ -356,6 +381,8 @@ fn build_vendored() {
     let include_dir = install_dir.join("include");
     let crate_dir =
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"));
+
+    generate_exceptions(&include_dir);
 
     // FDB source directory contains private headers that may be needed
     let fdb_src_include = fdb_src.join("src");
