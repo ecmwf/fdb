@@ -8,6 +8,8 @@
 
 use bindman::track_cpp_api;
 
+include!(concat!(env!("OUT_DIR"), "/fdb_exceptions.rs"));
+
 /// Data passed to archive callbacks.
 #[derive(Debug, Clone)]
 pub struct ArchiveCallbackData {
