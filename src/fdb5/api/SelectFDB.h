@@ -36,7 +36,7 @@ private:  // types
 
     public:
 
-        FDBLane(const eckit::LocalConfiguration& config, const eckit::Configuration& userConfig,
+        FDBLane(const eckit::LocalConfiguration& config, const eckit::Configuration& appConfig,
                 std::shared_ptr<Callbacks> callbacks);
 
         FDBBase& get();

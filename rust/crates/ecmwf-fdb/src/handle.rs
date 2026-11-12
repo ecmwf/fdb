@@ -70,11 +70,11 @@ pub struct Fdb {
 impl Fdb {
     /// Open an FDB.
     ///
-    /// Matches C++ `fdb5::FDB(fdb5::Config)` / `fdb5::FDB(fdb5::Config(config, user_config))`.
+    /// Matches C++ `fdb5::FDB(fdb5::Config)` / `fdb5::FDB(fdb5::Config(config, app_config))`.
     ///
     /// - `None, None` — use environment defaults (`FDB_HOME` / `FDB_CONFIG_FILE` / `~/.fdb`)
     /// - `Some(config), None` — use the given config
-    /// - `Some(config), Some(user_config)` — config + per-instance overlay
+    /// - `Some(config), Some(app_config)` — config + per-instance overlay
     ///
     /// Build the `eckit::Config` however you want: `Config::from_path()`,
     /// `"yaml".parse()`, or `Config::new()` + `.set()`.
@@ -82,7 +82,7 @@ impl Fdb {
     /// # Examples
     ///
     /// ```no_run
-    /// use fdb::{Fdb, UserConfig};
+    /// use fdb::{Fdb, AppConfig};
     ///
     /// // Default config from environment:
     /// let fdb = Fdb::open(None, None)?;
@@ -95,31 +95,31 @@ impl Fdb {
     /// let cfg: eckit::Config = "type: local\nspaces: []".parse()?;
     /// let fdb = Fdb::open(Some(&cfg), None)?;
     ///
-    /// // With user config:
+    /// // With app config:
     /// let cfg = eckit::Config::from_path("/etc/fdb/config.yaml")?;
     /// let fdb = Fdb::open(
     ///     Some(&cfg),
-    ///     Some(UserConfig { use_sub_toc: true, ..Default::default() }),
+    ///     Some(AppConfig { use_sub_toc: true, ..Default::default() }),
     /// )?;
     /// # Ok::<(), fdb::Error>(())
     /// ```
     pub fn open(
         config: Option<&eckit::Config>,
-        user_config: Option<crate::UserConfig>,
+        app_config: Option<crate::AppConfig>,
     ) -> Result<Self> {
         initialize();
 
-        let user_eckit = user_config.map(eckit::Config::from);
+        let app_eckit = app_config.map(eckit::Config::from);
 
-        let handle = match (config, user_eckit.as_ref()) {
+        let handle = match (config, app_eckit.as_ref()) {
             (None, None) => fdb_sys::FdbHandle::create()?,
             (Some(cfg), None) => fdb_sys::FdbHandle::from_config(cfg.as_sys())?,
-            (Some(cfg), Some(user)) => {
-                fdb_sys::FdbHandle::from_config_with_user(cfg.as_sys(), user.as_sys())?
+            (Some(cfg), Some(app)) => {
+                fdb_sys::FdbHandle::from_config_with_user(cfg.as_sys(), app.as_sys())?
             }
             (None, Some(_)) => {
                 return Err(crate::Error::Eckit(eckit::Error::UserError(
-                    "Fdb::open: user_config requires a main config".to_string(),
+                    "Fdb::open: app_config requires a main config".to_string(),
                 )));
             }
         };

@@ -67,7 +67,7 @@ public:
     RemoteProtocolVersion remoteProtocolVersion() const;
 
     /// Returns the default configuration according to the rules of FDB configuration search
-    const Config& defaultConfig(const eckit::Configuration& userConfig = eckit::LocalConfiguration());
+    const Config& defaultConfig(const eckit::Configuration& appConfig = eckit::LocalConfiguration());
 
     bool dontDeregisterFactories() const;
 

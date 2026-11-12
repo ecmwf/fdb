@@ -147,7 +147,7 @@ CASE("config_expands_override_fdb_home") {
                  "/a/path/is/second");
 }
 
-CASE("userConfig") {
+CASE("appConfig") {
 
     const std::string config_str(R"XX(
         ---
@@ -162,23 +162,23 @@ CASE("userConfig") {
     eckit::testing::SetEnv env("FDB5_CONFIG", config_str.c_str());
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
-    EXPECT_EQUAL(expanded.userConfig().getBool("useSubToc", false), false);
+    EXPECT_EQUAL(expanded.appConfig().getBool("useSubToc", false), false);
 
-    eckit::LocalConfiguration userConf;
-    userConf.set("useSubToc", true);
+    eckit::LocalConfiguration appConf;
+    appConf.set("useSubToc", true);
 
     fdb5::Config empty;
     EXPECT(!empty.has("type"));
-    EXPECT_EQUAL(empty.userConfig().getBool("useSubToc", false), false);
-    fdb5::Config user(empty, userConf);
+    EXPECT_EQUAL(empty.appConfig().getBool("useSubToc", false), false);
+    fdb5::Config user(empty, appConf);
     EXPECT(!user.has("type"));
-    EXPECT_EQUAL(user.userConfig().getBool("useSubToc", false), true);
+    EXPECT_EQUAL(user.appConfig().getBool("useSubToc", false), true);
     fdb5::Config userExpanded = user.expandConfig();
     EXPECT(userExpanded.has("type"));
-    EXPECT_EQUAL(userExpanded.userConfig().getBool("useSubToc", false), false);
+    EXPECT_EQUAL(userExpanded.appConfig().getBool("useSubToc", false), true);
 
-    fdb5::Config config(expanded, userConf);
-    EXPECT_EQUAL(config.userConfig().getBool("useSubToc", false), true);
+    fdb5::Config config(expanded, appConf);
+    EXPECT_EQUAL(config.appConfig().getBool("useSubToc", false), true);
 }
 
 CASE("FDB_CONFIG takes precendence over FDB5_CONFIG") {

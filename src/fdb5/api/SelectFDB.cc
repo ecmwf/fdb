@@ -36,9 +36,9 @@ static FDBBuilder<SelectFDB> selectFdbBuilder("select");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-SelectFDB::FDBLane::FDBLane(const eckit::LocalConfiguration& config, const eckit::Configuration& userConfig,
+SelectFDB::FDBLane::FDBLane(const eckit::LocalConfiguration& config, const eckit::Configuration& appConfig,
                             std::shared_ptr<Callbacks> callbacks) :
-    config_(config, userConfig), fdb_(nullptr), callbacks_(callbacks) {
+    config_(config, appConfig), fdb_(nullptr), callbacks_(callbacks) {
     config_.setMatcher(std::make_unique<SelectMatcher>(config));
 }
 
@@ -92,7 +92,7 @@ SelectFDB::SelectFDB(const Config& config, const std::string& name) : FDBBase(co
         if (!fdb_home.empty() && !c.has("fdb_home")) {
             c.set("fdb_home", fdb_home);
         }
-        subFdbs_.emplace_back(FDBLane{c, config.userConfig(), callbacks_});
+        subFdbs_.emplace_back(FDBLane{c, config.appConfig(), callbacks_});
     }
 }
 

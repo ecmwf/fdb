@@ -390,9 +390,9 @@ int fdb_new_handle(fdb_handle_t** fdb) {
     return wrapApiFunction([fdb] { *fdb = new fdb_handle_t(); });
 }
 
-int fdb_new_handle_from_yaml(fdb_handle_t** fdb, const char* system_config, const char* user_config) {
-    return wrapApiFunction([fdb, system_config, user_config] {
-        Config cfg{YAMLConfiguration(std::string(system_config)), YAMLConfiguration(std::string(user_config))};
+int fdb_new_handle_from_yaml(fdb_handle_t** fdb, const char* system_config, const char* app_config) {
+    return wrapApiFunction([fdb, system_config, app_config] {
+        Config cfg{YAMLConfiguration(std::string(system_config)), YAMLConfiguration(std::string(app_config))};
         cfg.set("configSource", "yaml");
         cfg.expandConfig();
         *fdb = new fdb_handle_t(cfg);

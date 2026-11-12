@@ -288,7 +288,7 @@ int fdb_datareader_size(fdb_datareader_t* dr, long* size);
 int fdb_datareader_read(fdb_datareader_t* dr, void* buf, long count, long* read);
 
 /** Deallocates DataReader object and associated resources.
- * \param key DataReader instance
+ * \param dr DataReader instance
  * \returns Return code (#FdbErrorValues)
  */
 int fdb_delete_datareader(fdb_datareader_t* dr);
@@ -312,10 +312,10 @@ int fdb_new_handle(fdb_handle_t** fdb);
 /** Creates a FDB instance from a YAML configuration.
  * \param fdb FDB instance. Returned instance must be deleted using #fdb_delete_handle.
  * \param system_config Override the system config with this YAML string
- * \param user_config Supply user level config with this YAML string
+ * \param app_config Supply application specific config with this YAML string
  * \returns Return code (#FdbErrorValues)
  */
-int fdb_new_handle_from_yaml(fdb_handle_t** fdb, const char* system_config, const char* user_config);
+int fdb_new_handle_from_yaml(fdb_handle_t** fdb, const char* system_config, const char* app_config);
 
 /** Archives binary data to a FDB instance.
  * \warning this is a low-level API. The provided key and the corresponding data are not checked for consistency
