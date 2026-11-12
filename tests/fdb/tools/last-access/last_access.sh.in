@@ -28,9 +28,9 @@ bin_dir=@CMAKE_CURRENT_BINARY_DIR@
 
 cd $bin_dir
 rm -rf $test_name
-mkdir -p $test_name/localroot
+mkdir -p $test_name/localroot $test_name/typedroot
 cd $test_name
-cp "$src_dir/config.yaml" ./
+cp "$src_dir/config.yaml" "$src_dir/typed.yaml" "$src_dir/schema" ./
 ln -s "$bin_dir/$src_data" ./
 
 db=localroot/od:0001:oper:20240911:0000:g
@@ -263,6 +263,33 @@ grep_count "^1 database wiped$" 1
 fdb-list --all --minimum-keys="" --porcelain | tee out
 grep_count "time=0000,domain=g" 0
 [[ $(grep -cE "time=1200,domain=g" out) -gt 0 ]] || die "The warm database's data was deleted"
+
+########################################################################################################################
+# Wiping cold data whose database key holds a converted value.
+#
+# The stored form of the date comes back in as a request value, and is converted a second time:
+#
+#   archive   date=20240911 -> TypeYearMonth::toKey() -> database key date=202409
+#   sweep     FDB::status() reports the database key, date=202409
+#             Key::request() makes it the wipe request, still date=202409
+#   wipe      Rule::findMatchingKeys() -> TypeYearMonth::toKey("202409"), which expects 20240911
+
+export FDB5_CONFIG_FILE=typed.yaml
+
+db=typedroot/od:0001:oper:202409:0000:g
+db2=typedroot/od:0001:oper:202409:1200:g
+
+fdb-write "$src_data"
+
+# Seed both databases, so the whole estate is cold.
+fdb-touch --all --minimum-keys="" --read --write --time=20200101
+
+# Committed, both cold databases go.
+fdb-last-access --all --older-than=364d --wipe --doit | tee out
+grep_count "^  database:   \{class=od,expver=0001,stream=oper,date=202409," 2
+grep_count "^2 databases wiped$" 1
+[[ ! -d $db ]] || die "The cold database was not wiped"
+[[ ! -d $db2 ]] || die "The cold database was not wiped"
 
 ########################################################################################################################
 

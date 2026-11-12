@@ -1,0 +1,7 @@
+---
+type: local
+engine: toc
+schema: ./schema
+spaces:
+ - roots:
+   - path: ./typedroot
