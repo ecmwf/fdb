@@ -37,7 +37,7 @@ void FDBTool::run() {
     finish(args);
 }
 
-Config FDBTool::config(const eckit::option::CmdArgs& args, const eckit::Configuration& userConfig) {
+Config FDBTool::config(const eckit::option::CmdArgs& args, const eckit::Configuration& appConfig) {
 
     if (args.has("config")) {
         std::string config = args.getString("config", "");
@@ -55,10 +55,10 @@ Config FDBTool::config(const eckit::option::CmdArgs& args, const eckit::Configur
             ss << "Path " << config << " is a directory. Expecting a file";
             throw eckit::UserError(ss.str(), Here());
         }
-        return Config::make(configPath, userConfig);
+        return Config::make(configPath, appConfig);
     }
 
-    return LibFdb5::instance().defaultConfig(userConfig);
+    return LibFdb5::instance().defaultConfig(appConfig);
 }
 
 std::vector<Key> FDBTool::parse(const std::string& request, const fdb5::Config& config) {

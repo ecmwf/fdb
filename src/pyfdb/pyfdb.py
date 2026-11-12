@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import logging
+import warnings
 from collections.abc import Collection, Generator
 from pathlib import Path
 from typing import Any
@@ -35,6 +36,8 @@ class FDB:
     def __init__(
         self,
         config: str | dict | Path | None = None,
+        app_config: str | dict | Path | None = None,
+        *,
         user_config: str | dict | Path | None = None,
     ) -> None:
         """
@@ -44,8 +47,10 @@ class FDB:
         ----------
         `config`: `str` | `dict` | `Path` | `None`, *optional*
             Config object for setting up the FDB. See Notes.
+        `app_config`: `str` | `dict` | `Path` | `None`, *optional*
+            Config object for setting up application specific options, e.g., enabling sub-TOCs. See Notes.
         `user_config`: `str` | `dict` | `Path` | `None`, *optional*
-            Config object for setting up user specific options, e.g., enabling sub-TOCs. See Notes.
+            Deprecated alias of `app_config`. Use `app_config` instead.
 
         Returns
         -------
@@ -93,12 +98,22 @@ class FDB:
 
         self.logger = logging.getLogger(__name__ + ".FDB")
 
+        if user_config is not None:
+            if app_config is not None:
+                raise ValueError("Specify only one of `app_config` and `user_config`")
+            warnings.warn(
+                "`user_config` is deprecated, use `app_config` instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            app_config = user_config
+
         # Convert to JSON if set
         config = ConfigMapper.to_json(config)
-        user_config = ConfigMapper.to_json(user_config)
+        app_config = ConfigMapper.to_json(app_config)
 
-        if config is not None and user_config is not None:
-            internal_config = Config(config, user_config)
+        if config is not None and app_config is not None:
+            internal_config = Config(config, app_config)
             self.FDB = _FDB(internal_config)
         elif config is not None:
             internal_config = Config(config, None)
@@ -764,15 +779,15 @@ class FDB:
         Examples
         --------
         >>> fdb = FDB(config_file)
-        >>> system_config, user_config = fdb.config()
+        >>> system_config, app_config = fdb.config()
         >>> print(system_config)
-        >>> print(user_config)
+        >>> print(app_config)
 
         """
         system_config = ConfigMapper.from_json(self.FDB.config().json())
-        user_config = ConfigMapper.from_json(self.FDB.config().userConfig().json())
+        app_config = ConfigMapper.from_json(self.FDB.config().appConfig().json())
 
-        return system_config, user_config
+        return system_config, app_config
 
     def __repr__(self) -> str:
         return repr(self.FDB)

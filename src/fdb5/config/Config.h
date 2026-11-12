@@ -27,14 +27,13 @@ class SelectMatcher;
 class Config : public eckit::LocalConfiguration {
 public:  // static methods
 
-    static Config make(const eckit::PathName& path,
-                       const eckit::Configuration& userConfig = eckit::LocalConfiguration(),
+    static Config make(const eckit::PathName& path, const eckit::Configuration& appConfig = eckit::LocalConfiguration(),
                        const std::string& fdb_home = "");
 
 public:  // methods
 
     Config();
-    Config(const eckit::Configuration& config, const eckit::Configuration& userConfig = eckit::LocalConfiguration());
+    Config(const eckit::Configuration& config, const eckit::Configuration& appConfig = eckit::LocalConfiguration());
 
     Config(const Config& other);
     Config& operator=(const Config& other);
@@ -57,7 +56,9 @@ public:  // methods
 
     mode_t umask() const;
 
-    const eckit::Configuration& userConfig() const { return *userConfig_; }
+    [[deprecated("Use appConfig() instead")]]
+    const eckit::Configuration& userConfig() const { return *appConfig_; }
+    const eckit::Configuration& appConfig() const { return *appConfig_; }
 
     size_t readIndexThreads() const;
     size_t apiQueueSize() const;
@@ -79,7 +80,7 @@ private:  // members
     mutable eckit::PathName schemaPath_;
     mutable bool schemaPathInitialised_;
     mutable std::mutex schemaMutex_;
-    std::shared_ptr<eckit::LocalConfiguration> userConfig_;
+    std::shared_ptr<eckit::LocalConfiguration> appConfig_;
     std::shared_ptr<SelectMatcher> matcher_;
 };
 

@@ -511,12 +511,12 @@ mod ffi {
         #[Self = "FdbHandle"]
         fn from_config(config: &ConfigWrapper) -> Result<UniquePtr<FdbHandle>>;
 
-        /// Create a new FDB handle from an `eckit::Config` with a user-config
+        /// Create a new FDB handle from an `eckit::Config` with an app-config
         /// overlay.
         #[Self = "FdbHandle"]
         fn from_config_with_user(
             config: &ConfigWrapper,
-            user_config: &ConfigWrapper,
+            app_config: &ConfigWrapper,
         ) -> Result<UniquePtr<FdbHandle>>;
 
         // =====================================================================

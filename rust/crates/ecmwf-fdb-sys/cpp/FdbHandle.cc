@@ -37,8 +37,8 @@ FdbHandle::FdbHandle() = default;
 
 FdbHandle::FdbHandle(const eckit_bridge::ConfigWrapper& config) : impl_(fdb5::Config(config.inner())) {}
 
-FdbHandle::FdbHandle(const eckit_bridge::ConfigWrapper& config, const eckit_bridge::ConfigWrapper& user_config) :
-    impl_(fdb5::Config(config.inner(), user_config.inner())) {}
+FdbHandle::FdbHandle(const eckit_bridge::ConfigWrapper& config, const eckit_bridge::ConfigWrapper& app_config) :
+    impl_(fdb5::Config(config.inner(), app_config.inner())) {}
 
 FdbHandle::~FdbHandle() = default;
 
@@ -288,8 +288,8 @@ std::unique_ptr<FdbHandle> FdbHandle::from_config(const eckit_bridge::ConfigWrap
 }
 
 std::unique_ptr<FdbHandle> FdbHandle::from_config_with_user(const eckit_bridge::ConfigWrapper& config,
-                                                            const eckit_bridge::ConfigWrapper& user_config) {
-    return std::make_unique<FdbHandle>(config, user_config);
+                                                            const eckit_bridge::ConfigWrapper& app_config) {
+    return std::make_unique<FdbHandle>(config, app_config);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

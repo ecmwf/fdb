@@ -97,7 +97,7 @@ representation of the configuration or as a ``Dict[str, Any]`` as shown below.
             }
         ],
     }
-    fdb = pyfdb.FDB(config=config, user_config={})
+    fdb = pyfdb.FDB(config=config, app_config={})
 
 .. clear-namespace
 

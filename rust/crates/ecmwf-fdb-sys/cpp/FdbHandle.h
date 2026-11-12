@@ -34,7 +34,7 @@ public:
 
     FdbHandle();
     explicit FdbHandle(const eckit_bridge::ConfigWrapper& config);
-    FdbHandle(const eckit_bridge::ConfigWrapper& config, const eckit_bridge::ConfigWrapper& user_config);
+    FdbHandle(const eckit_bridge::ConfigWrapper& config, const eckit_bridge::ConfigWrapper& app_config);
 
     ~FdbHandle();
 
@@ -116,7 +116,7 @@ public:
 
     /// Create a new FDB handle from an eckit config with a user-config overlay.
     static std::unique_ptr<FdbHandle> from_config_with_user(const eckit_bridge::ConfigWrapper& config,
-                                                            const eckit_bridge::ConfigWrapper& user_config);
+                                                            const eckit_bridge::ConfigWrapper& app_config);
 
 private:
 
