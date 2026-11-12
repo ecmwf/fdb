@@ -135,9 +135,9 @@ PYBIND11_MODULE(_pyfdb_bindings, m) {
 
     py::class_<fdb5::Config>(m, "Config")
         .def(py::init([]() { return fdb5::Config(); }))
-        .def(py::init([](const std::string& config, const std::optional<std::string>& user_config) {
-            if (user_config.has_value()) {
-                return fdb5::Config(eckit::YAMLConfiguration(config), eckit::YAMLConfiguration(user_config.value()));
+        .def(py::init([](const std::string& config, const std::optional<std::string>& app_config) {
+            if (app_config.has_value()) {
+                return fdb5::Config(eckit::YAMLConfiguration(config), eckit::YAMLConfiguration(app_config.value()));
             }
             return fdb5::Config(eckit::YAMLConfiguration(config));
         }))
@@ -148,7 +148,7 @@ PYBIND11_MODULE(_pyfdb_bindings, m) {
                  json << config;
                  return buf.str();
              })
-        .def("userConfig", [](const fdb5::Config& config) { return fdb5::Config(config.userConfig()); })
+        .def("appConfig", [](const fdb5::Config& config) { return fdb5::Config(config.appConfig()); })
         .def("__repr__", [](const fdb5::Config& config) {
             std::stringstream buf;
             buf << config;

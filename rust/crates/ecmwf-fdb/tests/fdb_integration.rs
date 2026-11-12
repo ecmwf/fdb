@@ -1999,14 +1999,14 @@ fn archive_one_record(fdb: &Fdb) {
 /// database directory contains only the main `toc`, with the flag on we get
 /// at least one `toc.<unique>` subtoc file in the same place.
 #[test]
-fn test_fdb_subtoc_user_config() {
+fn test_fdb_subtoc_app_config() {
     // --- subtocs OFF (default) ---
     let tmpdir_off = tempfile::tempdir().expect("failed to create temp dir");
     let config_off = create_test_config(tmpdir_off.path());
     {
         let fdb_off = Fdb::open(
             Some(&config_off),
-            Some(fdb::UserConfig {
+            Some(fdb::AppConfig {
                 use_sub_toc: false,
                 ..Default::default()
             }),
@@ -2027,7 +2027,7 @@ fn test_fdb_subtoc_user_config() {
     {
         let fdb_on = Fdb::open(
             Some(&config_on),
-            Some(fdb::UserConfig {
+            Some(fdb::AppConfig {
                 use_sub_toc: true,
                 ..Default::default()
             }),
@@ -2044,21 +2044,21 @@ fn test_fdb_subtoc_user_config() {
     );
 }
 
-/// Smoke test for the `preloadTocBTree` user-config flag.
+/// Smoke test for the `preloadTocBTree` app-config flag.
 ///
 /// Unlike `useSubToc`, this option only changes runtime behaviour (it eagerly
 /// loads the toc B-tree on open instead of lazily) and produces no observable
 /// on-disk artifact, so we can only verify that both values are accepted by
 /// the C++ side and that an archive + list round-trip succeeds in each mode.
 #[test]
-fn test_fdb_preload_toc_btree_user_config() {
+fn test_fdb_preload_toc_btree_app_config() {
     for preload in [true, false] {
         let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
         let config = create_test_config(tmpdir.path());
 
         let fdb = Fdb::open(
             Some(&config),
-            Some(fdb::UserConfig {
+            Some(fdb::AppConfig {
                 preload_toc_btree: preload,
                 ..Default::default()
             }),

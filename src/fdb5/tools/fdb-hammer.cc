@@ -624,8 +624,8 @@ HammerConfig HammerConfig::parse(const eckit::option::CmdArgs& args) {
         args.getInt("barrier-max-wait", 10),
     };
 
-    eckit::LocalConfiguration userConfig;
-    userConfig.set("useSubToc", !args.getBool("disable-subtocs", false));
+    eckit::LocalConfiguration appConfig;
+    appConfig.set("useSubToc", !args.getBool("disable-subtocs", false));
     config.fdbConfig = fdb5::FDBTool::config(args);
 
     // Config overrides
@@ -1720,8 +1720,6 @@ void FDBHammer::executeList() {
     request.values("levelist", to_stringvec(config_.request.levelist));
     request.values("param", to_stringvec(config_.request.paramlist));
     request.values("number", to_stringvec(config_.request.ensemblelist));
-
-    eckit::LocalConfiguration userConfig;
 
     // Do the actual iteration
 

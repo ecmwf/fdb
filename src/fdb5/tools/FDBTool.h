@@ -44,7 +44,7 @@ protected:  // methods
 public:  // methods
 
     static Config config(const eckit::option::CmdArgs& args,
-                         const eckit::Configuration& userConfig = eckit::LocalConfiguration());
+                         const eckit::Configuration& appConfig = eckit::LocalConfiguration());
 
     virtual void usage(const std::string& tool) const;
 

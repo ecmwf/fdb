@@ -40,25 +40,25 @@
 //! - `DumpOptions`: `simple = false` — verbose dump by default, matching
 //!   `fdb-dump`.
 
-/// Per-instance FDB user configuration.
+/// Per-instance FDB application configuration.
 ///
 /// Overlays the main FDB config with per-instance tuning parameters.
-/// Pass to [`Fdb::open`](crate::Fdb::open) as the `user_config` argument.
+/// Pass to [`Fdb::open`](crate::Fdb::open) as the `app_config` argument.
 ///
 /// # Example
 ///
 /// ```no_run
-/// use fdb::{Fdb, UserConfig};
+/// use fdb::{Fdb, AppConfig};
 ///
 /// let cfg: eckit::Config = "type: local\nspaces: []".parse()?;
 /// let fdb = Fdb::open(
 ///     Some(&cfg),
-///     Some(UserConfig { use_sub_toc: true, ..Default::default() }),
+///     Some(AppConfig { use_sub_toc: true, ..Default::default() }),
 /// )?;
 /// # Ok::<(), fdb::Error>(())
 /// ```
 #[derive(Debug, Clone, Copy)]
-pub struct UserConfig {
+pub struct AppConfig {
     /// Enable sub-TOC files for improved write performance.
     /// Default: `false`.
     pub use_sub_toc: bool,
@@ -70,7 +70,11 @@ pub struct UserConfig {
     pub read_limit: i64,
 }
 
-impl Default for UserConfig {
+/// Deprecated alias of [`AppConfig`].
+#[deprecated(note = "use `AppConfig` instead")]
+pub type UserConfig = AppConfig;
+
+impl Default for AppConfig {
     fn default() -> Self {
         Self {
             use_sub_toc: false,
@@ -80,8 +84,8 @@ impl Default for UserConfig {
     }
 }
 
-impl From<UserConfig> for eckit::Config {
-    fn from(cfg: UserConfig) -> Self {
+impl From<AppConfig> for eckit::Config {
+    fn from(cfg: AppConfig) -> Self {
         let mut config = Self::new();
         config.set("useSubToc", cfg.use_sub_toc);
         config.set("preloadTocBTree", cfg.preload_toc_btree);

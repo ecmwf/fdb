@@ -767,14 +767,14 @@ fdb5::Config nestedConfig() {
 }
 
 
-CASE("user_config_reaches_sub_fdbs") {
+CASE("app_config_reaches_sub_fdbs") {
 
     ApiSpy::knownSpies().clear();
 
-    LocalConfiguration userConfig;
-    userConfig.set("useSubToc", true);
+    LocalConfiguration appConfig;
+    appConfig.set("useSubToc", true);
 
-    fdb5::FDB fdb(fdb5::Config(nestedConfig(), userConfig));
+    fdb5::FDB fdb(fdb5::Config(nestedConfig(), appConfig));
 
     fdb5::Key k;
     k.set("class", "rd");
@@ -782,7 +782,7 @@ CASE("user_config_reaches_sub_fdbs") {
     fdb.archive(k, (const void*)0x4321, 4321);
 
     EXPECT_EQUAL(ApiSpy::knownSpies().size(), 1);
-    EXPECT(ApiSpy::knownSpies()[0]->config().userConfig().getBool("useSubToc", false));
+    EXPECT(ApiSpy::knownSpies()[0]->config().appConfig().getBool("useSubToc", false));
 }
 
 
