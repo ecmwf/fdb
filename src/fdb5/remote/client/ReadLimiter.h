@@ -53,8 +53,7 @@ public:
     // When a RemoteStore is destroyed, it must evict any unconsumed requests.
     // If all went well, there will be no requests to evict, but we must check (consumer may have abandoned the
     // request).
-    /// @todo: This is somewhat pointless right now because the RemoteStores appear to be infinitely long lived...
-    /// Revisit if this changes.
+    // Also called when RemoteStore::get() replaces a read store that lost its connection.
     static void evictClient(size_t clientID);
 
     // Debugging
@@ -73,10 +72,11 @@ private:
     // Send the request to the server
     void sendRequest(const RequestInfo& request) const;
 
-    // Give back the memory of an active request
-    void release(uint32_t clientID, uint32_t requestID);
+    // Gives back the memory of a request that was sent. Returns false if the request is not active (still queued,
+    // or already finished). Must be called with mutex_ held.
+    bool releaseActive(uint32_t clientID, uint32_t requestID);
 
-    // used by tests for direct access to memoryUsed_ and activeRequests_
+    // used by tests for direct access to memoryUsed_, activeRequests_ and resultSizes_
     friend class ReadLimiterTestHarness;
 
 private:

@@ -448,8 +448,9 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation) {
 
 eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, const Key& remapKey) {
 
-    // A store whose connection is lost (e.g. one RemoteStore::get() has just replaced) cannot serve the read: fail
-    // before registering anything, which nobody would clean up.
+    // Fail fast on a store whose connection is lost (e.g. one that RemoteStore::get() has just replaced): the read
+    // could not be sent anyway, and if the ReadLimiter is full it would only fail once its turn comes. A connection
+    // lost after this check is handled when the send fails, in ReadLimiter::tryNextRequest().
     if (!connection_->valid()) {
         throw RemoteFDBException("Connection to " + std::string(controlEndpoint()) + " is no longer valid",
                                  controlEndpoint());
@@ -512,9 +513,9 @@ RemoteStore& RemoteStore::get(const eckit::URI& uri) {
     }
 
     if (retired != nullptr) {
-        // Fail its waiting requests: the connection may be marked invalid before its listening thread has done so,
-        // and once deregistered, that thread no longer reaches this store. Then release what its requests hold in
-        // the ReadLimiter.
+        // Fail its waiting requests. The listening thread also does this when it sees the connection drop, but the
+        // connection can be marked invalid first (e.g. by a failed write), and once deregistered, the listening
+        // thread no longer reaches this store. Then release what its requests hold in the ReadLimiter.
         retired->closeConnection();
         retired->deregister();
         ReadLimiter::evictClient(retired->id());

@@ -96,39 +96,33 @@ bool ReadLimiter::tryNextRequest() {
             // DataHandle destructor), so do not throw: give the memory back and pass the error to the request's
             // own reader. Then try the next request, which would otherwise wait for an unrelated event.
             const auto error = std::current_exception();
-            release(request.client->id(), request.id);
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                releaseActive(request.client->id(), request.id);
+            }
             request.client->failRequest(request.id, error);
         }
     }
 }
 
-void ReadLimiter::release(uint32_t clientID, uint32_t requestID) {
-    std::lock_guard<std::mutex> lock(mutex_);
+bool ReadLimiter::releaseActive(uint32_t clientID, uint32_t requestID) {
     auto it = activeRequests_.find(clientID);
     if (it == activeRequests_.end() || it->second.erase(requestID) == 0) {
-        return;
+        return false;
     }
     if (it->second.empty()) {
         activeRequests_.erase(it);
     }
     memoryUsed_ -= resultSizes_[{clientID, requestID}];
     resultSizes_.erase({clientID, requestID});
+    return true;
 }
 
 void ReadLimiter::finishRequest(uint32_t clientID, uint32_t requestID) {
     {
         std::lock_guard<std::mutex> lock(mutex_);
 
-        auto it = activeRequests_.find(clientID);
-        if (it != activeRequests_.end() && it->second.count(requestID) != 0) {
-            memoryUsed_ -= resultSizes_[{clientID, requestID}];
-            it->second.erase(requestID);
-            if (it->second.empty()) {
-                activeRequests_.erase(it);
-            }
-            resultSizes_.erase({clientID, requestID});
-        }
-        else {
+        if (!releaseActive(clientID, requestID)) {
             // Not sent (yet): its DataHandle was dropped while the request was queued, e.g. after its reader was
             // woken by a lost connection. Do not send it any more. If it already failed, there is nothing to do.
             for (auto r = requests_.begin(); r != requests_.end(); ++r) {
@@ -144,7 +138,8 @@ void ReadLimiter::finishRequest(uint32_t clientID, uint32_t requestID) {
     tryNextRequest();
 }
 
-/// @note: Only called when a RemoteStore is destroyed, which is currently on exit.
+/// @note: Called when a RemoteStore is destroyed (on exit), and when RemoteStore::get() replaces a read store that lost
+/// its connection.
 void ReadLimiter::evictClient(size_t clientID) {
     {
         std::lock_guard<std::mutex> lock(instanceMutex_);
@@ -160,11 +155,10 @@ void ReadLimiter::evictClient(size_t clientID) {
         auto it = limiter.activeRequests_.find(clientID);
 
         if (it != limiter.activeRequests_.end()) {
-            for (auto requestID : it->second) {
-                limiter.memoryUsed_ -= limiter.resultSizes_[{clientID, requestID}];
-                limiter.resultSizes_.erase({clientID, requestID});
+            const auto requestIDs = it->second;  // copy: releaseActive() erases from the set
+            for (auto requestID : requestIDs) {
+                limiter.releaseActive(clientID, requestID);
             }
-            limiter.activeRequests_.erase(it);
         }
 
         // Clean up any pending requests attributed to this client

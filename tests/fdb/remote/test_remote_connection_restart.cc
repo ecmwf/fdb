@@ -154,8 +154,8 @@ CASE("Remote store: a request that is waiting is woken up, not resumed, when the
     const size_t memoryUsed = remote::ReadLimiterTestHarness::memoryUsed();
     const size_t queues     = remote::RemoteStoreTestHarness::queueCount(store);
 
-    // A new read on it, e.g. by a thread that got it from get() just before another thread replaced it, fails at
-    // once and leaves nothing behind
+    // A new read on it, e.g. by a thread that got it from get() just before another thread replaced it, fails
+    // fast and leaves nothing behind
     try {
         std::unique_ptr<eckit::DataHandle> dh(store.dataHandle(location));
         EXPECT(false);  // must have thrown
