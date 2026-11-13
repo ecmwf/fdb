@@ -67,6 +67,8 @@ ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& 
 
     innerConfig_ = config_.has("fdb") ? Config{config_.getSubConfiguration("fdb"), config_.userConfig()} : config_;
 
+    setTcpOptions(controlSocket_);
+
     LOG_DEBUG_LIB(LibFdb5) << "ServerConnection::ServerConnection initialized" << std::endl;
 }
 
@@ -202,6 +204,7 @@ void ServerConnection::initialiseConnections() {
 
         dataSocketFuture = std::async(std::launch::async, [this] {
             dataSocket_->accept();
+            setTcpOptions(*dataSocket_);
             return true;
         });
     }

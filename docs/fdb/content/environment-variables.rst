@@ -272,6 +272,31 @@ memory while reading from a remote FDB.
 Default: the ``limits.read`` value from the user configuration, or 1 GiB if unset.
 
 
+``FDB_TCP_KEEPALIVE_IDLE``, ``FDB_TCP_KEEPALIVE_INTERVAL``, ``FDB_TCP_KEEPALIVE_COUNT``
+---------------------------------------------------------------------------------------
+
+TCP keepalive timing, in seconds (idle, interval) and probes (count), for the sockets of remote
+connections, on both clients and servers. A peer that disappears without closing the connection,
+such as a crashed host or a silently dropped network connection, is then noticed after about
+idle + interval × count seconds on an idle connection, and the connection is treated as lost.
+
+Keepalive only checks that the peer's host answers, so slow storage on the server does not trigger it.
+Supported on Linux; ignored with a warning where the platform does not support it.
+
+Default: unset (``0``), which keeps the system defaults (on Linux, 7200 s idle, 75 s interval, 9 probes).
+
+
+``FDB_TCP_USER_TIMEOUT``
+------------------------
+
+Maximum time, in seconds, that data sent on a remote connection may stay unacknowledged before the
+connection is treated as lost (``TCP_USER_TIMEOUT``). This covers a peer that disappears while a
+request is being sent, which keepalive does not. When set, it also bounds the keepalive detection
+above. Supported on Linux.
+
+Default: unset (``0``), which keeps the system default (about 15 minutes on Linux).
+
+
 ``FDB_LOAD_INDEX_THREADS``
 --------------------------
 
