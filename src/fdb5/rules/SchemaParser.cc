@@ -13,6 +13,7 @@
 #include "fdb5/rules/ExcludeAll.h"
 #include "fdb5/rules/MatchAlways.h"
 #include "fdb5/rules/MatchAny.h"
+#include "fdb5/rules/MatchDefined.h"
 #include "fdb5/rules/MatchHidden.h"
 #include "fdb5/rules/MatchOptional.h"
 #include "fdb5/rules/MatchValue.h"
@@ -113,7 +114,14 @@ std::unique_ptr<Predicate> SchemaParser::parsePredicate(eckit::StringDict& types
 
     if (c == '?') {
         parser_->consume(c);
-        return std::make_unique<Predicate>(k, new MatchOptional(parseIdent(true, true)));
+        auto value = parseIdent(true, true);
+        if (value == "Defined") {
+            // return std::make_unique<Predicate>(k, new MatchOptional(""));
+            return std::make_unique<Predicate>(k, new MatchDefined());
+        } 
+        else {
+            return std::make_unique<Predicate>(k, new MatchOptional(value));
+        }
     }
 
     if (c == '-') {

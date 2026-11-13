@@ -67,6 +67,7 @@ bool TypeParam::match(const std::string&, const std::string& value1, const std::
     Param p1(value1);
     Param p2(value2);
 
+    // std::cout << "Matching params: " << p1 << " " << p2 << std::endl;
     if ((p1.value() == p2.value()) && (p1.table() == 0 || p2.table() == 0)) {
         return true;
     }

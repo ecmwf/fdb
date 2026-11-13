@@ -169,6 +169,8 @@ list( APPEND fdb5_srcs
     rules/MatchAlways.h
     rules/MatchAny.cc
     rules/MatchAny.h
+    rules/MatchDefined.cc
+    rules/MatchDefined.h
     rules/Matcher.cc
     rules/Matcher.h
     rules/MatchHidden.cc
@@ -206,8 +208,6 @@ list( APPEND fdb5_srcs
     types/TypeDefault.cc
     types/TypeDefault.h
     types/TypeDouble.cc
-    types/TypeDouble.cc
-    types/TypeDouble.h
     types/TypeDouble.h
     types/TypeExpver.cc
     types/TypeExpver.h

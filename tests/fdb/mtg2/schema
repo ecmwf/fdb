@@ -1,0 +1,62 @@
+# Default types
+
+param:      Param;
+step:       Step;
+date:       Date;
+hdate:      Date;
+refdate:    Date;
+offsetdate: Date;
+latitude:   Double;
+longitude:  Double;
+levelist:   Double;
+grid:       Grid;
+expver:     Expver;
+
+time:       Time;
+offsettime: Time;
+fcmonth:    Integer;
+
+number:     Integer;
+frequency:  Integer;
+direction:  Integer;
+channel:    Integer;
+chem:       Integer;
+coeffindex: Integer;
+
+instrument: Integer;
+ident:      Integer;
+
+diagnostic: Integer;
+iteration:  Integer;
+system:     Integer;
+method:     Integer;
+
+# ???????
+
+# reference:  Integer;
+# fcperiod:   Integer;
+
+# opttime:    Integer;
+# leadtime:   Integer;
+
+# quantile:   ??????
+# range:      ??????
+
+# band:       Integer;
+
+
+[ class=od, expver, stream=oper, date, time, domain?
+    # post-MTG2 - timespan needs to be present and we enforce strict param matching
+    [ type, levtype, timespan?Defined
+        [ timespan?none, step, levelist?, param:ParamID, frequency?, direction? ]]
+
+    # pre-MTG2 (50r1) - no timespan (but we accept timespan=none in the requests)
+    [ type, levtype
+        [ timespan?none, step, levelist?, param:Param ]]
+]
+
+[ class=od, expver, stream=wave, date, time, domain?
+    # pre-MTG2 (50r1) - no timespan (but we accept timespan=none in the requests)
+    [ type, levtype, timespan?none
+        [ step, param:Param, frequency?, direction? ]]
+]

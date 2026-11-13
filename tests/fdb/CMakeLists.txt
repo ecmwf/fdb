@@ -78,6 +78,7 @@ if("${ECKIT_VERSION}" VERSION_GREATER_EQUAL 2.2)
 endif()
 
 if (HAVE_FDB_BUILD_TOOLS)
+    add_subdirectory( mtg2 )
     add_subdirectory( timespan )
     add_subdirectory( tools )
 endif()

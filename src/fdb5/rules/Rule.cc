@@ -179,6 +179,9 @@ size_t Rule::size() const {
 
 std::optional<Key> Rule::findMatchingKey(const Key& field) const {
 
+    // std::cout << "Rule::findMatchingKey" << *this << std::endl;
+    // std::cout << "Finding matching key for field: " << field << std::endl;
+
     if (field.size() < predicates_.size()) {
         return {};
     }
@@ -186,6 +189,8 @@ std::optional<Key> Rule::findMatchingKey(const Key& field) const {
     TypedKey key(registry_);
 
     for (const auto& pred : predicates_) {
+
+        // std::cout << "Matching predicate: " << pred->keyword() << "  " << *pred << std::endl;
 
         /// @note the key is constructed from the predicate
         if (!pred->match(field)) {
