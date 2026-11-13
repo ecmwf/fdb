@@ -131,10 +131,10 @@ void ReadLimiter::finishRequest(uint32_t clientID, uint32_t requestID) {
                     break;
                 }
             }
-            return;
         }
     }
 
+    // Either memory was freed, or a removed request may have been blocking the front of the queue
     tryNextRequest();
 }
 
