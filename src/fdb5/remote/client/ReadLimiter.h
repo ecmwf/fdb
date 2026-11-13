@@ -22,8 +22,8 @@ class RemoteStore;
 //----------------------------------------------------------------------------------------------------------------------
 
 struct RequestInfo {
-    const RemoteStore* client;  // Non-owning
-    uint32_t id;                // note request ids are only unique per connection. Client id is unique within a process
+    RemoteStore* client;  // Non-owning
+    uint32_t id;          // note request ids are only unique per connection. Client id is unique within a process
     eckit::Buffer requestBuffer;  // Payload to send to the server
     size_t requestSize;
     size_t resultSize;  // Size of the field obtained from the store
@@ -72,6 +72,12 @@ private:
 
     // Send the request to the server
     void sendRequest(const RequestInfo& request) const;
+
+    // Give back the memory of an active request
+    void release(uint32_t clientID, uint32_t requestID);
+
+    // used by tests for direct access to memoryUsed_ and activeRequests_
+    friend class ReadLimiterTestHarness;
 
 private:
 

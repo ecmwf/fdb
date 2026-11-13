@@ -144,8 +144,52 @@ CASE("Remote store: a request that is waiting is woken up, not resumed, when the
 
     expectWokenWith(reader, "Unexpected closure of store");
 
+    // The store's connection is now lost, but it is still the cached store: nothing has called get() since
+    FDB fdb{};
+    auto listIter = fdb.list(FDBToolRequest::requestsFromString("class=od,expver=xxxx,date=20500101")[0]);
+    ListElement elem;
+    ASSERT(listIter.next(elem));
+    const auto& location = elem.location();
+
+    const size_t memoryUsed = remote::ReadLimiterTestHarness::memoryUsed();
+    const size_t queues     = remote::RemoteStoreTestHarness::queueCount(store);
+
+    // A new read on it, e.g. by a thread that got it from get() just before another thread replaced it, fails at
+    // once and leaves nothing behind
+    try {
+        std::unique_ptr<eckit::DataHandle> dh(store.dataHandle(location));
+        EXPECT(false);  // must have thrown
+    }
+    catch (const remote::RemoteFDBException& e) {
+        EXPECT(std::string(e.what()).find("is no longer valid") != std::string::npos);
+    }
+    EXPECT_EQUAL(remote::RemoteStoreTestHarness::queueCount(store), queues);
+    EXPECT_EQUAL(remote::ReadLimiterTestHarness::memoryUsed(), memoryUsed);
+
+    // A read whose send fails in the ReadLimiter gives its memory back, and its reader gets the error
+    auto [failedID, failedQueue] = remote::RemoteStoreTestHarness::registerQueue(store);
+    EXPECT_NO_THROW(remote::ReadLimiter::instance().add(&store, failedID, location, Key{}));
+    EXPECT_EQUAL(remote::ReadLimiterTestHarness::memoryUsed(), memoryUsed);
+    EXPECT_EQUAL(remote::RemoteStoreTestHarness::queueCount(store), queues);
+    auto failedReader = startReader<remote::RemoteStore::StoredMessage>(failedQueue);
+    expectWokenWith(failedReader, "is no longer valid");
+
     // The store read from above lost its connection: later reads in this process must work again
     EXPECT_EQUAL(readTestFieldWithRetries(expected), expected);
+}
+
+CASE("ReadLimiter: finishing a request that was never sent does not touch the others") {
+    // e.g. the DataHandle of a queued request is destroyed after its reader was woken by a lost connection, while
+    // the same store has another request in flight
+    const uint32_t clientID   = 999999;
+    const size_t memoryBefore = remote::ReadLimiterTestHarness::memoryUsed();
+    remote::ReadLimiterTestHarness::markActive(clientID, 1, 100);
+
+    EXPECT_NO_THROW(remote::ReadLimiter::instance().finishRequest(clientID, 2));
+    EXPECT_EQUAL(remote::ReadLimiterTestHarness::memoryUsed(), memoryBefore + 100);
+
+    remote::ReadLimiter::instance().finishRequest(clientID, 1);
+    EXPECT_EQUAL(remote::ReadLimiterTestHarness::memoryUsed(), memoryBefore);
 }
 
 CASE("Remote FDB: a request that is waiting is woken up, not resumed, when the catalogue is restarted") {

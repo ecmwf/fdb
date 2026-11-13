@@ -350,6 +350,18 @@ void RemoteStore::print(std::ostream& out) const {
     out << "RemoteStore(host=" << controlEndpoint() << ")";
 }
 
+void RemoteStore::failRequest(uint32_t requestID, std::exception_ptr error) {
+    std::lock_guard lock(messageMutex_);
+    auto iter = messageQueues_.find(requestID);
+    if (iter == messageQueues_.end()) {
+        return;
+    }
+    if (!iter->second->closed()) {
+        iter->second->interrupt(error);
+    }
+    messageQueues_.erase(iter);
+}
+
 void RemoteStore::closeConnection() {
     std::lock_guard lock(messageMutex_);
     for (auto& kv : messageQueues_) {
@@ -435,6 +447,13 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation) {
 }
 
 eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, const Key& remapKey) {
+
+    // A store whose connection is lost (e.g. one RemoteStore::get() has just replaced) cannot serve the read: fail
+    // before registering anything, which nobody would clean up.
+    if (!connection_->valid()) {
+        throw RemoteFDBException("Connection to " + std::string(controlEndpoint()) + " is no longer valid",
+                                 controlEndpoint());
+    }
 
     uint32_t id = generateRequestID();
 

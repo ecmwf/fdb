@@ -70,24 +70,49 @@ void ReadLimiter::add(RemoteStore* client, uint32_t id, const FieldLocation& fie
 }
 
 bool ReadLimiter::tryNextRequest() {
-    RequestInfo request{nullptr, 0, eckit::Buffer{0}, 0, 0};
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (requests_.empty()) {
-            return false;
+    while (true) {
+        RequestInfo request{nullptr, 0, eckit::Buffer{0}, 0, 0};
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (requests_.empty()) {
+                return false;
+            }
+            if (memoryUsed_ + requests_.front().resultSize > memoryLimit_) {
+                return false;
+            }
+            request = std::move(requests_.front());
+            requests_.pop_front();
+            activeRequests_[request.client->id()].insert(request.id);
+            resultSizes_[{request.client->id(), request.id}] = request.resultSize;
+            memoryUsed_ += request.resultSize;
         }
-        if (memoryUsed_ + requests_.front().resultSize > memoryLimit_) {
-            return false;
+        // Send outside the lock — sendRequest may block on network I/O
+        try {
+            sendRequest(request);
+            return true;
         }
-        request = std::move(requests_.front());
-        requests_.pop_front();
-        activeRequests_[request.client->id()].insert(request.id);
-        resultSizes_[{request.client->id(), request.id}] = request.resultSize;
-        memoryUsed_ += request.resultSize;
+        catch (...) {
+            // e.g. the store's connection was lost. This may run in another request's finishRequest() (even in a
+            // DataHandle destructor), so do not throw: give the memory back and pass the error to the request's
+            // own reader. Then try the next request, which would otherwise wait for an unrelated event.
+            const auto error = std::current_exception();
+            release(request.client->id(), request.id);
+            request.client->failRequest(request.id, error);
+        }
     }
-    // Send outside the lock — sendRequest may block on network I/O
-    sendRequest(request);
-    return true;
+}
+
+void ReadLimiter::release(uint32_t clientID, uint32_t requestID) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it = activeRequests_.find(clientID);
+    if (it == activeRequests_.end() || it->second.erase(requestID) == 0) {
+        return;
+    }
+    if (it->second.empty()) {
+        activeRequests_.erase(it);
+    }
+    memoryUsed_ -= resultSizes_[{clientID, requestID}];
+    resultSizes_.erase({clientID, requestID});
 }
 
 void ReadLimiter::finishRequest(uint32_t clientID, uint32_t requestID) {
@@ -95,16 +120,25 @@ void ReadLimiter::finishRequest(uint32_t clientID, uint32_t requestID) {
         std::lock_guard<std::mutex> lock(mutex_);
 
         auto it = activeRequests_.find(clientID);
-        if (it == activeRequests_.end()) {
+        if (it != activeRequests_.end() && it->second.count(requestID) != 0) {
+            memoryUsed_ -= resultSizes_[{clientID, requestID}];
+            it->second.erase(requestID);
+            if (it->second.empty()) {
+                activeRequests_.erase(it);
+            }
+            resultSizes_.erase({clientID, requestID});
+        }
+        else {
+            // Not sent (yet): its DataHandle was dropped while the request was queued, e.g. after its reader was
+            // woken by a lost connection. Do not send it any more. If it already failed, there is nothing to do.
+            for (auto r = requests_.begin(); r != requests_.end(); ++r) {
+                if (r->client->id() == clientID && r->id == requestID) {
+                    requests_.erase(r);
+                    break;
+                }
+            }
             return;
         }
-
-        auto it2 = it->second.find(requestID);
-        ASSERT(it2 != it->second.end());
-
-        memoryUsed_ -= resultSizes_[{clientID, requestID}];
-        it->second.erase(it2);
-        resultSizes_.erase({clientID, requestID});
     }
 
     tryNextRequest();
