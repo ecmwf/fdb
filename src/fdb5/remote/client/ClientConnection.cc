@@ -154,6 +154,7 @@ bool ClientConnection::connect(const Configuration& config, bool singleAttempt) 
         // Connect to server, and check that the server is happy on the response
         LOG_DEBUG_LIB(LibFdb5) << "Connecting to host: " << controlEndpoint_ << std::endl;
         controlClient_.connect(controlEndpoint_, fdbMaxConnectRetries, fdbConnectTimeout);
+        setTcpOptions(controlClient_);
 
         writeControlStartupMessage(config);
         SessionID serverSession = verifyServerStartupResponse();
@@ -162,6 +163,7 @@ bool ClientConnection::connect(const Configuration& config, bool singleAttempt) 
             // Connect to the specified data port
             LOG_DEBUG_LIB(LibFdb5) << "Received data endpoint from host: " << dataEndpoint_ << std::endl;
             dataClient_.connect(dataEndpoint_, fdbMaxConnectRetries, fdbConnectTimeout);
+            setTcpOptions(dataClient_);
             writeDataStartupMessage(serverSession);
 
             listeningDataThread_ = std::thread([this] { listeningDataThreadLoop(); });

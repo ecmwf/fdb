@@ -7,6 +7,16 @@ ecbuild_add_executable(
     NOINSTALL
 )
 
+# The TCP keepalive and user timeout settings reach the sockets (no servers needed)
+ecbuild_add_test(
+    TARGET       fdb_test_remote_tcp_options
+    SOURCES      test_remote_tcp_options.cc
+    INCLUDES     ${ECKIT_INCLUDE_DIRS}
+    LIBS         fdb5
+    ENVIRONMENT  "FDB_TCP_KEEPALIVE_IDLE=7;FDB_TCP_KEEPALIVE_INTERVAL=3;FDB_TCP_KEEPALIVE_COUNT=2;FDB_TCP_USER_TIMEOUT=11"
+    LABELS       remotefdb
+)
+
 if (HAVE_FDB_BUILD_TOOLS)
     ecbuild_configure_file( fdb_remote_test_helper.sh.in fdb_remote_test_helper.sh @ONLY )
     set(FDB_REMOTE_TEST_HELPER "${CMAKE_CURRENT_BINARY_DIR}/fdb_remote_test_helper.sh" CACHE INTERNAL "")
