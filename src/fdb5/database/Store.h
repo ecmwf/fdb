@@ -50,6 +50,8 @@ public:
 
     //    virtual std::string owner() const = 0;
     virtual bool exists() const = 0;
+    /// True if this store talks to a server and has lost its connection, so it cannot be used any more
+    virtual bool connectionLost() const { return false; }
     virtual void checkUID() const = 0;
 
     virtual bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const;

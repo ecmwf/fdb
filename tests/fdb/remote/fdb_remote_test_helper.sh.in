@@ -113,7 +113,8 @@ fdb_remote_start_server() {
 
 # Writes an executable script that starts a server again, with the arguments of fdb_remote_start_server, so that a
 # test binary can restart a server it has killed. Must be called after fdb_remote_init. The restarted server is
-# stopped by its own reaper once the process that called this function exits.
+# stopped by its own reaper once the process that called this function exits. The script prints the process group
+# of the restarted server, so that a test can kill it again.
 fdb_remote_write_restart_script() {
     local script=$1
     shift
@@ -128,6 +129,7 @@ fdb_remote_write_restart_script() {
         printf ' %q' "$@"
         echo
         echo 'fdb_remote_wait_for_servers'
+        echo 'echo "${FDB_REMOTE_SERVER_PGIDS[0]}"'
     } >"$script"
     chmod +x "$script"
 }

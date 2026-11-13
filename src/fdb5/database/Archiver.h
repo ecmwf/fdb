@@ -38,6 +38,9 @@ struct Database {
     time_t time_;
     std::shared_ptr<CatalogueWriter> catalogue_;
     std::unique_ptr<Store> store_;
+
+    // True if the catalogue or the store lost its connection to a server
+    bool connectionLost() const;
 };
 class Archiver {
 
