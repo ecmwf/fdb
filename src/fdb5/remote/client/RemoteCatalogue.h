@@ -77,6 +77,7 @@ public:  // methods
     void flush(size_t archivedFields) override;
     void clean() override;
     void close() override;
+    bool connectionLost() const override { return !connection_->valid(); }
     bool exists() const override;
     void checkUID() const override;
     eckit::URI uri() const override;
