@@ -14,36 +14,17 @@ name = "fdb"
 repo = "ecmwf/fdb"
 visibility = "public"
 compiler-inputs = ["cxx-compiler"]
-git-read = ["ecmwf/bindman", "ecmwf/rust-wrappers-playground"]
-
-[[deps]]
-repo = "ecmwf/ecbuild"
-package = "ecbuild"
-ref = "develop"
-compiler-inputs = []
-
-[[deps]]
-repo = "ecmwf/eccodes"
-package = "eccodes"
-ref = "develop"
-compiler-inputs = ["cxx-compiler"]
-options-input = "options"
-
-[[deps]]
-repo = "ecmwf/eckit"
-package = "eckit"
-ref = "develop"
-compiler-inputs = ["cxx-compiler"]
+allow-stale-deps = true
 
 [[deps]]
 repo = "ecmwf/metkit"
 package = "metkit"
 ref = "develop"
 compiler-inputs = ["cxx-compiler"]
-options-input = "options"
 
 [packages.pyfdb]
 compiler-inputs = ["cxx-compiler"]
+allow-stale-deps = true
 
 [[packages.pyfdb.deps]]
 package = "fdb"
@@ -60,7 +41,7 @@ triggers = ["upstream-change", "rebuild-request"]
 [matrix.build.defaults]
 job-script = "./.ci/runner/build.sh.j2"
 build-type = "RelWithDebInfo"
-runs-on = "arc-runner-very-large"
+runs-on = "arc-runner-large"
 
 [[matrix.build.include]]
 cxx-compiler = "clang++-18"
@@ -162,13 +143,8 @@ cxx-compiler-binary = "g++"
 time = "00:40:00"
 
 [[matrix.build-hpc.include]]
-options = ""
 
 [[matrix.build-hpc.include]]
-options = "eckit-geo"
-
-[[matrix.build-hpc.include]]
-options = "eckit-geo"
 cxx-compiler = "g++-15"
 platform = "hpc-atos-gnu"
 modules = ["load prgenv/gnu", "unload gcc", "load gcc/15.2.0", "load cmake", "load ninja"]
@@ -176,7 +152,6 @@ c-compiler-binary = "gcc"
 cxx-compiler-binary = "g++"
 
 [[matrix.build-hpc.include]]
-options = "eckit-geo"
 cxx-compiler = "icpx-2025.3.1"
 platform = "hpc-atos-intel"
 modules = ["load prgenv/intel-llvm", "unload intel", "load intel/2025.3.1", "load cmake", "load ninja"]
@@ -184,15 +159,14 @@ c-compiler-binary = "icx"
 cxx-compiler-binary = "icpx"
 
 [[matrix.build-hpc.include]]
-options = "eckit-geo"
 cxx-compiler = "nvc++-26.1"
 platform = "hpc-atos-nvidia"
 modules = ["load prgenv/nvidia", "unload nvidia", "load nvidia/26.1", "load cmake", "load ninja"]
 c-compiler-binary = "nvc"
 cxx-compiler-binary = "nvc++"
+sccache = false
 
 [[matrix.build-hpc.include]]
-options = "eckit-geo"
 cxx-compiler = "icpc-2023.2.0"
 platform = "hpc-atos-intel"
 modules = ["load prgenv/intel", "unload intel", "load intel/2023.2.0", "load cmake", "load ninja"]
@@ -200,11 +174,11 @@ c-compiler-binary = "icc"
 cxx-compiler-binary = "icpc"
 
 [packages.fdb-rust]
-compiler-inputs = ["cxx-compiler"]
+compiler-inputs = ["cxx-compiler", "rust-compiler"]
+allow-stale-deps = true
 
 [[packages.fdb-rust.deps]]
 package = "fdb"
-options-input = "options"
 
 [[packages.fdb-rust.deps]]
 repo = "ecmwf/eckit"
@@ -235,3 +209,26 @@ platform = "ubuntu-24.04"
 
 [[matrix.rust.include]]
 rust-compiler = "rust-1.90"
+
+# Publishing the crates, only from publish-crates.yml: no patches and the default features, as a
+# crates.io user gets them, so the -sys crate builds its C++ from the release tag.
+[packages.fdb-crates]
+compiler-inputs = ["cxx-compiler", "rust-compiler"]
+allow-stale-deps = true
+
+[matrix.rust-publish]
+packages = ["fdb-crates"]
+publishes = false
+
+[[matrix.rust-publish.include]]
+job-script = "./.ci/runner/rust-publish.sh.j2"
+runs-on = "arc-runner-very-large"
+cxx-compiler = "g++-13"
+c-compiler = "gcc-13"
+rust-compiler = "rust-1.90"
+container = "eccr.ecmwf.int/public-ci-images/ubuntu24.04-gcc13-gfortran13-boost-qt6-rust1.90"
+platform = "ubuntu-24.04"
+
+[[trigger-downstream]]
+repo = "ecmwf/gribjump"
+ref = "develop"

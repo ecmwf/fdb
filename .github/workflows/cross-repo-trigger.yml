@@ -36,6 +36,21 @@ on:
         required: false
         type: string
         default: main
+      pin:
+        description: 'Space-separated owner/repo@sha to resolve against: those of the downstream runner, or of the consumer that requests a rebuild. Empty pins from-repo@from-sha alone.'
+        required: false
+        default: ''
+        type: string
+      resolved:
+        description: The resolve-deps json output for this repo's kinds, resolved by the downstream runner with the rest of its run. Empty resolves here.
+        required: false
+        default: ''
+        type: string
+      resolved-ref:
+        description: The commit of this repo that `resolved` is for
+        required: false
+        default: ''
+        type: string
   workflow_dispatch:
     inputs:
       dispatch-id:
@@ -70,6 +85,21 @@ on:
         required: false
         type: string
         default: main
+      pin:
+        description: 'Space-separated owner/repo@sha to resolve against: those of the downstream runner, or of the consumer that requests a rebuild. Empty pins from-repo@from-sha alone.'
+        required: false
+        default: ''
+        type: string
+      resolved:
+        description: The resolve-deps json output for this repo's kinds, resolved by the downstream runner with the rest of its run. Empty resolves here.
+        required: false
+        default: ''
+        type: string
+      resolved-ref:
+        description: The commit of this repo that `resolved` is for
+        required: false
+        default: ''
+        type: string
 concurrency:
   group: cross-repo-trigger-runner-fdb-${{ github.ref }}
   cancel-in-progress: false
@@ -83,17 +113,12 @@ env:
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 jobs:
   resolve:
-    if: contains(fromJSON(inputs.from-jobs), 'metkit/build') || contains(fromJSON(inputs.from-jobs), 'eccodes/build') || contains(fromJSON(inputs.from-jobs), 'ecbuild/build') || contains(fromJSON(inputs.from-jobs), 'stack-deps/build') || contains(fromJSON(inputs.from-jobs), 'eckit/build') || inputs.rebuild-request
-    runs-on: arc-runner-normal
-    container:
-      image: eccr.ecmwf.int/public-ci-images/ubuntu24.04-base:latest
+    if: (contains(fromJSON(inputs.from-jobs), 'metkit/build') || contains(fromJSON(inputs.from-jobs), 'eccodes/build') || contains(fromJSON(inputs.from-jobs), 'ecbuild/build') || contains(fromJSON(inputs.from-jobs), 'stack-deps/build') || contains(fromJSON(inputs.from-jobs), 'eckit/build') || inputs.rebuild-request) && !inputs.resolved
+    runs-on: ubuntu-latest
     outputs:
-      ref: ${{ steps.pick.outputs.ref }}
-      matrix-build: ${{ toJSON(fromJSON(steps.r.outputs.json)['build']) }}
-      matrix-python: ${{ toJSON(fromJSON(steps.r.outputs.json)['python']) }}
+      ref: ${{ steps.r.outputs.own-sha }}
+      json: ${{ steps.r.outputs.json }}
     steps:
-    - name: Announce image
-      uses: ecmwf/ci-infrastructure/actions/announce-image@main
     - id: mint
       uses: actions/create-github-app-token@v3
       with:
@@ -117,7 +142,7 @@ jobs:
       uses: ecmwf/ci-infrastructure/actions/resolve-deps@main
       with:
         current-branch: ${{ steps.pick.outputs.ref }}
-        pin: ${{ !inputs.rebuild-request && format('{0}@{1}', inputs.from-repo, inputs.from-sha) || '' }}
+        pin: ${{ !inputs.rebuild-request && (inputs.pin || format('{0}@{1}', inputs.from-repo, inputs.from-sha)) || inputs.pin }}
         matrix: build,python
         token: ${{ steps.mint.outputs.token }}
         client-id: ${{ secrets.CI_PERMISSIONS_APP_CLIENT_ID }}
@@ -125,14 +150,14 @@ jobs:
   fdb__build:
     needs:
     - resolve
-    if: contains(fromJSON(inputs.from-jobs), 'metkit/build') || contains(fromJSON(inputs.from-jobs), 'eccodes/build') || contains(fromJSON(inputs.from-jobs), 'ecbuild/build') || contains(fromJSON(inputs.from-jobs), 'stack-deps/build') || contains(fromJSON(inputs.from-jobs), 'eckit/build') || inputs.rebuild-request
+    if: ${{ !failure() && !cancelled() && (contains(fromJSON(inputs.from-jobs), 'metkit/build') || contains(fromJSON(inputs.from-jobs), 'eccodes/build') || contains(fromJSON(inputs.from-jobs), 'ecbuild/build') || contains(fromJSON(inputs.from-jobs), 'stack-deps/build') || contains(fromJSON(inputs.from-jobs), 'eckit/build') || inputs.rebuild-request) }}
     name: fdb/build (${{ matrix._resolved['job-name'] }})
     runs-on: ${{ matrix['runs-on'] }}
     container:
       image: ${{ matrix.container || '' }}
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.resolve.outputs.matrix-build) }}
+      matrix: ${{ fromJSON(inputs.resolved || needs.resolve.outputs.json)['build'] }}
     steps:
     - id: mint
       uses: actions/create-github-app-token@v3
@@ -158,7 +183,7 @@ jobs:
     - uses: actions/checkout@v6
       with:
         repository: ecmwf/fdb
-        ref: ${{ needs.resolve.outputs.ref }}
+        ref: ${{ inputs.resolved-ref || needs.resolve.outputs.ref }}
         token: ${{ steps.mint.outputs.token }}
         persist-credentials: false
     - name: Decode matrix-leg
@@ -195,14 +220,6 @@ jobs:
       with:
         deps-json: ${{ steps.m.outputs.deps-json }}
         token: ${{ steps.mint.outputs.token }}
-    - id: git-read
-      uses: actions/create-github-app-token@v3
-      with:
-        client-id: ${{ secrets.CI_PERMISSIONS_APP_CLIENT_ID }}
-        private-key: ${{ secrets.CI_PERMISSIONS_APP_PRIVATE_KEY }}
-        owner: ${{ github.repository_owner }}
-        repositories: bindman,rust-wrappers-playground
-        permission-contents: read
     - name: Build
       id: build
       uses: ecmwf/ci-infrastructure/actions/run-job-script@main
@@ -211,7 +228,6 @@ jobs:
         matrix-leg: ${{ toJSON(matrix) }}
         package: fdb
         cmake-prefix-path: ${{ steps.deps.outputs.cmake-prefix-path }}
-        git-token: ${{ steps.git-read.outputs.token }}
     - name: Publish
       uses: ecmwf/ci-infrastructure/actions/publish-artifact@main
       with:
@@ -233,14 +249,14 @@ jobs:
     needs:
     - resolve
     - fdb__build
-    if: contains(fromJSON(inputs.from-jobs), 'metkit/build') || contains(fromJSON(inputs.from-jobs), 'eccodes/build') || contains(fromJSON(inputs.from-jobs), 'ecbuild/build') || contains(fromJSON(inputs.from-jobs), 'stack-deps/build') || contains(fromJSON(inputs.from-jobs), 'eckit/build') || inputs.rebuild-request
+    if: ${{ !failure() && !cancelled() && (contains(fromJSON(inputs.from-jobs), 'metkit/build') || contains(fromJSON(inputs.from-jobs), 'eccodes/build') || contains(fromJSON(inputs.from-jobs), 'ecbuild/build') || contains(fromJSON(inputs.from-jobs), 'stack-deps/build') || contains(fromJSON(inputs.from-jobs), 'eckit/build') || inputs.rebuild-request) && needs.fdb__build.result == 'success' }}
     name: fdb/python (${{ matrix._resolved['job-name'] }})
     runs-on: ${{ matrix['runs-on'] }}
     container:
       image: ${{ matrix.container || '' }}
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.resolve.outputs.matrix-python) }}
+      matrix: ${{ fromJSON(inputs.resolved || needs.resolve.outputs.json)['python'] }}
     steps:
     - id: mint
       uses: actions/create-github-app-token@v3
@@ -266,7 +282,7 @@ jobs:
     - uses: actions/checkout@v6
       with:
         repository: ecmwf/fdb
-        ref: ${{ needs.resolve.outputs.ref }}
+        ref: ${{ inputs.resolved-ref || needs.resolve.outputs.ref }}
         token: ${{ steps.mint.outputs.token }}
         persist-credentials: false
     - name: Decode matrix-leg
@@ -303,14 +319,6 @@ jobs:
       with:
         deps-json: ${{ steps.m.outputs.deps-json }}
         token: ${{ steps.mint.outputs.token }}
-    - id: git-read
-      uses: actions/create-github-app-token@v3
-      with:
-        client-id: ${{ secrets.CI_PERMISSIONS_APP_CLIENT_ID }}
-        private-key: ${{ secrets.CI_PERMISSIONS_APP_PRIVATE_KEY }}
-        owner: ${{ github.repository_owner }}
-        repositories: bindman,rust-wrappers-playground
-        permission-contents: read
     - name: Build
       id: build
       uses: ecmwf/ci-infrastructure/actions/run-job-script@main
@@ -319,7 +327,6 @@ jobs:
         matrix-leg: ${{ toJSON(matrix) }}
         package: fdb
         cmake-prefix-path: ${{ steps.deps.outputs.cmake-prefix-path }}
-        git-token: ${{ steps.git-read.outputs.token }}
     - name: Publish
       uses: ecmwf/ci-infrastructure/actions/publish-artifact@main
       with:

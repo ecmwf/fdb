@@ -99,9 +99,9 @@ request="class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g"
 out=$(fdb-stats "$request")
 echo "$out"
 
-echo "$out" | grep -qE "Number of databases[[:space:]]*:?[[:space:]]*1" || die "Expected 1 database in stats output"
-echo "$out" | grep -qE "Fields" || die "Expected field statistics in stats output"
-echo "$out" | grep -qE "Data objects" || die "Expected data object statistics in stats output"
+grep -qE -- "Number of databases[[:space:]]*:?[[:space:]]*1" <<< "$out" || die "Expected 1 database in stats output"
+grep -qE -- "Fields" <<< "$out" || die "Expected field statistics in stats output"
+grep -qE -- "Data objects" <<< "$out" || die "Expected data object statistics in stats output"
 
 ########################################################################################################################
 # the same statistics should be reported as a JSON object with --json
@@ -109,7 +109,7 @@ echo "$out" | grep -qE "Data objects" || die "Expected data object statistics in
 out=$(fdb-stats --json --details "$request")
 echo "$out"
 
-echo "$out" | grep -q '"databases":1' || die "Expected 1 database in JSON stats output"
-echo "$out" | grep -q '"fields":3' || die "Expected field statistics in JSON stats output"
-echo "$out" | grep -q '"dataObjects"' || die "Expected data object statistics in JSON stats output"
-echo "$out" | grep -q '"details":\[{' || die "Expected per-database statistics in JSON stats output"
+grep -q -- '"databases":1' <<< "$out" || die "Expected 1 database in JSON stats output"
+grep -q -- '"fields":3' <<< "$out" || die "Expected field statistics in JSON stats output"
+grep -q -- '"dataObjects"' <<< "$out" || die "Expected data object statistics in JSON stats output"
+grep -q -- '"details":\[{' <<< "$out" || die "Expected per-database statistics in JSON stats output"

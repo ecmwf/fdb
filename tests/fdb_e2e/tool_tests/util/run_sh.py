@@ -1,4 +1,3 @@
-import logging
 import subprocess
 from pathlib import Path
 from typing import Optional
@@ -10,34 +9,19 @@ def run_script(script: Path, args: Optional[list[str]], cwd: str, env: dict[str,
     if args is not None:
         command.extend(args)
 
-    logging.debug(f"Calling {command}")
-
-    logging.debug(env)
-
-    process = subprocess.Popen(
+    result = subprocess.run(
         command,
         cwd=cwd,
         env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        bufsize=1,
         text=True,
+        check=False,
     )
 
-    stdout = ""
-
-    for line in process.stdout:
-        if not line:
-            break
-        logging.info(line.strip())
-        stdout += line
-
-    process.wait()
-
-    if process.returncode != 0:
-        logging.debug(f"{stdout}")
-        raise subprocess.CalledProcessError(
-            returncode=process.returncode, cmd=command, output=stdout
+    if result.returncode != 0:
+        raise AssertionError(
+            f"{script.name} failed with exit code {result.returncode}:\n{result.stdout}"
         )
 
-    return stdout
+    return result.stdout

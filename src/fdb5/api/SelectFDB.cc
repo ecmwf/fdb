@@ -80,12 +80,17 @@ SelectFDB::SelectFDB(const Config& config, const std::string& name) : FDBBase(co
     }
 
     std::string schema = config.getString("schema", "");
+    std::string fdb_home = config.getString("fdb_home", "");
+
     for (auto& c : config.getSubConfigs("fdbs")) {
         /// inject parent schema into the SelectFDB sub-fdbs
         /// note: a sub-fdb can be a remote or select FDB, se we do not worry if neither parent nor children are
         /// defining a schema: it could be defined in the grand-children
         if (!schema.empty() && !c.has("schema")) {
             c.set("schema", schema);
+        }
+        if (!fdb_home.empty() && !c.has("fdb_home")) {
+            c.set("fdb_home", fdb_home);
         }
         subFdbs_.emplace_back(FDBLane{c, config.userConfig(), callbacks_});
     }
