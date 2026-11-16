@@ -217,6 +217,7 @@ compiler-inputs = ["cxx-compiler", "rust-compiler"]
 allow-stale-deps = true
 
 [matrix.rust-publish]
+ci = false
 packages = ["fdb-crates"]
 publishes = false
 
