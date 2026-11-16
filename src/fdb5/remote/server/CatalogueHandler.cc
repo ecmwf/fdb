@@ -20,6 +20,7 @@
 #include "eckit/serialisation/ResizableMemoryStream.h"
 #include "eckit/utils/Literals.h"
 
+#include <chrono>
 #include <future>
 #include <mutex>
 #include <utility>
@@ -40,7 +41,10 @@ namespace fdb5::remote {
 CatalogueHandler::CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config) :
     ServerConnection(socket, config), fdbControlConnection_(false), fdbDataConnection_(false) {}
 
-CatalogueHandler::~CatalogueHandler() {}
+CatalogueHandler::~CatalogueHandler() {
+    // the workers use the members of this class
+    stopWorkers(true);
+}
 
 Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint32_t requestID) {
 
@@ -97,7 +101,7 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
     try {
         if (!enabled(agreedConf_.enabledFeatures(), message)) {
             std::ostringstream ss;
-            ss << "Unauthorized message: " << message;
+            ss << "'" << message << "' is disabled in the configuration of FDB server " << host() << ":" << port();
             unauthorised(ss.str(), clientID, requestID);
             return Handled::Replied;
         }
@@ -332,11 +336,12 @@ void CatalogueHandler::handleApiCall(uint32_t clientID, uint32_t requestID, ecki
                                }
                                catch (std::exception& e) {
                                    // n.b. more general than eckit::Exception
-                                   error(false, e.what(), clientID, requestID);
+                                   tryError(false, e.what(), clientID, requestID);
                                }
                                catch (...) {
                                    // We really don't want to std::terminate the thread
-                                   error(false, "Caught unexpected, unknown exception in worker", clientID, requestID);
+                                   tryError(false, "Caught unexpected, unknown exception in worker", clientID,
+                                            requestID);
                                }
                            }));
 }
@@ -479,6 +484,8 @@ void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffe
         return;
     }
 
+    rethrowArchiveFailure();
+
     auto it = catalogues_.find(clientID);
     ASSERT(it != catalogues_.end());
 
@@ -492,7 +499,19 @@ void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffe
         }
     }
 
-    it->second.archivalCompleted.wait();
+    while (it->second.archivalCompleted.wait_for(std::chrono::milliseconds(100)) != std::future_status::ready) {
+        rethrowArchiveFailure();
+
+        if (aborted()) {
+            throw SeriousBug("Connection terminated before all field locations were archived", Here());
+        }
+
+        // The archive worker only finishes before teardown if it failed; don't wait for locations that will never come
+        if (archiveFuture_.valid() && archiveFuture_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            archiveFuture_.get();
+            throw SeriousBug("Archive worker terminated before all field locations were archived", Here());
+        }
+    }
     {
         std::lock_guard<std::mutex> lock(fieldLocationsMutex_);
         it->second.fieldLocationsReceived = std::promise<size_t>{};
@@ -524,9 +543,7 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
         std::lock_guard<std::mutex> lock(handlerMutex_);
         it = catalogues_.find(clientID);
         if (it == catalogues_.end()) {
-            std::string what("Requested unknown catalogue id: " + std::to_string(clientID));
-            error(false, what, 0, 0);
-            throw SeriousBug(what, Here());
+            throw SeriousBug("Requested unknown catalogue id: " + std::to_string(clientID), Here());
         }
     }
 

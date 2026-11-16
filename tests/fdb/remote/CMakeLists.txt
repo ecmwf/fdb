@@ -7,6 +7,27 @@ ecbuild_add_executable(
     NOINSTALL
 )
 
+# Unit tests: they don't need a running server
+ecbuild_add_test(
+    TARGET         fdb_test_remote_locations
+    SOURCES        test_remote_locations.cc
+    INCLUDES       ${ECKIT_INCLUDE_DIRS}
+    LIBS           fdb5
+    ENVIRONMENT    "${test_environment}"
+    LABELS         remotefdb
+)
+
+ecbuild_add_test(
+    TARGET         fdb_test_remote_connection_abort
+    SOURCES        test_remote_connection_abort.cc
+    INCLUDES       ${ECKIT_INCLUDE_DIRS}
+    LIBS           fdb5
+    ENVIRONMENT    "${test_environment}"
+    TEST_PROPERTIES
+    TIMEOUT 120
+    LABELS         remotefdb
+)
+
 if (HAVE_FDB_BUILD_TOOLS)
     ecbuild_configure_file( fdb_remote_test_helper.sh.in fdb_remote_test_helper.sh @ONLY )
     set(FDB_REMOTE_TEST_HELPER "${CMAKE_CURRENT_BINARY_DIR}/fdb_remote_test_helper.sh" CACHE INTERNAL "")

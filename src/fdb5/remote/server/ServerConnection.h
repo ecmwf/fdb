@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <atomic>
+#include <exception>
 #include <future>
 #include <mutex>
 
@@ -101,6 +103,16 @@ protected:
     void tidyWorkers();
     void waitForWorkers();
 
+    /// Stops and joins all the worker threads (archive, retrieve, API calls). Idempotent.
+    /// Workers use the state of the derived handlers, so this must be called while they are still alive: from
+    /// handle() on any exit path, and from the derived destructors.
+    /// @param discardPending drop archive requests that are still queued instead of processing them
+    void stopWorkers(bool discardPending) noexcept;
+
+    /// Rethrows the failure of the archive worker, if any. Unlike the state of archiveFuture_, this is set before
+    /// any client is notified of the failure.
+    void rethrowArchiveFailure() const;
+
     // archival thread
     size_t archiveThreadLoop();
 
@@ -113,6 +125,9 @@ protected:
 private:
 
     void listeningThreadLoopData();
+
+    // Initialises the connections and serves control messages until the client disconnects
+    void listenControl(std::thread& listeningThreadData, MessageHeader& hdr);
 
     const eckit::net::TCPSocket& controlSocket() const override { return controlSocket_; }
 
@@ -150,6 +165,10 @@ protected:
 private:
 
     std::mutex dataPortMutex_;
+
+    mutable std::mutex archiveFailureMutex_;
+    std::exception_ptr archiveFailure_;
+    std::atomic<bool> discardArchive_{false};
 
     // data connection
     std::unique_ptr<eckit::net::EphemeralTCPServer> dataSocket_;

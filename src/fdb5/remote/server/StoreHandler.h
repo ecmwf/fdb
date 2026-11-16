@@ -23,6 +23,7 @@ class StoreHandler : public ServerConnection, public CallbackRegistry {
 public:  // methods
 
     StoreHandler(eckit::net::TCPSocket& socket, const Config& config);
+    ~StoreHandler() override;
 
 private:  // methods
 

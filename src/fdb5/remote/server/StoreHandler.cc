@@ -21,7 +21,9 @@
 #include "eckit/types/Types.h"
 #include "eckit/utils/Literals.h"
 
+#include <chrono>
 #include <cstdint>
+#include <future>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -36,6 +38,11 @@ namespace fdb5::remote {
 
 StoreHandler::StoreHandler(eckit::net::TCPSocket& socket, const Config& config) : ServerConnection(socket, config) {
     LibFdb5::instance().constructorCallback()(*this);
+}
+
+StoreHandler::~StoreHandler() {
+    // the workers use the members of this class
+    stopWorkers(true);
 }
 
 Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t requestID) {
@@ -70,7 +77,7 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
     try {
         if (!enabled(agreedConf_.enabledFeatures(), message)) {
             std::ostringstream ss;
-            ss << "Unauthorized message: " << message;
+            ss << "'" << message << "' is disabled in the configuration of FDB server " << host() << ":" << port();
             unauthorised(ss.str(), clientID, requestID);
             return Handled::Replied;
         }
@@ -155,14 +162,23 @@ void StoreHandler::read(uint32_t clientID, uint32_t requestID, const eckit::Buff
 }
 
 void StoreHandler::readLocationThreadLoop() {
-    readLocationElem elem;
+    // This runs in a std::thread: nothing may escape, or the whole process would be terminated.
+    try {
+        readLocationElem elem;
 
-    while (readLocationQueue_.pop(elem) != -1) {
-        // Get the next MarsRequest in sequence to work on, do the retrieve, and
-        // send the data back to the client.
+        while (readLocationQueue_.pop(elem) != -1) {
+            // Get the next MarsRequest in sequence to work on, do the retrieve, and
+            // send the data back to the client.
 
-        // Forward the API call
-        writeToParent(elem.clientID, elem.requestID, std::move(elem.readLocation));
+            // Forward the API call
+            writeToParent(elem.clientID, elem.requestID, std::move(elem.readLocation));
+        }
+    }
+    catch (std::exception& e) {
+        eckit::Log::error() << "Unexpected error in retrieve worker: " << e.what() << std::endl;
+    }
+    catch (...) {
+        eckit::Log::error() << "Unexpected, unknown error in retrieve worker" << std::endl;
     }
 }
 
@@ -194,11 +210,11 @@ void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t request
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        error(false, e.what(), clientID, requestID);
+        tryError(false, e.what(), clientID, requestID);
     }
     catch (...) {
         // We really don't want to std::terminate the thread
-        error(false, "Caught unexpected , unknown exception in retrieve worker", clientID, requestID);
+        tryError(false, "Caught unexpected , unknown exception in retrieve worker", clientID, requestID);
     }
 }
 
@@ -251,7 +267,15 @@ void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buf
     }
 
     if (numArchived > 0) {
+        rethrowArchiveFailure();
+
         ASSERT(archiveFuture_.valid());
+
+        // The archive worker only finishes before teardown if it failed
+        if (archiveFuture_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            archiveFuture_.get();
+            throw SeriousBug("Archive worker terminated before flush", Here());
+        }
 
         std::lock_guard<std::mutex> lock(handlerMutex_);
         auto it = stores_.find(clientID);
@@ -296,7 +320,6 @@ Store& StoreHandler::getStore(uint32_t clientID) {
         for (const auto& kv : stores_) {
             Log::error() << "  clientID: " << kv.first << ", store: " << *(kv.second.store) << std::endl;
         }
-        write(Message::Error, true, 0, 0, what.c_str(), what.length());
         throw SeriousBug(what, Here());
     }
 
