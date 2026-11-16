@@ -240,7 +240,7 @@ RemoteStore::~RemoteStore() {
     // an error. n.b. if we don't do something, we will block in the destructor
     // of std::future.
 
-    if (!locations_.complete()) {
+    if (!locations_.finished()) {
         Log::error() << "Attempting to destruct RemoteStore with active archival" << std::endl;
         eckit::Main::instance().terminate();
     }
@@ -321,7 +321,7 @@ size_t RemoteStore::flush() {
     }
 
     // remote side reported that all fields are flushed... now wait for field locations
-    // size_t locations;
+    // n.b. complete() throws if the archival failed, wait() throws if it fails in the meantime
     bool complete = locations_.complete();
 
     size_t locations = complete ? locations_.archived() : locations_.wait();
@@ -351,12 +351,19 @@ void RemoteStore::print(std::ostream& out) const {
 }
 
 void RemoteStore::closeConnection() {
-    std::lock_guard lock(messageMutex_);
-    for (auto& kv : messageQueues_) {
-        if (!kv.second->closed()) {
-            kv.second->interrupt(std::make_exception_ptr(eckit::Exception("Unexpected closure of store", Here())));
+    const auto eptr = std::make_exception_ptr(eckit::Exception("Unexpected closure of store", Here()));
+
+    {
+        std::lock_guard lock(messageMutex_);
+        for (auto& kv : messageQueues_) {
+            if (!kv.second->closed()) {
+                kv.second->interrupt(eptr);
+            }
         }
     }
+
+    // a flush() waiting for field locations would otherwise block forever
+    locations_.failPending(eptr);
 }
 
 const eckit::Configuration& RemoteStore::clientConfig() const {
@@ -409,19 +416,32 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
             return true;
         }
         case Message::Error: {
-            std::lock_guard lock(messageMutex_);
-            auto iter = messageQueues_.find(requestID);
-            if (iter != messageQueues_.end()) {
-                std::string msg;
-                msg.resize(payload.size(), ' ');
-                payload.copy(&msg[0], payload.size());
-                iter->second->interrupt(std::make_exception_ptr(RemoteFDBException(msg, controlEndpoint())));
+            std::string msg;
+            msg.resize(payload.size(), ' ');
+            payload.copy(&msg[0], payload.size());
+            auto eptr = std::make_exception_ptr(RemoteFDBException(msg, controlEndpoint()));
 
-                // Remove entry (shared_ptr --> message queue will be destroyed when it
-                // goes out of scope in the worker thread).
-                messageQueues_.erase(iter);
+            {
+                std::lock_guard lock(messageMutex_);
+                auto iter = messageQueues_.find(requestID);
+                if (iter != messageQueues_.end()) {
+                    iter->second->interrupt(eptr);
+
+                    // Remove entry (shared_ptr --> message queue will be destroyed when it
+                    // goes out of scope in the worker thread).
+                    messageQueues_.erase(iter);
+                    return true;
+                }
             }
-            return true;
+
+            // an archive request failed: surface it from flush() instead of waiting for a location
+            // that will never arrive
+            if (locations_.fail(requestID, eptr)) {
+                return true;
+            }
+
+            // not attributable to any request: let the connection report it
+            return false;
         }
         default:
             Log::warning() << *this << " - Received unexpected [message=" << message << ",requestID=" << requestID

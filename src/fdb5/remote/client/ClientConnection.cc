@@ -47,6 +47,10 @@ std::string msgHeader(MessageHeader& hdr, net::Endpoint& endpoint) {
        << ",clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]";
     return ss.str();
 }
+
+std::string errorText(const Buffer& payload) {
+    return std::string(static_cast<const char*>(payload.data()), payload.size());
+}
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -57,13 +61,13 @@ public:
 
     DataWriteRequest() = default;
 
-    DataWriteRequest(Client* client, Message msg, uint32_t id, Buffer&& data) :
-        client_(client), msg_(msg), id_(id), data_(std::move(data)) {}
+    DataWriteRequest(uint32_t clientID, Message msg, uint32_t id, Buffer&& data) :
+        clientID_(clientID), msg_(msg), id_(id), data_(std::move(data)) {}
 
     /// @param barrier: no payload, signals when all queued writes before this barrier have been processed
     explicit DataWriteRequest(std::shared_ptr<std::promise<void>> barrier) : barrier_{std::move(barrier)} {}
 
-    Client* client_{nullptr};
+    uint32_t clientID_{0};
     Message msg_{Message::None};
     uint32_t id_{0};
     Buffer data_{Buffer(0)};
@@ -216,12 +220,13 @@ RemoteConfiguration ClientConnection::availableFunctionality(const Configuration
 
 void ClientConnection::checkEnabled(Message msg) const {
     if (!enabled(agreedFeatures_, msg)) {
-        std::ostringstream ss;
-        ss << "Message " << msg << " not enabled by server: " << controlEndpoint_ << std::endl;
-        ss << "  mask:    " << messageMask2String(toMask(msg)) << std::endl;
-        ss << "  enabled: " << messageMask2String(agreedFeatures_) << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Message " << msg << " not enabled - requested: " << messageMask2String(toMask(msg))
+                               << ", enabled: " << messageMask2String(agreedFeatures_) << std::endl;
 
-        throw RemoteFDBException(ss.str(), controlEndpoint_);
+        std::ostringstream ss;
+        ss << "'" << msg << "' is not permitted on FDB server " << controlEndpoint_
+           << ": the feature is disabled in the client or server configuration";
+        throw UserError(ss.str(), Here());
     }
 }
 
@@ -249,8 +254,7 @@ void ClientConnection::dataWrite(DataWriteRequest& request) const {
 
     checkEnabled(request.msg_);
 
-    Connection::write(request.msg_, false, request.client_->clientId(), request.id_, request.data_.data(),
-                      request.data_.size());
+    Connection::write(request.msg_, false, request.clientID_, request.id_, request.data_.data(), request.data_.size());
 }
 
 void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t requestID, PayloadList payloads) {
@@ -287,7 +291,7 @@ void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t r
         offset += payload.length;
     }
 
-    dataWriteQueue_->emplace(&client, msg, requestID, std::move(buffer));
+    dataWriteQueue_->emplace(client.clientId(), msg, requestID, std::move(buffer));
 }
 
 void ClientConnection::dataWriteThreadLoop() {
@@ -568,6 +572,10 @@ void ClientConnection::listeningControlThreadLoop() {
                     throw SeriousBug(ss.str(), Here());
                 }
             }
+            else if (hdr.message == Message::Error) {
+                // not addressed to any client, so it cannot be delivered to a request
+                throw RemoteFDBException("Received an error from server: " + errorText(payload), controlEndpoint_);
+            }
         }
 
         // We don't want to let exceptions escape inside a worker thread.
@@ -646,6 +654,10 @@ void ClientConnection::listeningDataThreadLoop() {
                     Log::error() << "Client Retrieving... " << ss.str() << std::endl;
                     throw SeriousBug(ss.str(), Here());
                 }
+            }
+            else if (hdr.message == Message::Error) {
+                // not addressed to any client, so it cannot be delivered to a request
+                throw RemoteFDBException("Received an error from server: " + errorText(payload), dataEndpoint_);
             }
         }
 

@@ -45,6 +45,38 @@ void Connection::teardown() {
     }
 }
 
+void Connection::abortConnection() noexcept {
+    isValid_ = false;
+    closingSocket_ = true;  // blocked reads must return quietly rather than raise a read error
+
+    if (aborted_.exchange(true)) {
+        return;
+    }
+
+    shutdownSocket(true);
+    if (!single_) {
+        shutdownSocket(false);
+    }
+}
+
+void Connection::shutdownSocket(bool control) noexcept {
+    try {
+        // Shutting down does not modify the socket object, it only wakes up whoever is blocked on it.
+        auto& socket = const_cast<eckit::net::TCPSocket&>(getSocket(control));
+        try {
+            socket.closeInput();
+        }
+        catch (...) {}
+        try {
+            socket.closeOutput();
+        }
+        catch (...) {}
+    }
+    catch (...) {
+        // socket not established yet or already closed
+    }
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 void Connection::writeUnsafe(const eckit::net::TCPSocket& socket, const void* const data, const size_t length) const {
@@ -100,7 +132,11 @@ eckit::Buffer Connection::read(bool control, MessageHeader& hdr) const {
         }
     }
 
+    // Peer disconnected: report it as an Exit that does not carry the identifiers of the previous message
     hdr.message = Message::Exit;
+    hdr.clientID_ = control ? 1 : 0;
+    hdr.requestID = 0;
+    hdr.payloadSize = 0;
     return eckit::Buffer{0};
 }
 
@@ -136,6 +172,17 @@ void Connection::write(const Message msg, const bool control, const uint32_t cli
 void Connection::error(bool control, std::string_view msg, uint32_t clientID, uint32_t requestID) const {
     eckit::Log::error() << "[clientID=" << clientID << ",requestID=" << requestID << "]  " << msg << std::endl;
     write(Message::Error, control, clientID, requestID, msg.data(), msg.length());
+}
+
+bool Connection::tryError(bool control, std::string_view msg, uint32_t clientID, uint32_t requestID) const noexcept {
+    try {
+        error(control, msg, clientID, requestID);
+        return true;
+    }
+    catch (...) {
+        // connection already down, nobody left to tell
+        return false;
+    }
 }
 
 void Connection::unauthorised(std::string_view msg, uint32_t clientID, uint32_t requestID) const {

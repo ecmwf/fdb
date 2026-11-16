@@ -70,11 +70,24 @@ public:  // methods
     void error(bool control, std::string_view msg, uint32_t clientID, uint32_t requestID) const;
     void unauthorised(std::string_view msg, uint32_t clientID, uint32_t requestID) const;
 
+    /// Same as error(), but never throws: to be used where an escaping exception would terminate the process
+    /// (worker threads, destructors, cleanup paths). Returns false if the client could not be notified.
+    bool tryError(bool control, std::string_view msg, uint32_t clientID, uint32_t requestID) const noexcept;
+
     eckit::Buffer readControl(MessageHeader& hdr) const;
 
     eckit::Buffer readData(MessageHeader& hdr) const;
 
+    /// Graceful disconnection: notifies the peer with an Exit message.
     void teardown();
+
+    /// Abrupt disconnection after a failure: shuts down both sockets so that every thread blocked on them is
+    /// released (reads then behave as if the peer had disconnected, writes fail). No Exit message is sent, so that
+    /// the peer sees a lost connection rather than a graceful end. Idempotent, thread safe, never throws.
+    void abortConnection() noexcept;
+
+    /// True once abortConnection() has been called
+    bool aborted() const { return aborted_; }
 
     bool valid() const { return isValid_; }
 
@@ -90,6 +103,8 @@ private:  // methods
 
     std::mutex& getSocketMutex(bool control) const;
 
+    void shutdownSocket(bool control) noexcept;
+
     virtual const eckit::net::TCPSocket& controlSocket() const = 0;
 
     virtual const eckit::net::TCPSocket& dataSocket() const = 0;
@@ -101,6 +116,7 @@ protected:  // members
 private:  // members
 
     std::atomic<bool> closingSocket_{false};
+    std::atomic<bool> aborted_{false};
 
     mutable std::mutex controlMutex_;
     mutable std::mutex dataMutex_;

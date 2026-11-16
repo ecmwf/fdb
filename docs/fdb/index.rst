@@ -21,6 +21,7 @@ the MARS Archive.
    content/introduction
    content/mars
    content/config-schema
+   content/remote
    content/environment-variables
    cli_tools/index
    content/api

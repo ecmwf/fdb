@@ -71,12 +71,9 @@ ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& 
 }
 
 ServerConnection::~ServerConnection() {
-    // We don't want to die before the worker threads are cleaned up
-    waitForWorkers();
-
-    if (archiveFuture_.valid()) {
-        archiveFuture_.wait();
-    }
+    // The derived handlers have already been destroyed: they are expected to have stopped the workers already
+    // (see stopWorkers()), this is only a safety net so that we don't die before the worker threads are cleaned up.
+    stopWorkers(true);
 
     eckit::Log::info() << "Done" << std::endl;
 }
@@ -269,6 +266,10 @@ size_t ServerConnection::archiveThreadLoop() {
 
     try {
         while (archiveQueue_.pop(elem) != -1) {
+            if (discardArchive_) {
+                continue;
+            }
+
             if (elem.multiblob_) {
                 // Handle MultiBlob
 
@@ -300,8 +301,33 @@ size_t ServerConnection::archiveThreadLoop() {
         }
     }
     catch (...) {
+        const auto eptr = std::current_exception();
+
+        std::string what = "Caught unexpected, unknown exception in archive worker";
+        try {
+            std::rethrow_exception(eptr);
+        }
+        catch (const std::exception& e) {
+            what = e.what();
+        }
+        catch (...) {}
+
+        // Record the failure before anybody is told about it, so that a flush can never miss it
+        {
+            std::lock_guard<std::mutex> lock(archiveFailureMutex_);
+            if (!archiveFailure_) {
+                archiveFailure_ = eptr;
+            }
+        }
+
         // Ensure exception propagates across the queue back to the parent thread.
-        archiveQueue_.interrupt(std::current_exception());
+        archiveQueue_.interrupt(eptr);
+
+        // The worker is shared, so all pending requests must be failed without waiting for a socket writer.
+        eckit::Log::error() << "Archive worker failed [clientID=" << elem.clientID_ << ",requestID=" << elem.requestID_
+                            << "], terminating the connection: " << what << std::endl;
+        abortConnection();
+
         throw;
     }
 
@@ -310,7 +336,7 @@ size_t ServerConnection::archiveThreadLoop() {
 
 void ServerConnection::listeningThreadLoopData() {
 
-    MessageHeader hdr;
+    MessageHeader hdr{};
 
     try {
 
@@ -360,23 +386,22 @@ void ServerConnection::listeningThreadLoopData() {
             }
         }
     }
+    // Rethrowing from a std::thread would std::terminate the whole server, so report and exit the loop instead.
+    // A failure to read the data connection means that the stream is out of sync (or gone): nothing more can be
+    // received on it, so the whole connection is terminated to wake up whoever is waiting for it.
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        error(false, e.what(), hdr.clientID(), hdr.requestID);
-        throw;
+        eckit::Log::error() << "Data listener failed, terminating the connection: " << e.what() << std::endl;
+        abortConnection();
     }
     catch (...) {
-        error(false, "Caught unexpected, unknown exception in retrieve worker", hdr.clientID(), hdr.requestID);
-        throw;
+        eckit::Log::error() << "Data listener failed, terminating the connection" << std::endl;
+        abortConnection();
     }
 }
 
-void ServerConnection::handle() {
+void ServerConnection::listenControl(std::thread& listeningThreadData, MessageHeader& hdr) {
     initialiseConnections();
-
-    std::thread listeningThreadData;
-
-    MessageHeader hdr;
 
     // listen loop
     while (true) {
@@ -447,14 +472,55 @@ void ServerConnection::handle() {
             }
         }
     }
+}
 
-    if (listeningThreadData.joinable()) {
-        listeningThreadData.join();
+void ServerConnection::handle() {
+    std::thread listeningThreadData;
+    MessageHeader hdr{};
+    std::string failure;
+
+    // Nothing may escape from here: an exception unwinding with a joinable listeningThreadData would terminate the
+    // process, and the workers must be stopped while the derived handler is still alive.
+    try {
+        listenControl(listeningThreadData, hdr);
+
+        if (listeningThreadData.joinable()) {
+            listeningThreadData.join();
+        }
+
+        // if the connection was aborted by a worker, whatever is still queued is discarded
+        if (!aborted()) {
+            ASSERT(archiveQueue_.empty());
+        }
     }
-    ASSERT(archiveQueue_.empty());
-    archiveQueue_.close();
+    catch (const std::exception& e) {
+        failure = e.what();
+    }
+    catch (...) {
+        failure = "Caught unexpected, unknown exception in connection handler";
+    }
 
-    teardown();
+    if (!failure.empty()) {
+        eckit::Log::error() << "Terminating connection: " << failure << std::endl;
+
+        // Shut down without waiting for a socket writer so the data listener can be joined.
+        abortConnection();
+        try {
+            if (listeningThreadData.joinable()) {
+                listeningThreadData.join();
+            }
+        }
+        catch (...) {}
+    }
+
+    // The connection is also aborted by the data listener and by the archive worker, on their own failures
+    const bool failed = aborted();
+
+    stopWorkers(failed);
+
+    if (!failed) {
+        teardown();
+    }
 }
 
 void ServerConnection::queue(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
@@ -495,13 +561,48 @@ void ServerConnection::waitForWorkers() {
     for (auto& it : workerThreads_) {
         eckit::Log::error() << "Worker thread still alive for request ID: " << it.first << std::endl;
         eckit::Log::error() << "Joining ..." << std::endl;
-        it.second.get();
+        // Called from the destructor: an exception escaping here would terminate the process
+        try {
+            it.second.get();
+        }
+        catch (const std::exception& e) {
+            eckit::Log::error() << "Worker thread for request ID " << it.first << " failed: " << e.what() << std::endl;
+        }
+        catch (...) {
+            eckit::Log::error() << "Worker thread for request ID " << it.first << " failed with an unknown exception"
+                                << std::endl;
+        }
         eckit::Log::error() << "Thread complete" << std::endl;
     }
+
+    workerThreads_.clear();
 
     std::lock_guard<std::mutex> lock(readLocationMutex_);
     if (readLocationWorker_.joinable()) {
         readLocationWorker_.join();
+    }
+}
+
+void ServerConnection::stopWorkers(bool discardPending) noexcept {
+    try {
+        discardArchive_ = discardPending;
+        archiveQueue_.close();  // the archive worker still empties the queue, discarding the elements if requested
+
+        if (archiveFuture_.valid()) {
+            archiveFuture_.wait();  // wait() rather than get(): the failure has already been reported
+        }
+
+        waitForWorkers();
+    }
+    catch (...) {
+        eckit::Log::error() << "Unexpected error while stopping the workers" << std::endl;
+    }
+}
+
+void ServerConnection::rethrowArchiveFailure() const {
+    std::lock_guard<std::mutex> lock(archiveFailureMutex_);
+    if (archiveFailure_) {
+        std::rethrow_exception(archiveFailure_);
     }
 }
 
