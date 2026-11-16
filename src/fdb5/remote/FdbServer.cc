@@ -124,7 +124,7 @@ void FdbServerBase::doRun() {
     int port = config.getInt("serverPort", 7654);
     bool threaded = config.getBool("serverThreaded", false);
 
-    net::TCPServer server(net::Port("fdb", port), net::SocketOptions::server().reusePort(true));
+    net::TCPServer server(net::Port("fdb", port));
     server.closeExec(false);
 
     port_ = server.localPort();
