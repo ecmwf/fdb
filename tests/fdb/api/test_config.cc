@@ -300,6 +300,21 @@ CASE("schemaVersion: version beyond maxSchemaVersion without any schema file fai
     EXPECT_THROWS_AS(schemaConfig(td / "schema", tooNew).schemaPath(), eckit::UserError);
 }
 
+CASE("schemaVersion: without a schema, the version is appended to the default schema path") {
+    eckit::TmpDir td;
+    (td / "etc/fdb").mkdir();
+    eckit::PathName schema = td / "etc/fdb/schema";
+    schema.touch();
+    (td / "etc/fdb/schema.1").touch();
+
+    // the default schema path is ~fdb/etc/fdb/schema, with ~fdb expanded from fdb_home
+    fdb5::Config cfg;
+    cfg.set("fdb_home", td.asString());
+    cfg.set("schemaVersion", 1L);
+
+    EXPECT_EQUAL(cfg.schemaPath().asString(), schema.asString() + ".1");
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb::test
