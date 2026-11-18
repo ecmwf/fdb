@@ -315,6 +315,61 @@ CASE("schemaVersion: without a schema, the version is appended to the default sc
     EXPECT_EQUAL(cfg.schemaPath().asString(), schema.asString() + ".1");
 }
 
+CASE("schemaVersion: FDB_SCHEMA_VERSION=0 overrides the config and selects the plain schema") {
+    eckit::TmpDir td;
+    eckit::PathName schema = td / "schema";
+    schema.touch();
+    (td / "schema.1").touch();
+
+    eckit::testing::SetEnv env("FDB_SCHEMA_VERSION", "0");
+
+    EXPECT_EQUAL(schemaConfig(schema, "1").schemaPath().asString(), schema.asString());
+}
+
+CASE("schemaVersion: FDB_SCHEMA_VERSION selects the version when the config defines none") {
+    eckit::TmpDir td;
+    eckit::PathName schema = td / "schema";
+    schema.touch();
+    (td / "schema.1").touch();
+
+    eckit::testing::SetEnv env("FDB_SCHEMA_VERSION", "1");
+
+    EXPECT_EQUAL(schemaConfig(schema).schemaPath().asString(), schema.asString() + ".1");
+}
+
+CASE("schemaVersion: FDB_SCHEMA_VERSION takes precedence over the config version") {
+    eckit::TmpDir td;
+    eckit::PathName schema = td / "schema";
+    schema.touch();
+    (td / "schema.1").touch();
+
+    eckit::testing::SetEnv env("FDB_SCHEMA_VERSION", "1");
+
+    const std::string tooNew = std::to_string(fdb5::LibFdb5::maxSchemaVersion() + 1);
+    EXPECT_EQUAL(schemaConfig(schema, tooNew).schemaPath().asString(), schema.asString() + ".1");
+    EXPECT_EQUAL(schemaConfig(schema, "0").schemaPath().asString(), schema.asString() + ".1");
+}
+
+CASE("schemaVersion: FDB_SCHEMA_VERSION beyond maxSchemaVersion falls back like the config version") {
+    eckit::TmpDir td;
+    eckit::PathName schema = td / "schema";
+    schema.touch();
+
+    const std::string tooNew = std::to_string(fdb5::LibFdb5::maxSchemaVersion() + 1);
+    eckit::testing::SetEnv env("FDB_SCHEMA_VERSION", tooNew.c_str());
+
+    EXPECT_EQUAL(schemaConfig(schema).schemaPath().asString(), schema.asString());
+}
+
+CASE("schemaVersion: version 0 in the config selects the plain schema") {
+    eckit::TmpDir td;
+    eckit::PathName schema = td / "schema";
+    schema.touch();
+    (td / "schema.1").touch();
+
+    EXPECT_EQUAL(schemaConfig(schema, "0").schemaPath().asString(), schema.asString());
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb::test
