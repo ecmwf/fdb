@@ -80,12 +80,18 @@ SelectFDB::SelectFDB(const Config& config, const std::string& name) : FDBBase(co
     }
 
     std::string schema = config.getString("schema", "");
+    const bool hasSchemaVersion = config.has("schemaVersion");
+    const long schemaVersion = hasSchemaVersion ? config.getLong("schemaVersion") : 0;
     std::string fdb_home = config.getString("fdb_home", "");
 
     for (auto& c : config.getSubConfigs("fdbs")) {
         /// inject parent schema into the SelectFDB sub-fdbs
         /// note: a sub-fdb can be a remote or select FDB, se we do not worry if neither parent nor children are
         /// defining a schema: it could be defined in the grand-children
+        /// the schemaVersion is inherited together with the schema, unless the sub-fdb defines its own
+        if (hasSchemaVersion && !c.has("schemaVersion") && !c.has("schema")) {
+            c.set("schemaVersion", schemaVersion);
+        }
         if (!schema.empty() && !c.has("schema")) {
             c.set("schema", schema);
         }

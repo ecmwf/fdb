@@ -75,6 +75,10 @@ RemoteProtocolVersion LibFdb5::remoteProtocolVersion() const {
     return RemoteProtocolVersion{};
 }
 
+int LibFdb5::maxSchemaVersion() {
+    return 1;
+}
+
 
 const std::set<std::string>& LibFdb5::auxiliaryRegistry() {
     static std::set<std::string> auxiliaryRegistry(

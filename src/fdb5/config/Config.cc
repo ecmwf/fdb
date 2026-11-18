@@ -209,6 +209,40 @@ void Config::initializeSchemaPath() const {
         schemaPath_ = expandPath(fdbSchemaFile);
     }
 
+    // A configured schemaVersion selects the file "<schema>.<version>". If the version is newer than the
+    // latest one this software can parse, fall back to the most recent versioned schema file present,
+    // and finally to the unsuffixed one.
+    if (has("schemaVersion")) {
+        const long version = getLong("schemaVersion");
+        const long maxVersion = LibFdb5::maxSchemaVersion();
+        if (version < 0) {
+            throw eckit::UserError("Invalid schemaVersion: " + std::to_string(version), Here());
+        }
+
+        auto versioned = [&](long v) { return PathName(schemaPath_.asString() + "." + std::to_string(v)); };
+
+        if (version <= maxVersion) {
+            schemaPath_ = versioned(version);
+        }
+        else {
+            LOG_DEBUG_LIB(LibFdb5) << "Configured schemaVersion " << version << " is newer than the maximum supported "
+                                   << maxVersion << std::endl;
+            long v = maxVersion;
+            while (v >= 1 && !versioned(v).exists()) {
+                --v;
+            }
+            if (v >= 1) {
+                schemaPath_ = versioned(v);
+            }
+            else if (!schemaPath_.exists()) {
+                std::ostringstream ss;
+                ss << "No schema file found for " << schemaPath_ << " with version <= " << maxVersion;
+                throw eckit::UserError(ss.str(), Here());
+            }
+            // otherwise: no versioned schema present, use the unsuffixed one
+        }
+    }
+
     schemaPathInitialised_ = true;
     LOG_DEBUG_LIB(LibFdb5) << "Using FDB schema: " << schemaPath_ << std::endl;
 }
