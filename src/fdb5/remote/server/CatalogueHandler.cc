@@ -256,7 +256,8 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
                 dbKey, CatalogueHandler::WipeInProgress{unsafeWipeAll_,
                                                         CatalogueReaderFactory::instance().build(dbKey, state.config()),
                                                         CatalogueWipeState(dbKey, state.safeURIs(), state.deleteMap(),
-                                                                           state.indexesToMask(), state.config())});
+                                                                           state.indexesToMask(), state.config(),
+                                                                           state.unrecognisedURIs())});
         }
         else {
             handler.wipesInProgress_.erase(dbKey);
@@ -620,7 +621,8 @@ void CatalogueHandler::doWipeUnknowns(uint32_t clientID, uint32_t requestID, eck
     std::lock_guard lock(wipesMutex_);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
 
-    std::set<eckit::URI> rec_unknownURIs{s};
+    std::set<eckit::URI> rec_unknownURIs;
+    s >> rec_unknownURIs;
 
     // The client should not talk to us unless there are unknown URIs to wipe.
     ASSERT(!rec_unknownURIs.empty());
