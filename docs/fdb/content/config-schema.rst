@@ -90,6 +90,30 @@ also how the FDB will internally split the identifiers provided by the user
 processes into sub-identifiers which control how the store backend partitions
 data over inside the storage system.
 
+Schema Versioning
+=================
+
+The schema file can be versioned. When the configuration defines a ``schemaVersion``, the version
+number is appended to the schema file name, separated by a ``.``:
+
+.. code-block:: yaml
+
+  type: local
+  schema: ~/etc/fdb/schema
+  schemaVersion: 1
+
+With this configuration FDB reads ``~/etc/fdb/schema.1``. If ``schemaVersion`` is not defined, no
+suffix is added and the schema file is used as is (``~/etc/fdb/schema``).
+
+- If ``schema`` is not defined, the version is appended to the default schema path
+  (``FDB_SCHEMA_FILE``, by default ``~fdb/etc/fdb/schema``).
+- The version must not exceed the most recent schema version the running FDB software can parse
+  (``LibFdb5::maxSchemaVersion()``). If a larger ``schemaVersion`` is requested, FDB falls back to
+  the most recent existing ``<schema>.<N>`` file with ``N`` up to that maximum, and finally to the
+  unsuffixed ``<schema>`` file. If none of them exists, an error is raised.
+- In a nested configuration (e.g. a ``select`` FDB), a sub-FDB inherits the ``schema`` and the
+  ``schemaVersion`` of its parent, unless it defines its own ``schema`` or ``schemaVersion``.
+
 Minimal Working Example
 =======================
 
