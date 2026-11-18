@@ -102,6 +102,8 @@ Path to the FDB schema file, which defines the set of keys and their order used 
 Default: ``~fdb/etc/fdb/schema``.
 
 If a ``schema`` is set in the FDB configuration, that value takes precedence over this variable.
+If the configuration defines a ``schemaVersion``, it is appended to the schema path
+as ``.<schemaVersion>`` (see :doc:`config-schema`).
 
 
 ``FDB_ROOTS_FILE``
