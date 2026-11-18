@@ -103,7 +103,11 @@ number is appended to the schema file name, separated by a ``.``:
   schemaVersion: 1
 
 With this configuration FDB reads ``~/etc/fdb/schema.1``. If ``schemaVersion`` is not defined, no
-suffix is added and the schema file is used as is (``~/etc/fdb/schema``).
+suffix is added and the schema file is used as is (``~/etc/fdb/schema``). A ``schemaVersion`` of ``0``
+also selects the unsuffixed schema file.
+
+The ``FDB_SCHEMA_VERSION`` environment variable overrides the ``schemaVersion`` of the configuration;
+``FDB_SCHEMA_VERSION=0`` selects the unsuffixed schema file.
 
 - If ``schema`` is not defined, the version is appended to the default schema path
   (``FDB_SCHEMA_FILE``, by default ``~fdb/etc/fdb/schema``).
