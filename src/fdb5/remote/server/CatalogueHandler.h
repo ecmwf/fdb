@@ -63,6 +63,8 @@ private:  // methods
     void inspect(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void wipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void stats(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    void status(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    void touch(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void schema(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void stores(uint32_t clientID, uint32_t requestID);
     void exists(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const;

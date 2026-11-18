@@ -194,6 +194,34 @@ std::unique_ptr<StatusIteratorHandle> FdbHandle::status(const metkit_bridge::Mar
     return std::make_unique<StatusIteratorHandle>(std::move(it));
 }
 
+std::unique_ptr<StatusIteratorHandle> FdbHandle::touch(const metkit_bridge::MarsRequestWrapper& request,
+                                                       rust::Slice<const fdb5::AccessIdentifier> identifiers,
+                                                       const AccessTimeData& when) {
+    const auto& mars = request.inner();
+    auto tool_request = fdb5::FDBToolRequest{mars, mars.empty(), std::vector<std::string>{}};
+
+    fdb5::AccessIdentifiers access_ids;
+    for (auto id : identifiers) {
+        access_ids |= id;
+    }
+
+    fdb5::AccessTime access_time;
+    switch (when.source) {
+        case AccessTimeSource::Catalogue:
+            access_time = fdb5::AccessTime::catalogueTime();
+            break;
+        case AccessTimeSource::Explicit:
+            access_time = fdb5::AccessTime::at(static_cast<time_t>(when.time));
+            break;
+        case AccessTimeSource::Now:
+        default:
+            break;
+    }
+
+    auto it = impl_.touch(tool_request, access_ids, access_time);
+    return std::make_unique<StatusIteratorHandle>(std::move(it));
+}
+
 std::unique_ptr<WipeIteratorHandle> FdbHandle::wipe(const metkit_bridge::MarsRequestWrapper& request, bool doit,
                                                     bool porcelain, bool unsafe_wipe_all) {
     const auto& mars = request.inner();

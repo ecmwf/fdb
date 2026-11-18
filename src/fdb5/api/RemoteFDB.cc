@@ -61,6 +61,23 @@ struct BaseAPIHelper {
 
 using StatsHelper = BaseAPIHelper<StatsElement, Message::Stats>;
 
+using StatusHelper = BaseAPIHelper<StatusElement, Message::Status>;
+
+struct TouchHelper : BaseAPIHelper<StatusElement, Message::Touch> {
+
+    TouchHelper(AccessIdentifiers identifiers, AccessTime when) : identifiers_(identifiers), when_(when) {}
+
+    void encodeExtra(Stream& s) const {
+        s << identifiers_;
+        s << when_;
+    }
+
+private:
+
+    AccessIdentifiers identifiers_;
+    AccessTime when_;
+};
+
 struct ListHelper : BaseAPIHelper<ListElement, Message::List> {
 
     ListHelper(const int depth) : depth_(depth) {}
@@ -93,6 +110,7 @@ struct ListHelper : BaseAPIHelper<ListElement, Message::List> {
         return ListElement(elem.keys(), remoteLocation, elem.timestamp());
     }
 
+    // TODO: Include config flag to update the timestamp on list operation, if appropriate.
     void encodeExtra(Stream& s) const { s << depth_; }
 
 private:
@@ -329,6 +347,14 @@ ListIterator RemoteFDB::inspect(const metkit::mars::MarsRequest& request) {
 
 StatsIterator RemoteFDB::stats(const FDBToolRequest& request) {
     return forwardApiCall(StatsHelper(), request);
+}
+
+StatusIterator RemoteFDB::status(const FDBToolRequest& request) {
+    return forwardApiCall(StatusHelper(), request);
+}
+
+StatusIterator RemoteFDB::touch(const FDBToolRequest& request, AccessIdentifiers identifiers, AccessTime when) {
+    return forwardApiCall(TouchHelper(identifiers, when), request);
 }
 
 WipeStateIterator RemoteFDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {

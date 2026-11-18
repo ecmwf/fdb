@@ -243,6 +243,19 @@ size_t Config::apiQueueSize() const {
     return static_cast<size_t>(std::clamp(size, 1L, maxApiQueueSize));
 }
 
+size_t Config::accessTimestampGranularity() const {
+    constexpr long maxGranularity = 365 * 24 * 3600;
+    static const long fromResource =
+        eckit::Resource<long>("fdbAccessTimestampGranularity;$FDB_ACCESS_TIMESTAMP_GRANULARITY", -1);
+    const long seconds = fromResource >= 0 ? fromResource : userConfig().getLong("accessTimestampGranularity", 3600);
+    return static_cast<size_t>(std::clamp(seconds, 0L, maxGranularity));
+}
+
+bool Config::markListAsAccess() const {
+    static const bool fromResource = eckit::Resource<bool>("fdbMarkListAsAccess;$FDB_MARK_LIST_AS_ACCESS", false);
+    return fromResource || userConfig().getBool("markListAsAccess", false);
+}
+
 size_t Config::apiMaxQueues() const {
     constexpr long maxApiMaxQueues = 1024;
     static const long fromResource = eckit::Resource<long>("fdbApiMaxQueues;$FDB_API_MAX_QUEUES", -1);

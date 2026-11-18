@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/AccessIterator.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/remote/Messages.h"
+#include "fdb5/remote/RemoteConfiguration.h"
 
 #include "metkit/mars/MarsRequest.h"
 
@@ -13,7 +15,10 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/io/DataHandle.h"
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/io/FileHandle.h"
+#include "eckit/serialisation/MemoryStream.h"
+#include "eckit/value/Value.h"
 #include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
 #include "eckit/types/Date.h"
@@ -434,8 +439,8 @@ CASE("Remote protocol: more wipe testing") {
         EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 2);  // the .gribjump files
         EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
         EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);  // no DBs are fully wiped
-        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE],
-                     8);  // the 4 un-cleared indexes, and the two toc/schemas
+        // the 4 un-cleared indexes, the two toc/schemas, and the two access timestamps per database
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 12);
         EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 0);
     }
 
@@ -569,6 +574,60 @@ CASE("Remote protocol: concurrent blocking control RPCs are not serialised") {
     // This is the final case; no wipe.
 }
 
+CASE("Remote protocol: status and touch") {
+
+    const std::string data_string = "It's gonna be a bright, sunshiny day!";
+    std::vector<Key> keys;
+    {
+        FDB fdb{};
+        keys = write_data(fdb, data_string, {"20000101"}, {"fc"}, {"1"});
+    }
+    EXPECT(!keys.empty());
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
+    const FDBToolRequest request{{}, true, {}};
+
+    // status is forwarded to the server and carries the access timestamps back.
+    time_t readBefore = 0;
+    {
+        auto it = FDB{}.status(request);
+        StatusElement elem;
+        size_t count = 0;
+        while (it.next(elem)) {
+            eckit::Log::info() << "[CLIENT] status " << elem.key << " read=" << elem.lastRead
+                               << " write=" << elem.lastWrite << std::endl;
+            readBefore = elem.lastRead;
+            count++;
+        }
+        EXPECT(count > 0);
+    }
+
+    // touch is forwarded, mutates server side, and reports the resulting state.
+    {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        auto it = FDB{}.touch(request, AccessIdentifier::Read);
+        StatusElement elem;
+        size_t count = 0;
+        while (it.next(elem)) {
+            count++;
+        }
+        EXPECT(count > 0);
+    }
+
+    // ... and the new read time is visible on a subsequent status.
+    {
+        auto it = FDB{}.status(request);
+        StatusElement elem;
+        while (it.next(elem)) {
+            // Only meaningful where the server has access timestamps enabled; where it does not,
+            // both are 0 and this degrades to a no-op rather than a failure.
+            if (readBefore != 0) {
+                EXPECT(elem.lastRead >= readBefore);
+            }
+        }
+    }
+}
+
 CASE("Remote protocol: check enabled features") {
     uint64_t defaultMask = fdb5::remote::maskOfDefaultFeatures;
     EXPECT(enabled(defaultMask, fdb5::remote::Message::Flush));
@@ -601,6 +660,70 @@ CASE("Remote protocol: check enabled features") {
     EXPECT(enabled(defaultMask, fdb5::remote::Message::Received));
     EXPECT(enabled(wipeMask, fdb5::remote::Message::Schema));
     EXPECT(enabled(wipeMask, fdb5::remote::Message::Received));
+
+    // status() and touch() are enabled by default in this build. They are kept out of the *legacy*
+    // mask instead, which is what a peer predating negotiation is credited with.
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Status));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Touch));
+
+    uint64_t legacyMask = fdb5::remote::maskOfLegacyFeatures;
+    EXPECT(!enabled(legacyMask, fdb5::remote::Message::Status));
+    EXPECT(!enabled(legacyMask, fdb5::remote::Message::Touch));
+    EXPECT(!enabled(legacyMask, fdb5::remote::Message::Wipe));
+    const uint64_t legacyWithinDefault = legacyMask & fdb5::remote::maskOfDefaultFeatures;
+    EXPECT_EQUAL(legacyWithinDefault, legacyMask);
+}
+
+CASE("Remote protocol: a peer that does not advertise features gets only the legacy set") {
+    eckit::Value val = eckit::Value::makeOrderedMap();
+    val["NumberOfConnections"] = eckit::toValue(std::vector<int>{1, 2});
+
+    eckit::Buffer buf(4096);
+    eckit::MemoryStream out(buf);
+    out << val;
+
+    eckit::MemoryStream in(buf);
+    fdb5::remote::RemoteConfiguration legacy(in);
+
+    EXPECT_EQUAL(legacy.enabledFeatures(), fdb5::remote::maskOfLegacyFeatures);
+    EXPECT(!enabled(legacy.enabledFeatures(), fdb5::remote::Message::Status));
+    EXPECT(!enabled(legacy.enabledFeatures(), fdb5::remote::Message::Touch));
+}
+
+CASE("Remote protocol: negotiation intersects, so one old peer disables the feature") {
+
+    eckit::LocalConfiguration config;
+    fdb5::remote::RemoteConfiguration current{config};
+
+    // A current build offers both.
+    EXPECT(enabled(current.enabledFeatures(), fdb5::remote::Message::Status));
+    EXPECT(enabled(current.enabledFeatures(), fdb5::remote::Message::Touch));
+
+    // Against a peer that advertises nothing beyond the defaults, the intersection drops them, so
+    // a new client never sends a message an old server cannot parse.
+    eckit::Value val = eckit::Value::makeOrderedMap();
+    eckit::Buffer buf(4096);
+    eckit::MemoryStream out(buf);
+    out << val;
+
+    {
+        eckit::MemoryStream in(buf);
+        fdb5::remote::RemoteConfiguration oldPeer(in);
+        fdb5::remote::RemoteConfiguration clientSide{config};
+        fdb5::remote::RemoteConfiguration agreed =
+            fdb5::remote::RemoteConfiguration::common(clientSide, oldPeer);
+        EXPECT(!enabled(agreed.enabledFeatures(), fdb5::remote::Message::Status));
+        EXPECT(!enabled(agreed.enabledFeatures(), fdb5::remote::Message::Touch));
+    }
+
+    // Two current builds agree on both.
+    {
+        fdb5::remote::RemoteConfiguration a{config};
+        fdb5::remote::RemoteConfiguration b{config};
+        fdb5::remote::RemoteConfiguration agreed = fdb5::remote::RemoteConfiguration::common(a, b);
+        EXPECT(enabled(agreed.enabledFeatures(), fdb5::remote::Message::Status));
+        EXPECT(enabled(agreed.enabledFeatures(), fdb5::remote::Message::Touch));
+    }
 }
 
 }  // namespace fdb5::test

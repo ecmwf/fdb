@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::sync::Once;
 
 use fdb_sys::UniquePtr;
-use fdb_sys::{ControlAction, ControlIdentifier};
+use fdb_sys::{AccessIdentifier, ControlAction, ControlIdentifier};
 use parking_lot::Mutex;
 
 use crate::error::Result;
@@ -13,7 +13,7 @@ use crate::iterator::{
     WipeIterator,
 };
 use crate::key::Key;
-use crate::options::{DumpOptions, ListOptions, PurgeOptions, WipeOptions};
+use crate::options::{AccessTime, DumpOptions, ListOptions, PurgeOptions, WipeOptions};
 use eckit::DataHandle;
 
 static INIT: Once = Once::new();
@@ -390,6 +390,49 @@ impl Fdb {
         request: &metkit::MarsRequest<S>,
     ) -> Result<StatusIterator> {
         let it = self.with_handle(|h| h.status(request.as_sys()))?;
+        Ok(StatusIterator::new(it))
+    }
+
+    /// Explicitly set the read and/or write access times for each database
+    /// matching a request.
+    ///
+    /// Returns an iterator of status objects for the matching databases.
+    ///
+    /// * `request` - The request selecting which databases to touch.
+    /// * `identifiers` - Which timestamps to update from
+    ///   [`AccessIdentifier::Read`] and [`AccessIdentifier::Write`]
+    /// * `when` - The timestamp to record
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the operation fails.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use fdb::{AccessIdentifier, AccessTime, Fdb};
+    /// # fn main() -> fdb::Result<()> {
+    /// # eckit::init();
+    /// # let fdb = Fdb::open_default()?;
+    /// let mut request = metkit::MarsRequest::new("retrieve");
+    /// request.set("class", "od");
+    /// request.set("expver", "0001");
+    ///
+    /// let identifiers = [AccessIdentifier::Read, AccessIdentifier::Write];
+    /// for element in fdb.touch(&request, &identifiers, AccessTime::Catalogue)? {
+    ///     println!("Touched: {}", element?.location);
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn touch<S: metkit::RequestState>(
+        &self,
+        request: &metkit::MarsRequest<S>,
+        identifiers: &[AccessIdentifier],
+        when: AccessTime,
+    ) -> Result<StatusIterator> {
+        let when = when.to_sys();
+        let it = self.with_handle(|h| h.touch(request.as_sys(), identifiers, &when))?;
         Ok(StatusIterator::new(it))
     }
 

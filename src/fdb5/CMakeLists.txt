@@ -34,6 +34,8 @@ list( APPEND fdb5_srcs
     api/helpers/APIIterator.h
     api/helpers/AxesIterator.cc
     api/helpers/AxesIterator.h
+    api/helpers/AccessIterator.cc
+    api/helpers/AccessIterator.h
     api/helpers/ControlIterator.cc
     api/helpers/ControlIterator.h
     api/helpers/FDBToolRequest.cc
@@ -61,6 +63,8 @@ list( APPEND fdb5_srcs
     api/local/AxesVisitor.h
     api/local/ControlVisitor.cc
     api/local/ControlVisitor.h
+    api/local/TouchVisitor.cc
+    api/local/TouchVisitor.h
     api/local/DumpVisitor.h
     api/local/WipeVisitor.cc
     api/local/WipeVisitor.h
@@ -347,6 +351,8 @@ if( HAVE_TOCFDB )
         fdb-dump-toc
         fdb-dump-index
         fdb-move
+        fdb-last-access
+        fdb-touch
         fdb-reconsolidate-toc )
 endif()
 

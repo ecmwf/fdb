@@ -22,6 +22,8 @@ from pyfdb.pyfdb_iterator import (
     WipeElement,
 )
 from pyfdb.pyfdb_type import (
+    AccessIdentifier,
+    AccessTime,
     ControlAction,
     ControlIdentifier,
     DataHandle,
@@ -350,7 +352,7 @@ class FDB:
     def status(self, mars_selection: MarsSelection) -> Generator[StatusElement, None, None]:
         """
         List the status of all FDB entries with their control identifiers, e.g., whether a certain
-        database was locked for retrieval.
+        database was locked for retrieval, and their last recorded read and write access timestamps.
 
         Parameters
         ----------
@@ -385,12 +387,67 @@ class FDB:
                 'stream': ['oper'],
                 'time': ['2100']
                 },
-            location=/<path_to_root>/ea:0001:oper:20200104:2100:g
+            location=/<path_to_root>/ea:0001:oper:20200104:2100:g,
+            last_read=1762537447,
+            last_write=1762537447
         )
         """
         internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_internal_mars_selection(internal_mars_selection)
         iterator = self.FDB.status(fdb_tool_request.tool_request)
+        while True:
+            try:
+                yield StatusElement(next(iterator), _internal=True)
+            except StopIteration:
+                return
+
+    def touch(
+        self,
+        mars_selection: MarsSelection,
+        access_identifiers: Collection[AccessIdentifier],
+        when: AccessTime | None = None,
+    ) -> Generator[StatusElement, None, None]:
+        """
+        Explicitly set the read and/or write access timestamp for each database matching a selection.
+
+        Parameters
+        ----------
+        `mars_selection` : `MarsSelection`
+            A MARS selection which specifies the affected databases. See Note.
+        `access_identifiers` : `Collection[AccessIdentifier]`
+            Which timestamps to update, e.g., AccessIdentifier.READ or AccessIdentifier.WRITE
+        `when` : `AccessTime` | `None`, *optional*
+            The time value to record. `None` records the current time.
+
+        Returns
+        -------
+        Generator[StatusElement, None, None]
+            A generator for `StatusElement`, with one element per database touched
+
+        Examples
+        --------
+        >>> fdb = pyfdb.FDB(fdb_config_path)
+        >>> selection = {
+        >>>         "class": "ea",
+        >>>         "domain": "g",
+        >>>         "expver": "0001",
+        >>>         "stream": "oper",
+        >>>         "date": "20200101",
+        >>>         "time": "1800",
+        >>> }
+        >>> touch_iterator = fdb.touch(
+        >>>     selection,
+        >>>     [AccessIdentifier.READ, AccessIdentifier.WRITE],
+        >>>     AccessTime.catalogue(),
+        >>> )
+        >>> elements = list(touch_iterator)
+        """
+        internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
+        fdb_tool_request = FDBToolRequest.from_internal_mars_selection(internal_mars_selection)
+        raw_access_identifiers = [access_identifier._to_raw() for access_identifier in access_identifiers]
+        if when is None:
+            when = AccessTime.now()
+        iterator = self.FDB.touch(fdb_tool_request.tool_request, raw_access_identifiers, when._to_raw())
         while True:
             try:
                 yield StatusElement(next(iterator), _internal=True)

@@ -678,6 +678,66 @@ You can see that the ``ControlIdentifier`` for ``WIPE`` is active for the given 
    Use the ``control`` functionality of FDB to switch certain properties of ``FDB`` elements.
    Refer to the :ref:`control_label` section for further information.
 
+Each ``StatusElement`` also reports the last recorded read and write access of its database, in seconds since
+the Unix epoch. These are ``None`` if the time is unknown, for example because the database was written by an
+older version of the ``FDB``. This doesn't mean that the database has never been accessed.
+
+.. code-block:: python
+
+    element = elements[0]
+
+    element.last_read()  # e.g. 1762537447, or None if unknown
+    element.last_write() # e.g. 1762537447, or None if unknown
+
+.. invisible-code-block: python
+
+   assert element.last_read() is not None
+   assert element.last_write() is not None
+
+.. clear-namespace
+
+.. _touch_label:
+
+Touch
+*******
+
+**Explicitly set the read and/or write access times for each database matching a selection.**
+
+.. invisible-code-block: python
+
+   import pyfdb
+
+.. code-block:: python
+
+    from pyfdb import AccessIdentifier, AccessTime
+
+    fdb = pyfdb.FDB(fdb_config_path)
+
+    selection = {
+        "class": "ea",
+        "domain": "g",
+        "expver": "0001",
+        "stream": "oper",
+        "date": "20200101",
+        "time": "1800",
+    }
+
+    # Record a read at the current time
+    elements = list(fdb.touch(selection, [AccessIdentifier.READ]))
+
+    len(elements) # == 1
+
+    # Seed both timestamps from the modification time of the database's toc
+    identifiers = [AccessIdentifier.READ, AccessIdentifier.WRITE]
+    elements = list(fdb.touch(selection, identifiers, AccessTime.catalogue()))
+
+    # Record a write at a given instant, in seconds since the Unix epoch
+    elements = list(fdb.touch(selection, [AccessIdentifier.WRITE], AccessTime.at(1700000000)))
+
+.. invisible-code-block: python
+
+   assert len(elements) == 1
+
 .. _wipe_label:
 
 Wipe
