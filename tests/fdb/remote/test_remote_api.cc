@@ -9,6 +9,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/Buffer.h"
@@ -21,6 +22,7 @@
 #include <chrono>
 #include <cstddef>
 #include <exception>
+#include <fstream>
 #include <map>
 #include <memory>
 #include <ostream>
@@ -507,6 +509,101 @@ CASE("Remote protocol: more wipe testing") {
     for (const auto& index_uri : index_uris) {
         eckit::PathName p = index_uri.path().dirName();
         EXPECT(!p.exists());
+    }
+}
+
+// Unexpected files in a catalogue database can only be wiped with unsafeWipeAll. The client then sends all of them to the
+// catalogue server in a single DoWipeUnknowns message, so use more than one to cover the encoding of the URI set.
+CASE("Remote protocol: unsafe wipe all removes several unexpected URIs") {
+
+    const std::string data_string = "Unexpected files need unsafe wipe all.";
+    {
+        FDB fdb{};  // Expects the config to be set in the environment
+        write_data(fdb, data_string, {"20000103"}, {"fc"}, {"1", "2"});
+    }
+
+    // The request covers everything in the database, so the whole database (including unexpected files) is a candidate.
+    const std::string request = "class=od,expver=xxxx,date=20000103";
+
+    // Wait for the server to consolidate the indexes, and use them to locate the catalogue directory.
+    std::vector<eckit::URI> index_uris;
+    wipe_dry_run_stable(request, nullptr, &index_uris);
+    EXPECT(!index_uris.empty());
+    const eckit::PathName db_dir = index_uris.front().path().dirName();
+
+    // The servers run on this host, so the catalogue directory can be modified directly.
+    std::vector<eckit::PathName> unexpected;
+    for (const std::string name : {"unexpected_file_1", "unexpected_file_2", "unexpected_file_3"}) {
+        unexpected.push_back(db_dir / name);
+        std::ofstream{unexpected.back().asString()} << "Not an FDB file";
+        EXPECT(unexpected.back().exists());
+    }
+
+    auto wipe = [&](bool doit, bool unsafe_wipe_all) {
+        std::map<WipeElementType, size_t> element_counts;
+        auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString(request)[0], doit, false, unsafe_wipe_all);
+        WipeElement wipe_elem;
+        while (wipeit.next(wipe_elem)) {
+            eckit::Log::info() << "[CLIENT]" << wipe_elem;
+            element_counts[wipe_elem.type()] += wipe_elem.uris().size();
+        }
+        return element_counts;
+    };
+
+    // Dry-run: the unexpected files are reported.
+    eckit::Log::info() << "[CLIENT]" << "Dry-run wipe with unexpected files in the catalogue." << std::endl;
+    {
+        auto element_counts = wipe(false, false);
+        EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], unexpected.size());
+    }
+
+    // --doit without unsafeWipeAll must fail, and leave everything in place.
+    eckit::Log::info() << "[CLIENT]" << "Wiping without unsafeWipeAll. Expecting an error." << std::endl;
+    bool error_was_thrown = false;
+    try {
+        wipe(true, false);
+    }
+    catch (const eckit::Exception&) {
+        error_was_thrown = true;
+    }
+    EXPECT(error_was_thrown);
+    for (const auto& path : unexpected) {
+        EXPECT(path.exists());
+    }
+    for (const auto& index_uri : index_uris) {
+        EXPECT(index_uri.path().exists());
+    }
+
+    // A dry-run releases the wipe that the server kept for the failed attempt, which is required before retrying.
+    {
+        auto element_counts = wipe(false, false);
+        EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], unexpected.size());
+    }
+
+    // With unsafeWipeAll, the unexpected files and everything else are removed.
+    eckit::Log::info() << "[CLIENT]" << "Wiping with unsafeWipeAll. --doit" << std::endl;
+    {
+        auto element_counts = wipe(true, true);
+        EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], unexpected.size());
+        EXPECT(element_counts[WipeElementType::STORE] > 0);
+        EXPECT(element_counts[WipeElementType::CATALOGUE_INDEX] > 0);
+    }
+
+    for (const auto& path : unexpected) {
+        EXPECT(!path.exists());
+    }
+    for (const auto& index_uri : index_uris) {
+        EXPECT(!index_uri.path().exists());
+    }
+    EXPECT(!db_dir.exists());
+
+    // There should be nothing left.
+    {
+        auto element_counts = wipe(false, false);
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 0);
     }
 }
 
