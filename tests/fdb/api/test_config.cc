@@ -13,8 +13,10 @@
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/filesystem/TmpFile.h"
 #include "eckit/io/DataHandle.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/testing/Test.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/config/Config.h"
 
 using namespace eckit::testing;
@@ -236,6 +238,66 @@ CASE("FDB_CONFIG_FILE takes precendence over FDB5_CONFIG_FILE") {
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
     EXPECT_EQUAL(expanded.getString("type"), "local");
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+namespace {
+
+fdb5::Config schemaConfig(const eckit::PathName& schema, const std::string& version = "") {
+    fdb5::Config cfg;
+    cfg.set("schema", schema.asString());
+    if (!version.empty()) {
+        cfg.set("schemaVersion", std::stol(version));
+    }
+    return cfg;
+}
+
+}  // namespace
+
+CASE("schemaVersion: no version uses the plain schema") {
+    eckit::TmpDir td;
+    eckit::PathName schema = td / "schema";
+    schema.touch();
+    (td / "schema.1").touch();
+
+    EXPECT_EQUAL(schemaConfig(schema).schemaPath().asString(), schema.asString());
+}
+
+CASE("schemaVersion: existing version 1 selects schema.1") {
+    ASSERT(fdb5::LibFdb5::maxSchemaVersion() >= 1);
+
+    eckit::TmpDir td;
+    eckit::PathName schema = td / "schema";
+    schema.touch();
+    (td / "schema.1").touch();
+
+    EXPECT_EQUAL(schemaConfig(schema, "1").schemaPath().asString(), schema.asString() + ".1");
+}
+
+CASE("schemaVersion: version beyond maxSchemaVersion falls back to the plain schema") {
+    eckit::TmpDir td;
+    eckit::PathName schema = td / "schema";
+    schema.touch();
+
+    const std::string tooNew = std::to_string(fdb5::LibFdb5::maxSchemaVersion() + 1);
+    EXPECT_EQUAL(schemaConfig(schema, tooNew).schemaPath().asString(), schema.asString());
+}
+
+CASE("schemaVersion: version beyond maxSchemaVersion falls back to the most recent versioned schema") {
+    eckit::TmpDir td;
+    eckit::PathName schema = td / "schema";
+    schema.touch();
+    (td / "schema.1").touch();
+
+    const std::string tooNew = std::to_string(fdb5::LibFdb5::maxSchemaVersion() + 2);
+    EXPECT_EQUAL(schemaConfig(schema, tooNew).schemaPath().asString(), schema.asString() + ".1");
+}
+
+CASE("schemaVersion: version beyond maxSchemaVersion without any schema file fails") {
+    eckit::TmpDir td;
+    const std::string tooNew = std::to_string(fdb5::LibFdb5::maxSchemaVersion() + 1);
+    EXPECT_THROWS_AS(schemaConfig(td / "schema", tooNew).schemaPath(), eckit::UserError);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
