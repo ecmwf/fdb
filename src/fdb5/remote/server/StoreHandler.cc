@@ -232,9 +232,15 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
     const char* charData = static_cast<const char*>(data);  // To allow pointer arithmetic
     Log::status() << "Archiving data: " << ss_key.str() << std::endl;
 
-    Store& ss = store(clientID, dbKey);
+    auto ss = store(clientID, dbKey);
+    if (!ss) {
+        // the client went away without flushing: nobody is waiting for this field any more
+        Log::warning() << "Discarding a field for the removed client " << clientID << ": " << ss_key.str()
+                       << std::endl;
+        return;
+    }
 
-    std::shared_ptr<const FieldLocation> location = ss.archive(idxKey, charData + s.position(), length - s.position());
+    std::shared_ptr<const FieldLocation> location = ss->archive(idxKey, charData + s.position(), length - s.position());
 
     std::promise<std::shared_ptr<const FieldLocation>> promise;
     promise.set_value(location);
@@ -273,14 +279,12 @@ void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buf
 
         // The archive worker only finishes before teardown if it failed
         if (archiveFuture_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
-            archiveFuture_.get();
+            static_cast<void>(archiveFuture_.get());  // rethrows the failure of the worker, if any
             throw SeriousBug("Archive worker terminated before flush", Here());
         }
 
-        std::lock_guard<std::mutex> lock(handlerMutex_);
-        auto it = stores_.find(clientID);
-        ASSERT(it != stores_.end());
-        it->second.store->flush();
+        // n.b. not under handlerMutex_: the flush does I/O, and the archive worker needs the mutex meanwhile
+        getStore(clientID)->flush();
 
         callbacks_.flushCallback_();
     }
@@ -294,22 +298,20 @@ bool StoreHandler::remove(bool control, uint32_t clientID) {
     std::lock_guard<std::mutex> lock(handlerMutex_);
     auto it = stores_.find(clientID);
     if (it != stores_.end()) {
-        if (control) {
-            it->second.controlConnection = false;
+        // The client is gone (Stop): its store is released as soon as nobody uses it any more (see getStore())
+        if (it->second->controlConnection) {
             numControlConnection_--;
         }
-        else {
-            it->second.dataConnection = false;
+        if (it->second->dataConnection) {
             numDataConnection_--;
         }
-        if (!it->second.controlConnection && !it->second.dataConnection) {
-            stores_.erase(it);
-        }
+        stores_.erase(it);
+        removedClients_.insert(clientID);
     }
     return ((control ? numControlConnection_ : numDataConnection_) == 0);
 }
 
-Store& StoreHandler::getStore(uint32_t clientID) {
+std::shared_ptr<Store> StoreHandler::getStore(uint32_t clientID) {
 
     std::lock_guard<std::mutex> lock(handlerMutex_);
     auto it = stores_.find(clientID);
@@ -318,42 +320,44 @@ Store& StoreHandler::getStore(uint32_t clientID) {
         Log::error() << what << std::endl;
         Log::error() << stores_.size() << " existing stores:" << std::endl;
         for (const auto& kv : stores_) {
-            Log::error() << "  clientID: " << kv.first << ", store: " << *(kv.second.store) << std::endl;
+            Log::error() << "  clientID: " << kv.first << ", store: " << *(kv.second->store) << std::endl;
         }
         throw SeriousBug(what, Here());
     }
 
-    return *(it->second.store);
+    // aliasing: the Store keeps its helper alive
+    return std::shared_ptr<Store>(it->second, it->second->store.get());
 }
 
-Store& StoreHandler::store(uint32_t clientID, const Key& dbKey) {
+std::shared_ptr<Store> StoreHandler::store(uint32_t clientID, const Key& dbKey) {
 
     std::lock_guard<std::mutex> lock(handlerMutex_);
     auto it = stores_.find(clientID);
-    if (it != stores_.end()) {
-        return *(it->second.store);
+    if (it == stores_.end()) {
+        if (removedClient(clientID)) {
+            return nullptr;
+        }
+        it = stores_.emplace(clientID, std::make_shared<StoreHelper>(!single_, dbKey, innerConfig_)).first;
+        numControlConnection_++;
+        if (!single_) {
+            numDataConnection_++;
+        }
     }
-
-    numControlConnection_++;
-    if (!single_) {
-        numDataConnection_++;
-    }
-    return *((stores_.emplace(clientID, StoreHelper(!single_, dbKey, innerConfig_)).first)->second.store);
+    return std::shared_ptr<Store>(it->second, it->second->store.get());
 }
 
-Store& StoreHandler::getStore(uint32_t clientID, const eckit::URI& uri) {
+std::shared_ptr<Store> StoreHandler::getStore(uint32_t clientID, const eckit::URI& uri) {
 
     std::lock_guard<std::mutex> lock(handlerMutex_);
     auto it = stores_.find(clientID);
-    if (it != stores_.end()) {
-        return *(it->second.store);
+    if (it == stores_.end()) {
+        it = stores_.emplace(clientID, std::make_shared<StoreHelper>(!single_, uri, innerConfig_)).first;
+        numControlConnection_++;
+        if (!single_) {
+            numDataConnection_++;
+        }
     }
-
-    numControlConnection_++;
-    if (!single_) {
-        numDataConnection_++;
-    }
-    return *((stores_.emplace(clientID, StoreHelper(!single_, uri, innerConfig_)).first)->second.store);
+    return std::shared_ptr<Store>(it->second, it->second->store.get());
 }
 
 void StoreHandler::exists(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) const {
@@ -391,7 +395,7 @@ void StoreHandler::doWipeUnknowns(const uint32_t clientID, const uint32_t reques
     // Only proceed if unsafeWipeAll is set.
     ASSERT(currentWipe.unsafeWipeAll);
 
-    auto& ss = getStore(clientID);
+    auto ss = getStore(clientID);
 
     // check received URIs are at least a subset of expected unknowns.
     const auto& expectedUnknowns = currentWipe.state->unrecognisedURIs();
@@ -406,7 +410,7 @@ void StoreHandler::doWipeUnknowns(const uint32_t clientID, const uint32_t reques
         }
     }
 
-    ss.doWipeUnknowns(uris);
+    ss->doWipeUnknowns(uris);
 }
 
 void StoreHandler::doWipeURIs(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
@@ -415,8 +419,8 @@ void StoreHandler::doWipeURIs(const uint32_t clientID, const uint32_t requestID,
 
     const WipeInProgress& currentWipe = cachedWipeState(key);
 
-    auto& store = getStore(clientID);
-    store.doWipeURIs(*currentWipe.state);
+    auto store = getStore(clientID);
+    store->doWipeURIs(*currentWipe.state);
 }
 
 void StoreHandler::doWipeFinish(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload) {
@@ -427,8 +431,8 @@ void StoreHandler::doWipeFinish(const uint32_t clientID, const uint32_t requestI
 
     // Delete empty DBs and finish the wipe.
 
-    auto& store = getStore(clientID);
-    store.doWipeEmptyDatabase();
+    auto store = getStore(clientID);
+    store->doWipeEmptyDatabase();
 
     wipesInProgress_.erase(key);
 }
@@ -440,8 +444,8 @@ void StoreHandler::doUnsafeFullWipe(const uint32_t clientID, const uint32_t requ
 
     const WipeInProgress& currentWipe = cachedWipeState(key);
 
-    auto& store = getStore(clientID);
-    bool fullWipeSupported = store.doUnsafeFullWipe();
+    auto store = getStore(clientID);
+    bool fullWipeSupported = store->doUnsafeFullWipe();
 
     eckit::Buffer boolBuf(5);
     eckit::MemoryStream stream(boolBuf);
@@ -497,8 +501,8 @@ void StoreHandler::finaliseWipeState(const uint32_t clientID, const uint32_t req
         return;
     }
 
-    auto& store = getStore(clientID, *(storeState->includedDataURIs().begin()));
-    store.finaliseWipeState(*storeState, doit, unsafeAll);
+    auto store = getStore(clientID, *(storeState->includedDataURIs().begin()));
+    store->finaliseWipeState(*storeState, doit, unsafeAll);
 
     // Write back with the additional URIs to be wiped.
     eckit::Buffer outBuffer(1_KiB);

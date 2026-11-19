@@ -11,6 +11,7 @@
 #include "eckit/utils/Literals.h"
 
 #include <atomic>
+#include <exception>
 #include <future>
 #include <memory>
 #include <mutex>
@@ -87,10 +88,15 @@ public:  // methods
     // handlers for incoming messages - to be defined in the client class
     virtual bool handle(Message message, uint32_t requestID) = 0;
     virtual bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) = 0;
-    virtual void closeConnection() {}
+    /// Called when the connection is lost: wake up whoever is waiting on it.
+    /// @param reason why the connection was lost (e.g. the error reported by the server). Never null.
+    virtual void closeConnection(const std::exception_ptr& /*reason*/) {}
 
     // Create a new connection if the current one is invalid
     void refreshConnection();
+
+    /// False once the connection is lost (or torn down): requests would fail
+    bool connectionUsable() const { return connection_->usable(); }
 
 protected:
 
@@ -98,6 +104,10 @@ protected:
     // Derived classes accessed by handle() should call this
     // in their destructor, before that state is destroyed.
     void deregister();
+
+    /// Wraps the reason of a connection loss with some context, keeping the original message (e.g. the error
+    /// reported by the server), so that callers woken by closeConnection() still see why the connection was lost.
+    std::exception_ptr closureError(const std::string& context, const std::exception_ptr& reason) const;
 
     std::shared_ptr<ClientConnection> connection_;
 

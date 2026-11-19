@@ -16,6 +16,7 @@
 #include "fdb5/database/Store.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/client/Client.h"
+#include "fdb5/remote/client/RequestQueues.h"
 
 #include "eckit/config/Configuration.h"
 #include "eckit/container/Queue.h"
@@ -192,7 +193,7 @@ class RemoteStore : public Store, public Client {
 public:  // types
 
     using StoredMessage = std::pair<Message, eckit::Buffer>;
-    using MessageQueue = eckit::Queue<StoredMessage>;
+    using MessageQueue = RequestQueues<StoredMessage>::Queue;
 
 public:  // methods
 
@@ -215,6 +216,9 @@ public:  // methods
 
     eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation);
     eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation, const Key& remapKey);
+
+    /// A read request that could not be sent fails: its reader gets the reason (see ReadLimiter)
+    void failRequest(uint32_t requestID, const std::exception_ptr& reason);
 
     bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const override { return false; }
     void moveTo(const Key& key, const Config& config, const eckit::URI& dest,
@@ -257,24 +261,19 @@ private:  // methods
     // handlers for incoming messages - to be defined in the client class
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
-    void closeConnection() override;
+    void closeConnection(const std::exception_ptr& reason) override;
 
 private:  // members
 
-    // used by tests for direct access to messageQueues_/messageMutex_
+    // used by tests for direct access to requests_
     friend class RemoteStoreTestHarness;
 
     Key dbKey_;
 
-    const Config& config_;
+    const Config config_;  // a copy: get() is given a temporary
 
-    // @note This is a map of requestID:MessageQueue. At the point that a request is
-    // complete, errored or otherwise killed, it needs to be removed from the map.
-    // The shared_ptr allows this removal to be asynchronous with the actual task
-    // cleaning up and returning to the client.
-    std::map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
-
-    std::mutex messageMutex_;
+    // The queues of the read requests (see RequestQueues for their lifetime)
+    RequestQueues<StoredMessage> requests_;
 
     Locations locations_;
 };

@@ -12,6 +12,8 @@
 #include <exception>
 #include <future>
 #include <mutex>
+#include <set>
+#include <string_view>
 
 #include "eckit/container/Queue.h"
 #include "eckit/io/Buffer.h"
@@ -82,7 +84,10 @@ public:  // methods
     ServerConnection(eckit::net::TCPSocket& socket, const Config& config);
     ~ServerConnection() override;
 
-    void initialiseConnections();
+    /// Handshake with the client. If the client is rejected (e.g. unsupported protocol version), the reason is sent to
+    /// it as an Error in place of the Startup reply.
+    /// @returns false if the client was rejected: the connection must not be served
+    bool initialiseConnections();
 
     void handle();
 
@@ -112,6 +117,17 @@ protected:
     /// Rethrows the failure of the archive worker, if any. Unlike the state of archiveFuture_, this is set before
     /// any client is notified of the failure.
     void rethrowArchiveFailure() const;
+
+    /// Terminates the connection after a failure: sends the error (bounded, see tryErrorBounded()) addressed to the
+    /// given request, then aborts the connection. Only the first caller does so, the others return immediately: the
+    /// thread that detected a failure owns the reporting of it, so that the failures it causes in the other threads
+    /// (woken up by the interrupted queue or by the aborted sockets) can neither preempt nor replace its error.
+    /// @returns false if the failure was already owned by another thread
+    bool failConnection(std::string_view what, uint32_t clientID, uint32_t requestID) noexcept;
+
+    /// True once a thread has taken ownership of a failure (see failConnection()), even if it has not aborted the
+    /// connection yet
+    bool connectionFailed() const { return failureOwned_ || aborted(); }
 
     // archival thread
     size_t archiveThreadLoop();
@@ -158,7 +174,15 @@ protected:
 
     eckit::net::TCPSocket controlSocket_;
 
+    /// Guards the state of the clients in the derived handlers (and removedClients_). It is held only to look up,
+    /// add or remove a client: users of the state of a client pin it (shared_ptr), so that a Stop can remove it
+    /// while a worker is still using it.
     std::mutex handlerMutex_;
+
+    /// Clients that have been removed (Stop). The client may have gone without a flush: what is still queued for it
+    /// is discarded. Caller holds handlerMutex_.
+    std::set<uint32_t> removedClients_;
+    bool removedClient(uint32_t clientID) const { return removedClients_.count(clientID) != 0; }
     size_t numControlConnection_{0};
     size_t numDataConnection_{0};
 
@@ -169,6 +193,7 @@ private:
     mutable std::mutex archiveFailureMutex_;
     std::exception_ptr archiveFailure_;
     std::atomic<bool> discardArchive_{false};
+    std::atomic<bool> failureOwned_{false};
 
     // data connection
     std::unique_ptr<eckit::net::EphemeralTCPServer> dataSocket_;

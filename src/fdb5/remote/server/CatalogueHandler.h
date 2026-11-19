@@ -72,6 +72,10 @@ private:  // methods
     bool remove(bool control, uint32_t clientID) override;
 
     CatalogueWriter& catalogue(uint32_t catalogueID, const Key& dbKey);
+    // the archiver of a client, pinned. @returns null if there is none
+    std::shared_ptr<CatalogueArchiver> catalogueArchiver(uint32_t clientID);
+    // the FDB of a client (for the API calls), pinned
+    std::shared_ptr<FDB> fdb(uint32_t clientID);
 
     void doMaskIndexEntries(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void doWipeURIs(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
@@ -85,11 +89,11 @@ private:  // methods
 
 private:  // member
 
-    // clientID --> <catalogue, locationsExpected, locationsArchived>
-    std::map<uint32_t, CatalogueArchiver> catalogues_;
-    std::map<uint32_t, FDB> fdbs_;
+    // clientID --> <catalogue, locationsExpected, locationsArchived>. Guarded by handlerMutex_; the users of an entry
+    // pin it (shared_ptr), so that a Stop can remove it while a worker is still using it.
+    std::map<uint32_t, std::shared_ptr<CatalogueArchiver>> catalogues_;
+    std::map<uint32_t, std::shared_ptr<FDB>> fdbs_;
 
-    std::mutex fdbMutex_;
     std::mutex fieldLocationsMutex_;
 
     bool fdbControlConnection_;

@@ -89,7 +89,12 @@ public:  // methods
 
     ~FDBRemoteDataHandle() override {
         if (!complete_) {
-            // Handle destroyed before being read, make sure it doesn't still take up space in the ReadLimiter.
+            // Handle destroyed before being read completely. Nobody will read the rest: the messages still to come
+            // for this request are discarded (see RemoteStore::handle), rather than filling the queue and blocking
+            // the listener of the connection.
+            RequestQueues<RemoteStore::StoredMessage>::cancel(
+                *queue_, std::make_exception_ptr(RemoteFDBException("Read request abandoned by the client", remoteEndpoint_)));
+            // Make sure it doesn't still take up space in the ReadLimiter. n.b. never throws.
             ReadLimiter::instance().finishRequest(clientID_, requestID_);
         }
     }
@@ -234,8 +239,6 @@ RemoteStore::~RemoteStore() {
     // stop listening otherwise it may invoke a virtual call - e.g. closeConnection()
     deregister();
 
-    std::lock_guard lock(messageMutex_);
-
     // If we have launched a thread with an async and we manage to get here, this is
     // an error. n.b. if we don't do something, we will block in the destructor
     // of std::future.
@@ -350,17 +353,12 @@ void RemoteStore::print(std::ostream& out) const {
     out << "RemoteStore(host=" << controlEndpoint() << ")";
 }
 
-void RemoteStore::closeConnection() {
-    const auto eptr = std::make_exception_ptr(eckit::Exception("Unexpected closure of store", Here()));
+void RemoteStore::closeConnection(const std::exception_ptr& reason) {
+    // keep the reason (e.g. the error reported by the server), for both the readers and a pending flush()
+    const auto eptr = closureError("Unexpected closure of store", reason);
 
-    {
-        std::lock_guard lock(messageMutex_);
-        for (auto& kv : messageQueues_) {
-            if (!kv.second->closed()) {
-                kv.second->interrupt(eptr);
-            }
-        }
-    }
+    // nothing more will arrive for the reads: they are failed and unregistered (requestIDs restart on a new connection)
+    requests_.failAll(eptr);
 
     // a flush() waiting for field locations would otherwise block forever
     locations_.failPending(eptr);
@@ -374,18 +372,10 @@ bool RemoteStore::handle(Message message, uint32_t requestID) {
 
     switch (message) {
         case Message::Complete: {
-            std::lock_guard lock(messageMutex_);
-            auto id = messageQueues_.find(requestID);
-            if (id == messageQueues_.end()) {
-                return false;
-            }
-
-            id->second->emplace(std::make_pair(message, Buffer(0)));
-
-            // Remove entry (shared_ptr --> message queue will be destroyed when it
-            // goes out of scope in the worker thread).
-            messageQueues_.erase(id);
-            return true;
+            // the request is unregistered once its last message is queued (see RequestQueues::complete)
+            return requests_.complete(requestID, [message](MessageQueue& queue) {
+                queue.emplace(std::make_pair(message, Buffer(0)));
+            });
         }
         default:
             Log::warning() << *this << " - Received unexpected [message=" << message << ",requestID=" << requestID
@@ -409,27 +399,16 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
             return locations_.location(requestID, std::move(remoteLocation));
         }
         case Message::Blob: {
-            std::lock_guard lock(messageMutex_);
-            auto iter = messageQueues_.find(requestID);
-            ASSERT(iter != messageQueues_.end());
-            iter->second->emplace(std::make_pair(message, std::move(payload)));
-            return true;
+            // n.b. blocks while the queue is full (the reader is slower); false for an unknown request
+            return requests_.enqueue(requestID, std::make_pair(message, std::move(payload)));
         }
         case Message::Error: {
             const std::string msg(static_cast<const char*>(payload.data()), payload.size());
             auto eptr = std::make_exception_ptr(RemoteFDBException(msg, controlEndpoint()));
 
-            {
-                std::lock_guard lock(messageMutex_);
-                auto iter = messageQueues_.find(requestID);
-                if (iter != messageQueues_.end()) {
-                    iter->second->interrupt(eptr);
-
-                    // Remove entry (shared_ptr --> message queue will be destroyed when it
-                    // goes out of scope in the worker thread).
-                    messageQueues_.erase(iter);
-                    return true;
-                }
+            // a read failed
+            if (requests_.fail(requestID, eptr)) {
+                return true;
             }
 
             // an archive request failed: surface it from flush() instead of waiting for a location
@@ -457,30 +436,37 @@ eckit::DataHandle* RemoteStore::dataHandle(const FieldLocation& fieldLocation, c
     uint32_t id = generateRequestID();
 
     static size_t queueSize = 320;
-    std::shared_ptr<MessageQueue> queue = nullptr;
-    {
-        std::lock_guard lock(messageMutex_);
 
-        auto entry = messageQueues_.emplace(id, std::make_shared<MessageQueue>(queueSize));
-        ASSERT(entry.second);
-
-        queue = entry.first->second;
-    }
-
+    // registered before it can be sent; unregistered again if it cannot even be queued for sending
+    auto registration = requests_.add(id, queueSize);
     ReadLimiter::instance().add(this, id, fieldLocation, remapKey);
-    return new FDBRemoteDataHandle(id, this->id(), fieldLocation.length(), queue, controlEndpoint());
+
+    return new FDBRemoteDataHandle(id, this->id(), fieldLocation.length(), registration.release(), controlEndpoint());
+}
+
+void RemoteStore::failRequest(uint32_t requestID, const std::exception_ptr& reason) {
+    requests_.fail(requestID, reason);
 }
 
 RemoteStore& RemoteStore::get(const eckit::URI& uri) {
     static std::mutex storeMutex_;
     // we memoise one read store for each endpoint. Do not need to have one for each key
     static std::map<std::string, std::unique_ptr<RemoteStore>> readStores_;
+    // Stores whose connection was lost: replaced in readStores_, but never destroyed, as other threads may still hold
+    // them (their reads fail with the connection). One per connection loss.
+    static std::vector<std::unique_ptr<RemoteStore>> retiredStores_;
 
     std::lock_guard lock(storeMutex_);
     const std::string& endpoint = uri.hostport();
     auto it = readStores_.find(endpoint);
     if (it != readStores_.end()) {
-        return *(it->second);
+        if (it->second->connectionUsable()) {
+            return *(it->second);
+        }
+        // the connection was lost: reconnect, with a new store, rather than failing every read to this endpoint
+        Log::warning() << "Connection to " << endpoint << " lost: reconnecting" << std::endl;
+        retiredStores_.push_back(std::move(it->second));
+        readStores_.erase(it);
     }
 
     return *(readStores_[endpoint] = std::make_unique<RemoteStore>(uri, Config()));

@@ -382,16 +382,26 @@ Error and failure propagation
    * - ``Error`` for a request that no client handler recognises, or with ``clientID == 0``
      - treated as a connection failure (see next row)
    * - Connection lost, or a listener hits an exception
-     - ``handleConnectionError``: all pending promises fail, ``Client::closeConnection()`` interrupts queues and
-       pending archives of every client, the connection is torn down
+     - ``handleConnectionError``: all pending promises fail, ``Client::closeConnection(reason)`` interrupts queues
+       and pending archives of every client, the connection is torn down. The reason (e.g. the text of an ``Error``
+       with ``clientID == 0``) is passed on to all of them, so that a read or an archive waiting after its request
+       was acknowledged still sees why the connection was lost ("Unexpected closure of store: <reason>"). In
+       dual-connection mode the data listener first waits (at most 2 s) for the control listener to stop: a server
+       that aborts a connection sends the reason on the control socket, and it must be processed before the generic
+       failure, which would otherwise win
    * - Error in an archive blob (the archive worker dies on the server)
-     - the failure and the IDs of the failing request are recorded and logged. An ``Error`` with the actual reason
-       is sent for the failing request, on a best-effort basis (it is skipped if another thread is writing on the
-       control socket), then the whole connection is aborted without waiting for a socket writer (the worker is
-       shared, so no other pending request could ever get its location). ``RemoteStore`` fails the ``Locations`` of
-       the failing request with the reason of the server, so ``flush()`` throws it; if the ``Error`` is skipped, or
-       for the other pending requests, the client sees a lost connection (see the row above). A ``Flush`` still being
-       handled by the server rethrows the recorded failure
+     - the failure and the IDs of the failing request are recorded and logged. The worker owns the reporting of
+       the failure (``ServerConnection::failConnection()``): it sends an ``Error`` with the actual reason for the
+       failing request, on a best-effort basis (it waits at most 200 ms for another writer of the control socket,
+       and at most 200 ms for room in the send buffer of the peer), then aborts the whole connection (the worker is
+       shared, so no other pending request could ever get its location), and only then interrupts the archive
+       queue. The threads woken up by the interruption or by the abort (data listener, control listener on a single
+       connection) see that the failure is owned and neither send their own error nor abort the sockets first.
+       On the client, ``RemoteStore`` fails the ``Locations`` of the failing request with the reason of the server,
+       and ``RemoteCatalogue`` retains it, so ``flush()`` throws it, also when it is called after the connection
+       was lost; ``archive()`` fails fast with it. If the ``Error`` could not be sent, or for the other pending
+       requests, the client sees a lost connection (see the row above). A ``Flush`` still being handled by the
+       server rethrows the recorded failure
    * - Data listener fails on the server (bad framing, transport error)
      - the stream is out of sync, so the connection is aborted as above, after a best-effort ``Error`` with
        ``clientID == 0`` carrying the reason (the client reports it as a connection failure)
@@ -410,6 +420,58 @@ Invariants worth keeping:
 * ``Locations::complete()`` checks the failure and the completion under one lock and throws on failure: a failed
   archival is never reported as complete. Connection loss is also remembered before a new archive is registered.
   Explicit flush failures remain errors; destructor flush failures are logged without throwing.
+* A client is never called with ``ClientConnection::clientsMutex_`` (or its own request-map mutex) held: a listener
+  may block in a client on the full queue of a slow reader, and ``closeConnection()`` must still be able to interrupt
+  every queue. A client being called is pinned instead, so that ``remove()`` (i.e. its destruction) waits for the call
+  to complete. A client being removed no longer receives messages, but is still told if the connection is lost; if
+  one of its calls is in progress, its pending requests are cancelled first, as nobody will read them any more. A
+  message for a cancelled (interrupted) request queue is discarded: it is not a failure of the connection, which keeps
+  serving the other clients. Request queues are unregistered only after the last message has been queued.
+* A failed archive cycle of ``RemoteCatalogue`` is not retried: its first failure (the archive error of the server,
+  else the reason the connection was lost, else the failure of the flush) is recorded, and any later ``flush()`` or
+  ``archive()`` rethrows it, before checking the counts.
+* Input from the network is never checked with ``ASSERT``: framing, versions, sizes and MultiBlob frames are
+  validated, and a violation raises ``RemoteProtocolException``, which fails the connection, not the process. Until the
+  handshake has completed the server accepts payloads of at most 64 KiB (afterwards ``fdbServerMaxPayloadSize``,
+  unlimited by default). ``Flush`` is a control message: on the data connection it is a protocol error.
+* A blocking request is either answered, failed with the pending requests, or rejected: once the pending requests have
+  been failed (connection lost, or ``Exit`` from the server), no new one is registered.
+* ``ReadLimiter`` never throws on behalf of another request: releasing a read (also from the destructor of its
+  ``DataHandle``) removes it whether it is queued or sent, and a read that cannot be sent releases its budget and fails
+  its own handle (``RemoteStore::failRequest``). An abandoned handle interrupts its queue, so that the rest of its
+  stream is discarded.
+* The queues of the streamed requests of a client (reads, list, axes, ...) are kept in a ``RequestQueues``: a request
+  is registered before it is sent, and unregistered if it cannot be sent, by its last message (``Complete`` or
+  ``Error``), or when the connection is lost (``failAll``), so that no entry outlives its connection (request IDs
+  restart on a new one). A consumer that abandons a request (a ``DataHandle`` or an iterator destroyed early)
+  cancels it: the rest of its stream is discarded, and the listener of the connection is never blocked by it.
+* A message for a client that has been removed is discarded, by the client connection and by the server (a client
+  may go away, e.g. without flushing, while the server or the client is still sending for it).
+* No socket I/O and no connection attempt with a registry mutex held (``ClientConnection::clientsMutex_``,
+  ``ClientConnectionRouter::connectionMutex_``): a slow or unresponsive server must not block the other connections.
+  Once its last client is gone a connection is retired (``usable()`` is false) and torn down: it is never handed out
+  again. Connections are shared by endpoint *and* default endpoint, which is used to build the field locations.
+* Nothing waits for a peer forever during the handshake: the client waits at most ``fdbStartupTimeout`` (60 s) for
+  the answer to its startup message, the server at most ``fdbDataConnectionTimeout`` (60 s) for the data connection.
+* On the server, the state of a client (store, catalogue, FDB) is looked up, created and removed under
+  ``handlerMutex_`` only, and pinned (``shared_ptr``) by whoever uses it: a ``Stop`` removes it at any time, and it
+  is released when its last user is done.
+* ``RemoteStore::get()`` caches one read store per endpoint: a store whose connection is lost is replaced by one with
+  a new connection (the old one is kept, as other threads may still hold it).
+* An ``Exit`` from the server ends the connection on both channels: it is marked invalid, the blocking requests are
+  failed and, in single-connection mode (no data listener), the streamed requests too.
+* A failure on one channel ends the connection on both: after the (bounded) wait for the error of the server,
+  ``handleConnectionError`` ends the connection (``Connection::endConnection()``), which wakes up the listener of the
+  other channel, whose socket may still be healthy.
+* Nothing on a failure path waits for another writer of a socket: that writer may be blocked on a full send buffer,
+  the peer having stopped reading, and only aborting the connection releases it. The ``Exit`` (client) or ``Error``
+  (server) sent before aborting is bounded (``tryWriteBounded``: at most 200 ms for the socket mutex, and 200 ms for
+  room in the send buffer), and skipped if it cannot be sent. The graceful ``teardown()`` is only used when the
+  connection ends normally.
+* A connection that is over releases its sockets as soon as its last listener stops (``Connection::closeSockets()``),
+  not when the object is destroyed: an object kept alive (e.g. by a retired read store) holds no file descriptor. A
+  socket is closed under its mutex, so never under a write, and a later write fails instead of using a reused
+  descriptor.
 * Every error sent by the server must carry the ``clientID`` and ``requestID`` of the request it belongs to; an
   ``Error`` without them cannot be attributed and takes the whole connection down.
 
