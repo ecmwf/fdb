@@ -15,6 +15,7 @@
 
 #include "fdb5/api/LocalFDB.h"
 #include "fdb5/remote/client/Client.h"
+#include "fdb5/remote/client/RequestQueues.h"
 
 #include <mutex>
 #include <unordered_map>
@@ -30,7 +31,7 @@ class RemoteFDB : public LocalFDB, public Client {
 
 public:  // types
 
-    using MessageQueue = eckit::Queue<eckit::Buffer>;
+    using MessageQueue = remote::RequestQueues<eckit::Buffer>::Queue;
 
 public:  // method
 
@@ -73,11 +74,11 @@ private:  // methods
 
     // Client
     const eckit::Configuration& clientConfig() const override;
-    void closeConnection() override;
+    void closeConnection(const std::exception_ptr& reason) override;
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
 
-    // used by tests for direct access to messageQueues_/messageQueueMutex_
+    // used by tests for direct access to requests_
     friend class RemoteFDBTestHarness;
 
 private:  // members
@@ -86,14 +87,8 @@ private:  // members
     std::vector<std::pair<eckit::net::Endpoint, eckit::net::Endpoint>> storesArchiveMapping_;
     std::vector<eckit::net::Endpoint> storesLocalFields_;
 
-    // Where do we put received messages
-    // @note This is a map of requestID:MessageQueue. At the point that a request is
-    // complete, errored or otherwise killed, it needs to be removed from the map.
-    // The shared_ptr allows this removal to be asynchronous with the actual task
-    // cleaning up and returning to the client.
-    std::unordered_map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
-
-    mutable std::mutex messageQueueMutex_;
+    // The queues of the API requests (see RequestQueues for their lifetime)
+    remote::RequestQueues<eckit::Buffer> requests_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

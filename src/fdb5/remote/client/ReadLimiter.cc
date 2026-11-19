@@ -3,6 +3,8 @@
 
 #include "fdb5/remote/client/ReadLimiter.h"
 
+#include "eckit/log/Log.h"
+
 #include "fdb5/remote/client/RemoteStore.h"
 
 #include "eckit/config/Resource.h"
@@ -41,7 +43,7 @@ void ReadLimiter::setMemoryLimit(size_t memoryLimit) {
         std::lock_guard lock(mutex_);
         memoryLimit_ = memoryLimit;
     }
-    tryNextRequest();
+    tryNextRequests();
 }
 
 ReadLimiter::ReadLimiter(size_t memoryLimit) : memoryUsed_{0}, memoryLimit_{memoryLimit} {}
@@ -54,60 +56,111 @@ void ReadLimiter::add(RemoteStore* client, uint32_t id, const FieldLocation& fie
     size_t requestSize = s.position();
     size_t resultSize = fieldLocation.length();
 
-    if (resultSize > memoryLimit_) {
-        std::ostringstream ss;
-        ss << "ReadLimiter: Requested field size " << resultSize << " exceeds memory limit " << memoryLimit_
-           << ". Field: " << fieldLocation.fullUri();
-        throw eckit::SeriousBug(ss.str());
-    }
-
     {
         std::lock_guard<std::mutex> lock(mutex_);
+        if (resultSize > memoryLimit_) {
+            std::ostringstream ss;
+            ss << "ReadLimiter: Requested field size " << resultSize << " exceeds memory limit " << memoryLimit_
+               << ". Field: " << fieldLocation.fullUri();
+            throw eckit::SeriousBug(ss.str());
+        }
         requests_.emplace_back(RequestInfo{client, id, std::move(requestBuffer), requestSize, resultSize});
     }
 
-    tryNextRequest();
+    tryNextRequests();
 }
 
-bool ReadLimiter::tryNextRequest() {
-    RequestInfo request{nullptr, 0, eckit::Buffer{0}, 0, 0};
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (requests_.empty()) {
-            return false;
+void ReadLimiter::tryNextRequests() noexcept {
+    while (true) {
+        RequestInfo request{nullptr, 0, eckit::Buffer{0}, 0, 0};
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (requests_.empty()) {
+                return;
+            }
+            if (memoryUsed_ + requests_.front().resultSize > memoryLimit_) {
+                return;
+            }
+            request = std::move(requests_.front());
+            requests_.pop_front();
+            activeRequests_[request.client->id()].insert(request.id);
+            resultSizes_[{request.client->id(), request.id}] = request.resultSize;
+            memoryUsed_ += request.resultSize;
         }
-        if (memoryUsed_ + requests_.front().resultSize > memoryLimit_) {
-            return false;
+
+        // Send outside the lock — sendRequest may block on network I/O
+        try {
+            sendRequest(request);
         }
-        request = std::move(requests_.front());
-        requests_.pop_front();
-        activeRequests_[request.client->id()].insert(request.id);
-        resultSizes_[{request.client->id(), request.id}] = request.resultSize;
-        memoryUsed_ += request.resultSize;
+        catch (...) {
+            // The request will never get an answer: release its budget, and give the error to its reader. The caller
+            // (e.g. the destructor of another request's DataHandle) is not concerned.
+            const auto eptr = std::current_exception();
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                releaseActive(request.client->id(), request.id);
+            }
+            try {
+                request.client->failRequest(request.id, eptr);
+            }
+            catch (...) {
+                eckit::Log::error() << "ReadLimiter: failed to report the failure of read request " << request.id
+                                    << std::endl;
+            }
+        }
     }
-    // Send outside the lock — sendRequest may block on network I/O
-    sendRequest(request);
+}
+
+bool ReadLimiter::releaseActive(uint32_t clientID, uint32_t requestID) {
+    auto it = activeRequests_.find(clientID);
+    if (it == activeRequests_.end()) {
+        return false;
+    }
+    auto it2 = it->second.find(requestID);
+    if (it2 == it->second.end()) {
+        return false;
+    }
+    auto size = resultSizes_.find({clientID, requestID});
+    if (size != resultSizes_.end()) {
+        memoryUsed_ -= size->second;
+        resultSizes_.erase(size);
+    }
+    it->second.erase(it2);
+    if (it->second.empty()) {
+        activeRequests_.erase(it);
+    }
     return true;
 }
 
-void ReadLimiter::finishRequest(uint32_t clientID, uint32_t requestID) {
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
+void ReadLimiter::finishRequest(uint32_t clientID, uint32_t requestID) noexcept {
+    try {
+        RemoteStore* dropped = nullptr;
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
 
-        auto it = activeRequests_.find(clientID);
-        if (it == activeRequests_.end()) {
-            return;
+            if (!releaseActive(clientID, requestID)) {
+                // Not sent yet (abandoned while queued), or already released (e.g. failed to be sent): drop it if
+                // queued
+                for (auto it = requests_.begin(); it != requests_.end(); ++it) {
+                    if (it->client->id() == clientID && it->id == requestID) {
+                        dropped = it->client;
+                        requests_.erase(it);
+                        break;
+                    }
+                }
+            }
         }
 
-        auto it2 = it->second.find(requestID);
-        ASSERT(it2 != it->second.end());
-
-        memoryUsed_ -= resultSizes_[{clientID, requestID}];
-        it->second.erase(it2);
-        resultSizes_.erase({clientID, requestID});
+        // A request that was never sent gets no Complete from the server: unregister it from its store
+        if (dropped) {
+            dropped->failRequest(requestID, std::make_exception_ptr(eckit::SeriousBug("Read request abandoned")));
+        }
+    }
+    catch (...) {
+        eckit::Log::error() << "ReadLimiter: failed to release read request " << requestID << std::endl;
     }
 
-    tryNextRequest();
+    tryNextRequests();
 }
 
 /// @note: Only called when a RemoteStore is destroyed, which is currently on exit.
@@ -145,8 +198,8 @@ void ReadLimiter::evictClient(size_t clientID) {
             }
         }
     }
-    // mutex_ released; tryNextRequest() will re-acquire it (and release before sendRequest)
-    limiter.tryNextRequest();
+    // mutex_ released; tryNextRequests() will re-acquire it (and release before sendRequest)
+    limiter.tryNextRequests();
 }
 
 void ReadLimiter::print(std::ostream& out) const {

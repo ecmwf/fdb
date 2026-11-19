@@ -14,6 +14,7 @@
 #include "eckit/net/Endpoint.h"
 
 #include <cstdint>
+#include <exception>
 #include <future>
 #include <mutex>
 #include <sstream>
@@ -76,6 +77,24 @@ void Client::deregister() {
 
 Client::~Client() {
     deregister();
+}
+
+std::exception_ptr Client::closureError(const std::string& context, const std::exception_ptr& reason) const {
+    std::string what;
+    try {
+        if (reason) {
+            std::rethrow_exception(reason);
+        }
+    }
+    catch (const std::exception& e) {
+        what = e.what();
+    }
+    catch (...) {
+        what = "unknown exception";
+    }
+
+    return std::make_exception_ptr(
+        RemoteFDBException(what.empty() ? context : context + ": " + what, controlEndpoint()));
 }
 
 eckit::Buffer Client::waitControlResponse(std::future<eckit::Buffer>& response, const Message msg,

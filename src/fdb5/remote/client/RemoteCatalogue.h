@@ -13,6 +13,7 @@
 #include "eckit/filesystem/URI.h"
 
 #include <cstddef>
+#include <exception>
 #include <memory>
 #include <mutex>
 #include <set>
@@ -116,8 +117,22 @@ private:
     mutable std::optional<std::reference_wrapper<const RuleDatabase>> rule_;
     mutable std::unique_ptr<Schema> schema_;
 
+    // Throws the first failure of the archive cycle, if any
+    void rethrowFailure() const;
+
+    // Records the failure of the archive cycle, unless one is already recorded (the first is the most specific)
+    void recordFailure(const std::exception_ptr& failure);
+
     std::mutex archiveMutex_;
     size_t numLocations_{0};
+
+    // The first failure of the archive cycle. An archive request is not a blocking request: if the server fails to
+    // archive a field location, its error is not the answer to any pending request. It is retained here, so that
+    // flush() reports it, rather than the loss of the connection that the server aborts right after. A failed flush
+    // is recorded too: the locations of the cycle are lost, so a retry (e.g. by the destructor of the archiver) must
+    // report the same failure, rather than a count mismatch.
+    mutable std::mutex failureMutex_;
+    std::exception_ptr failure_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
