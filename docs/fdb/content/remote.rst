@@ -385,15 +385,19 @@ Error and failure propagation
      - ``handleConnectionError``: all pending promises fail, ``Client::closeConnection()`` interrupts queues and
        pending archives of every client, the connection is torn down
    * - Error in an archive blob (the archive worker dies on the server)
-     - the failure and the IDs of the failing request are recorded and logged, then the whole connection is aborted
-       without waiting for a socket writer (the worker is shared, so no other pending request could ever get its
-       location). Every client sees a lost connection (see the row above): ``RemoteStore`` fails its pending
-       ``Locations``, so ``flush()`` throws instead of waiting. A ``Flush`` still being handled by the server
-       rethrows the recorded failure
+     - the failure and the IDs of the failing request are recorded and logged. An ``Error`` with the actual reason
+       is sent for the failing request, on a best-effort basis (it is skipped if another thread is writing on the
+       control socket), then the whole connection is aborted without waiting for a socket writer (the worker is
+       shared, so no other pending request could ever get its location). ``RemoteStore`` fails the ``Locations`` of
+       the failing request with the reason of the server, so ``flush()`` throws it; if the ``Error`` is skipped, or
+       for the other pending requests, the client sees a lost connection (see the row above). A ``Flush`` still being
+       handled by the server rethrows the recorded failure
    * - Data listener fails on the server (bad framing, transport error)
-     - the stream is out of sync, so the connection is aborted as above
+     - the stream is out of sync, so the connection is aborted as above, after a best-effort ``Error`` with
+       ``clientID == 0`` carrying the reason (the client reports it as a connection failure)
    * - Failure in the server connection handler (e.g. protocol violation on the control connection)
-     - the failure is logged and the connection is aborted
+     - the failure is logged and the connection is aborted, after the same best-effort ``Error`` with
+       ``clientID == 0``
 
 Invariants worth keeping:
 

@@ -74,6 +74,10 @@ public:  // methods
     /// (worker threads, destructors, cleanup paths). Returns false if the client could not be notified.
     bool tryError(bool control, std::string_view msg, uint32_t clientID, uint32_t requestID) const noexcept;
 
+    /// Same as tryError(), but gives up instead of waiting if another thread is writing on the socket: to be used
+    /// where nothing may block on a socket writer, e.g. right before aborting the connection.
+    bool tryErrorNoWait(bool control, std::string_view msg, uint32_t clientID, uint32_t requestID) const noexcept;
+
     eckit::Buffer readControl(MessageHeader& hdr) const;
 
     eckit::Buffer readData(MessageHeader& hdr) const;
@@ -94,6 +98,10 @@ public:  // methods
 private:  // methods
 
     eckit::Buffer read(bool control, MessageHeader& hdr) const;
+
+    /// The caller must hold the mutex of the socket
+    void writeLocked(Message msg, bool control, uint32_t clientID, uint32_t requestID, PayloadList payloads,
+                     uint32_t payloadLength) const;
 
     void writeUnsafe(const eckit::net::TCPSocket& socket, const void* data, size_t length) const;
 
