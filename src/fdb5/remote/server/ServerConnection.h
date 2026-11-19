@@ -142,6 +142,7 @@ protected:
     std::future<size_t> archiveFuture_;
 
     eckit::net::TCPSocket controlSocket_;
+    std::string clientNetwork_;
 
     std::mutex handlerMutex_;
     size_t numControlConnection_{0};
