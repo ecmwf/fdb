@@ -544,8 +544,8 @@ CASE("Remote protocol: more wipe testing") {
     }
 }
 
-// Unexpected files in a catalogue database can only be wiped with unsafeWipeAll. The client then sends all of them to the
-// catalogue server in a single DoWipeUnknowns message, so use more than one to cover the encoding of the URI set.
+// Unexpected files in a catalogue database can only be wiped with unsafeWipeAll. The client then sends all of them to
+// the catalogue server in a single DoWipeUnknowns message, so use more than one to cover the encoding of the URI set.
 CASE("Remote protocol: unsafe wipe all removes several unexpected URIs") {
 
     const std::string data_string = "Unexpected files need unsafe wipe all.";
