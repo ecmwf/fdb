@@ -28,6 +28,7 @@
 #include "eckit/utils/Literals.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -79,11 +80,41 @@ ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& 
 }
 
 ServerConnection::~ServerConnection() {
-    // The derived handlers have already been destroyed: they are expected to have stopped the workers already
-    // (see stopWorkers()), this is only a safety net so that we don't die before the worker threads are cleaned up.
-    stopWorkers(true);
+    // The derived handler has already been destroyed: a worker still running would use its state, or call its
+    // methods (e.g. archiveBlob()) as pure virtual. Stopping the workers here would not make that safe: they must have
+    // been stopped by handle(), or by the destructor of the derived handler (see stopWorkers()). A worker still
+    // running is a bug of the derived handler: fail loudly rather than with a use-after-free.
+    if (workersRunning()) {
+        eckit::Log::error() << "ServerConnection destroyed with worker threads still running: the derived handler must "
+                               "call stopWorkers() in its destructor"
+                            << std::endl;
+        std::terminate();
+    }
 
     eckit::Log::info() << "Done" << std::endl;
+}
+
+bool ServerConnection::workersRunning() noexcept {
+    const auto running = [](const auto& future) {
+        return future.valid() && future.wait_for(std::chrono::seconds(0)) != std::future_status::ready;
+    };
+
+    if (running(archiveFuture_)) {
+        return true;
+    }
+    for (const auto& [requestID, worker] : workerThreads_) {
+        if (running(worker)) {
+            return true;
+        }
+    }
+    try {
+        std::lock_guard<std::mutex> lock(readLocationMutex_);
+        // n.b. even once finished, a thread that has not been joined would terminate the process when destroyed
+        return readLocationWorker_.joinable();
+    }
+    catch (...) {
+        return true;
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -447,7 +478,7 @@ void ServerConnection::listeningThreadLoopData() {
     }
 }
 
-void ServerConnection::listenControl(std::thread& listeningThreadData, MessageHeader& hdr) {
+void ServerConnection::listenControl(std::thread& listeningThreadData) {
     if (!initialiseConnections()) {
         // the client has been told why it was rejected, and will disconnect
         eckit::Log::warning() << "Client rejected during the startup handshake" << std::endl;
@@ -460,6 +491,8 @@ void ServerConnection::listenControl(std::thread& listeningThreadData, MessageHe
                                 std::numeric_limits<uint32_t>::max()),
         std::numeric_limits<uint32_t>::max()));
     maxPayloadSize(maxPayload);
+
+    MessageHeader hdr{};
 
     // listen loop
     while (true) {
@@ -534,13 +567,12 @@ void ServerConnection::listenControl(std::thread& listeningThreadData, MessageHe
 
 void ServerConnection::handle() {
     std::thread listeningThreadData;
-    MessageHeader hdr{};
     std::string failure;
 
     // Nothing may escape from here: an exception unwinding with a joinable listeningThreadData would terminate the
     // process, and the workers must be stopped while the derived handler is still alive.
     try {
-        listenControl(listeningThreadData, hdr);
+        listenControl(listeningThreadData);
 
         if (listeningThreadData.joinable()) {
             listeningThreadData.join();
