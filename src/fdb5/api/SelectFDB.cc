@@ -81,7 +81,7 @@ SelectFDB::SelectFDB(const Config& config, const std::string& name) : FDBBase(co
 
     std::string schema = config.getString("schema", "");
     const bool hasSchemaVersion = config.has("schemaVersion");
-    const long schemaVersion = hasSchemaVersion ? config.getLong("schemaVersion") : 0;
+    const long schemaVersion = config.getLong("schemaVersion", 0);
     std::string fdb_home = config.getString("fdb_home", "");
 
     for (auto& c : config.getSubConfigs("fdbs")) {
