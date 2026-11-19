@@ -9,11 +9,11 @@
 #include <cstdlib>
 
 #include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/filesystem/TmpFile.h"
 #include "eckit/io/DataHandle.h"
-#include "eckit/exception/Exceptions.h"
 #include "eckit/testing/Test.h"
 
 #include "fdb5/LibFdb5.h"
@@ -289,7 +289,7 @@ CASE("schemaVersion: version beyond maxSchemaVersion falls back to the most rece
     eckit::PathName schema = td / "schema";
     schema.touch();
     (td / "schema.1").touch();
-    (td / ("schema."+std::to_string(fdb5::LibFdb5::maxSchemaVersion() + 2))).touch();
+    (td / ("schema." + std::to_string(fdb5::LibFdb5::maxSchemaVersion() + 2))).touch();
 
     const std::string tooNew = std::to_string(fdb5::LibFdb5::maxSchemaVersion() + 2);
     EXPECT_EQUAL(schemaConfig(schema, tooNew).schemaPath().asString(), schema.asString() + ".1");
