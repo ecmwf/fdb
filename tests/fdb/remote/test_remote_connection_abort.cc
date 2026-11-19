@@ -34,9 +34,12 @@
 #include <poll.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include <atomic>
 #include <chrono>
+#include <csignal>
 #include <cstdlib>
 #include <future>
 #include <iostream>
@@ -531,6 +534,26 @@ size_t openDescriptors() {
     }
     return count;
 }
+
+
+// A handler that starts its archive worker, and does not stop it in its destructor: a bug
+class MisbehavingConnection : public remote::ServerConnection {
+public:
+
+    explicit MisbehavingConnection(eckit::net::TCPSocket& socket) : ServerConnection(socket, Config{}) {
+        single_ = true;
+        archiver();  // the worker waits on the archive queue
+    }
+
+private:
+
+    remote::Handled handleControl(remote::Message, uint32_t, uint32_t) override { return remote::Handled::No; }
+    remote::Handled handleControl(remote::Message, uint32_t, uint32_t, eckit::Buffer&&) override {
+        return remote::Handled::No;
+    }
+    void archiveBlob(uint32_t, uint32_t, const void*, size_t) override {}
+    bool remove(bool, uint32_t) override { return false; }
+};
 
 }  // namespace
 
@@ -1810,6 +1833,27 @@ CASE("a fatal error while another writer is blocked ends the connection, it does
 
     release.now();
     EXPECT(getOrDie(server));
+}
+
+
+CASE("destroying a handler whose workers are still running terminates the process, rather than corrupting it") {
+    // in a child process: the expected outcome is its termination
+    const pid_t child = ::fork();
+    ASSERT(child >= 0);
+    if (child == 0) {
+        {
+            SocketPair control;
+            MisbehavingConnection connection(control.server);
+        }  // the base destructor finds the archive worker still running
+        std::_Exit(0);
+    }
+
+    int status = 0;
+    ASSERT(::waitpid(child, &status, 0) == child);
+    EXPECT(WIFSIGNALED(status));
+    if (WIFSIGNALED(status)) {
+        EXPECT_EQUAL(WTERMSIG(status), SIGABRT);
+    }
 }
 
 }  // namespace fdb5::test

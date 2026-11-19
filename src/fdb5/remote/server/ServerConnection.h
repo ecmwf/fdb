@@ -110,9 +110,14 @@ protected:
 
     /// Stops and joins all the worker threads (archive, retrieve, API calls). Idempotent.
     /// Workers use the state of the derived handlers, so this must be called while they are still alive: from
-    /// handle() on any exit path, and from the derived destructors.
+    /// handle() on any exit path, and from the destructor of every derived handler (the destructor of
+    /// ServerConnection runs after the derived state is gone: it only checks that no worker is left, and terminates
+    /// the process otherwise).
     /// @param discardPending drop archive requests that are still queued instead of processing them
     void stopWorkers(bool discardPending) noexcept;
+
+    /// True if a worker thread has not completed (or has not been joined)
+    bool workersRunning() noexcept;
 
     /// Rethrows the failure of the archive worker, if any. Unlike the state of archiveFuture_, this is set before
     /// any client is notified of the failure.
@@ -143,7 +148,7 @@ private:
     void listeningThreadLoopData();
 
     // Initialises the connections and serves control messages until the client disconnects
-    void listenControl(std::thread& listeningThreadData, MessageHeader& hdr);
+    void listenControl(std::thread& listeningThreadData);
 
     const eckit::net::TCPSocket& controlSocket() const override { return controlSocket_; }
 
