@@ -10,13 +10,11 @@ These flags control what the underlying C++ FDB library is compiled with.
 
 ### Build strategy (mutually exclusive)
 
-- `vendored` - Build the FDB and its dependencies (eckit, metkit, ecCodes) from source.
-- `system` - Link against system-installed FDB.
+- `vendored` (default) - Build the FDB and its dependencies (eckit, metkit, ecCodes) from source.
+- `system` - Link against system-installed FDB. Disable the default features to use it.
 
-Note: neither is enabled by default on `ecmwf-fdb-sys` itself. End users should
-depend on the higher-level [`ecmwf-fdb`](https://crates.io/crates/ecmwf-fdb) crate, which
-defaults to `vendored`. If you depend on `ecmwf-fdb-sys` directly you must select
-one explicitly.
+End users should depend on the higher-level [`ecmwf-fdb`](https://crates.io/crates/ecmwf-fdb)
+crate rather than on `ecmwf-fdb-sys` directly.
 
 ### Core (enabled by default)
 

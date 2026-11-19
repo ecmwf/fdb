@@ -1,4 +1,5 @@
 import datetime
+import os
 
 import pytest
 
@@ -285,3 +286,19 @@ def test_write(fdb_env, test_data_path, write_script):
     )
 
     run_script(script=write_script, args=None, cwd=fdb_env.tmp, env=fdb_env.env)
+
+
+def test_failing_script_reports_output(tmp_path):
+    script = tmp_path / "failing.sh"
+    script.write_text("#!/usr/bin/env bash\necho to stdout\necho to stderr >&2\nexit 1\n")
+    script.chmod(0o755)
+
+    with pytest.raises(AssertionError) as raised:
+        run_script(script=script, args=None, cwd=str(tmp_path), env={"PATH": os.environ["PATH"]})
+
+    # Show the message a failing CI run would render.
+    print(raised.value)
+
+    assert "failing.sh failed with exit code 1" in str(raised.value)
+    assert "to stdout" in str(raised.value)
+    assert "to stderr" in str(raised.value)

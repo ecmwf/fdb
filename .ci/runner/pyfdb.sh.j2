@@ -40,15 +40,15 @@ uv pip install ${dep_wheels[@]+"${dep_wheels[@]}"} "${own_wheels[0]}{{ ('[' ~ ex
 {% endblock %}
 
 {% block test %}
-# The fdb5 tools (fdb-create, fdb-write, fdb-list, ...) the e2e tests run come
-# from the dep prefixes, so they go in front of PATH. In prefix order, so an
-# earlier dep wins a name clash. 
+# The fdb5 tools (fdb-create, fdb-write, fdb-list, fdb-server, ...) the tests
+# run come from the dep prefixes. Appended, not prepended, so a dep shipping
+# e.g. rust coreutils cannot shadow the system tools (tee panicked on us).
 dep_path=""
 for prefix in ${dep_prefixes[@]+"${dep_prefixes[@]}"}; do
   if [ -d "$prefix/bin" ]; then dep_path="$dep_path${dep_path:+:}$prefix/bin"; fi
 done
 if [ -n "$dep_path" ]; then
-  PATH="$dep_path:$PATH"
+  PATH="$PATH:$dep_path"
   export PATH
 fi
 
