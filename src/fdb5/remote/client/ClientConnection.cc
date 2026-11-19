@@ -508,8 +508,7 @@ void ClientConnection::listeningControlThreadLoop() {
                                     std::make_exception_ptr(RemoteFDBException(ss.str(), controlEndpoint_)));
                             }
                             else {
-                                std::string msg(hdr.payloadSize, ' ');
-                                payload.copy(msg.data(), payload.size());
+                                const std::string msg = errorText(payload);
 
                                 if (hdr.message == Message::Error) {
                                     pp->second.set_exception(
@@ -559,10 +558,7 @@ void ClientConnection::listeningControlThreadLoop() {
                     if (hdr.message == Message::Error) {
                         ss << " - received an unhandled error";
                         if (hdr.payloadSize) {
-                            std::string msg;
-                            msg.resize(payload.size(), ' ');
-                            payload.copy(msg.data(), payload.size());
-                            ss << ": " << msg;
+                            ss << ": " << errorText(payload);
                         }
                         throw RemoteFDBException(ss.str(), controlEndpoint_);
                     }
@@ -642,10 +638,7 @@ void ClientConnection::listeningDataThreadLoop() {
                     if (hdr.message == Message::Error) {
                         ss << " - received an unhandled error";
                         if (hdr.payloadSize) {
-                            std::string msg;
-                            msg.resize(payload.size(), ' ');
-                            payload.copy(msg.data(), payload.size());
-                            ss << ": " << msg;
+                            ss << ": " << errorText(payload);
                         }
                         throw RemoteFDBException(ss.str(), dataEndpoint_);
                     }

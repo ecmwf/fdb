@@ -66,11 +66,13 @@ void Connection::shutdownSocket(bool control) noexcept {
         try {
             socket.closeInput();
         }
-        catch (...) {}
+        catch (...) {
+        }
         try {
             socket.closeOutput();
         }
-        catch (...) {}
+        catch (...) {
+        }
     }
     catch (...) {
         // socket not established yet or already closed
@@ -149,10 +151,16 @@ void Connection::write(const Message msg, const bool control, const uint32_t cli
         payloadLength += payload.length;
     }
 
+    std::lock_guard<std::mutex> lock(getSocketMutex(control));
+    writeLocked(msg, control, clientID, requestID, payloads, payloadLength);
+}
+
+void Connection::writeLocked(const Message msg, const bool control, const uint32_t clientID, const uint32_t requestID,
+                             const PayloadList payloads, const uint32_t payloadLength) const {
+
     MessageHeader message{msg, control, clientID, requestID, payloadLength};
 
     const auto& socket = getSocket(control);
-    std::lock_guard<std::mutex> lock(getSocketMutex(control));
 
     LOG_DEBUG_LIB(LibFdb5) << "Connection::write [endpoint=" << socket.remoteHost() << ":" << socket.remotePort()
                            << ",message=" << msg << ",clientID=" << message.clientID() << ",control=" << control
@@ -181,6 +189,23 @@ bool Connection::tryError(bool control, std::string_view msg, uint32_t clientID,
     }
     catch (...) {
         // connection already down, nobody left to tell
+        return false;
+    }
+}
+
+bool Connection::tryErrorNoWait(bool control, std::string_view msg, uint32_t clientID,
+                                uint32_t requestID) const noexcept {
+    try {
+        std::unique_lock<std::mutex> lock(getSocketMutex(control), std::try_to_lock);
+        if (!lock.owns_lock()) {
+            return false;
+        }
+        eckit::Log::error() << "[clientID=" << clientID << ",requestID=" << requestID << "]  " << msg << std::endl;
+        writeLocked(Message::Error, control, clientID, requestID, {{static_cast<uint32_t>(msg.length()), msg.data()}},
+                    static_cast<uint32_t>(msg.length()));
+        return true;
+    }
+    catch (...) {
         return false;
     }
 }

@@ -416,9 +416,7 @@ bool RemoteStore::handle(Message message, uint32_t requestID, eckit::Buffer&& pa
             return true;
         }
         case Message::Error: {
-            std::string msg;
-            msg.resize(payload.size(), ' ');
-            payload.copy(&msg[0], payload.size());
+            const std::string msg(static_cast<const char*>(payload.data()), payload.size());
             auto eptr = std::make_exception_ptr(RemoteFDBException(msg, controlEndpoint()));
 
             {

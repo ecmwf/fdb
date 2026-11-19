@@ -348,8 +348,8 @@ void RemoteFDB::closeConnection() {
     std::lock_guard lock(messageQueueMutex_);
     for (auto& kv : messageQueues_) {
         if (!kv.second->closed()) {
-            kv.second->interrupt(std::make_exception_ptr(
-                RemoteFDBException("Unexpected closure of remote FDB", controlEndpoint())));
+            kv.second->interrupt(
+                std::make_exception_ptr(RemoteFDBException("Unexpected closure of remote FDB", controlEndpoint())));
         }
     }
 }

@@ -24,6 +24,8 @@
 #include <future>
 #include <iostream>
 #include <memory>
+#include <string>
+#include <thread>
 #include <vector>
 
 using namespace eckit::testing;
@@ -182,7 +184,7 @@ CASE("abortConnection releases a reader blocked on the data socket (dual connect
     SocketPair data;
     TestConnection connection(control, &data);
 
-    auto dataReader    = std::async(std::launch::async, [&] { return readUntilReleased(connection, false); });
+    auto dataReader = std::async(std::launch::async, [&] { return readUntilReleased(connection, false); });
     auto controlReader = std::async(std::launch::async, [&] { return readUntilReleased(connection, true); });
 
     connection.abortConnection();
@@ -250,6 +252,44 @@ CASE("archive failure aborts even when another writer holds the socket") {
     connection.enqueue();
     auto archive = std::async(std::launch::async, [&] { return connection.runArchive(); });
     EXPECT_THROWS_AS(getOrDie(archive), eckit::SeriousBug);
+    EXPECT(getOrDie(writer));
+}
+
+CASE("tryErrorNoWait delivers the error, and gives up instead of waiting for another writer") {
+    SocketPair control;
+    TestConnection connection(control, nullptr);
+
+    const std::string reason = "synthetic failure";
+    EXPECT(connection.tryErrorNoWait(true, reason, 3, 4));
+
+    remote::MessageHeader hdr{};
+    EXPECT(control.client.read(&hdr, sizeof(hdr)) == static_cast<long>(sizeof(hdr)));
+    EXPECT(hdr.message == remote::Message::Error);
+    EXPECT_EQUAL(hdr.clientID(), 3u);
+    EXPECT_EQUAL(hdr.requestID, 4u);
+    EXPECT_EQUAL(hdr.payloadSize, reason.size());
+
+    std::string received(hdr.payloadSize, ' ');
+    EXPECT(control.client.read(received.data(), received.size()) == static_cast<long>(received.size()));
+    EXPECT_EQUAL(received, reason);
+
+    // a writer that never drains its socket must not block the error
+    std::vector<char> payload(16 * 1024 * 1024, 'x');
+    auto writer = std::async(std::launch::async, [&] {
+        try {
+            connection.write(remote::Message::Blob, true, 1, 2, payload.data(), payload.size());
+            return false;
+        }
+        catch (const remote::TCPException&) {
+            return true;
+        }
+    });
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    EXPECT(writer.wait_for(std::chrono::seconds(0)) == std::future_status::timeout);
+
+    EXPECT(!connection.tryErrorNoWait(true, reason, 3, 4));
+
+    connection.abortConnection();
     EXPECT(getOrDie(writer));
 }
 

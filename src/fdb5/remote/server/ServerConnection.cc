@@ -310,7 +310,8 @@ size_t ServerConnection::archiveThreadLoop() {
         catch (const std::exception& e) {
             what = e.what();
         }
-        catch (...) {}
+        catch (...) {
+        }
 
         // Record the failure before anybody is told about it, so that a flush can never miss it
         {
@@ -326,6 +327,9 @@ size_t ServerConnection::archiveThreadLoop() {
         // The worker is shared, so all pending requests must be failed without waiting for a socket writer.
         eckit::Log::error() << "Archive worker failed [clientID=" << elem.clientID_ << ",requestID=" << elem.requestID_
                             << "], terminating the connection: " << what << std::endl;
+
+        // The failing request gets the actual reason; the others only see the connection being lost
+        tryErrorNoWait(true, what, elem.clientID_, elem.requestID_);
         abortConnection();
 
         throw;
@@ -392,10 +396,12 @@ void ServerConnection::listeningThreadLoopData() {
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
         eckit::Log::error() << "Data listener failed, terminating the connection: " << e.what() << std::endl;
+        tryErrorNoWait(true, std::string("Data listener failed: ") + e.what(), 0, 0);
         abortConnection();
     }
     catch (...) {
         eckit::Log::error() << "Data listener failed, terminating the connection" << std::endl;
+        tryErrorNoWait(true, "Data listener failed with an unknown exception", 0, 0);
         abortConnection();
     }
 }
@@ -504,13 +510,16 @@ void ServerConnection::handle() {
         eckit::Log::error() << "Terminating connection: " << failure << std::endl;
 
         // Shut down without waiting for a socket writer so the data listener can be joined.
+        // The error is not addressed to a request or a client: the client reports it as a connection failure.
+        tryErrorNoWait(true, failure, 0, 0);
         abortConnection();
         try {
             if (listeningThreadData.joinable()) {
                 listeningThreadData.join();
             }
         }
-        catch (...) {}
+        catch (...) {
+        }
     }
 
     // The connection is also aborted by the data listener and by the archive worker, on their own failures
