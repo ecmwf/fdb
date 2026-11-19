@@ -341,6 +341,38 @@ CASE("Remote protocol: the basics") {
     }
 }
 
+CASE("Remote protocol: unsafe wipe removes unknown store files") {
+    const std::string request = "class=od,expver=xxxx,date=20000104";
+    {
+        FDB fdb{};
+        write_data(fdb, "store unknowns", {"20000104"}, {"fc"}, {"1"});
+    }
+
+    std::vector<eckit::URI> data_uris;
+    wipe_dry_run_stable(request, &data_uris);
+    EXPECT(!data_uris.empty());
+    const eckit::PathName store_dir = data_uris.front().path().dirName();
+    const eckit::PathName unknown = store_dir / "unexpected_store_file";
+    {
+        eckit::FileHandle file(unknown);
+        file.openForWrite(0);
+        file.write("unknown", 7);
+        file.close();
+    }
+    EXPECT(unknown.exists());
+
+    auto wipe = FDB{}.wipe(FDBToolRequest::requestsFromString(request)[0], true, false, true);
+    WipeElement element;
+    size_t unknown_count = 0;
+    while (wipe.next(element)) {
+        if (element.type() == WipeElementType::UNKNOWN) {
+            unknown_count += element.uris().size();
+        }
+    }
+    EXPECT_EQUAL(unknown_count, 1);
+    EXPECT(!unknown.exists());
+}
+
 CASE("Remote protocol: more wipe testing") {
 
     // Before starting this test, ensure there is no data current in the FDB (e.g. from the previous test...)
