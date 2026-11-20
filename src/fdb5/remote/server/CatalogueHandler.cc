@@ -502,6 +502,25 @@ void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffe
             static_cast<void>(archiveFuture_.get());  // rethrows the failure of the worker, if any
             throw SeriousBug("Archive worker terminated before all field locations were archived", Here());
         }
+
+        // No more locations can arrive (single connection, or the data connection has ended), and those already
+        // queued have been archived: a count still short will never complete
+        if (archiveDataEnded() && archivePending() == 0 &&
+            archiver->archivalCompleted.wait_for(std::chrono::seconds(0)) != std::future_status::ready) {
+            // the failure of the last element processed, if any, is published before it was counted as processed:
+            // it is the reason of the short count
+            rethrowArchiveFailure();
+
+            size_t archived = 0;
+            {
+                std::lock_guard<std::mutex> lock(fieldLocationsMutex_);
+                archived = archiver->locationsArchived;
+            }
+            std::ostringstream ss;
+            ss << "Flush of " << numArchived << " field locations, but only " << archived
+               << " were received: no more can arrive";
+            throw SeriousBug(ss.str(), Here());
+        }
     }
     {
         std::lock_guard<std::mutex> lock(fieldLocationsMutex_);
@@ -565,6 +584,8 @@ bool CatalogueHandler::remove(bool control, uint32_t clientID) {
 
     // The client is gone (Stop): its state is released as soon as nobody uses it any more (see catalogueArchiver(),
     // fdb()). n.b. in dual-connection mode there is no Stop on the data connection.
+    // It is marked as removed whether or not it has a state yet: what is still queued for it is discarded.
+    removedClients_.insert(clientID);
 
     // is the client an FDB
     if (auto it = fdbs_.find(clientID); it != fdbs_.end()) {
@@ -577,7 +598,6 @@ bool CatalogueHandler::remove(bool control, uint32_t clientID) {
         fdbControlConnection_ = false;
         fdbDataConnection_ = false;
         fdbs_.erase(it);
-        removedClients_.insert(clientID);
     }
     else if (auto it = catalogues_.find(clientID); it != catalogues_.end()) {
         if (it->second->controlConnection) {
@@ -587,7 +607,6 @@ bool CatalogueHandler::remove(bool control, uint32_t clientID) {
             numDataConnection_--;
         }
         catalogues_.erase(it);
-        removedClients_.insert(clientID);
     }
     return ((control ? numControlConnection_ : numDataConnection_) == 0);
 }

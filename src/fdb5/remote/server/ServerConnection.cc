@@ -320,58 +320,75 @@ size_t ServerConnection::archiveThreadLoop() {
 
     try {
         while (archiveQueue_.pop(elem) != -1) {
+            // n.b. only once it is processed: a flush waiting for locations relies on it (see archivePending())
+            struct Processed {
+                std::atomic<size_t>& pending;
+                ~Processed() { --pending; }
+            } processed{archivePending_};
+
             if (discardArchive_) {
                 continue;
             }
 
-            if (elem.multiblob_) {
-                // Handle MultiBlob
+            try {
+                if (elem.multiblob_) {
+                    // Handle MultiBlob
 
-                // A sequence of complete Blob frames. The content comes from the client: every size is checked
-                // against what is left in the buffer before it is used (a failure aborts the connection, see below)
-                const char* data = static_cast<const char*>(elem.payload_.data());
-                const size_t size = elem.payload_.size();
-                size_t offset = 0;
-                while (offset < size) {
-                    if (size - offset < sizeof(MessageHeader)) {
-                        throw RemoteProtocolException("truncated message header in MultiBlob", Here());
+                    // A sequence of complete Blob frames. The content comes from the client: every size is checked
+                    // against what is left in the buffer before it is used (a failure aborts the connection, see below)
+                    const char* data = static_cast<const char*>(elem.payload_.data());
+                    const size_t size = elem.payload_.size();
+                    size_t offset = 0;
+                    while (offset < size) {
+                        if (size - offset < sizeof(MessageHeader)) {
+                            throw RemoteProtocolException("truncated message header in MultiBlob", Here());
+                        }
+                        MessageHeader hdr;
+                        // n.b. may not be aligned; copied raw, as read() does
+                        std::memcpy(static_cast<void*>(&hdr), data + offset, sizeof(hdr));
+                        offset += sizeof(MessageHeader);
+
+                        if (!(hdr.marker == MessageHeader::StartMarker) || hdr.message != Message::Blob ||
+                            hdr.clientID() != elem.clientID_ || hdr.requestID != elem.requestID_) {
+                            std::ostringstream ss;
+                            ss << "invalid frame in MultiBlob [message=" << hdr.message
+                               << ",clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID
+                               << "], expected Blob for [clientID=" << elem.clientID_
+                               << ",requestID=" << elem.requestID_ << "]";
+                            throw RemoteProtocolException(ss.str(), Here());
+                        }
+                        if (size - offset < MessageHeader::markerBytes ||
+                            hdr.payloadSize > size - offset - MessageHeader::markerBytes) {
+                            std::ostringstream ss;
+                            ss << "payload of " << hdr.payloadSize << " bytes overruns the MultiBlob of " << size
+                               << " bytes";
+                            throw RemoteProtocolException(ss.str(), Here());
+                        }
+
+                        const void* payloadData = data + offset;
+                        offset += hdr.payloadSize;
+
+                        if (std::memcmp(data + offset, MessageHeader::EndMarker.data(), MessageHeader::markerBytes) !=
+                            0) {
+                            throw RemoteProtocolException("invalid end of frame in MultiBlob", Here());
+                        }
+                        offset += MessageHeader::markerBytes;
+
+                        archiveBlob(elem.clientID_, elem.requestID_, payloadData, hdr.payloadSize);
+                        totalArchived += 1;
                     }
-                    MessageHeader hdr;
-                    std::memcpy(static_cast<void*>(&hdr), data + offset, sizeof(hdr));  // n.b. may not be aligned; raw, as read()
-                    offset += sizeof(MessageHeader);
-
-                    if (!(hdr.marker == MessageHeader::StartMarker) || hdr.message != Message::Blob ||
-                        hdr.clientID() != elem.clientID_ || hdr.requestID != elem.requestID_) {
-                        std::ostringstream ss;
-                        ss << "invalid frame in MultiBlob [message=" << hdr.message << ",clientID=" << hdr.clientID()
-                           << ",requestID=" << hdr.requestID << "], expected Blob for [clientID=" << elem.clientID_
-                           << ",requestID=" << elem.requestID_ << "]";
-                        throw RemoteProtocolException(ss.str(), Here());
-                    }
-                    if (size - offset < MessageHeader::markerBytes ||
-                        hdr.payloadSize > size - offset - MessageHeader::markerBytes) {
-                        std::ostringstream ss;
-                        ss << "payload of " << hdr.payloadSize << " bytes overruns the MultiBlob of " << size
-                           << " bytes";
-                        throw RemoteProtocolException(ss.str(), Here());
-                    }
-
-                    const void* payloadData = data + offset;
-                    offset += hdr.payloadSize;
-
-                    if (std::memcmp(data + offset, MessageHeader::EndMarker.data(), MessageHeader::markerBytes) != 0) {
-                        throw RemoteProtocolException("invalid end of frame in MultiBlob", Here());
-                    }
-                    offset += MessageHeader::markerBytes;
-
-                    archiveBlob(elem.clientID_, elem.requestID_, payloadData, hdr.payloadSize);
+                }
+                else {
+                    // Handle single blob
+                    archiveBlob(elem.clientID_, elem.requestID_, elem.payload_.data(), elem.payload_.size());
                     totalArchived += 1;
                 }
             }
-            else {
-                // Handle single blob
-                archiveBlob(elem.clientID_, elem.requestID_, elem.payload_.data(), elem.payload_.size());
-                totalArchived += 1;
+            catch (...) {
+                // Published before this element is counted as processed (when the guard above is destroyed): a flush
+                // that sees no pending work must also see the failure, not report missing locations
+                recordArchiveFailure(std::current_exception());
+                throw;
             }
         }
     }
@@ -388,13 +405,9 @@ size_t ServerConnection::archiveThreadLoop() {
         catch (...) {
         }
 
-        // Record the failure before anybody is told about it, so that a flush can never miss it
-        {
-            std::lock_guard<std::mutex> lock(archiveFailureMutex_);
-            if (!archiveFailure_) {
-                archiveFailure_ = eptr;
-            }
-        }
+        // Record the failure before anybody is told about it, so that a flush can never miss it (n.b. already done
+        // for a failure while processing an element)
+        recordArchiveFailure(eptr);
 
         // The worker is shared, so all pending requests must be failed without waiting for a socket writer.
         eckit::Log::error() << "Archive worker failed [clientID=" << elem.clientID_ << ",requestID=" << elem.requestID_
@@ -417,6 +430,12 @@ size_t ServerConnection::archiveThreadLoop() {
 }
 
 void ServerConnection::listeningThreadLoopData() {
+
+    // however it ends, no more archive data can arrive (see archiveDataEnded())
+    struct Ended {
+        std::atomic<bool>& ended;
+        ~Ended() { ended = true; }
+    } ended{dataEnded_};
 
     MessageHeader hdr{};
 
@@ -619,7 +638,14 @@ void ServerConnection::handle() {
 
 void ServerConnection::queue(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
 
-    archiveQueue_.emplace(ArchiveElem{clientID, requestID, std::move(payload), message == Message::MultiBlob});
+    ++archivePending_;  // before it can be processed
+    try {
+        archiveQueue_.emplace(ArchiveElem{clientID, requestID, std::move(payload), message == Message::MultiBlob});
+    }
+    catch (...) {
+        --archivePending_;
+        throw;
+    }
 }
 
 void ServerConnection::tidyWorkers() {
@@ -700,6 +726,17 @@ bool ServerConnection::failConnection(std::string_view what, uint32_t clientID, 
     tryErrorBounded(true, what, clientID, requestID);
     abortConnection();
     return true;
+}
+
+void ServerConnection::recordArchiveFailure(const std::exception_ptr& failure) noexcept {
+    try {
+        std::lock_guard<std::mutex> lock(archiveFailureMutex_);
+        if (!archiveFailure_) {
+            archiveFailure_ = failure;
+        }
+    }
+    catch (...) {
+    }
 }
 
 void ServerConnection::rethrowArchiveFailure() const {

@@ -451,8 +451,22 @@ Invariants worth keeping:
   ``ClientConnectionRouter::connectionMutex_``): a slow or unresponsive server must not block the other connections.
   Once its last client is gone a connection is retired (``usable()`` is false) and torn down: it is never handed out
   again. Connections are shared by endpoint *and* default endpoint, which is used to build the field locations.
-* Nothing waits for a peer forever during the handshake: the client waits at most ``fdbStartupTimeout`` (60 s) for
-  the answer to its startup message, the server at most ``fdbDataConnectionTimeout`` (60 s) for the data connection.
+* Failover between endpoints (e.g. the stores of an archiving ``RemoteStore``) tries all of them. If every one
+  explicitly rejects the connection (``RemoteFDBRejected``: the server answered the startup message with an error),
+  the first rejection is rethrown with its reason, and is not marked worth retrying (a protocol or configuration
+  mismatch will not go away). If some could not be reached, did not answer in time (``RemoteFDBTimeout``, retryable)
+  or failed otherwise, the ``ConnectionError`` stays retryable, and carries the reasons.
+* A catalogue flush waits for its field locations only while some can still arrive: once the data connection has
+  ended (or on a single connection, whose only reader is handling the flush) and the locations already queued have
+  been archived, a count still short fails the flush instead of waiting forever. The archive worker publishes the
+  failure of an element before counting it as processed, so a flush that sees no pending work reports that failure,
+  not missing locations.
+* Nothing waits for a peer forever during the handshake: the client reads the whole answer to its startup message
+  (header, payload and end marker, at most 64 KiB) within ``fdbStartupTimeout`` (60 s), so a server that stops or
+  slows down in the middle of it cannot extend the wait; the server waits at most ``fdbDataConnectionTimeout`` (60 s)
+  for the data connection.
+* A client is marked as removed by its ``Stop`` whether or not it has a state on the server yet: what is still queued
+  for it (e.g. a first field not archived yet) is discarded, and never creates a store or a catalogue for it.
 * On the server, the state of a client (store, catalogue, FDB) is looked up, created and removed under
   ``handlerMutex_`` only, and pinned (``shared_ptr``) by whoever uses it: a ``Stop`` removes it at any time, and it
   is released when its last user is done.

@@ -21,17 +21,16 @@
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/utils/Literals.h"
 
-#include <poll.h>
 #include <unistd.h>
 
 #include <algorithm>
-#include <cerrno>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
 #include <future>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -240,7 +239,6 @@ bool ClientConnection::connect(const Configuration& config, bool singleAttempt) 
         controlClient_.connect(controlEndpoint_, fdbMaxConnectRetries, fdbConnectTimeout);
 
         writeControlStartupMessage(config);
-        awaitStartupResponse();
         SessionID serverSession = verifyServerStartupResponse();
 
         if (!single_) {
@@ -498,32 +496,36 @@ void ClientConnection::writeDataStartupMessage(const SessionID& serverSession) {
     Connection::write(Message::Startup, false, 0, 0, payload, s.position());
 }
 
-void ClientConnection::awaitStartupResponse() {
-    // A server that accepts the connection but never answers (overloaded, wedged) must not block the caller forever
+Buffer ClientConnection::readStartupResponse(MessageHeader& hdr) {
+    // A server that accepts the connection but never answers, or stops in the middle of its answer (overloaded,
+    // wedged), must not block the caller forever: the whole answer is bounded, not only its first byte
     const int timeoutSeconds = Resource<int>("fdbStartupTimeout;$FDB_STARTUP_TIMEOUT", 60);
-    if (timeoutSeconds <= 0) {
-        return;
+    const auto deadline = timeoutSeconds > 0 ? std::chrono::steady_clock::now() + std::chrono::seconds(timeoutSeconds)
+                                             : std::chrono::steady_clock::time_point::max();
+
+    // the answer is a few hundred bytes: until the server is identified, nothing larger is accepted
+    constexpr uint32_t maxStartupPayloadSize = 64 * 1024;
+    maxPayloadSize(maxStartupPayloadSize);
+    struct Restore {
+        ClientConnection& connection;
+        ~Restore() { connection.maxPayloadSize(std::numeric_limits<uint32_t>::max()); }
+    } restore{*this};
+
+    try {
+        return Connection::readControlBefore(hdr, deadline);
     }
-
-    pollfd fd{controlClient_.eckit::net::TCPSocket::socket(), POLLIN, 0};
-    int ready = 0;
-    do {
-        ready = ::poll(&fd, 1, timeoutSeconds * 1000);
-    } while (ready < 0 && errno == EINTR);
-
-    if (ready == 0) {
+    catch (const ConnectionTimeout&) {
         std::ostringstream ss;
         ss << "FDB server " << controlEndpoint_ << " did not answer the startup message within " << timeoutSeconds
            << " s (fdbStartupTimeout)";
-        throw RemoteFDBException(ss.str(), controlEndpoint_);
+        throw RemoteFDBTimeout(ss.str(), controlEndpoint_);
     }
-    // ready, or an error: the read reports it
 }
 
 SessionID ClientConnection::verifyServerStartupResponse() {
 
     MessageHeader hdr;
-    Buffer payload = Connection::readControl(hdr);
+    Buffer payload = readStartupResponse(hdr);
 
     // The server rejects a client (e.g. unsupported protocol version) by sending the reason instead of the Startup
     // reply: report it, rather than failing to deserialize it as a Startup reply
@@ -534,9 +536,9 @@ SessionID ClientConnection::verifyServerStartupResponse() {
             ss << ": " << errorText(payload);
         }
         if (hdr.message == Message::Unauthorised) {
-            throw RemoteFDBUnauthorised(ss.str(), controlEndpoint_);
+            ss << " (not authorised)";
         }
-        throw RemoteFDBException(ss.str(), controlEndpoint_);
+        throw RemoteFDBRejected(ss.str(), controlEndpoint_);
     }
     if (hdr.message != Message::Startup) {
         std::ostringstream ss;
