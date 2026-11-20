@@ -97,8 +97,8 @@ private:  // methods
     void writeControlStartupMessage(const eckit::Configuration& config);
     void writeDataStartupMessage(const eckit::SessionID& serverSession);
 
-    // Waits (bounded, fdbStartupTimeout) for the answer of the server to the startup message
-    void awaitStartupResponse();
+    // Reads the answer of the server to the startup message, as a whole within fdbStartupTimeout
+    eckit::Buffer readStartupResponse(MessageHeader& hdr);
     eckit::SessionID verifyServerStartupResponse();
 
     // void handleError(const MessageHeader& hdr, eckit::Buffer buffer);

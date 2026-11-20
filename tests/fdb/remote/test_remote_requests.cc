@@ -13,6 +13,8 @@
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/database/FieldLocation.h"
+#include "fdb5/remote/client/Client.h"
 #include "fdb5/remote/client/RemoteCatalogue.h"
 #include "fdb5/remote/client/RemoteStore.h"
 #include "fdb5/toc/TocFieldLocation.h"
@@ -21,6 +23,9 @@
 
 #include "eckit/io/Buffer.h"
 #include "eckit/io/DataHandle.h"
+#include "eckit/config/YAMLConfiguration.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/serialisation/MemoryStream.h"
 #include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
 
@@ -35,6 +40,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <vector>
 
 using namespace eckit::testing;
 
@@ -94,6 +100,115 @@ void restartServer(const char* scriptVariable) {
     ASSERT(script != nullptr);
     ASSERT(std::system(script) == 0);
 }
+
+
+// A client of the store server that archives one field, and goes away without waiting: its Stop can overtake its field
+class AbandoningStoreClient : public remote::Client {
+public:
+
+    explicit AbandoningStoreClient(const Config& config) :
+        Client(config, eckit::net::Endpoint("localhost", storePort()), ""), config_(config) {}
+    ~AbandoningStoreClient() override { deregister(); }
+
+    void archiveLargeField(const Key& dbKey, const Key& idxKey) {
+        const uint32_t id = generateRequestID();
+        controlWriteCheckResponse(remote::Message::Store, id, true);
+
+        eckit::Buffer keys(4096);
+        eckit::MemoryStream s(keys);
+        s << dbKey;
+        s << idxKey;
+        static const std::vector<char> data(64 * 1024 * 1024, 'x');  // takes a while to reach the server
+        dataWrite(remote::Message::Blob, id, {{s.position(), keys.data()}, {data.size(), data.data()}});
+    }
+
+    const eckit::Configuration& clientConfig() const override { return config_; }
+    bool handle(remote::Message, uint32_t) override { return true; }
+    bool handle(remote::Message, uint32_t, eckit::Buffer&&) override { return true; }
+
+private:
+
+    // the port of the store server, from its configuration (next to the configuration of the client)
+    static int storePort() {
+        const char* clientConfig = std::getenv("FDB5_CONFIG_FILE");
+        ASSERT(clientConfig != nullptr);
+        const eckit::PathName storeConfig = eckit::PathName(clientConfig).dirName() / "store.yaml";
+        return eckit::YAMLConfiguration(storeConfig).getInt("serverPort");
+    }
+
+    Config config_;
+};
+
+// True if a database directory of the store root is for the given date
+bool storeHasDatabase(const std::string& date) {
+    const char* root = std::getenv("FDB_REMOTE_STORE_ROOT");
+    ASSERT(root != nullptr);
+    std::vector<eckit::PathName> files;
+    std::vector<eckit::PathName> dirs;
+    eckit::PathName(root).children(files, dirs);
+    for (const auto& dir : dirs) {
+        if (dir.baseName().asString().find(date) != std::string::npos) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+// A catalogue client that flushes more field locations than it archived (a protocol violation)
+class ShortFlushCatalogueClient : public remote::Client {
+public:
+
+    explicit ShortFlushCatalogueClient(const Config& config) :
+        Client(config, eckit::net::Endpoint(clientSetting("host"), std::stoi(clientSetting("port"))), ""),
+        config_(config) {}
+    ~ShortFlushCatalogueClient() override { deregister(); }
+
+    void openDatabase(const Key& dbKey) {
+        eckit::Buffer buffer(4096);
+        eckit::MemoryStream s(buffer);
+        s << dbKey;
+        static_cast<void>(controlWriteReadResponse(remote::Message::Schema, generateRequestID(), buffer, s.position()));
+    }
+
+    void archive(const Key& idxKey, const Key& datumKey, const FieldLocation& location) {
+        const uint32_t id = generateRequestID();
+        if (!archiving_) {
+            controlWriteCheckResponse(remote::Message::Archive, id, true);
+            archiving_ = true;
+        }
+        eckit::Buffer buffer(8192);
+        eckit::MemoryStream s(buffer);
+        s << idxKey;
+        s << datumKey;
+        s << location;
+        dataWrite(remote::Message::Blob, id, {{s.position(), buffer.data()}});
+    }
+
+    void flush(size_t count) {
+        eckit::Buffer buffer(1024);
+        eckit::MemoryStream s(buffer);
+        s << count;
+        controlWriteCheckResponse(remote::Message::Flush, generateRequestID(), false, buffer, s.position());
+    }
+
+    const eckit::Configuration& clientConfig() const override { return config_; }
+    bool handle(remote::Message, uint32_t) override { return true; }
+    bool handle(remote::Message, uint32_t, eckit::Buffer&&) override { return true; }
+
+private:
+
+    // the endpoint of the catalogue server, from the configuration of the client
+    static std::string clientSetting(const std::string& name) {
+        const char* clientConfig = std::getenv("FDB5_CONFIG_FILE");
+        ASSERT(clientConfig != nullptr);
+        const eckit::YAMLConfiguration config{eckit::PathName(clientConfig)};
+        return name == "port" ? std::to_string(config.getInt(name)) : config.getString(name);
+    }
+
+    Config config_;
+    bool archiving_ = false;
+};
 
 }  // namespace
 
@@ -167,6 +282,70 @@ CASE("Remote FDB: a catalogue client that goes away without flushing does not br
         return count;
     });
     EXPECT_EQUAL(getOrDie(counted, "list after a catalogue client went away"), numFields);
+}
+
+CASE("Remote store: a field of a client that went away before it was archived is discarded") {
+    const std::string date = "20600103";
+
+    {
+        AbandoningStoreClient client(Config{});
+        Key dbKey;
+        dbKey.set("class", "od");
+        dbKey.set("expver", "xxxx");
+        dbKey.set("stream", "oper");
+        dbKey.set("date", date);
+        dbKey.set("time", "0000");
+        dbKey.set("domain", "g");
+        Key idxKey;
+        idxKey.set("type", "fc");
+        idxKey.set("levtype", "sfc");
+        client.archiveLargeField(dbKey, idxKey);
+    }  // its Stop reaches the server before the end of its field
+
+    // the server processes the field meanwhile: it must not create a store (a database) for the removed client
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    EXPECT(!storeHasDatabase(date));
+}
+
+CASE("Remote catalogue: a flush of more locations than can ever arrive fails, it does not wait forever") {
+    const std::string date = "20600104";
+
+    Config config;
+    config.set("supportedConnections", std::vector<int>{1});  // single connection: no location arrives during a flush
+
+    ShortFlushCatalogueClient client(config);
+    Key dbKey;
+    dbKey.set("class", "od");
+    dbKey.set("expver", "xxxx");
+    dbKey.set("stream", "oper");
+    dbKey.set("date", date);
+    dbKey.set("time", "0000");
+    dbKey.set("domain", "g");
+    client.openDatabase(dbKey);
+
+    Key idxKey;
+    idxKey.set("type", "fc");
+    idxKey.set("levtype", "sfc");
+    for (size_t step = 1; step <= 2; ++step) {
+        Key datumKey;
+        datumKey.set("step", std::to_string(step));
+        datumKey.set("param", "167");
+        client.archive(idxKey, datumKey, TocFieldLocation(eckit::PathName("/dev/null"), step, 1, Key{}));
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));  // the locations are sent before the flush
+
+    auto flushed = std::async(std::launch::async, [&client] {
+        try {
+            client.flush(3);  // one more than archived
+            return std::string("flushed");
+        }
+        catch (const std::exception& e) {
+            return std::string(e.what());
+        }
+    });
+    const auto error = getOrDie(flushed, "flush of more locations than archived");
+    eckit::Log::info() << "flush failed with: " << error << std::endl;
+    EXPECT(error.find("Flush of 3 field locations, but only 2 were received") != std::string::npos);
 }
 
 CASE("Remote store: reads reconnect once the store is restarted, rather than failing forever") {

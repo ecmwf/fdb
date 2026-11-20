@@ -157,6 +157,9 @@ public:
 
     TestClient(const Config& config, const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint = "") :
         Client(config, endpoint, defaultEndpoint), config_(config) {}
+
+    // with failover between the endpoints (as an archiving RemoteStore)
+    TestClient(const Config& config, const EndpointList& endpoints) : Client(config, endpoints), config_(config) {}
     ~TestClient() override { deregister(); }
 
     const void* connectionAddress() const { return connection_.get(); }
@@ -552,6 +555,48 @@ private:
         return remote::Handled::No;
     }
     void archiveBlob(uint32_t, uint32_t, const void*, size_t) override {}
+    bool remove(bool, uint32_t) override { return false; }
+};
+
+
+// A failure whose description takes a while: it keeps open any window between the end of the element and the record
+// of its failure
+class SlowDescriptionFailure : public std::exception {
+public:
+
+    const char* what() const noexcept override {
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        return "synthetic failure of the last location";
+    }
+};
+
+class FailingLastLocationConnection : public remote::ServerConnection {
+public:
+
+    explicit FailingLastLocationConnection(eckit::net::TCPSocket& socket) : ServerConnection(socket, Config{}) {
+        single_ = true;
+    }
+
+    void enqueue() { queue(remote::Message::Blob, 1, 7, eckit::Buffer{"x", 1}); }
+    size_t runArchive() { return archiveThreadLoop(); }
+    size_t pending() const { return archivePending(); }
+    bool failureRecorded() const {
+        try {
+            rethrowArchiveFailure();
+            return false;
+        }
+        catch (...) {
+            return true;
+        }
+    }
+
+private:
+
+    remote::Handled handleControl(remote::Message, uint32_t, uint32_t) override { return remote::Handled::No; }
+    remote::Handled handleControl(remote::Message, uint32_t, uint32_t, eckit::Buffer&&) override {
+        return remote::Handled::No;
+    }
+    void archiveBlob(uint32_t, uint32_t, const void*, size_t) override { throw SlowDescriptionFailure(); }
     bool remove(bool, uint32_t) override { return false; }
 };
 
@@ -1854,6 +1899,172 @@ CASE("destroying a handler whose workers are still running terminates the proces
     if (WIFSIGNALED(status)) {
         EXPECT_EQUAL(WTERMSIG(status), SIGABRT);
     }
+}
+
+
+CASE("a startup answer that stops (or slows down) in the middle does not block its caller beyond the deadline") {
+    ScopedEnv timeout("FDB_STARTUP_TIMEOUT", "3");
+
+    Config config;
+    config.set("supportedConnections", std::vector<int>{2});
+
+    // a server that answers the startup message with the given bytes, one every delay, then stalls
+    const auto attempt = [&config](const std::string& answer, std::chrono::milliseconds delay) {
+        eckit::net::TCPServer server;
+        server.socket();
+        std::promise<void> release;
+        std::shared_future<void> released = release.get_future().share();
+        auto answering = std::async(std::launch::async, [&] {
+            eckit::net::TCPSocket socket(server.accept());
+            if (delay.count() == 0) {
+                socket.write(answer.data(), answer.size());
+            }
+            else {
+                for (char c : answer) {
+                    socket.write(&c, 1);
+                    if (released.wait_for(delay) == std::future_status::ready) {
+                        return;
+                    }
+                }
+            }
+            released.wait();
+        });
+
+        const auto start = std::chrono::steady_clock::now();
+        std::string error;
+        try {
+            TestClient client(config, eckit::net::Endpoint("127.0.0.1", server.localPort()));
+            error = "connected";
+        }
+        catch (const std::exception& e) {
+            error = e.what();
+        }
+        const auto waited = std::chrono::steady_clock::now() - start;
+        release.set_value();
+        answering.get();
+
+        eckit::Log::info() << "waited " << std::chrono::duration_cast<std::chrono::milliseconds>(waited).count()
+                           << " ms, failed with: " << error << std::endl;
+        EXPECT(error.find("did not answer the startup message") != std::string::npos);
+        EXPECT(waited < std::chrono::seconds(10));
+    };
+
+    const remote::MessageHeader header{remote::Message::Startup, true, 0, 0, 100};
+    const std::string headerBytes(reinterpret_cast<const char*>(&header), sizeof(header));
+
+    // half a header
+    attempt(headerBytes.substr(0, sizeof(header) / 2), std::chrono::milliseconds(0));
+    // a header, and part of its payload
+    attempt(headerBytes + std::string(10, 'x'), std::chrono::milliseconds(0));
+    // a header, a byte at a time: each read gets something, the whole answer never comes in time
+    attempt(headerBytes, std::chrono::milliseconds(500));
+}
+
+
+CASE("failover: a rejection by every endpoint is reported as such, an unreachable one keeps the error retryable") {
+    Config serverConfig;
+    serverConfig.set("supportedConnections", std::vector<int>{2});
+    Config clientConfig;
+    clientConfig.set("supportedConnections", std::vector<int>{1});  // rejected by the servers
+
+    // what the client gets: its message, and whether it is worth retrying
+    const auto failure = [&clientConfig](const remote::Client::EndpointList& endpoints) {
+        try {
+            TestClient client(clientConfig, endpoints);
+        }
+        catch (const eckit::Exception& e) {
+            return std::make_pair(std::string(e.what()), e.retryOnClient());
+        }
+        return std::make_pair(std::string("connected"), false);
+    };
+
+    const auto unreachableEndpoint = [] {
+        eckit::net::TCPServer closed;
+        closed.socket();
+        return eckit::net::Endpoint("127.0.0.1", closed.localPort());  // closed when returning
+    };
+
+    {
+        MultiServer first(serverConfig, 1);
+        MultiServer second(serverConfig, 1);
+        const auto [error, retryable] = failure({{first.endpoint(), ""}, {second.endpoint(), ""}});
+        eckit::Log::info() << "all rejected: " << error << std::endl;
+        EXPECT(error.find("Number of remote connections not matching") != std::string::npos);
+        EXPECT(!retryable);
+    }
+    {
+        MultiServer rejecting(serverConfig, 1);
+        const auto [error, retryable] = failure({{rejecting.endpoint(), ""}, {unreachableEndpoint(), ""}});
+        eckit::Log::info() << "one rejected, one unreachable: " << error << std::endl;
+        EXPECT(error.find("Number of remote connections not matching") != std::string::npos);
+        EXPECT(retryable);
+    }
+
+    // servers that accept the connection, and never answer: overloaded, they may answer later
+    ScopedEnv timeout("FDB_STARTUP_TIMEOUT", "2");
+    struct Stalled {
+        Stalled() {
+            server.socket();
+            holder = std::async(std::launch::async, [this] {
+                eckit::net::TCPSocket socket(server.accept());
+                released.wait();
+            });
+        }
+        ~Stalled() {
+            release.set_value();
+            holder.get();
+        }
+        eckit::net::Endpoint endpoint() { return {"127.0.0.1", server.localPort()}; }
+
+        eckit::net::TCPServer server;
+        std::promise<void> release;
+        std::shared_future<void> released = release.get_future().share();
+        std::future<void> holder;
+    };
+    {
+        Stalled first;
+        Stalled second;
+        const auto [error, retryable] = failure({{first.endpoint(), ""}, {second.endpoint(), ""}});
+        eckit::Log::info() << "all timed out: " << error << std::endl;
+        EXPECT(error.find("did not answer the startup message") != std::string::npos);
+        EXPECT(retryable);
+    }
+    {
+        MultiServer rejecting(serverConfig, 1);
+        Stalled stalled;
+        const auto [error, retryable] = failure({{rejecting.endpoint(), ""}, {stalled.endpoint(), ""}});
+        eckit::Log::info() << "one rejected, one timed out: " << error << std::endl;
+        EXPECT(error.find("did not answer the startup message") != std::string::npos);
+        EXPECT(error.find("Number of remote connections not matching") != std::string::npos);
+        EXPECT(retryable);
+    }
+}
+
+
+CASE("the failure of the last queued location is published before it stops counting as pending") {
+    SocketPair control;
+    FailingLastLocationConnection connection(control.server);
+    connection.enqueue();
+    EXPECT_EQUAL(connection.pending(), 1u);
+
+    auto archive = std::async(std::launch::async, [&connection] {
+        try {
+            connection.runArchive();
+        }
+        catch (...) {
+        }
+    });
+
+    // what a flush does: as soon as nothing is pending any more, the failure must be visible, otherwise it would report
+    // missing locations instead of the failure
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+    while (connection.pending() != 0 && std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::yield();
+    }
+    EXPECT_EQUAL(connection.pending(), 0u);
+    EXPECT(connection.failureRecorded());
+
+    getOrDie(archive);
 }
 
 }  // namespace fdb5::test

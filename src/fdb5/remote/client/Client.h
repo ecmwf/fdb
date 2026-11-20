@@ -38,6 +38,24 @@ public:
         eckit::RemoteException(msg, endpoint) {}
 };
 
+/// The server explicitly rejected the connection during the handshake (e.g. protocol or configuration mismatch, not
+/// authorised): retrying will not help
+class RemoteFDBRejected : public RemoteFDBException {
+public:
+
+    RemoteFDBRejected(const std::string& msg, const eckit::net::Endpoint& endpoint) :
+        RemoteFDBException(msg, endpoint) {}
+};
+
+/// The server did not answer in time (e.g. overloaded): it may later
+class RemoteFDBTimeout : public RemoteFDBException {
+public:
+
+    RemoteFDBTimeout(const std::string& msg, const eckit::net::Endpoint& endpoint) : RemoteFDBException(msg, endpoint) {}
+
+    bool retryOnClient() const override { return true; }
+};
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class Client {

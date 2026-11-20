@@ -11,6 +11,7 @@
 #include "eckit/serialisation/MemoryStream.h"
 
 #include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
@@ -49,6 +50,13 @@ public:
 
     RemoteProtocolException(const std::string& msg, const eckit::CodeLocation& here) :
         eckit::Exception(std::string("Remote FDB protocol error: ") + msg, here) {}
+};
+
+/// A message was not received within its deadline
+class ConnectionTimeout : public TCPException {
+public:
+
+    ConnectionTimeout(const std::string& msg, const eckit::CodeLocation& here) : TCPException(msg, here) {}
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -114,6 +122,13 @@ public:  // methods
 
 private:  // methods
 
+    // Validation of what is read from the peer (see read())
+    void checkHeader(const MessageHeader& hdr, bool control) const;
+    void checkTail(const MessageHeader::MarkerType& tail) const;
+
+    // Reads exactly length bytes from the control socket before the deadline
+    void readBefore(void* data, size_t length, std::chrono::steady_clock::time_point deadline) const;
+
     // Writes a whole frame, waiting at most 200 ms for the socket mutex and 200 ms for room in the send buffer
     bool tryWriteBounded(Message message, bool control, uint32_t clientID, uint32_t requestID,
                          std::string_view payload) const noexcept;
@@ -139,6 +154,12 @@ protected:  // methods
 
     /// The connection cannot be used any more (e.g. the peer ended it)
     void invalidate() { isValid_ = false; }
+
+    /// Reads a whole control message (header, payload and end marker) before the deadline, e.g. the answer to the
+    /// startup message: unlike readControl(), a peer that stops (or slows down) in the middle of a message cannot
+    /// block the caller beyond the deadline. Only while nothing else reads the control socket.
+    /// @throws ConnectionTimeout if the message is not complete by then
+    eckit::Buffer readControlBefore(MessageHeader& hdr, std::chrono::steady_clock::time_point deadline) const;
 
     /// Releases the file descriptors of a connection that is over (failed or ended), once nothing reads the sockets
     /// any more. They are shut down first, which wakes up a writer blocked on a full send buffer; then each one is

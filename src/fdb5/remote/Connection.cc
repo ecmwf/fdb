@@ -6,9 +6,11 @@
 #include "eckit/io/Buffer.h"
 #include "eckit/log/Log.h"
 
+#include <poll.h>
 #include <sys/socket.h>
 
 #include <algorithm>
+#include <cerrno>
 #include <chrono>
 #include <cstdint>
 #include <cstring>
@@ -147,47 +149,115 @@ bool Connection::readUnsafe(const eckit::net::TCPSocket& socket, void* data, siz
     return true;
 }
 
+void Connection::checkHeader(const MessageHeader& hdr, bool control) const {
+    // Nothing read from the peer is trusted: a failed check fails the connection, it must not crash the process
+    if (!(hdr.marker == MessageHeader::StartMarker)) {
+        isValid_ = false;
+        throw RemoteProtocolException("invalid start of message, the stream is out of sync", Here());
+    }
+    if (hdr.version != MessageHeader::currentVersion) {
+        isValid_ = false;
+        std::ostringstream ss;
+        ss << "unsupported message version " << hdr.version << ", expected " << MessageHeader::currentVersion
+           << " (client and server versions are not compatible)";
+        throw RemoteProtocolException(ss.str(), Here());
+    }
+    if (!(single_ || hdr.control() == control)) {
+        isValid_ = false;
+        std::ostringstream ss;
+        ss << (control ? "data" : "control") << " message " << hdr.message << " received on the "
+           << (control ? "control" : "data") << " connection";
+        throw RemoteProtocolException(ss.str(), Here());
+    }
+    if (hdr.payloadSize > maxPayloadSize_) {
+        isValid_ = false;
+        std::ostringstream ss;
+        ss << "message " << hdr.message << " with a payload of " << hdr.payloadSize << " bytes exceeds the limit of "
+           << maxPayloadSize_ << " bytes";
+        throw RemoteProtocolException(ss.str(), Here());
+    }
+}
+
+void Connection::checkTail(const MessageHeader::MarkerType& tail) const {
+    if (!(tail == MessageHeader::EndMarker)) {
+        isValid_ = false;
+        throw RemoteProtocolException("invalid end of message, the stream is out of sync", Here());
+    }
+}
+
+void Connection::readBefore(void* data, size_t length, std::chrono::steady_clock::time_point deadline) const {
+    // Qualified: TCPServer overrides socket() to return the listening socket, not the accepted one
+    auto& socket = const_cast<eckit::net::TCPSocket&>(getSocket(true));
+    const int fd = socket.eckit::net::TCPSocket::socket();
+
+    char* p = static_cast<char*>(data);
+    size_t done = 0;
+    while (done < length) {
+        const auto now = std::chrono::steady_clock::now();
+        if (now >= deadline) {
+            isValid_ = false;
+            throw ConnectionTimeout("no complete message received in time", Here());
+        }
+        const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now).count() + 1;
+
+        pollfd pfd{fd, POLLIN, 0};
+        const int ready = ::poll(&pfd, 1, static_cast<int>(std::min<long long>(remaining, 60 * 60 * 1000)));
+        if (ready < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            isValid_ = false;
+            throw TCPException("poll failed while reading a message", Here());
+        }
+        if (ready == 0) {
+            continue;  // the deadline is checked above
+        }
+
+        const auto n = ::recv(fd, p + done, length - done, 0);
+        if (n < 0) {
+            if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK) {
+                continue;
+            }
+            isValid_ = false;
+            throw TCPException("read failed while reading a message", Here());
+        }
+        if (n == 0) {
+            isValid_ = false;
+            throw TCPException("connection closed by the peer while reading a message", Here());
+        }
+        done += static_cast<size_t>(n);
+    }
+}
+
+eckit::Buffer Connection::readControlBefore(MessageHeader& hdr, std::chrono::steady_clock::time_point deadline) const {
+    // n.b. the whole frame is bounded, not each read: a peer sending a byte at a time cannot extend it
+    readBefore(&hdr, sizeof(hdr), deadline);
+    checkHeader(hdr, true);
+
+    eckit::Buffer payload{hdr.payloadSize};
+    if (hdr.payloadSize > 0) {
+        readBefore(payload.data(), hdr.payloadSize, deadline);
+    }
+
+    eckit::FixedString<4> tail;
+    readBefore(&tail, sizeof(tail), deadline);
+    checkTail(tail);
+    return payload;
+}
+
 eckit::Buffer Connection::read(bool control, MessageHeader& hdr) const {
     const auto& socket = getSocket(control);
     eckit::FixedString<4> tail;
     hdr.payloadSize = 0;
     if (readUnsafe(socket, &hdr, sizeof(hdr))) {
-        // Nothing read from the peer is trusted: a failed check fails the connection, it must not crash the process
-        if (!(hdr.marker == MessageHeader::StartMarker)) {
-            isValid_ = false;
-            throw RemoteProtocolException("invalid start of message, the stream is out of sync", Here());
-        }
-        if (hdr.version != MessageHeader::currentVersion) {
-            isValid_ = false;
-            std::ostringstream ss;
-            ss << "unsupported message version " << hdr.version << ", expected " << MessageHeader::currentVersion
-               << " (client and server versions are not compatible)";
-            throw RemoteProtocolException(ss.str(), Here());
-        }
-        if (!(single_ || hdr.control() == control)) {
-            isValid_ = false;
-            std::ostringstream ss;
-            ss << (control ? "data" : "control") << " message " << hdr.message << " received on the "
-               << (control ? "control" : "data") << " connection";
-            throw RemoteProtocolException(ss.str(), Here());
-        }
-        if (hdr.payloadSize > maxPayloadSize_) {
-            isValid_ = false;
-            std::ostringstream ss;
-            ss << "message " << hdr.message << " with a payload of " << hdr.payloadSize
-               << " bytes exceeds the limit of " << maxPayloadSize_ << " bytes";
-            throw RemoteProtocolException(ss.str(), Here());
-        }
+        checkHeader(hdr, control);
 
         eckit::Buffer payload{hdr.payloadSize};
         if ((hdr.payloadSize == 0 || readUnsafe(socket, payload, hdr.payloadSize))
             // Ensure we have consumed exactly the correct amount from the socket.
             && readUnsafe(socket, &tail, sizeof(tail))) {
 
-            if (!(tail == MessageHeader::EndMarker)) {
-                isValid_ = false;
-                throw RemoteProtocolException("invalid end of message, the stream is out of sync", Here());
-            }
+            checkTail(tail);
             return payload;
         }
     }

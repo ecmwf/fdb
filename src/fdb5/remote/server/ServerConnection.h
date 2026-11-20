@@ -119,9 +119,19 @@ protected:
     /// True if a worker thread has not completed (or has not been joined)
     bool workersRunning() noexcept;
 
+    /// While a control message is handled: true if no more archive data can arrive, i.e. on a single connection (its
+    /// only reader is handling the control message), or once the data connection has ended
+    bool archiveDataEnded() const { return single_ || dataEnded_; }
+
+    /// Number of archive messages queued, and not yet processed by the archive worker
+    size_t archivePending() const { return archivePending_; }
+
     /// Rethrows the failure of the archive worker, if any. Unlike the state of archiveFuture_, this is set before
     /// any client is notified of the failure.
     void rethrowArchiveFailure() const;
+
+    /// Records the first failure of the archive worker
+    void recordArchiveFailure(const std::exception_ptr& failure) noexcept;
 
     /// Terminates the connection after a failure: sends the error (bounded, see tryErrorBounded()) addressed to the
     /// given request, then aborts the connection. Only the first caller does so, the others return immediately: the
@@ -199,6 +209,8 @@ private:
     std::exception_ptr archiveFailure_;
     std::atomic<bool> discardArchive_{false};
     std::atomic<bool> failureOwned_{false};
+    std::atomic<size_t> archivePending_{0};
+    std::atomic<bool> dataEnded_{false};
 
     // data connection
     std::unique_ptr<eckit::net::EphemeralTCPServer> dataSocket_;

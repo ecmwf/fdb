@@ -296,9 +296,14 @@ void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buf
 bool StoreHandler::remove(bool control, uint32_t clientID) {
 
     std::lock_guard<std::mutex> lock(handlerMutex_);
+
+    // The client is gone (Stop), whether or not it has a store yet: what is still queued for it (e.g. a first field
+    // not archived yet) is discarded, rather than creating a store for it (see store())
+    removedClients_.insert(clientID);
+
     auto it = stores_.find(clientID);
     if (it != stores_.end()) {
-        // The client is gone (Stop): its store is released as soon as nobody uses it any more (see getStore())
+        // its store is released as soon as nobody uses it any more (see getStore())
         if (it->second->controlConnection) {
             numControlConnection_--;
         }
@@ -306,7 +311,6 @@ bool StoreHandler::remove(bool control, uint32_t clientID) {
             numDataConnection_--;
         }
         stores_.erase(it);
-        removedClients_.insert(clientID);
     }
     return ((control ? numControlConnection_ : numDataConnection_) == 0);
 }

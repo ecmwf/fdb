@@ -1,5 +1,6 @@
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 
+#include "fdb5/remote/client/Client.h"
 #include "fdb5/remote/client/ClientConnection.h"
 
 #include "eckit/config/Configuration.h"
@@ -11,6 +12,7 @@
 
 #include <cstddef>
 #include <cstdlib>
+#include <exception>
 #include <memory>
 #include <mutex>
 #include <ostream>
@@ -27,6 +29,7 @@ public:
 
     ConnectionError();
     ConnectionError(const eckit::net::Endpoint&);
+    explicit ConnectionError(const std::string& detail);
 
     bool retryOnClient() const override { return true; }
 };
@@ -34,6 +37,13 @@ public:
 ConnectionError::ConnectionError() {
     std::ostringstream s;
     s << "Unable to create a connection with the FDB server";
+    reason(s.str());
+    eckit::Log::status() << what() << std::endl;
+}
+
+ConnectionError::ConnectionError(const std::string& detail) {
+    std::ostringstream s;
+    s << "Unable to create a connection with the FDB server: " << detail;
     reason(s.str());
     eckit::Log::status() << what() << std::endl;
 }
@@ -118,6 +128,14 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
 
     std::vector<std::pair<eckit::net::Endpoint, std::string>> fullEndpoints{endpoints};
 
+    // A server that explicitly rejects the connection (e.g. protocol or configuration mismatch) will not accept it on a
+    // retry, unlike a server that cannot be reached, does not answer in time or fails otherwise: the first rejection
+    // is kept, to be reported as such if every endpoint rejected the connection
+    std::exception_ptr firstRejection;
+    std::string firstRejectionReason;
+    std::string firstFailureReason;  // transient: not reached, timeout, transport error
+    bool transient = false;
+
     while (fullEndpoints.size() > 0) {
         // select a random endpoint
         size_t idx = random(fullEndpoints.size() - 1);
@@ -127,11 +145,24 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
             if (auto conn = obtain(config, endpoint, defaultEndpoint, true)) {
                 return conn;
             }
+            transient = true;  // not reached
+        }
+        catch (const RemoteFDBRejected& e) {
+            eckit::Log::warning() << "FDB endpoint " << endpoint << " rejected the connection: " << e.what()
+                                  << std::endl;
+            if (!firstRejection) {
+                firstRejection = std::current_exception();
+                firstRejectionReason = e.what();
+            }
         }
         catch (const std::exception& e) {
-            // e.g. rejected by the server: try the others
+            // e.g. no answer in time, transport error: may work later
             eckit::Log::warning() << "Unable to connect to FDB endpoint " << endpoint << ": " << e.what()
                                   << std::endl;
+            transient = true;
+            if (firstFailureReason.empty()) {
+                firstFailureReason = e.what();
+            }
         }
 
         // unable to connect to "endpoint", remove it and try again
@@ -142,7 +173,23 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
     }
 
     // no more available endpoints, we have to give up
-    throw ConnectionError();
+    if (firstRejection && !transient) {
+        // all the endpoints rejected the connection: report why, as such (not as a connection error worth retrying)
+        std::rethrow_exception(firstRejection);
+    }
+
+    // some may work later: worth retrying, with the reasons
+    std::string reasons;
+    if (!firstFailureReason.empty()) {
+        reasons = firstFailureReason;
+    }
+    if (!firstRejectionReason.empty()) {
+        reasons += (reasons.empty() ? "" : "; ") + std::string("one rejected the connection: ") + firstRejectionReason;
+    }
+    if (reasons.empty()) {
+        throw ConnectionError();
+    }
+    throw ConnectionError("no endpoint available: " + reasons);
 }
 
 std::shared_ptr<ClientConnection> ClientConnectionRouter::refresh(const eckit::Configuration& config,
