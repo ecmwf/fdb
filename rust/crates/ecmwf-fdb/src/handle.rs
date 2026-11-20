@@ -72,7 +72,9 @@ impl Fdb {
     ///
     /// Matches C++ `fdb5::FDB(fdb5::Config)` / `fdb5::FDB(fdb5::Config(config, user_config))`.
     ///
-    /// - `None, None` — use environment defaults (`FDB_HOME` / `FDB_CONFIG_FILE` / `~/.fdb`)
+    /// - `None, None` — read the configuration from the environment: YAML text
+    ///   in `FDB_CONFIG`, else the file named by `FDB_CONFIG_FILE`, else
+    ///   `etc/fdb/config.yaml` under `FDB_HOME`
     /// - `Some(config), None` — use the given config
     /// - `Some(config), Some(user_config)` — config + per-instance overlay
     ///
