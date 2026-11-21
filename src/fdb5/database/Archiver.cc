@@ -21,6 +21,10 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+bool Database::connectionLost() const {
+    return catalogue_->connectionLost() || store_->connectionLost();
+}
+
 Archiver::Archiver(const Config& dbConfig, const ArchiveCallback& callback) :
     dbConfig_(dbConfig), db_(nullptr), callback_(callback) {}
 
@@ -60,13 +64,39 @@ void Archiver::flushDatabase(Database& db) {
 void Archiver::flush() {
     std::lock_guard<std::recursive_mutex> lock(flushMutex_);
     for (auto i = databases_.begin(); i != databases_.end(); ++i) {
-        flushDatabase(i->second);
+        try {
+            flushDatabase(i->second);
+        }
+        catch (...) {
+            // A database that lost its connection to a server cannot be flushed again: drop it, so that the next
+            // archive() opens it again
+            if (i->second.connectionLost()) {
+                if (db_ == &i->second) {
+                    db_ = nullptr;
+                }
+                databases_.erase(i);
+            }
+            throw;
+        }
     }
 }
 
 void Archiver::selectDatabase(const Key& dbKey) {
 
     auto i = databases_.find(dbKey);
+
+    if (i != databases_.end() && i->second.connectionLost()) {
+        // The catalogue or store lost its connection to a server, e.g. after a server restart. Drop it and open the
+        // database again. Flushing it first reports the fields archived since the last flush that were not stored.
+        eckit::Log::warning() << "Connection lost for database " << dbKey << ", opening it again" << std::endl;
+        if (db_ == &i->second) {
+            db_ = nullptr;
+        }
+        Database lost = std::move(i->second);
+        databases_.erase(i);
+        flushDatabase(lost);
+        i = databases_.end();
+    }
 
     if (i != databases_.end()) {
         db_ = &(i->second);

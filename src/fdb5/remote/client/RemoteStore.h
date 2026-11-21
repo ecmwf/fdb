@@ -28,7 +28,9 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <functional>
+#include <sstream>
 #include <future>
 #include <map>
 #include <memory>
@@ -54,6 +56,9 @@ public:
     // Returns true exactly once per cycle (until reset()), for the first archival request.
     // Deliberately lock-free to avoid deadlock against the listening thread.
     bool markStoreRequested() { return !storeRequested_.exchange(true); }
+
+    // The request that notifies the server failed: the next archival must notify it again
+    void unmarkStoreRequested() { storeRequested_ = false; }
 
     void archive(uint32_t requestID,
                  std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
@@ -102,6 +107,35 @@ public:
         return archivalCompleted_.get();
     }
 
+    // The connection to the store was lost: the locations still pending will never arrive. Fails them, and wakes a
+    // flush() waiting for them.
+    void fail(const eckit::net::Endpoint& endpoint) {
+        std::lock_guard<std::mutex> lock(locationMutex_);
+        if (locations_.empty()) {
+            return;
+        }
+        std::ostringstream ss;
+        ss << "Connection to " << endpoint << " lost before " << locations_.size()
+           << " archived field(s) were stored. Fields archived since the last flush must be archived again";
+        error_ = std::make_exception_ptr(RemoteFDBException(ss.str(), endpoint));
+
+        locationsReceived_ += locations_.size();
+        locations_.clear();
+        if (archivalCompleted_.valid()) {
+            promiseArchivalCompleted_.set_exception(error_);
+        }
+    }
+
+    // Rethrows the error of a cycle whose locations were failed
+    void checkFailed() {
+        std::lock_guard<std::mutex> lock(locationMutex_);
+        if (error_) {
+            auto error = error_;
+            error_     = nullptr;
+            std::rethrow_exception(error);
+        }
+    }
+
     void reset() {
         std::lock_guard<std::mutex> lock(locationMutex_);
         ASSERT(fieldsArchived_ - locationsReceived_ == locations_.size());
@@ -119,6 +153,7 @@ private:
     std::promise<size_t> promiseArchivalCompleted_;
     std::future<size_t> archivalCompleted_;
     std::atomic<bool> storeRequested_{false};
+    std::exception_ptr error_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -147,6 +182,7 @@ public:  // methods
     bool open() override;
     size_t flush() override;
     void close() override;
+    bool connectionLost() const override { return !connection_->valid(); }
 
     void checkUID() const override {}
 

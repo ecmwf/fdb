@@ -286,11 +286,23 @@ void RemoteStore::archiveCb(
     ASSERT(data);
     ASSERT(static_cast<long long>(length) != 0ll);
 
+    // Fail fast: the data would be queued on a connection that can no longer send it
+    if (!connection_->valid()) {
+        throw RemoteFDBException("Connection to " + std::string(controlEndpoint()) + " is no longer valid",
+                                 controlEndpoint());
+    }
+
     uint32_t id = generateRequestID();
     // If this is the first archival request of this flush cycle, notify the server.
     // Note: this must NOT be done while holding locations_.mutex(), a potential deadlock.
     if (locations_.markStoreRequested()) {
-        controlWriteCheckResponse(Message::Store, id, true);
+        try {
+            controlWriteCheckResponse(Message::Store, id, true);
+        }
+        catch (...) {
+            locations_.unmarkStoreRequested();
+            throw;
+        }
     }
     // store the callback, associated with the request id - to be done BEFORE sending the data
     locations_.archive(id, catalogue_archive);
@@ -321,10 +333,25 @@ size_t RemoteStore::flush() {
     }
 
     // remote side reported that all fields are flushed... now wait for field locations
-    // size_t locations;
-    bool complete = locations_.complete();
-
-    size_t locations = complete ? locations_.archived() : locations_.wait();
+    size_t locations = 0;
+    try {
+        if (locations_.complete()) {
+            locations = locations_.archived();
+        }
+        else {
+            // A connection lost before these locations were registered is not failed by the listening thread
+            if (!connection_->valid()) {
+                locations_.fail(controlEndpoint());
+            }
+            locations = locations_.wait();
+        }
+        locations_.checkFailed();
+    }
+    catch (...) {
+        // The connection was lost: start a new cycle, so that this store can be destroyed
+        locations_.reset();
+        throw;
+    }
 
     Buffer sendBuf(defaultBufferSizeFlush);
     MemoryStream s(sendBuf);
@@ -351,12 +378,16 @@ void RemoteStore::print(std::ostream& out) const {
 }
 
 void RemoteStore::closeConnection() {
-    std::lock_guard lock(messageMutex_);
-    for (auto& kv : messageQueues_) {
-        if (!kv.second->closed()) {
-            kv.second->interrupt(std::make_exception_ptr(eckit::Exception("Unexpected closure of store", Here())));
+    {
+        std::lock_guard lock(messageMutex_);
+        for (auto& kv : messageQueues_) {
+            if (!kv.second->closed()) {
+                kv.second->interrupt(std::make_exception_ptr(eckit::Exception("Unexpected closure of store", Here())));
+            }
         }
     }
+    // Archived fields whose location has not arrived will never be stored
+    locations_.fail(controlEndpoint());
 }
 
 const eckit::Configuration& RemoteStore::clientConfig() const {

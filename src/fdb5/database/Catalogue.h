@@ -86,6 +86,8 @@ public:
     virtual void close() = 0;
 
     virtual bool exists() const = 0;
+    /// True if this catalogue talks to a server and has lost its connection, so it cannot be used any more
+    virtual bool connectionLost() const { return false; }
     virtual void checkUID() const = 0;
 
     virtual eckit::URI uri() const = 0;
