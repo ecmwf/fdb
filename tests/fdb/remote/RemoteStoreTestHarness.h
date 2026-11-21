@@ -11,6 +11,7 @@
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/remote/client/ReadLimiter.h"
 #include "fdb5/remote/client/RemoteStore.h"
 
 #include "eckit/exception/Exceptions.h"
@@ -35,6 +36,31 @@ public:
         ASSERT(entry.second);
 
         return {requestID, entry.first->second};
+    }
+
+    static size_t queueCount(RemoteStore& store) {
+        std::lock_guard<std::mutex> lock(store.messageMutex_);
+        return store.messageQueues_.size();
+    }
+};
+
+// Friend of ReadLimiter (see ReadLimiter.h)
+class ReadLimiterTestHarness {
+public:
+
+    static size_t memoryUsed() {
+        auto& limiter = ReadLimiter::instance();
+        std::lock_guard<std::mutex> lock(limiter.mutex_);
+        return limiter.memoryUsed_;
+    }
+
+    // Marks a request as sent and holding memory, without contacting a server
+    static void markActive(uint32_t clientID, uint32_t requestID, size_t size) {
+        auto& limiter = ReadLimiter::instance();
+        std::lock_guard<std::mutex> lock(limiter.mutex_);
+        limiter.activeRequests_[clientID].insert(requestID);
+        limiter.resultSizes_[{clientID, requestID}] = size;
+        limiter.memoryUsed_ += size;
     }
 };
 
