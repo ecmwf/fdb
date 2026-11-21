@@ -76,6 +76,11 @@ public:  // methods
 
     void teardown();
 
+    /// Applies the configured TCP keepalive and user timeout settings to a connected socket, so that a peer that
+    /// disappears without closing the connection (host crash, silent network drop) is noticed. Unset settings keep
+    /// the system defaults.
+    static void setTcpOptions(eckit::net::TCPSocket& socket);
+
     bool valid() const { return isValid_; }
 
 private:  // methods

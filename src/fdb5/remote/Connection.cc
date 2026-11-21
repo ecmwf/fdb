@@ -3,10 +3,17 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/remote/Messages.h"
 
+#include "eckit/config/Resource.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/log/Log.h"
 
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <sys/socket.h>
+
+#include <cerrno>
 #include <cstdint>
+#include <cstring>
 #include <mutex>
 #include <string_view>
 
@@ -15,6 +22,65 @@ namespace fdb5::remote {
 //----------------------------------------------------------------------------------------------------------------------
 
 Connection::Connection() : single_(false) {}
+
+namespace {
+
+void setSocketOption(int fd, int level, int option, int value, const char* name) {
+    if (::setsockopt(fd, level, option, &value, sizeof(value)) != 0) {
+        eckit::Log::warning() << "Unable to set " << name << "=" << value << " on socket " << fd << ": "
+                              << std::strerror(errno) << std::endl;
+    }
+}
+
+}  // namespace
+
+void Connection::setTcpOptions(eckit::net::TCPSocket& socket) {
+    // In seconds; 0 keeps the system default
+    static const int keepAliveIdle     = eckit::Resource<int>("$FDB_TCP_KEEPALIVE_IDLE;fdbTcpKeepAliveIdle", 0);
+    static const int keepAliveInterval = eckit::Resource<int>("$FDB_TCP_KEEPALIVE_INTERVAL;fdbTcpKeepAliveInterval", 0);
+    static const int keepAliveCount    = eckit::Resource<int>("$FDB_TCP_KEEPALIVE_COUNT;fdbTcpKeepAliveCount", 0);
+    static const int userTimeout       = eckit::Resource<int>("$FDB_TCP_USER_TIMEOUT;fdbTcpUserTimeout", 0);
+
+    const int fd = socket.socket();
+    if (fd < 0) {
+        return;
+    }
+
+    if (keepAliveIdle > 0 || keepAliveInterval > 0 || keepAliveCount > 0) {
+        setSocketOption(fd, SOL_SOCKET, SO_KEEPALIVE, 1, "SO_KEEPALIVE");
+#if defined(TCP_KEEPIDLE) && defined(TCP_KEEPINTVL) && defined(TCP_KEEPCNT)
+        if (keepAliveIdle > 0) {
+            setSocketOption(fd, IPPROTO_TCP, TCP_KEEPIDLE, keepAliveIdle, "TCP_KEEPIDLE");
+        }
+        if (keepAliveInterval > 0) {
+            setSocketOption(fd, IPPROTO_TCP, TCP_KEEPINTVL, keepAliveInterval, "TCP_KEEPINTVL");
+        }
+        if (keepAliveCount > 0) {
+            setSocketOption(fd, IPPROTO_TCP, TCP_KEEPCNT, keepAliveCount, "TCP_KEEPCNT");
+        }
+#else
+        static bool warned = false;
+        if (!warned) {
+            warned = true;
+            eckit::Log::warning() << "TCP keepalive timing is not supported on this platform, using system defaults"
+                                  << std::endl;
+        }
+#endif
+    }
+
+    if (userTimeout > 0) {
+#ifdef TCP_USER_TIMEOUT
+        setSocketOption(fd, IPPROTO_TCP, TCP_USER_TIMEOUT, userTimeout * 1000, "TCP_USER_TIMEOUT");
+#else
+        static bool warned = false;
+        if (!warned) {
+            warned = true;
+            eckit::Log::warning() << "TCP_USER_TIMEOUT is not supported on this platform, ignoring fdbTcpUserTimeout"
+                                  << std::endl;
+        }
+#endif
+    }
+}
 
 void Connection::teardown() {
     const bool wasValid = isValid_.exchange(false);
