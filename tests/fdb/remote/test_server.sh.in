@@ -58,6 +58,9 @@ fdb_remote_wait_for_servers
 # (index 0 is the catalogue, index 1 the store; tests that need to kill them use these)
 export FDB_REMOTE_CATALOGUE_PGID="${FDB_REMOTE_SERVER_PGIDS[0]}"
 export FDB_REMOTE_STORE_PGID="${FDB_REMOTE_SERVER_PGIDS[1]}"
+# Tests that make a root read-only use these
+export FDB_REMOTE_CATALOGUE_ROOT="$catalogue_rootdir"
+export FDB_REMOTE_STORE_ROOT="$store_rootdir"
 # Tests that restart a server they have killed run these scripts
 export FDB_REMOTE_CATALOGUE_RESTART="$FDB_REMOTE_STATE_DIR/restart_catalogue.sh"
 export FDB_REMOTE_STORE_RESTART="$FDB_REMOTE_STATE_DIR/restart_store.sh"

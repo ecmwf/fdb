@@ -28,10 +28,13 @@
 #include "eckit/utils/Literals.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <exception>
 #include <future>
+#include <limits>
 #include <iterator>
 #include <map>
 #include <mutex>
@@ -54,6 +57,9 @@ namespace {
 constexpr const auto defaultRetrieveQueueSize = 10000;
 constexpr const auto defaultArchiveQueueSize = 320;
 
+// Largest message accepted before the handshake has completed (the startup message is a few hundred bytes)
+constexpr uint32_t maxStartupPayloadSize = 64 * 1024;
+
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -67,18 +73,48 @@ ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& 
 
     innerConfig_ = config_.has("fdb") ? Config{config_.getSubConfiguration("fdb"), config_.userConfig()} : config_;
 
+    // Until the client is identified, anybody who can connect is talking: only the startup message is expected
+    maxPayloadSize(maxStartupPayloadSize);
+
     LOG_DEBUG_LIB(LibFdb5) << "ServerConnection::ServerConnection initialized" << std::endl;
 }
 
 ServerConnection::~ServerConnection() {
-    // We don't want to die before the worker threads are cleaned up
-    waitForWorkers();
-
-    if (archiveFuture_.valid()) {
-        archiveFuture_.wait();
+    // The derived handler has already been destroyed: a worker still running would use its state, or call its
+    // methods (e.g. archiveBlob()) as pure virtual. Stopping the workers here would not make that safe: they must have
+    // been stopped by handle(), or by the destructor of the derived handler (see stopWorkers()). A worker still
+    // running is a bug of the derived handler: fail loudly rather than with a use-after-free.
+    if (workersRunning()) {
+        eckit::Log::error() << "ServerConnection destroyed with worker threads still running: the derived handler must "
+                               "call stopWorkers() in its destructor"
+                            << std::endl;
+        std::terminate();
     }
 
     eckit::Log::info() << "Done" << std::endl;
+}
+
+bool ServerConnection::workersRunning() noexcept {
+    const auto running = [](const auto& future) {
+        return future.valid() && future.wait_for(std::chrono::seconds(0)) != std::future_status::ready;
+    };
+
+    if (running(archiveFuture_)) {
+        return true;
+    }
+    for (const auto& [requestID, worker] : workerThreads_) {
+        if (running(worker)) {
+            return true;
+        }
+    }
+    try {
+        std::lock_guard<std::mutex> lock(readLocationMutex_);
+        // n.b. even once finished, a thread that has not been joined would terminate the process when destroyed
+        return readLocationWorker_.joinable();
+    }
+    catch (...) {
+        return true;
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -86,8 +122,11 @@ ServerConnection::~ServerConnection() {
 Handled ServerConnection::handleData(Message message, uint32_t clientID, uint32_t requestID) {
     try {
         switch (message) {
-            case Message::Flush:  // notification that the client has sent all data for archival
-                return Handled::YesRemoveArchiveListener;  // ????
+            case Message::Flush: {
+                // Flush is a control message: on the data connection it would stop the data listener, which is only
+                // stopped by the end of the connection
+                throw RemoteProtocolException("Flush received on the data connection", Here());
+            }
 
             default: {
                 std::ostringstream ss;
@@ -126,10 +165,18 @@ Handled ServerConnection::handleData(Message message, uint32_t clientID, uint32_
         }
     }
     catch (std::exception& e) {
+        // An interrupted queue means that the archive worker has failed: it owns the report of that failure, this
+        // is only a consequence of it. Let the listener stop instead.
+        if (connectionFailed()) {
+            throw;
+        }
         // n.b. more general than eckit::Exception
         error(false, e.what(), clientID, requestID);
     }
     catch (...) {
+        if (connectionFailed()) {
+            throw;
+        }
         error(false, "Caught unexpected and unknown error", clientID, requestID);
     }
     return Handled::Replied;
@@ -139,7 +186,7 @@ RemoteConfiguration ServerConnection::availableFunctionality() const {
     return RemoteConfiguration{config_};
 }
 
-void ServerConnection::initialiseConnections() {
+bool ServerConnection::initialiseConnections() {
     // Read the startup message from the client. Check that it all checks out.
 
     MessageHeader hdr;
@@ -158,7 +205,7 @@ void ServerConnection::initialiseConnections() {
     }
     catch (...) {
         error(true, "Error retrieving client protocol version", hdr.clientID(), hdr.requestID);
-        return;
+        return false;
     }
 
     if (!LibFdb5::instance().remoteProtocolVersion().check(remoteProtocolVersion, false)) {
@@ -168,7 +215,7 @@ void ServerConnection::initialiseConnections() {
            << std::endl;
         ss << "    version requested by client: " << remoteProtocolVersion << std::endl;
         error(true, ss.str(), hdr.clientID(), hdr.requestID);
-        return;
+        return false;
     }
 
     RemoteConfiguration clientConf{s1};
@@ -179,7 +226,7 @@ void ServerConnection::initialiseConnections() {
     }
     catch (const eckit::Exception& e) {
         error(true, e.what(), hdr.clientID(), hdr.requestID);
-        return;
+        return false;
     }
 
     // We want a data connection too. Send info to RemoteFDB, and wait for connection
@@ -200,8 +247,10 @@ void ServerConnection::initialiseConnections() {
 
         dataEndpoint = eckit::net::Endpoint{endpointFromClient.hostname(), dataSocket_->localPort()};
 
-        dataSocketFuture = std::async(std::launch::async, [this] {
-            dataSocket_->accept();
+        // A client that never connects must not hold this connection (and its data port) forever
+        const int timeoutSeconds = eckit::Resource<int>("fdbDataConnectionTimeout;$FDB_DATA_CONNECTION_TIMEOUT", 60);
+        dataSocketFuture = std::async(std::launch::async, [this, timeoutSeconds] {
+            dataSocket_->accept("Waiting for the data connection of the client", timeoutSeconds);
             return true;
         });
     }
@@ -218,7 +267,7 @@ void ServerConnection::initialiseConnections() {
 
     if (!single_) {
         ASSERT(dataSocketFuture.valid());
-        dataSocketFuture.wait();
+        static_cast<void>(dataSocketFuture.get());  // n.b. rethrows a timeout: the connection fails
 
         // Check the response from the client.
         // Ensure that the hostname matches the original hostname, and that
@@ -248,6 +297,8 @@ void ServerConnection::initialiseConnections() {
             throw eckit::BadValue(ss.str(), Here());
         }
     }
+
+    return true;
 }
 
 int ServerConnection::selectDataPort() {
@@ -269,39 +320,109 @@ size_t ServerConnection::archiveThreadLoop() {
 
     try {
         while (archiveQueue_.pop(elem) != -1) {
-            if (elem.multiblob_) {
-                // Handle MultiBlob
+            // n.b. only once it is processed: a flush waiting for locations relies on it (see archivePending())
+            struct Processed {
+                std::atomic<size_t>& pending;
+                ~Processed() { --pending; }
+            } processed{archivePending_};
 
-                const char* firstData = reinterpret_cast<const char*>(elem.payload_.data());  // For pointer arithmetic
-                const char* charData = firstData;
-                while (size_t(charData - firstData) < elem.payload_.size()) {
-                    const MessageHeader* hdr = reinterpret_cast<const MessageHeader*>(charData);
-                    ASSERT(hdr->message == Message::Blob);
-                    ASSERT(hdr->clientID() == elem.clientID_);
-                    ASSERT(hdr->requestID == elem.requestID_);
-                    charData += sizeof(MessageHeader);
+            if (discardArchive_) {
+                continue;
+            }
 
-                    const void* payloadData = charData;
-                    charData += hdr->payloadSize;
+            try {
+                if (elem.multiblob_) {
+                    // Handle MultiBlob
 
-                    const auto* e = reinterpret_cast<const MessageHeader::MarkerType*>(charData);
-                    ASSERT(*e == MessageHeader::EndMarker);
-                    charData += MessageHeader::markerBytes;
+                    // A sequence of complete Blob frames. The content comes from the client: every size is checked
+                    // against what is left in the buffer before it is used (a failure aborts the connection, see below)
+                    const char* data = static_cast<const char*>(elem.payload_.data());
+                    const size_t size = elem.payload_.size();
+                    size_t offset = 0;
+                    while (offset < size) {
+                        if (size - offset < sizeof(MessageHeader)) {
+                            throw RemoteProtocolException("truncated message header in MultiBlob", Here());
+                        }
+                        MessageHeader hdr;
+                        // n.b. may not be aligned; copied raw, as read() does
+                        std::memcpy(static_cast<void*>(&hdr), data + offset, sizeof(hdr));
+                        offset += sizeof(MessageHeader);
 
-                    archiveBlob(elem.clientID_, elem.requestID_, payloadData, hdr->payloadSize);
+                        if (!(hdr.marker == MessageHeader::StartMarker) || hdr.message != Message::Blob ||
+                            hdr.clientID() != elem.clientID_ || hdr.requestID != elem.requestID_) {
+                            std::ostringstream ss;
+                            ss << "invalid frame in MultiBlob [message=" << hdr.message
+                               << ",clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID
+                               << "], expected Blob for [clientID=" << elem.clientID_
+                               << ",requestID=" << elem.requestID_ << "]";
+                            throw RemoteProtocolException(ss.str(), Here());
+                        }
+                        if (size - offset < MessageHeader::markerBytes ||
+                            hdr.payloadSize > size - offset - MessageHeader::markerBytes) {
+                            std::ostringstream ss;
+                            ss << "payload of " << hdr.payloadSize << " bytes overruns the MultiBlob of " << size
+                               << " bytes";
+                            throw RemoteProtocolException(ss.str(), Here());
+                        }
+
+                        const void* payloadData = data + offset;
+                        offset += hdr.payloadSize;
+
+                        if (std::memcmp(data + offset, MessageHeader::EndMarker.data(), MessageHeader::markerBytes) !=
+                            0) {
+                            throw RemoteProtocolException("invalid end of frame in MultiBlob", Here());
+                        }
+                        offset += MessageHeader::markerBytes;
+
+                        archiveBlob(elem.clientID_, elem.requestID_, payloadData, hdr.payloadSize);
+                        totalArchived += 1;
+                    }
+                }
+                else {
+                    // Handle single blob
+                    archiveBlob(elem.clientID_, elem.requestID_, elem.payload_.data(), elem.payload_.size());
                     totalArchived += 1;
                 }
             }
-            else {
-                // Handle single blob
-                archiveBlob(elem.clientID_, elem.requestID_, elem.payload_.data(), elem.payload_.size());
-                totalArchived += 1;
+            catch (...) {
+                // Published before this element is counted as processed (when the guard above is destroyed): a flush
+                // that sees no pending work must also see the failure, not report missing locations
+                recordArchiveFailure(std::current_exception());
+                throw;
             }
         }
     }
     catch (...) {
+        const auto eptr = std::current_exception();
+
+        std::string what = "Caught unexpected, unknown exception in archive worker";
+        try {
+            std::rethrow_exception(eptr);
+        }
+        catch (const std::exception& e) {
+            what = e.what();
+        }
+        catch (...) {
+        }
+
+        // Record the failure before anybody is told about it, so that a flush can never miss it (n.b. already done
+        // for a failure while processing an element)
+        recordArchiveFailure(eptr);
+
+        // The worker is shared, so all pending requests must be failed without waiting for a socket writer.
+        eckit::Log::error() << "Archive worker failed [clientID=" << elem.clientID_ << ",requestID=" << elem.requestID_
+                            << "], terminating the connection: " << what << std::endl;
+
+        // This worker detected the failure, so it owns the error-send-and-abort sequence. It must complete it before
+        // interrupting the queue: the interruption wakes up the data listener (and, on a single connection, the
+        // control listener) blocked on a full queue, which would otherwise race to report the interruption as their
+        // own connection-level failure and shut down the sockets before the specific error is sent.
+        // The failing request gets the actual reason; the others only see the connection being lost.
+        failConnection(what, elem.clientID_, elem.requestID_);
+
         // Ensure exception propagates across the queue back to the parent thread.
-        archiveQueue_.interrupt(std::current_exception());
+        archiveQueue_.interrupt(eptr);
+
         throw;
     }
 
@@ -310,7 +431,13 @@ size_t ServerConnection::archiveThreadLoop() {
 
 void ServerConnection::listeningThreadLoopData() {
 
-    MessageHeader hdr;
+    // however it ends, no more archive data can arrive (see archiveDataEnded())
+    struct Ended {
+        std::atomic<bool>& ended;
+        ~Ended() { ended = true; }
+    } ended{dataEnded_};
+
+    MessageHeader hdr{};
 
     try {
 
@@ -338,16 +465,8 @@ void ServerConnection::listeningThreadLoopData() {
                     handled = handleData(hdr.message, hdr.clientID(), hdr.requestID, std::move(payload));
                 }
 
+                // n.b. the data listener runs until the end of the connection: once started, it is never restarted
                 switch (handled) {
-                    case Handled::YesRemoveArchiveListener:
-                    case Handled::YesRemoveReadListener: {
-                        std::lock_guard<std::mutex> lock(handlerMutex_);
-                        numDataListener_--;
-                        if (numDataListener_ == 0) {
-                            return;
-                        }
-                        break;
-                    }
                     case Handled::Replied:  // nothing to do
                     case Handled::Yes:
                         break;
@@ -360,23 +479,39 @@ void ServerConnection::listeningThreadLoopData() {
             }
         }
     }
+    // Rethrowing from a std::thread would std::terminate the whole server, so report and exit the loop instead.
+    // A failure to read the data connection means that the stream is out of sync (or gone): nothing more can be
+    // received on it, so the whole connection is terminated to wake up whoever is waiting for it.
+    // If another thread already owns a failure (e.g. the archive worker interrupted the queue), this is only a
+    // consequence of it: failConnection() then leaves the reporting to that thread.
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        error(false, e.what(), hdr.clientID(), hdr.requestID);
-        throw;
+        if (failConnection(std::string("Data listener failed: ") + e.what(), 0, 0)) {
+            eckit::Log::error() << "Data listener failed, terminated the connection: " << e.what() << std::endl;
+        }
     }
     catch (...) {
-        error(false, "Caught unexpected, unknown exception in retrieve worker", hdr.clientID(), hdr.requestID);
-        throw;
+        if (failConnection("Data listener failed with an unknown exception", 0, 0)) {
+            eckit::Log::error() << "Data listener failed, terminated the connection" << std::endl;
+        }
     }
 }
 
-void ServerConnection::handle() {
-    initialiseConnections();
+void ServerConnection::listenControl(std::thread& listeningThreadData) {
+    if (!initialiseConnections()) {
+        // the client has been told why it was rejected, and will disconnect
+        eckit::Log::warning() << "Client rejected during the startup handshake" << std::endl;
+        return;
+    }
 
-    std::thread listeningThreadData;
+    // n.b. archived fields are sent as a single message
+    static const auto maxPayload = static_cast<uint32_t>(std::min<size_t>(
+        eckit::Resource<size_t>("fdbServerMaxPayloadSize;$FDB_SERVER_MAX_PAYLOAD_SIZE",
+                                std::numeric_limits<uint32_t>::max()),
+        std::numeric_limits<uint32_t>::max()));
+    maxPayloadSize(maxPayload);
 
-    MessageHeader hdr;
+    MessageHeader hdr{};
 
     // listen loop
     while (true) {
@@ -447,19 +582,70 @@ void ServerConnection::handle() {
             }
         }
     }
+}
 
-    if (listeningThreadData.joinable()) {
-        listeningThreadData.join();
+void ServerConnection::handle() {
+    std::thread listeningThreadData;
+    std::string failure;
+
+    // Nothing may escape from here: an exception unwinding with a joinable listeningThreadData would terminate the
+    // process, and the workers must be stopped while the derived handler is still alive.
+    try {
+        listenControl(listeningThreadData);
+
+        if (listeningThreadData.joinable()) {
+            listeningThreadData.join();
+        }
+
+        // if the connection was aborted by a worker, whatever is still queued is discarded
+        if (!connectionFailed()) {
+            ASSERT(archiveQueue_.empty());
+        }
     }
-    ASSERT(archiveQueue_.empty());
-    archiveQueue_.close();
+    catch (const std::exception& e) {
+        failure = e.what();
+    }
+    catch (...) {
+        failure = "Caught unexpected, unknown exception in connection handler";
+    }
 
-    teardown();
+    if (!failure.empty()) {
+        eckit::Log::error() << "Terminating connection: " << failure << std::endl;
+
+        // Shut down without waiting for a socket writer so the data listener can be joined.
+        // The error is not addressed to a request or a client: the client reports it as a connection failure.
+        // n.b. if a worker owns the failure that caused this one, it is the worker that reports it.
+        failConnection(failure, 0, 0);
+        try {
+            if (listeningThreadData.joinable()) {
+                listeningThreadData.join();
+            }
+        }
+        catch (...) {
+        }
+    }
+
+    // The connection is also aborted by the data listener and by the archive worker, on their own failures.
+    // n.b. a worker may own a failure without having aborted the connection yet: stopWorkers() waits for it.
+    const bool failed = connectionFailed();
+
+    stopWorkers(failed);
+
+    if (!failed) {
+        teardown();
+    }
 }
 
 void ServerConnection::queue(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
 
-    archiveQueue_.emplace(ArchiveElem{clientID, requestID, std::move(payload), message == Message::MultiBlob});
+    ++archivePending_;  // before it can be processed
+    try {
+        archiveQueue_.emplace(ArchiveElem{clientID, requestID, std::move(payload), message == Message::MultiBlob});
+    }
+    catch (...) {
+        --archivePending_;
+        throw;
+    }
 }
 
 void ServerConnection::tidyWorkers() {
@@ -495,13 +681,68 @@ void ServerConnection::waitForWorkers() {
     for (auto& it : workerThreads_) {
         eckit::Log::error() << "Worker thread still alive for request ID: " << it.first << std::endl;
         eckit::Log::error() << "Joining ..." << std::endl;
-        it.second.get();
+        // Called from the destructor: an exception escaping here would terminate the process
+        try {
+            it.second.get();
+        }
+        catch (const std::exception& e) {
+            eckit::Log::error() << "Worker thread for request ID " << it.first << " failed: " << e.what() << std::endl;
+        }
+        catch (...) {
+            eckit::Log::error() << "Worker thread for request ID " << it.first << " failed with an unknown exception"
+                                << std::endl;
+        }
         eckit::Log::error() << "Thread complete" << std::endl;
     }
+
+    workerThreads_.clear();
 
     std::lock_guard<std::mutex> lock(readLocationMutex_);
     if (readLocationWorker_.joinable()) {
         readLocationWorker_.join();
+    }
+}
+
+void ServerConnection::stopWorkers(bool discardPending) noexcept {
+    try {
+        discardArchive_ = discardPending;
+        archiveQueue_.close();  // the archive worker still empties the queue, discarding the elements if requested
+
+        if (archiveFuture_.valid()) {
+            archiveFuture_.wait();  // wait() rather than get(): the failure has already been reported
+        }
+
+        waitForWorkers();
+    }
+    catch (...) {
+        eckit::Log::error() << "Unexpected error while stopping the workers" << std::endl;
+    }
+}
+
+bool ServerConnection::failConnection(std::string_view what, uint32_t clientID, uint32_t requestID) noexcept {
+    if (failureOwned_.exchange(true)) {
+        return false;
+    }
+    tryErrorBounded(true, what, clientID, requestID);
+    abortConnection();
+    return true;
+}
+
+void ServerConnection::recordArchiveFailure(const std::exception_ptr& failure) noexcept {
+    try {
+        std::lock_guard<std::mutex> lock(archiveFailureMutex_);
+        if (!archiveFailure_) {
+            archiveFailure_ = failure;
+        }
+    }
+    catch (...) {
+    }
+}
+
+void ServerConnection::rethrowArchiveFailure() const {
+    std::lock_guard<std::mutex> lock(archiveFailureMutex_);
+    if (archiveFailure_) {
+        std::rethrow_exception(archiveFailure_);
     }
 }
 

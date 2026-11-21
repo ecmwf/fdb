@@ -23,6 +23,7 @@ class StoreHandler : public ServerConnection, public CallbackRegistry {
 public:  // methods
 
     StoreHandler(eckit::net::TCPSocket& socket, const Config& config);
+    ~StoreHandler() override;
 
 private:  // methods
 
@@ -51,9 +52,11 @@ private:  // methods
 
     const WipeInProgress& cachedWipeState(const Key& uri) const;
 
-    Store& getStore(uint32_t clientID);
-    Store& store(uint32_t clientID, const Key& dbKey);
-    Store& getStore(uint32_t clientID, const eckit::URI& uri);
+    // The store of a client, pinned: it stays alive while it is used, even if the client is removed meanwhile
+    std::shared_ptr<Store> getStore(uint32_t clientID);
+    // ... created if needed. @returns null if the client has been removed
+    std::shared_ptr<Store> store(uint32_t clientID, const Key& dbKey);
+    std::shared_ptr<Store> getStore(uint32_t clientID, const eckit::URI& uri);
 
     void registerFlushCallback(FlushCallback callback) override;
     void registerArchiveCallback(ArchiveCallback callback) override;
@@ -62,7 +65,7 @@ private:  // members
 
     struct StoreHelper;
     // clientID --> Store
-    std::map<uint32_t, StoreHelper> stores_;
+    std::map<uint32_t, std::shared_ptr<StoreHelper>> stores_;  // guarded by handlerMutex_
 
     struct WipeInProgress {
         bool unsafeWipeAll = false;

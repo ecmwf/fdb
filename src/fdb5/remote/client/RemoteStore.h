@@ -16,6 +16,7 @@
 #include "fdb5/database/Store.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/client/Client.h"
+#include "fdb5/remote/client/RequestQueues.h"
 
 #include "eckit/config/Configuration.h"
 #include "eckit/container/Queue.h"
@@ -28,6 +29,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <functional>
 #include <future>
 #include <map>
@@ -58,6 +60,12 @@ public:
     void archive(uint32_t requestID,
                  std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)> catalogue_archive) {
         std::lock_guard<std::mutex> lock(locationMutex_);
+        if (error_) {
+            std::rethrow_exception(error_);
+        }
+        if (connectionError_) {
+            std::rethrow_exception(connectionError_);
+        }
         locations_[requestID] = catalogue_archive;
         fieldsArchived_++;
         ASSERT(fieldsArchived_ - locationsReceived_ == locations_.size());
@@ -78,14 +86,29 @@ public:
         locationsReceived_++;
 
         ASSERT(fieldsArchived_ - locationsReceived_ == locations_.size());
-        if (archivalCompleted_.valid() && (fieldsArchived_ == locationsReceived_)) {
+        // after a failure the promise has already been satisfied with the error
+        if (!error_ && archivalCompleted_.valid() && (fieldsArchived_ == locationsReceived_)) {
             promiseArchivalCompleted_.set_value(locationsReceived_);
         }
         return true;
     }
 
+    /// True if nothing more is expected: either all locations have been received, or the archival failed.
+    /// Never throws, so it is safe to use in destructors.
+    bool finished() {
+        std::lock_guard<std::mutex> lock(locationMutex_);
+        return error_ || fieldsArchived_ == locationsReceived_;
+    }
+
+    /// Atomically checks for a failure and for completion.
+    /// @throws the recorded failure, if any: a failed archival is never reported as complete
+    /// @returns true if all the locations have been received, otherwise false: wait() then blocks until they are
     bool complete() {
         std::lock_guard<std::mutex> lock(locationMutex_);
+
+        if (error_) {
+            std::rethrow_exception(error_);
+        }
 
         ASSERT(fieldsArchived_ - locationsReceived_ == locations_.size());
         if (fieldsArchived_ == locationsReceived_) {
@@ -95,6 +118,28 @@ public:
         promiseArchivalCompleted_ = std::promise<size_t>{};
         archivalCompleted_ = promiseArchivalCompleted_.get_future();
         return false;
+    }
+
+    /// Records a server-side failure of a pending archive request and unblocks wait().
+    /// @returns false if requestID is not a pending archive request
+    bool fail(uint32_t requestID, const std::exception_ptr& eptr) {
+        std::lock_guard<std::mutex> lock(locationMutex_);
+        if (locations_.find(requestID) == locations_.end()) {
+            return false;
+        }
+        setError(eptr);
+        return true;
+    }
+
+    /// Records a lost connection and fails all pending archive requests.
+    void failPending(const std::exception_ptr& eptr) {
+        std::lock_guard<std::mutex> lock(locationMutex_);
+        if (!connectionError_) {
+            connectionError_ = eptr;
+        }
+        if (!locations_.empty()) {
+            setError(eptr);
+        }
     }
 
     size_t wait() {
@@ -108,11 +153,30 @@ public:
         fieldsArchived_ = locations_.size();
         locationsReceived_ = 0;
         storeRequested_ = false;
+        error_ = nullptr;
     }
 
 private:
 
+    // caller must hold locationMutex_
+    void setError(const std::exception_ptr& eptr) {
+        if (error_) {
+            return;
+        }
+        error_ = eptr;
+        if (archivalCompleted_.valid()) {
+            try {
+                promiseArchivalCompleted_.set_exception(eptr);
+            }
+            catch (const std::future_error&) {
+                // already satisfied
+            }
+        }
+    }
+
     std::mutex locationMutex_;
+    std::exception_ptr error_;
+    std::exception_ptr connectionError_;
     std::map<uint32_t, std::function<void(const std::unique_ptr<const FieldLocation> fieldLocation)>> locations_;
     size_t fieldsArchived_{0};
     size_t locationsReceived_{0};
@@ -129,7 +193,7 @@ class RemoteStore : public Store, public Client {
 public:  // types
 
     using StoredMessage = std::pair<Message, eckit::Buffer>;
-    using MessageQueue = eckit::Queue<StoredMessage>;
+    using MessageQueue = RequestQueues<StoredMessage>::Queue;
 
 public:  // methods
 
@@ -152,6 +216,9 @@ public:  // methods
 
     eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation);
     eckit::DataHandle* dataHandle(const FieldLocation& fieldLocation, const Key& remapKey);
+
+    /// A read request that could not be sent fails: its reader gets the reason (see ReadLimiter)
+    void failRequest(uint32_t requestID, const std::exception_ptr& reason);
 
     bool canMoveTo(const Key& key, const Config& config, const eckit::URI& dest) const override { return false; }
     void moveTo(const Key& key, const Config& config, const eckit::URI& dest,
@@ -194,24 +261,19 @@ private:  // methods
     // handlers for incoming messages - to be defined in the client class
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
-    void closeConnection() override;
+    void closeConnection(const std::exception_ptr& reason) override;
 
 private:  // members
 
-    // used by tests for direct access to messageQueues_/messageMutex_
+    // used by tests for direct access to requests_
     friend class RemoteStoreTestHarness;
 
     Key dbKey_;
 
-    const Config& config_;
+    const Config config_;  // a copy: get() is given a temporary
 
-    // @note This is a map of requestID:MessageQueue. At the point that a request is
-    // complete, errored or otherwise killed, it needs to be removed from the map.
-    // The shared_ptr allows this removal to be asynchronous with the actual task
-    // cleaning up and returning to the client.
-    std::map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
-
-    std::mutex messageMutex_;
+    // The queues of the read requests (see RequestQueues for their lifetime)
+    RequestQueues<StoredMessage> requests_;
 
     Locations locations_;
 };
