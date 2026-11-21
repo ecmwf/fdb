@@ -1,0 +1,8 @@
+---
+type: local
+schema: ~fdb/etc/fdb/schema
+engine: toc
+spaces:
+- handler: Default
+  roots:
+  - path: ./root

@@ -96,6 +96,10 @@ bool FDBToolRequest::all() const {
     return all_;
 }
 
+FDBToolRequest FDBToolRequest::expandAlternatives() const {
+    return FDBToolRequest(request_.expandAlternatives(), all_);
+}
+
 void FDBToolRequest::print(std::ostream& s, const char* cr, const char* tab) const {
 
     if (all_) {

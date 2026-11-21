@@ -148,7 +148,7 @@ grep_count "^list,$" 1
 grep_count "^${tab}.*=.*" 7
 grep_count "^${tab}class=rd" 1
 grep_count "^${tab}expver=xxxx" 1
-grep_count "^${tab}param=130" 1
+grep_count "^${tab}param=(500014[/|])?130" 1
 grep_count "^${tab}date=20240911" 1
 
 

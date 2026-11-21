@@ -3,7 +3,9 @@
 
 #include <cstdlib>
 #include <fstream>
+#include <memory>
 #include <sstream>
+#include <string>
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/testing/Test.h"
@@ -14,7 +16,9 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/rules/Rule.h"
 #include "fdb5/rules/Schema.h"
+#include "fdb5/types/TypeParam.h"
 #include "fdb5/types/TypeYearMonth.h"
+#include "fdb5/types/TypesFactory.h"
 
 using namespace eckit::testing;
 using namespace eckit;
@@ -411,6 +415,52 @@ CASE("YearMonth - string ctor - expansion") {
 
     EXPECT_EQUAL(key["date"], "202006");
     EXPECT_EQUAL(key.valuesToString(), "ea:0001:wamo:g:an:sfc:202006:0000:0:140254");
+}
+
+CASE("Param multivalue") {
+
+    std::unique_ptr<fdb5::Type> param(fdb5::TypesFactory::build("Param", "param"));
+    ASSERT(param);
+
+    EXPECT(param->match("param", "140254", "140254"));
+    EXPECT(param->match("param", "228228|228", "228"));
+    EXPECT(param->match("param", "228228|228", "228228"));
+    EXPECT(param->match("param", "228.228", "228"));
+    EXPECT(param->match("param", "228", "228.228"));
+    EXPECT(param->match("param", "228.228", "228228"));
+    EXPECT(param->match("param", "130.128", "130"));
+    EXPECT(param->match("param", "130", "130.128"));
+    EXPECT(!param->match("param", "130.128", "130.129"));
+    EXPECT(param->match("param", "130.129", "130"));
+    EXPECT(param->match("param", "130.129", "130.129"));
+    EXPECT(!param->match("param", "228", "229"));
+    EXPECT(!param->match("param", "228.228", "229"));
+    EXPECT(!param->match("param", "228.228", "228229"));
+    EXPECT(param->match("param", "130.129|228228", "130"));
+    EXPECT(!param->match("param", "130.129|228228", "228"));
+    EXPECT(!param->match("param", "228228|229", "230"));
+    EXPECT(!param->match("param", "228228|229", "130.128"));
+    EXPECT_THROWS(param->match("param", "1.2.3|228", "230"));
+
+    std::unique_ptr<fdb5::Type> paramId(fdb5::TypesFactory::build("ParamID", "param"));
+    ASSERT(paramId);
+
+    EXPECT(paramId->match("param", "140254", "140254"));
+    EXPECT(paramId->match("param", "228228|228", "228"));
+    EXPECT(paramId->match("param", "228228|228", "228228"));
+    EXPECT(!paramId->match("param", "228", "228228"));
+    EXPECT(!paramId->match("param", "228.228", "228"));
+    EXPECT(!paramId->match("param", "228", "228.228"));
+    EXPECT(paramId->match("param", "228.228", "228228"));
+    EXPECT(paramId->match("param", "130.128", "130"));
+    EXPECT(paramId->match("param", "130", "130.128"));
+    EXPECT(!paramId->match("param", "130.128", "130.129"));
+    EXPECT(!paramId->match("param", "130.129", "130"));
+    EXPECT(!paramId->match("param", "228", "229"));
+    EXPECT(!paramId->match("param", "228228|229", "230"));
+    EXPECT(paramId->match("param", "130.129|228228", "228228"));
+    EXPECT(paramId->match("param", "130.129|228228", "228.228"));
+    EXPECT(!paramId->match("param", "130.129|228228", "130"));
 }
 
 //----------------------------------------------------------------------------------------------------------------------
