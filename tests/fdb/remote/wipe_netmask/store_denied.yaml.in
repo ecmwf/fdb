@@ -6,12 +6,6 @@ networks:
 - name: trusted
   netmask: 10.0.0.0/8
   wipe: true
-- name: others-low
-  netmask: 0.0.0.0/1
-  wipe: false
-- name: others-high
-  netmask: 128.0.0.0/1
-  wipe: false
 spaces:
 - handler: Default
   roots:

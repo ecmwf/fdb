@@ -70,33 +70,34 @@ ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& 
 
     innerConfig_ = config_.has("fdb") ? Config{config_.getSubConfiguration("fdb"), config_.userConfig()} : config_;
 
-    clientNetwork_ = "";
     if (config_.has("networks")) {
-        eckit::net::IPAddress clientIPaddress{controlSocket_.remoteAddr()};
-        std::optional<bool> netConfig;
+        const eckit::net::IPAddress clientAddress{controlSocket_.remoteAddr()};
+        const auto networks = config_.getSubConfigurations("networks");
 
-        // Check if any network has the "wipe" enabled, if so, we only enable wipe for the networks that have it
-        // explicitly set
-        bool wipeEnabled = false;
-        for (const auto& net : config_.getSubConfigurations("networks")) {
-            if (net.has("name") && net.has("netmask")) {
-                eckit::net::NetMask netmask{net.getString("netmask")};
-                // The first network containing the client address wins
-                if (clientNetwork_.empty() && netmask.contains(clientIPaddress)) {
-                    clientNetwork_ = net.getString("name");
-                    netConfig = net.has("wipe") ? std::optional<bool>{net.getBool("wipe")} : std::nullopt;
-                }
-                if (net.has("wipe")) {
-                    wipeEnabled = true;
-                }
+        // The first network containing the address of the client is its network
+        std::optional<eckit::LocalConfiguration> clientNetwork;
+        for (const auto& net : networks) {
+            if (net.has("name") && net.has("netmask") &&
+                eckit::net::NetMask{net.getString("netmask")}.contains(clientAddress)) {
+                clientNetwork_ = net.getString("name");
+                clientNetwork = net;
+                break;
             }
         }
 
-        long long disabledFeatures = 0ll;
-        if (wipeEnabled && (!netConfig || !netConfig.value())) {
-            disabledFeatures |= toMask(Message::Wipe);
+        // A feature that some network sets (e.g. "wipe: true") is restricted: it is granted only to the clients of the
+        // networks setting it to true. Clients of other networks, or of no network, don't get it.
+        for (const auto& [name, message] : networkRestrictableFeatures()) {
+            const bool restricted = std::any_of(networks.begin(), networks.end(),
+                                                [&name = name](const auto& net) { return net.has(name); });
+            const bool granted = clientNetwork && clientNetwork->has(name) && clientNetwork->getBool(name);
+            if (restricted && !granted) {
+                disabledFeatures_ |= toMask(message);
+            }
         }
-        config_.set("DisabledFeatures", disabledFeatures);
+
+        LOG_DEBUG_LIB(LibFdb5) << "Client " << clientAddress << " from network '" << clientNetwork_
+                               << "', disabled features: " << messageMask2String(disabledFeatures_) << std::endl;
     }
 
     LOG_DEBUG_LIB(LibFdb5) << "ServerConnection::ServerConnection initialized" << std::endl;
@@ -167,8 +168,17 @@ Handled ServerConnection::handleData(Message message, uint32_t clientID, uint32_
     return Handled::Replied;
 }
 
+const std::vector<std::pair<std::string, Message>>& ServerConnection::networkRestrictableFeatures() {
+    // the name of the setting (also in the configuration of the server, to disable the feature for all) and the feature
+    static const std::vector<std::pair<std::string, Message>> features{{"wipe", Message::Wipe}};
+    return features;
+}
+
 RemoteConfiguration ServerConnection::availableFunctionality() const {
-    return RemoteConfiguration{config_};
+    RemoteConfiguration conf{config_};
+    // n.b. not part of the configuration: it depends on the network of the client (see the constructor)
+    conf.disableFeatures(disabledFeatures_);
+    return conf;
 }
 
 void ServerConnection::initialiseConnections() {

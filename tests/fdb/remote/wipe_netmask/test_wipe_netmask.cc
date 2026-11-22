@@ -4,7 +4,7 @@
 /// Verifies that the server-side `networks` configuration restricts wipe to the clients of a given netmask (FDB-663).
 ///
 /// The environment (two catalogue/store server pairs) is configured by an external script. See wipe_netmask.sh.in.
-///  - "allowed" servers grant wipe to the netmask containing the test client (127.0.0.0/8) and deny everybody else
+///  - "allowed" servers grant wipe to the netmask containing the test client (127.0.0.0/8) only
 ///  - "denied" servers grant wipe only to a netmask not containing the test client (10.0.0.0/8)
 
 #include "fdb5/api/FDB.h"
@@ -13,14 +13,18 @@
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/remote/client/Client.h"
 
-#include "eckit/filesystem/PathName.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/io/Buffer.h"
+#include "eckit/io/DataHandle.h"
 #include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
 
+#include <algorithm>
 #include <cstdlib>
+#include <memory>
 #include <string>
+#include <vector>
 
 using namespace eckit::testing;
 
@@ -31,32 +35,44 @@ namespace fdb5::test {
 namespace {
 
 constexpr auto* k_wipe_request = "class=od,expver=xxxx";
-constexpr size_t k_fields = 4;
+const std::string k_data = "wipe-netmask-test-data";
 
-Config client_config(const char* envVar) {
-    const char* path = std::getenv(envVar);
-    ASSERT_MSG(path, std::string("Environment variable not set: ") + envVar);
-    return Config::make(eckit::PathName{path});
+// The clients only differ by the catalogue server they connect to: its port is given by the script
+Config client_config(const char* portVariable) {
+    const char* port = std::getenv(portVariable);
+    ASSERT_MSG(port, std::string("Environment variable not set: ") + portVariable);
+
+    Config config;
+    config.set("type", "remote");
+    config.set("store", "remote");
+    config.set("engine", "remote");
+    config.set("host", "localhost");
+    config.set("port", std::stoi(port));
+    return config;
+}
+
+std::vector<Key> fields() {
+    std::vector<Key> keys;
+    for (const auto* date : {"20101010", "20111213"}) {
+        for (const auto* step : {"1", "2"}) {
+            keys.push_back(Key{{"class", "od"},
+                               {"expver", "xxxx"},
+                               {"stream", "oper"},
+                               {"date", date},
+                               {"time", "0000"},
+                               {"domain", "g"},
+                               {"type", "fc"},
+                               {"levtype", "sfc"},
+                               {"step", step},
+                               {"param", "167"}});
+        }
+    }
+    return keys;
 }
 
 void archive_data(FDB& fdb) {
-    Key key;
-    key.set("class", "od");
-    key.set("expver", "xxxx");
-    key.set("stream", "oper");
-    key.set("time", "0000");
-    key.set("domain", "g");
-    key.set("levtype", "sfc");
-    key.set("param", "167");
-    key.set("type", "fc");
-
-    const std::string data = "wipe-netmask-test-data";
-    for (const auto* date : {"20101010", "20111213"}) {
-        key.set("date", date);
-        for (const auto* step : {"1", "2"}) {
-            key.set("step", step);
-            fdb.archive(key, data.data(), data.size());
-        }
+    for (const auto& key : fields()) {
+        fdb.archive(key, k_data.data(), k_data.size());
     }
     fdb.flush();
 }
@@ -71,14 +87,18 @@ size_t count_fields(FDB& fdb) {
     return count;
 }
 
-size_t wipe_all(FDB& fdb) {
-    size_t count = 0;
-    auto it = fdb.wipe(FDBToolRequest::requestsFromString(k_wipe_request)[0], true);
-    WipeElement elem;
-    while (it.next(elem)) {
-        ++count;
-    }
-    return count;
+// The data of a field, as read from the store
+std::string retrieve(FDB& fdb, const Key& key) {
+    std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(key.request("retrieve")));
+    eckit::AutoClose closer(*dh);
+    dh->openForRead();
+    eckit::Buffer buffer(k_data.size());
+    const long length = dh->read(buffer, buffer.size());
+    return {static_cast<const char*>(buffer), static_cast<size_t>(std::max(length, 0L))};
+}
+
+FDBToolRequest wipe_request() {
+    return FDBToolRequest::requestsFromString(k_wipe_request)[0];
 }
 
 }  // namespace
@@ -86,25 +106,70 @@ size_t wipe_all(FDB& fdb) {
 //-----------------------------------------------------------------------------
 
 CASE("Remote wipe: client within the netmask granted wipe can wipe") {
-    FDB fdb{client_config("FDB_TEST_CLIENT_ALLOWED")};
+    FDB fdb{client_config("FDB_TEST_CATALOGUE_ALLOWED_PORT")};
 
     archive_data(fdb);
-    EXPECT_EQUAL(count_fields(fdb), k_fields);
+    EXPECT_EQUAL(count_fields(fdb), fields().size());
 
-    EXPECT(wipe_all(fdb) > 0);
+    auto it = fdb.wipe(wipe_request(), true);
+    size_t wiped = 0;
+    WipeElement elem;
+    while (it.next(elem)) {
+        ++wiped;
+    }
+    EXPECT(wiped > 0);
     EXPECT_EQUAL(count_fields(fdb), 0);
 }
 
 CASE("Remote wipe: client outside the netmask granted wipe cannot wipe") {
-    FDB fdb{client_config("FDB_TEST_CLIENT_DENIED")};
+    FDB fdb{client_config("FDB_TEST_CATALOGUE_DENIED_PORT")};
 
     archive_data(fdb);
-    EXPECT_EQUAL(count_fields(fdb), k_fields);
+    EXPECT_EQUAL(count_fields(fdb), fields().size());
 
-    EXPECT_THROWS_AS(wipe_all(fdb), fdb5::remote::RemoteFDBException);
+    // FDB::wipe() is asynchronous: the request is sent to the servers when the iteration starts. It is refused right
+    // away, as not permitted, before any element is produced (nothing is sent to the servers)
+    auto it = fdb.wipe(wipe_request(), true);
+    WipeElement elem;
+    size_t produced = 0;
+    std::string error;
+    try {
+        while (it.next(elem)) {
+            ++produced;
+        }
+    }
+    catch (const eckit::UserError& e) {
+        error = e.what();
+    }
+    eckit::Log::info() << "wipe produced " << produced << " elements, failed with: " << error << std::endl;
+    EXPECT_EQUAL(produced, 0);
+    // refused by the server, for this client
+    EXPECT(error.find("is not permitted on FDB server") != std::string::npos);
+    EXPECT(error.find("the server does not allow it for this client") != std::string::npos);
 
-    // Nothing has been wiped, and the other operations are still available to the client
-    EXPECT_EQUAL(count_fields(fdb), k_fields);
+    // Nothing has been wiped, neither in the catalogue nor in the store, and the other operations are still available
+    EXPECT_EQUAL(count_fields(fdb), fields().size());
+    for (const auto& key : fields()) {
+        EXPECT_EQUAL(retrieve(fdb, key), k_data);
+    }
+}
+
+CASE("Remote wipe: a client whose own configuration disables wipe is told so, wherever it connects") {
+    Config config = client_config("FDB_TEST_CATALOGUE_ALLOWED_PORT");  // the server would allow it
+    config.set("wipe", false);
+    FDB fdb{config};
+
+    auto it = fdb.wipe(wipe_request(), true);
+    WipeElement elem;
+    std::string error;
+    try {
+        while (it.next(elem)) {}
+    }
+    catch (const eckit::UserError& e) {
+        error = e.what();
+    }
+    eckit::Log::info() << "wipe failed with: " << error << std::endl;
+    EXPECT(error.find("is disabled in the client configuration") != std::string::npos);
 }
 
 //-----------------------------------------------------------------------------

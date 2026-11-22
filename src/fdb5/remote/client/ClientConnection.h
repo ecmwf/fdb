@@ -136,6 +136,7 @@ private:  // members
     std::thread dataWriteThread_;
 
     uint64_t agreedFeatures_{0};
+    uint64_t offeredFeatures_{0};  // the features allowed by the configuration of this client
 
     std::vector<std::shared_ptr<std::promise<void>>> dataBarriers_;
 };

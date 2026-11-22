@@ -3,8 +3,8 @@
 # Starts two catalogue/store server pairs, one whose `networks` grant wipe to the test client's netmask and
 # one whose `networks` grant it to a different netmask, then runs the client test against both.
 
-if [[ $# -lt 7 ]]; then
-    echo "Usage: $0 <test_directory> <client_allowed> <catalogue_allowed> <store_allowed> <client_denied> <catalogue_denied> <store_denied>" >&2
+if [[ $# -lt 5 ]]; then
+    echo "Usage: $0 <test_directory> <catalogue_allowed> <store_allowed> <catalogue_denied> <store_denied>" >&2
     exit 1
 fi
 
@@ -13,12 +13,10 @@ set -eux
 source "@FDB_REMOTE_TEST_HELPER@"
 
 testdir=$1
-client_allowed="$testdir/$2"
-catalogue_allowed="$testdir/$3"
-store_allowed="$testdir/$4"
-client_denied="$testdir/$5"
-catalogue_denied="$testdir/$6"
-store_denied="$testdir/$7"
+catalogue_allowed="$testdir/$2"
+store_allowed="$testdir/$3"
+catalogue_denied="$testdir/$4"
+store_denied="$testdir/$5"
 
 roots=("$testdir/catalogue_allowed_root" "$testdir/store_allowed_root"
        "$testdir/catalogue_denied_root" "$testdir/store_denied_root")
@@ -51,5 +49,8 @@ done
 
 fdb_remote_wait_for_servers
 
-FDB_TEST_CLIENT_ALLOWED="$client_allowed" FDB_TEST_CLIENT_DENIED="$client_denied" "$test"
+# The clients only differ by the catalogue they connect to
+FDB_TEST_CATALOGUE_ALLOWED_PORT="$(fdb_remote_config_port "$catalogue_allowed")" \
+FDB_TEST_CATALOGUE_DENIED_PORT="$(fdb_remote_config_port "$catalogue_denied")" \
+    "$test"
 exit $?

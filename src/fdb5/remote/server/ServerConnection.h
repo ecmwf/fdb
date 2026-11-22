@@ -8,8 +8,12 @@
 
 #pragma once
 
+#include <cstdint>
 #include <future>
 #include <mutex>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "eckit/container/Queue.h"
 #include "eckit/io/Buffer.h"
@@ -97,6 +101,9 @@ protected:
     int selectDataPort();
     RemoteConfiguration availableFunctionality() const;
 
+    /// The features that the "networks" of the configuration can grant to some networks only, by name
+    static const std::vector<std::pair<std::string, Message>>& networkRestrictableFeatures();
+
     // Worker functionality
     void tidyWorkers();
     void waitForWorkers();
@@ -142,7 +149,8 @@ protected:
     std::future<size_t> archiveFuture_;
 
     eckit::net::TCPSocket controlSocket_;
-    std::string clientNetwork_;
+    std::string clientNetwork_;     // the network of the client, if the configuration of the server has "networks"
+    uint64_t disabledFeatures_{0};  // the features restricted to networks the client is not part of
 
     std::mutex handlerMutex_;
     size_t numControlConnection_{0};
