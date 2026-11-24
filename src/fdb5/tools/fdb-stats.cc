@@ -52,9 +52,9 @@ void FDBStats::init(const eckit::option::CmdArgs& args) {
 
 void FDBStats::execute(const CmdArgs& args) {
 
-    LocalConfiguration userConfig;
-    userConfig.set("readIndexThreads", threads_);
-    FDB fdb(config(args, userConfig));
+    LocalConfiguration appConfig;
+    appConfig.set("readIndexThreads", threads_);
+    FDB fdb(config(args, appConfig));
 
     IndexStats totalIndexStats;
     DbStats totaldbStats;

@@ -74,7 +74,7 @@ ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& 
     archiveQueue_(eckit::Resource<size_t>("fdbServerMaxQueueSize", defaultArchiveQueueSize)),
     controlSocket_(socket) {
 
-    innerConfig_ = config_.has("fdb") ? Config{config_.getSubConfiguration("fdb"), config_.userConfig()} : config_;
+    innerConfig_ = config_.has("fdb") ? Config{config_.getSubConfiguration("fdb"), config_.appConfig()} : config_;
 
     // Until the client is identified, anybody who can connect is talking: only the startup message is expected
     maxPayloadSize(maxStartupPayloadSize);
