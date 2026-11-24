@@ -55,7 +55,9 @@ private:  // methods
 
     // API functionality
     template <typename HelperClass>
-    void handleApiCall(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    void handleApiCall(const char* spanName, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+
+    const char* serverSpanName(Message message) const override;
 
     void flush(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void list(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);

@@ -144,6 +144,11 @@ public:
     /// Apply a 'tracing' configuration block (see class documentation)
     void configure(const eckit::Configuration& config);
 
+    /// Apply the process-wide settings (sampler, ratio, exporter, path) of the 'tracing' block of an FDB or
+    /// fdb-server configuration, unless an earlier configuration already provided them: the first one wins.
+    /// 'enabled' is per-FDB (see enabledIn()) and is not applied globally.
+    void configureFrom(const eckit::Configuration& fdbConfig);
+
     /// True unless tracing has been disabled globally
     bool enabled() const;
 
@@ -178,6 +183,7 @@ private:
     mutable std::mutex mutex_;
     bool enabled_{true};
     bool envDisabled_{false};
+    bool configuredFromConfig_{false};
     Sampler sampler_;
     std::shared_ptr<SpanExporter> exporter_;
 };

@@ -148,6 +148,7 @@ FDB::FDB(const Config& config) :
     dirty_(false),
     reportStats_(config.getBool("statistics", false)),
     tracing_(tracing::Tracer::enabledIn(config)) {
+    tracing::Tracer::instance().configureFrom(config);
     LibFdb5::instance().constructorCallback()(*internal_);
 }
 

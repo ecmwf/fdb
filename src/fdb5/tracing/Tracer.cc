@@ -18,6 +18,7 @@
 #include <thread>
 
 #include "eckit/config/Configuration.h"
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/JSON.h"
 #include "eckit/log/Log.h"
@@ -316,6 +317,25 @@ Tracer::Tracer() {
         // Never fail the application because of a tracing misconfiguration in the environment
         eckit::Log::warning() << "FDB tracing: ignoring invalid environment configuration: " << e.what() << std::endl;
     }
+}
+
+void Tracer::configureFrom(const eckit::Configuration& fdbConfig) {
+    if (!fdbConfig.has("tracing") || fdbConfig.isBoolean("tracing")) {
+        return;
+    }
+    eckit::LocalConfiguration tracing = fdbConfig.getSubConfiguration("tracing");
+    if (!(tracing.has("sampler") || tracing.has("exporter"))) {
+        return;
+    }
+    {
+        std::lock_guard lock(mutex_);
+        if (configuredFromConfig_) {
+            return;
+        }
+        configuredFromConfig_ = true;
+    }
+    tracing.remove("enabled");
+    configure(tracing);
 }
 
 void Tracer::configure(const eckit::Configuration& config) {

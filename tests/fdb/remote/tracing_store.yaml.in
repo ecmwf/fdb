@@ -1,0 +1,12 @@
+---
+type: store
+serverPort: 10001
+serverThreaded: true
+spaces:
+- handler: Default
+  roots:
+  - path: @CMAKE_CURRENT_BINARY_DIR@/store_root
+tracing:
+  enabled: @TRACING_SERVER@
+  exporter: log
+  path: @CMAKE_CURRENT_BINARY_DIR@/tracing_@TRACING_VARIANT@_store.jsonl

@@ -11,6 +11,7 @@
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/remote/server/ServerConnection.h"
+#include "fdb5/tracing/Tracer.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
@@ -25,6 +26,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <utility>
 
 using namespace eckit;
@@ -160,6 +162,11 @@ void StoreHandler::readLocationThreadLoop() {
     while (readLocationQueue_.pop(elem) != -1) {
         // Get the next MarsRequest in sequence to work on, do the retrieve, and
         // send the data back to the client.
+
+        std::optional<tracing::ScopedSpan> span;
+        if (tracing_) {
+            span.emplace("fdb.server.read", tracing::SpanKind::Server, elem.trace);
+        }
 
         // Forward the API call
         writeToParent(elem.clientID, elem.requestID, std::move(elem.readLocation));

@@ -12,6 +12,8 @@
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/server/ServerConnection.h"
+#include "fdb5/tracing/TraceContext.h"
+#include "fdb5/tracing/Tracer.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/net/NetMask.h"
@@ -22,6 +24,7 @@
 
 #include <future>
 #include <mutex>
+#include <optional>
 #include <utility>
 
 using namespace eckit;
@@ -292,7 +295,8 @@ struct StatsHelper : public BaseHelper<StatsElement> {
 };
 
 template <typename HelperClass>
-void CatalogueHandler::handleApiCall(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+void CatalogueHandler::handleApiCall(const char* spanName, uint32_t clientID, uint32_t requestID,
+                                     eckit::Buffer&& payload) {
     HelperClass helper;
 
     MemoryStream s(payload);
@@ -311,7 +315,13 @@ void CatalogueHandler::handleApiCall(uint32_t clientID, uint32_t requestID, ecki
         }
     }
 
-    workerThreads_.emplace(requestID, std::async(std::launch::async, [request, clientID, requestID, helper, this]() {
+    // The worker streams the results back: it is traced as a server span, child of the client's request
+    workerThreads_.emplace(requestID, std::async(std::launch::async, [request, clientID, requestID, helper, this,
+                                                                      spanName, traceContext = tracing::current()]() {
+                               std::optional<tracing::ScopedSpan> span;
+                               if (tracing_) {
+                                   span.emplace(spanName, tracing::SpanKind::Server, traceContext);
+                               }
                                try {
                                    FDB* fdb = nullptr;
                                    {
@@ -332,33 +342,44 @@ void CatalogueHandler::handleApiCall(uint32_t clientID, uint32_t requestID, ecki
                                }
                                catch (std::exception& e) {
                                    // n.b. more general than eckit::Exception
+                                   if (span) {
+                                       span->span().setStatus(tracing::StatusCode::Error, e.what());
+                                   }
                                    error(false, e.what(), clientID, requestID);
                                }
                                catch (...) {
                                    // We really don't want to std::terminate the thread
+                                   if (span) {
+                                       span->span().setStatus(tracing::StatusCode::Error, "unknown exception");
+                                   }
                                    error(false, "Caught unexpected, unknown exception in worker", clientID, requestID);
                                }
                            }));
 }
 
+const char* CatalogueHandler::serverSpanName(Message message) const {
+    // the initial wipe request is an asynchronous API call, traced by its worker
+    return message == Message::Wipe ? nullptr : ServerConnection::serverSpanName(message);
+}
+
 void CatalogueHandler::list(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
-    handleApiCall<ListHelper>(clientID, requestID, std::move(payload));
+    handleApiCall<ListHelper>("fdb.server.list", clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::axes(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
-    handleApiCall<AxesHelper>(clientID, requestID, std::move(payload));
+    handleApiCall<AxesHelper>("fdb.server.axes", clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::wipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
-    handleApiCall<WipeHelper>(clientID, requestID, std::move(payload));
+    handleApiCall<WipeHelper>("fdb.server.wipe", clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::inspect(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
-    handleApiCall<InspectHelper>(clientID, requestID, std::move(payload));
+    handleApiCall<InspectHelper>("fdb.server.inspect", clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::stats(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
-    handleApiCall<StatsHelper>(clientID, requestID, std::move(payload));
+    handleApiCall<StatsHelper>("fdb.server.stats", clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::schema(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
