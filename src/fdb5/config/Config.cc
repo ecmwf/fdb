@@ -209,6 +209,45 @@ void Config::initializeSchemaPath() const {
         schemaPath_ = expandPath(fdbSchemaFile);
     }
 
+    // A schemaVersion selects the file "<schema>.<version>", where the FDB_SCHEMA_VERSION resource overrides
+    // the one in the config. Version 0 selects the unsuffixed schema. If the version is newer than the
+    // latest one this software can parse, fall back to the most recent versioned schema file present,
+    // and finally to the unsuffixed one.
+    const long versionOverride = Resource<long>("fdbSchemaVersion;$FDB_SCHEMA_VERSION", -1);
+    if (versionOverride >= 0 || has("schemaVersion")) {
+        const long version = versionOverride >= 0 ? versionOverride : getLong("schemaVersion");
+        const long maxVersion = LibFdb5::maxSchemaVersion();
+        if (version < 0) {
+            throw eckit::UserError("Invalid schemaVersion: " + std::to_string(version), Here());
+        }
+
+        auto versioned = [&](long v) { return PathName(schemaPath_.asString() + "." + std::to_string(v)); };
+
+        if (version == 0) {
+            // base schema name, no suffix
+        }
+        else if (version <= maxVersion) {
+            schemaPath_ = versioned(version);
+        }
+        else {
+            LOG_DEBUG_LIB(LibFdb5) << "Requested schemaVersion " << version << " is newer than the maximum supported "
+                                   << maxVersion << std::endl;
+            long v = maxVersion;
+            while (v >= 1 && !versioned(v).exists()) {
+                --v;
+            }
+            if (v >= 1) {
+                schemaPath_ = versioned(v);
+            }
+            else if (!schemaPath_.exists()) {
+                std::ostringstream ss;
+                ss << "No schema file found for " << schemaPath_ << " with version <= " << maxVersion;
+                throw eckit::UserError(ss.str(), Here());
+            }
+            // otherwise: no versioned schema present, use the unsuffixed one
+        }
+    }
+
     schemaPathInitialised_ = true;
     LOG_DEBUG_LIB(LibFdb5) << "Using FDB schema: " << schemaPath_ << std::endl;
 }

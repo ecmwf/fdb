@@ -66,6 +66,9 @@ public:
     /// Returns an object describing the remote protocol version
     RemoteProtocolVersion remoteProtocolVersion() const;
 
+    /// Returns the most recent version of the schema that this software is able to parse
+    static int maxSchemaVersion();
+
     /// Returns the default configuration according to the rules of FDB configuration search
     const Config& defaultConfig(const eckit::Configuration& userConfig = eckit::LocalConfiguration());
 
