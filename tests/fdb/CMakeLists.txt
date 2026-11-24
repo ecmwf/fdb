@@ -72,6 +72,7 @@ add_subdirectory( type )
 add_subdirectory( daos )
 add_subdirectory( fam )
 add_subdirectory( parsing )
+add_subdirectory( tracing )
 
 if("${ECKIT_VERSION}" VERSION_GREATER_EQUAL 2.2)
     add_subdirectory( concurrent )
