@@ -99,6 +99,44 @@ bool runConcurrently(size_t thread_count, const Worker& worker) {
     return std::all_of(results.begin(), results.end(), [](int result) { return result == 0; });
 }
 
+#if !defined(FDB_TEST_WITH_THREAD_SANITIZER)
+template <typename Worker>
+bool runInProcesses(size_t process_count, const Worker& worker) {
+    std::vector<pid_t> processes;
+    processes.reserve(process_count);
+
+    for (size_t process = 0; process < process_count; ++process) {
+        const pid_t pid = ::fork();
+        if (pid == 0) {
+            try {
+                worker(process);
+                ::_exit(0);
+            }
+            catch (...) {
+                ::_exit(1);
+            }
+        }
+        if (pid < 0) {
+            break;  // Still reap the children already started.
+        }
+        processes.push_back(pid);
+    }
+
+    bool success = processes.size() == process_count;
+    for (const pid_t pid : processes) {
+        int status = 0;
+        pid_t waited;
+        do {
+            waited = ::waitpid(pid, &status, 0);
+        } while (waited == -1 && errno == EINTR);
+        if (waited != pid || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+            success = false;
+        }
+    }
+    return success;
+}
+#endif
+
 }  // namespace
 
 CASE("TOC init/read round-trips on a main TOC") {
