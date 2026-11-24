@@ -22,6 +22,7 @@ the MARS Archive.
    content/mars
    content/config-schema
    content/environment-variables
+   content/tracing
    cli_tools/index
    content/api
    content/license
