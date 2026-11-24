@@ -240,3 +240,7 @@ platform = "ubuntu-24.04"
 [[trigger-downstream]]
 repo = "ecmwf/gribjump"
 ref = "develop"
+
+[[trigger-downstream]]
+repo = "ecmwf/earthkit-data"
+ref = "develop"
