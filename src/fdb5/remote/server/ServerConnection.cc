@@ -21,6 +21,8 @@
 #include "eckit/log/CodeLocation.h"
 #include "eckit/log/Log.h"
 #include "eckit/net/Endpoint.h"
+#include "eckit/net/IPAddress.h"
+#include "eckit/net/NetMask.h"
 #include "eckit/net/TCPServer.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/runtime/SessionID.h"
@@ -35,6 +37,7 @@
 #include <iterator>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <ostream>
 #include <sstream>
 #include <string>
@@ -66,6 +69,36 @@ ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& 
     controlSocket_(socket) {
 
     innerConfig_ = config_.has("fdb") ? Config{config_.getSubConfiguration("fdb"), config_.userConfig()} : config_;
+
+    if (config_.has("networks")) {
+        const eckit::net::IPAddress clientAddress{controlSocket_.remoteAddr()};
+        const auto networks = config_.getSubConfigurations("networks");
+
+        // The first network containing the address of the client is its network
+        std::optional<eckit::LocalConfiguration> clientNetwork;
+        for (const auto& net : networks) {
+            if (net.has("name") && net.has("netmask") &&
+                eckit::net::NetMask{net.getString("netmask")}.contains(clientAddress)) {
+                clientNetwork_ = net.getString("name");
+                clientNetwork = net;
+                break;
+            }
+        }
+
+        // A feature that some network sets (e.g. "wipe: true") is restricted: it is granted only to the clients of the
+        // networks setting it to true. Clients of other networks, or of no network, don't get it.
+        for (const auto& [name, message] : networkRestrictableFeatures()) {
+            const bool restricted = std::any_of(networks.begin(), networks.end(),
+                                                [&name = name](const auto& net) { return net.has(name); });
+            const bool granted = clientNetwork && clientNetwork->has(name) && clientNetwork->getBool(name);
+            if (restricted && !granted) {
+                disabledFeatures_ |= toMask(message);
+            }
+        }
+
+        LOG_DEBUG_LIB(LibFdb5) << "Client " << clientAddress << " from network '" << clientNetwork_
+                               << "', disabled features: " << messageMask2String(disabledFeatures_) << std::endl;
+    }
 
     LOG_DEBUG_LIB(LibFdb5) << "ServerConnection::ServerConnection initialized" << std::endl;
 }
@@ -135,8 +168,17 @@ Handled ServerConnection::handleData(Message message, uint32_t clientID, uint32_
     return Handled::Replied;
 }
 
+const std::vector<std::pair<std::string, Message>>& ServerConnection::networkRestrictableFeatures() {
+    // the name of the setting (also in the configuration of the server, to disable the feature for all) and the feature
+    static const std::vector<std::pair<std::string, Message>> features{{"wipe", Message::Wipe}};
+    return features;
+}
+
 RemoteConfiguration ServerConnection::availableFunctionality() const {
-    return RemoteConfiguration{config_};
+    RemoteConfiguration conf{config_};
+    // n.b. not part of the configuration: it depends on the network of the client (see the constructor)
+    conf.disableFeatures(disabledFeatures_);
+    return conf;
 }
 
 void ServerConnection::initialiseConnections() {

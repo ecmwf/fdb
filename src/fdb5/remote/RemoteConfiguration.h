@@ -52,6 +52,9 @@ public:
     bool singleConnection() const;
     uint64_t enabledFeatures() const { return enabledFeatures_; }
 
+    /// Withdraws features (a mask of Message, see toMask()), e.g. those the server grants to some networks only
+    void disableFeatures(uint64_t mask) { enabledFeatures_ &= ~mask; }
+
     friend eckit::Stream& operator<<(eckit::Stream& s, const RemoteConfiguration& r);
     friend std::ostream& operator<<(std::ostream& s, const RemoteConfiguration& r);
 

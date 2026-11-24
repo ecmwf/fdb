@@ -216,12 +216,20 @@ RemoteConfiguration ClientConnection::availableFunctionality(const Configuration
 
 void ClientConnection::checkEnabled(Message msg) const {
     if (!enabled(agreedFeatures_, msg)) {
-        std::ostringstream ss;
-        ss << "Message " << msg << " not enabled by server: " << controlEndpoint_ << std::endl;
-        ss << "  mask:    " << messageMask2String(toMask(msg)) << std::endl;
-        ss << "  enabled: " << messageMask2String(agreedFeatures_) << std::endl;
+        LOG_DEBUG_LIB(LibFdb5) << "Message " << msg << " not enabled - requested: " << messageMask2String(toMask(msg))
+                               << ", enabled: " << messageMask2String(agreedFeatures_) << std::endl;
 
-        throw RemoteFDBException(ss.str(), controlEndpoint_);
+        // n.b. a permission error, not a failure: say which side does not allow it
+        std::ostringstream ss;
+        if (!enabled(offeredFeatures_, msg)) {
+            ss << "'" << msg << "' is disabled in the client configuration (FDB server " << controlEndpoint_ << ")";
+        }
+        else {
+            // e.g. disabled in the configuration of the server, or not granted to the network of this client
+            ss << "'" << msg << "' is not permitted on FDB server " << controlEndpoint_
+               << ": the server does not allow it for this client";
+        }
+        throw UserError(ss.str(), Here());
     }
 }
 
@@ -365,7 +373,11 @@ void ClientConnection::writeControlStartupMessage(const Configuration& config) {
     s << sessionID_;
     s << net::Endpoint(controlEndpoint_.hostname(), controlEndpoint_.port());
     s << LibFdb5::instance().remoteProtocolVersion().used();
-    s << availableFunctionality(config);
+
+    // what this client allows: what the agreed features lack beyond it is refused by the server (see checkEnabled())
+    const RemoteConfiguration offered = availableFunctionality(config);
+    offeredFeatures_ = offered.enabledFeatures();
+    s << offered;
 
     LOG_DEBUG_LIB(LibFdb5) << "writeControlStartupMessage - Sending session " << sessionID_ << " to control "
                            << controlEndpoint_ << std::endl;
