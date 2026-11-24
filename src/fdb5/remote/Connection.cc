@@ -104,8 +104,9 @@ eckit::Buffer Connection::read(bool control, MessageHeader& hdr) const {
     return eckit::Buffer{0};
 }
 
-void Connection::write(const Message msg, const bool control, const uint32_t clientID, const uint32_t requestID,
-                       const PayloadList payloads) const {
+void Connection::writeFrameUnsafe(const eckit::net::TCPSocket& socket, const Message msg, const bool control,
+                                  const uint32_t clientID, const uint32_t requestID,
+                                  const PayloadList& payloads) const {
 
     uint32_t payloadLength = 0;
     for (const auto& payload : payloads) {
@@ -115,14 +116,10 @@ void Connection::write(const Message msg, const bool control, const uint32_t cli
 
     MessageHeader message{msg, control, clientID, requestID, payloadLength};
 
-    const auto& socket = getSocket(control);
-    std::lock_guard<std::mutex> lock(getSocketMutex(control));
-
     LOG_DEBUG_LIB(LibFdb5) << "Connection::write [endpoint=" << socket.remoteHost() << ":" << socket.remotePort()
                            << ",message=" << msg << ",clientID=" << message.clientID() << ",control=" << control
                            << ",requestID=" << requestID << ",payloadsSize=" << payloads.size()
                            << ",payloadLength=" << payloadLength << "]" << std::endl;
-
 
     writeUnsafe(socket, &message, sizeof(message));
 
@@ -131,6 +128,32 @@ void Connection::write(const Message msg, const bool control, const uint32_t cli
     }
 
     writeUnsafe(socket, &MessageHeader::EndMarker, MessageHeader::markerBytes);
+}
+
+void Connection::write(const Message msg, const bool control, const uint32_t clientID, const uint32_t requestID,
+                       const PayloadList payloads) const {
+
+    const auto& socket = getSocket(control);
+    std::lock_guard<std::mutex> lock(getSocketMutex(control));
+
+    writeFrameUnsafe(socket, msg, control, clientID, requestID, payloads);
+}
+
+void Connection::write(const Message msg, const bool control, const uint32_t clientID, const uint32_t requestID,
+                       const PayloadList& payloads, const tracing::TraceContext& trace) const {
+
+    // Never emit a Trace frame unless the peer agreed to it at startup: legacy peers would not understand it
+    const bool sendTrace = tracingVersion_ > 0 && trace.valid();
+    const std::string encodedTrace = sendTrace ? trace.encode() : std::string{};
+
+    const auto& socket = getSocket(control);
+    std::lock_guard<std::mutex> lock(getSocketMutex(control));
+
+    if (sendTrace) {
+        writeFrameUnsafe(socket, Message::Trace, control, clientID, requestID,
+                         {{encodedTrace.size(), encodedTrace.data()}});
+    }
+    writeFrameUnsafe(socket, msg, control, clientID, requestID, payloads);
 }
 
 void Connection::error(bool control, std::string_view msg, uint32_t clientID, uint32_t requestID) const {

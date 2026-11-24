@@ -65,6 +65,9 @@ std::ostream& operator<<(std::ostream& s, const Message& m) {
         case Message::Stop:
             s << "Stop";
             break;
+        case Message::Trace:
+            s << "Trace";
+            break;
         case Message::Stores:
             s << "Stores";
             break;

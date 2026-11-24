@@ -7,6 +7,7 @@
 #include "fdb5/remote/RemoteConfiguration.h"
 #include "fdb5/remote/client/Client.h"
 #include "fdb5/remote/client/ClientConnectionRouter.h"
+#include "fdb5/tracing/TraceContext.h"
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/config/Resource.h"
@@ -57,8 +58,8 @@ public:
 
     DataWriteRequest() = default;
 
-    DataWriteRequest(Client* client, Message msg, uint32_t id, Buffer&& data) :
-        client_(client), msg_(msg), id_(id), data_(std::move(data)) {}
+    DataWriteRequest(Client* client, Message msg, uint32_t id, Buffer&& data, tracing::TraceContext trace) :
+        client_(client), msg_(msg), id_(id), data_(std::move(data)), trace_(std::move(trace)) {}
 
     /// @param barrier: no payload, signals when all queued writes before this barrier have been processed
     explicit DataWriteRequest(std::shared_ptr<std::promise<void>> barrier) : barrier_{std::move(barrier)} {}
@@ -67,6 +68,8 @@ public:
     Message msg_{Message::None};
     uint32_t id_{0};
     Buffer data_{Buffer(0)};
+    /// Trace context of the caller, captured at enqueue time: the write happens on the data-write thread
+    tracing::TraceContext trace_;
     std::shared_ptr<std::promise<void>> barrier_;
 };
 
@@ -240,7 +243,7 @@ std::future<Buffer> ClientConnection::controlWrite(const Client& client, const M
         auto pp = promises_.emplace(requestID, std::promise<Buffer>{}).first;
         f = pp->second.get_future();
     }
-    Connection::write(msg, true, client.clientId(), requestID, payloads);
+    Connection::write(msg, true, client.clientId(), requestID, payloads, tracing::current());
 
     return f;
 }
@@ -249,8 +252,8 @@ void ClientConnection::dataWrite(DataWriteRequest& request) const {
 
     checkEnabled(request.msg_);
 
-    Connection::write(request.msg_, false, request.client_->clientId(), request.id_, request.data_.data(),
-                      request.data_.size());
+    Connection::write(request.msg_, false, request.client_->clientId(), request.id_,
+                      {{request.data_.size(), request.data_.data()}}, request.trace_);
 }
 
 void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t requestID, PayloadList payloads) {
@@ -287,7 +290,7 @@ void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t r
         offset += payload.length;
     }
 
-    dataWriteQueue_->emplace(&client, msg, requestID, std::move(buffer));
+    dataWriteQueue_->emplace(&client, msg, requestID, std::move(buffer), tracing::current());
 }
 
 void ClientConnection::dataWriteThreadLoop() {
@@ -414,6 +417,7 @@ SessionID ClientConnection::verifyServerStartupResponse() {
     }
     single_ = agreedConf.singleConnection();
     agreedFeatures_ = agreedConf.enabledFeatures();
+    tracingVersion_ = agreedConf.tracingVersion();
 
     if (single_ && !(dataEndpoint_ == controlEndpoint_)) {
         Log::warning() << "Returned control interface does not match. " << dataEndpoint_ << " /= " << controlEndpoint_

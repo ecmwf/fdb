@@ -4,6 +4,7 @@
 #pragma once
 
 #include "fdb5/remote/Messages.h"
+#include "fdb5/tracing/TraceContext.h"
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/net/TCPSocket.h"
@@ -67,6 +68,15 @@ public:  // methods
         write(msg, control, clientID, requestID, {{length, data}});
     }
 
+    /// As write(), preceded by a Message::Trace frame carrying @p trace if trace-context propagation was negotiated
+    /// for this connection and @p trace is valid. Both frames are written under the same socket lock, so the Trace
+    /// frame always immediately precedes the frame it describes.
+    void write(Message msg, bool control, uint32_t clientID, uint32_t requestID, const PayloadList& payloads,
+               const tracing::TraceContext& trace) const;
+
+    /// Negotiated trace-context propagation version, 0 if not agreed
+    int tracingVersion() const { return tracingVersion_; }
+
     void error(bool control, std::string_view msg, uint32_t clientID, uint32_t requestID) const;
     void unauthorised(std::string_view msg, uint32_t clientID, uint32_t requestID) const;
 
@@ -84,6 +94,10 @@ private:  // methods
 
     void writeUnsafe(const eckit::net::TCPSocket& socket, const void* data, size_t length) const;
 
+    /// Write one frame (header, payloads, end marker). The caller must hold the socket mutex.
+    void writeFrameUnsafe(const eckit::net::TCPSocket& socket, Message msg, bool control, uint32_t clientID,
+                          uint32_t requestID, const PayloadList& payloads) const;
+
     bool readUnsafe(const eckit::net::TCPSocket& socket, void* data, size_t length) const;
 
     const eckit::net::TCPSocket& getSocket(bool control) const;
@@ -97,6 +111,9 @@ private:  // methods
 protected:  // members
 
     bool single_;
+
+    /// Set from the agreed RemoteConfiguration at startup; 0 means no Message::Trace frames on this connection
+    int tracingVersion_{0};
 
 private:  // members
 
