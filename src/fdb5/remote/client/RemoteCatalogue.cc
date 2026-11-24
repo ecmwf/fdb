@@ -270,6 +270,9 @@ bool RemoteCatalogue::doWipeURIs(const CatalogueWipeState& wipeState) const {
 }
 
 bool RemoteCatalogue::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
+    if (unknownURIs.empty()) {
+        return true;
+    }
     // Send unknown uris to server
     eckit::Buffer sendBuf(unknownURIs.size() * 256);
     eckit::ResizableMemoryStream s(sendBuf);

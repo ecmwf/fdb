@@ -207,11 +207,16 @@ public:
         dbKey_(dbKey), config_(std::make_unique<Config>(config)) {}
 
     CatalogueWipeState(const Key& dbKey, std::set<eckit::URI> safeURIs, URIMap deleteURIs,
-                       std::set<Index> indexesToMask, const Config& config) :
+                       std::set<Index> indexesToMask, const Config& config,
+                       const std::set<eckit::URI>& unknownURIs = {}) :
         WipeState(std::move(safeURIs), std::move(deleteURIs)),
         dbKey_(dbKey),
         config_(std::make_unique<Config>(config)),
-        indexesToMask_(std::move(indexesToMask)) {}
+        indexesToMask_(std::move(indexesToMask)) {
+        for (const auto& uri : unknownURIs) {
+            insertUnrecognised(uri);
+        }
+    }
 
     CatalogueWipeState(eckit::Stream& s, const Config& config);
 
