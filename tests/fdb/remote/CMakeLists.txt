@@ -1,3 +1,10 @@
+# Protocol negotiation (no server needed)
+ecbuild_add_test(
+    TARGET    fdb_test_remote_negotiation
+    SOURCES   test_remote_negotiation.cc
+    LIBS      fdb5
+)
+
 # Client side of test
 ecbuild_add_executable(
     TARGET    fdb_test_remote_api_bin
