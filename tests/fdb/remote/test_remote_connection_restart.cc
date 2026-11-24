@@ -31,8 +31,8 @@ namespace {
 // test instead of hanging it.
 template <typename Message, typename Queue>
 std::future<std::string> startReader(std::shared_ptr<Queue> queue) {
-    auto result  = std::make_shared<std::promise<std::string>>();
-    auto future  = result->get_future();
+    auto result = std::make_shared<std::promise<std::string>>();
+    auto future = result->get_future();
     auto started = std::make_shared<std::promise<void>>();
 
     std::thread([queue, result, started] {
@@ -88,7 +88,7 @@ void expectWokenWith(std::future<std::string>& reader, const std::string& messag
 CASE("Remote store: a request that is waiting is woken up, not resumed, when the store is restarted") {
 
     remote::RemoteStore& store = storeForOneField();
-    auto queue                 = remote::RemoteStoreTestHarness::registerQueue(store).second;
+    auto queue = remote::RemoteStoreTestHarness::registerQueue(store).second;
 
     auto reader = startReader<remote::RemoteStore::StoredMessage>(queue);
 
