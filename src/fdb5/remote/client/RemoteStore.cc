@@ -15,6 +15,7 @@
 #include "fdb5/remote/client/Client.h"
 #include "fdb5/remote/client/ReadLimiter.h"
 #include "fdb5/rules/Rule.h"
+#include "fdb5/tracing/TraceContext.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
@@ -292,7 +293,16 @@ void RemoteStore::archiveCb(
     if (locations_.markStoreRequested()) {
         controlWriteCheckResponse(Message::Store, id, true);
     }
-    // store the callback, associated with the request id - to be done BEFORE sending the data
+    // store the callback, associated with the request id - to be done BEFORE sending the data.
+    // The callback runs on the connection's listening thread: re-establish the archive call's trace context there,
+    // so the resulting catalogue archival is attributed to the same span.
+    if (tracing::current().valid()) {
+        catalogue_archive = [traceContext = tracing::current(),
+                             cb = std::move(catalogue_archive)](std::unique_ptr<const FieldLocation> fieldLocation) {
+            tracing::ScopedContext traceScope(traceContext);
+            cb(std::move(fieldLocation));
+        };
+    }
     locations_.archive(id, catalogue_archive);
 
     eckit::Buffer keyBuffer(defaultBufferSizeKey);

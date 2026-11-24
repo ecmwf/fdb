@@ -32,6 +32,8 @@
 #include "fdb5/io/FieldHandle.h"
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/message/MessageDecoder.h"
+#include "fdb5/tracing/TraceContext.h"
+#include "fdb5/tracing/Tracer.h"
 #include "fdb5/types/Type.h"
 
 #include "metkit/hypercube/HyperCube.h"
@@ -53,6 +55,7 @@
 #include <cstddef>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <ostream>
 #include <sstream>
 #include <string>
@@ -61,10 +64,90 @@
 
 namespace fdb5 {
 
+namespace {
+
+constexpr size_t maxRequestAttributeLength = 1024;
+
+template <typename T>
+std::string toAttributeString(const T& value) {
+    std::ostringstream ss;
+    ss << value;
+    std::string s = ss.str();
+    if (s.size() > maxRequestAttributeLength) {
+        s.resize(maxRequestAttributeLength);
+        s += "...";
+    }
+    return s;
+}
+
+/// The span of one FDB API call. It is the current context of the calling thread while in scope, so that work
+/// done on behalf of the call (including remote requests) is attributed to it. A no-op when tracing is disabled.
+class ApiSpan {
+public:
+
+    /// Child of @p parent if valid, otherwise of the calling thread's current context (or a new root)
+    ApiSpan(bool enabled, const char* name, const tracing::TraceContext& parent) {
+        if (enabled) {
+            span_.emplace(name, tracing::SpanKind::Internal, parent.valid() ? parent : tracing::current());
+        }
+    }
+
+    bool recording() { return span_ && span_->span().recording(); }
+
+    template <typename T>
+    void setAttribute(const char* key, T&& value) {
+        if (span_) {
+            span_->setAttribute(key, std::forward<T>(value));
+        }
+    }
+
+private:
+
+    std::optional<tracing::ScopedSpan> span_;
+};
+
+/// For API calls returning an iterator: the span is current while the iterator is created (so that asynchronous
+/// workers and remote requests inherit it) and is then handed over to the iterator, ending with the iteration.
+class IteratorSpan {
+public:
+
+    IteratorSpan(bool enabled, const char* name, const tracing::TraceContext& explicitParent) {
+        if (enabled) {
+            span_ = tracing::Span(name, tracing::SpanKind::Internal,
+                                  explicitParent.valid() ? explicitParent : tracing::current());
+        }
+        scope_.emplace(span_.context().valid() ? span_.context() : tracing::current());
+    }
+
+    template <typename T>
+    void setAttribute(const char* key, T&& value) {
+        span_.setAttribute(key, std::forward<T>(value));
+    }
+
+    bool recording() const { return span_.recording(); }
+
+    template <typename Iterator>
+    Iterator attach(Iterator&& it) {
+        scope_.reset();
+        it.attachSpan(std::move(span_));
+        return std::move(it);
+    }
+
+private:
+
+    tracing::Span span_;
+    std::optional<tracing::ScopedContext> scope_;
+};
+
+}  // namespace
+
 //----------------------------------------------------------------------------------------------------------------------
 
 FDB::FDB(const Config& config) :
-    internal_(FDBFactory::instance().build(config)), dirty_(false), reportStats_(config.getBool("statistics", false)) {
+    internal_(FDBFactory::instance().build(config)),
+    dirty_(false),
+    reportStats_(config.getBool("statistics", false)),
+    tracing_(tracing::Tracer::enabledIn(config)) {
     LibFdb5::instance().constructorCallback()(*internal_);
 }
 
@@ -81,6 +164,8 @@ FDB::FDB(FDB&& rhs) noexcept :
     internal_(std::move(rhs.internal_)),
     dirty_(rhs.dirty_),
     reportStats_(rhs.reportStats_),
+    tracing_(rhs.tracing_),
+    archiveCycle_(std::move(rhs.archiveCycle_)),
     stats_(std::move(rhs.stats_)) {
     // clear the dirty flag so its destructor does not flush its now null internal_
     rhs.dirty_ = false;
@@ -91,34 +176,77 @@ FDB& FDB::operator=(FDB&& rhs) noexcept {
         internal_ = std::move(rhs.internal_);
         dirty_ = rhs.dirty_;
         reportStats_ = rhs.reportStats_;
+        tracing_ = rhs.tracing_;
+        archiveCycle_ = std::move(rhs.archiveCycle_);
         stats_ = std::move(rhs.stats_);
         rhs.dirty_ = false;
     }
     return *this;
 }
 
-void FDB::archive(eckit::message::Message msg) {
-    fdb5::Key key = MessageDecoder::messageToKey(msg);
-    archive(key, msg.data(), msg.length());
+tracing::TraceContext FDB::archiveParent(const tracing::TraceContext& trace) {
+    if (trace.valid()) {
+        return trace;
+    }
+    if (tracing::current().valid()) {
+        return tracing::current();
+    }
+    if (!tracing_) {
+        return {};
+    }
+    std::lock_guard lock(mutex_);
+    if (!archiveCycle_) {
+        archiveCycle_ =
+            std::make_unique<tracing::Span>("fdb.archive_cycle", tracing::SpanKind::Internal, tracing::TraceContext{});
+    }
+    return archiveCycle_->context();
 }
-void FDB::archive(eckit::DataHandle& handle) {
+
+void FDB::archive(eckit::message::Message msg, const tracing::TraceContext& trace) {
+    ApiSpan span(tracing_, "fdb.archive", archiveParent(trace));
+    fdb5::Key key = MessageDecoder::messageToKey(msg);
+    if (span.recording()) {
+        span.setAttribute("fdb.key", toAttributeString(key));
+    }
+    span.setAttribute("fdb.fields", 1);
+    span.setAttribute("fdb.bytes", msg.length());
+    archiveImpl(key, msg.data(), msg.length());
+}
+
+void FDB::archive(eckit::DataHandle& handle, const tracing::TraceContext& trace) {
+    ApiSpan span(tracing_, "fdb.archive", archiveParent(trace));
     eckit::message::Message msg;
     eckit::message::Reader reader(handle);
 
+    size_t fields = 0;
+    size_t bytes = 0;
     while ((msg = reader.next())) {
-        archive(msg);
+        archiveImpl(MessageDecoder::messageToKey(msg), msg.data(), msg.length());
+        ++fields;
+        bytes += msg.length();
     }
-}
-void FDB::archive(const void* data, size_t length) {
-    eckit::MemoryHandle handle(data, length);
-    archive(handle);
+    span.setAttribute("fdb.fields", fields);
+    span.setAttribute("fdb.bytes", bytes);
 }
 
-void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& handle) {
+void FDB::archive(const void* data, size_t length, const tracing::TraceContext& trace) {
+    eckit::MemoryHandle handle(data, length);
+    archive(handle, trace);
+}
+
+void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& handle,
+                  const tracing::TraceContext& trace) {
+    ApiSpan span(tracing_, "fdb.archive", archiveParent(trace));
+    if (span.recording()) {
+        span.setAttribute("fdb.request", toAttributeString(request));
+    }
+
     eckit::message::Message msg;
     eckit::message::Reader reader(handle);
 
     metkit::hypercube::HyperCube cube(request);
+    size_t fields = 0;
+    size_t bytes = 0;
 
     while ((msg = reader.next())) {
         fdb5::Key key = MessageDecoder::messageToKey(msg);
@@ -130,8 +258,12 @@ void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& h
             LOG_DEBUG_LIB(LibFdb5) << ss.str();
             throw eckit::UserError(ss.str(), Here());
         }
-        archive(key, msg.data(), msg.length());
+        archiveImpl(key, msg.data(), msg.length());
+        ++fields;
+        bytes += msg.length();
     }
+    span.setAttribute("fdb.fields", fields);
+    span.setAttribute("fdb.bytes", bytes);
     if (cube.countVacant()) {
         std::ostringstream ss;
         ss << "FDB archive - missing " << cube.countVacant() << " messages" << std::endl;
@@ -145,7 +277,17 @@ void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& h
     }
 }
 
-void FDB::archive(const Key& key, const void* data, size_t length) {
+void FDB::archive(const Key& key, const void* data, size_t length, const tracing::TraceContext& trace) {
+    ApiSpan span(tracing_, "fdb.archive", archiveParent(trace));
+    if (span.recording()) {
+        span.setAttribute("fdb.key", toAttributeString(key));
+    }
+    span.setAttribute("fdb.fields", 1);
+    span.setAttribute("fdb.bytes", length);
+    archiveImpl(key, data, length);
+}
+
+void FDB::archiveImpl(const Key& key, const void* data, size_t length) {
     eckit::Timer timer;
     timer.start();
 
@@ -196,12 +338,16 @@ bool FDB::sorted(const metkit::mars::MarsRequest& request) {
     return sorted;
 }
 
-eckit::DataHandle* FDB::read(const eckit::URI& uri) {
+eckit::DataHandle* FDB::read(const eckit::URI& uri, const tracing::TraceContext& trace) {
+    ApiSpan span(tracing_, "fdb.read", trace);
+    span.setAttribute("fdb.fields", 1);
     auto location = std::unique_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri));
     return location->dataHandle();
 }
 
-eckit::DataHandle* FDB::read(const std::vector<eckit::URI>& uris, bool sorted) {
+eckit::DataHandle* FDB::read(const std::vector<eckit::URI>& uris, bool sorted, const tracing::TraceContext& trace) {
+    ApiSpan span(tracing_, "fdb.read", trace);
+    span.setAttribute("fdb.fields", uris.size());
     HandleGatherer result(sorted);
 
     for (const eckit::URI& uri : uris) {
@@ -212,7 +358,10 @@ eckit::DataHandle* FDB::read(const std::vector<eckit::URI>& uris, bool sorted) {
     return result.dataHandle();
 }
 
-eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
+eckit::DataHandle* FDB::read(ListIterator& it, bool sorted, const tracing::TraceContext& trace) {
+    ApiSpan span(tracing_, "fdb.read", trace);
+    size_t fields = 0;
+
     eckit::Timer timer;
     timer.start();
 
@@ -251,6 +400,7 @@ eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
                 ListElement element;
                 if (cube.find(i, element)) {
                     result.add(element.location().dataHandle());
+                    ++fields;
                 }
             }
         }
@@ -258,28 +408,47 @@ eckit::DataHandle* FDB::read(ListIterator& it, bool sorted) {
     else {
         while (it.next(el)) {
             result.add(el.location().dataHandle());
+            ++fields;
         }
     }
+    span.setAttribute("fdb.fields", fields);
     return result.dataHandle();
 }
 
-eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request) {
+eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request, const tracing::TraceContext& trace) {
     static bool seekable = eckit::Resource<bool>("fdbSeekableDataHandle;$FDB_SEEKABLE_DATA_HANDLE", false);
 
+    ApiSpan span(tracing_, "fdb.retrieve", trace);
+    if (span.recording()) {
+        span.setAttribute("fdb.request", toAttributeString(request));
+    }
+
+    // inspect() and read() record child spans of this one
     ListIterator it = inspect(request);
     return seekable ? new FieldHandle(it) : read(it, sorted(request));
 }
 
-ListIterator FDB::inspect(const metkit::mars::MarsRequest& request) {
-    return internal_->inspect(request);
+ListIterator FDB::inspect(const metkit::mars::MarsRequest& request, const tracing::TraceContext& trace) {
+    IteratorSpan span(tracing_, "fdb.inspect", trace);
+    if (span.recording()) {
+        span.setAttribute("fdb.request", toAttributeString(request));
+    }
+    return span.attach(internal_->inspect(request));
 }
 
-ListIterator FDB::list(const FDBToolRequest& request, const ListMode mode, const int level) {
-    return {internal_->list(request, level), mode};
+ListIterator FDB::list(const FDBToolRequest& request, const ListMode mode, const int level,
+                       const tracing::TraceContext& trace) {
+    IteratorSpan span(tracing_, "fdb.list", trace);
+    if (span.recording()) {
+        span.setAttribute("fdb.request", toAttributeString(request.request()));
+    }
+    span.setAttribute("fdb.level", level);
+    return span.attach(ListIterator{internal_->list(request, level), mode});
 }
 
-ListIterator FDB::list(const FDBToolRequest& request, const bool deduplicate, const int level) {
-    return list(request, deduplicate ? ListMode::Deduplicate : ListMode::Full, level);
+ListIterator FDB::list(const FDBToolRequest& request, const bool deduplicate, const int level,
+                       const tracing::TraceContext& trace) {
+    return list(request, deduplicate ? ListMode::Deduplicate : ListMode::Full, level, trace);
 }
 
 DumpIterator FDB::dump(const FDBToolRequest& request, bool simple) {
@@ -290,7 +459,15 @@ StatusIterator FDB::status(const FDBToolRequest& request) {
     return internal_->status(request);
 }
 
-WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) {
+WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll,
+                       const tracing::TraceContext& trace) {
+
+    IteratorSpan span(tracing_, "fdb.wipe", trace);
+    if (span.recording()) {
+        span.setAttribute("fdb.request", toAttributeString(request.request()));
+    }
+    span.setAttribute("fdb.doit", doit);
+    span.setAttribute("fdb.unsafe_wipe_all", unsafeWipeAll);
 
     auto internal = internal_->shared();
 
@@ -310,11 +487,17 @@ WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain,
         }
     };
 
-    return WipeIterator(new APIAsyncIterator<WipeElement>(internal_->shared(), async, internal_->config()));
+    return span.attach(
+        WipeIterator(new APIAsyncIterator<WipeElement>(internal_->shared(), async, internal_->config())));
 }
 
-PurgeIterator FDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {
-    return internal_->purge(request, doit, porcelain);
+PurgeIterator FDB::purge(const FDBToolRequest& request, bool doit, bool porcelain, const tracing::TraceContext& trace) {
+    IteratorSpan span(tracing_, "fdb.purge", trace);
+    if (span.recording()) {
+        span.setAttribute("fdb.request", toAttributeString(request.request()));
+    }
+    span.setAttribute("fdb.doit", doit);
+    return span.attach(internal_->purge(request, doit, porcelain));
 }
 
 StatsIterator FDB::stats(const FDBToolRequest& request) {
@@ -346,9 +529,18 @@ void FDB::print(std::ostream& s) const {
     s << *internal_;
 }
 
-void FDB::flush() {
+void FDB::flush(const tracing::TraceContext& trace) {
     std::lock_guard lock(mutex_);
+
+    // The archive-cycle span (if any) is ended once the flush is complete, after the flush span
+    std::unique_ptr<tracing::Span> cycle = std::move(archiveCycle_);
+
     if (dirty_) {
+        // explicit context, else the current one, else the archive cycle being flushed
+        const tracing::TraceContext& parent =
+            (trace.valid() || tracing::current().valid() || !cycle) ? trace : cycle->context();
+        ApiSpan span(tracing_, "fdb.flush", parent);
+
         eckit::Timer timer;
         timer.start();
 

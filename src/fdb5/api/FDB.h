@@ -23,10 +23,12 @@
 #include "fdb5/api/helpers/StatusIterator.h"
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/config/Config.h"
+#include "fdb5/tracing/TraceContext.h"
 
 #include <iosfwd>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 
 namespace eckit {
@@ -50,6 +52,10 @@ class FDBBase;
 class FDBToolRequest;
 class Key;
 
+namespace tracing {
+class Span;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 /// A handle to a general FDB.
@@ -59,6 +65,12 @@ class Key;
 /// from which thread the message has been archived. In case the caller wants a finer control it is advised to
 /// instanciate one FDB object per thread to ensure only messages are flushed that have been archived on the same FDB
 /// object.
+///
+/// Tracing: the data-path and data-lifecycle methods accept an optional OpenTelemetry-compatible (W3C) trace
+/// context, typically built with tracing::TraceContext::fromTraceparent() from the caller's current span. Each call
+/// is recorded as a span, child of (in order of precedence) the given context, the calling thread's current context
+/// (tracing::ScopedContext), or a newly generated root. Archive calls without a context join a trace spanning the
+/// current archive/flush cycle. Tracing can be disabled with 'tracing: false' in the configuration.
 class FDB {
 
 public:  // methods
@@ -79,14 +91,16 @@ public:  // methods
     /// Due to the message being self describing no key needs to be supplied.
     /// Any callback set with registerArchiveCallback will be invoked.
     /// @param handle eckit::message::Message to data to archive
-    void archive(eckit::message::Message msg);
+    /// @param trace optional trace context (see class documentation)
+    void archive(eckit::message::Message msg, const tracing::TraceContext& trace = {});
 
     /// Archives a stream of one or more messages.
     ///
     /// Reads messages from the eckit::DatAaHandle and calls archive() on the corresponding messages.
     /// Any callback set with registerArchiveCallback will be invoked on each message.
     /// @param handle eckit::DataHandle reference data to archive
-    void archive(eckit::DataHandle& handle);
+    /// @param trace optional trace context (see class documentation)
+    void archive(eckit::DataHandle& handle, const tracing::TraceContext& trace = {});
 
     /// Archive binary data to a FDB.
     ///
@@ -94,7 +108,8 @@ public:  // methods
     /// Any callback set with registerArchiveCallback will be invoked on each message.
     /// @param data Pointer to the binary data to archive
     /// @param length Size of the data to archive with the given
-    void archive(const void* data, size_t length);
+    /// @param trace optional trace context (see class documentation)
+    void archive(const void* data, size_t length, const tracing::TraceContext& trace = {});
 
     /// Archives data from Datahandle and ensures all keys exactly match the provided MarsRequest.
     ///
@@ -103,7 +118,8 @@ public:  // methods
     /// @param handle a data handle pointing to the data
     /// @throws eckit::UserError if there are more keys in the MarsRequest then in the messages.
     /// @throws eckit::UserError if message key not present in MarsRequest.
-    void archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& handle);
+    void archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& handle,
+                 const tracing::TraceContext& trace = {});
 
     /// Archive a binary blob into FDB.
     ///
@@ -113,7 +129,8 @@ public:  // methods
     /// @param key Key used for indexing and archiving the data
     /// @param data Pointer to the binary blob to archive
     /// @param length Size in bytes of the binary blob to archive
-    void archive(const Key& key, const void* data, size_t length);
+    /// @param trace optional trace context (see class documentation)
+    void archive(const Key& key, const void* data, size_t length, const tracing::TraceContext& trace = {});
 
     /// Generate an new index entry for an existing field location.
     ///
@@ -124,46 +141,55 @@ public:  // methods
 
     /// Flush all buffers and closes all data handles into a consistent DB state
     /// @note always safe to call
-    void flush();
+    /// @param trace optional trace context (see class documentation)
+    void flush(const tracing::TraceContext& trace = {});
 
     // TODO(simondsmart): Review this. This is a bit odd. The purpose of a URI is that it directly describes the
     // data locations - and as such shouldn't need the FDB object to do the conversion into DataHandle?
     /// Read binary data from an URI.
     /// @param uri eckit uri to the data source
     /// @return DataHandle for reading the requested data from
-    eckit::DataHandle* read(const eckit::URI& uri);
+    eckit::DataHandle* read(const eckit::URI& uri, const tracing::TraceContext& trace = {});
 
     /// Read binary data from an list of URI.
     /// @param vector of uris eckit uris to the data source
     /// @param inStorageOrder if set data will be returned in the order it is stored. If unset data will be returned in
     /// the order it was requested.
     /// @return DataHandle for reading the requested data
-    eckit::DataHandle* read(const std::vector<eckit::URI>& uris, bool inStorageOrder = false);
+    eckit::DataHandle* read(const std::vector<eckit::URI>& uris, bool inStorageOrder = false,
+                            const tracing::TraceContext& trace = {});
 
     /// Read binary from a ListIterator.
     /// @param uris a list iterator which resembles a set of fields which should be read
     /// @param inStorageOrder if set data will be returned in the order it is stored. If unset data will be returned in
     /// the order it was requested.
     /// @return DataHandle for reading the requested data from
-    eckit::DataHandle* read(ListIterator& it, bool inStorageOrder = false);
+    eckit::DataHandle* read(ListIterator& it, bool inStorageOrder = false, const tracing::TraceContext& trace = {});
 
     /// Retrieve data which is specified by a MARS request.
     /// @param request MarsRequest which describes the data which should be retrieved
     /// @return DataHandle for reading the requested data from
-    eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request);
+    /// @param trace optional trace context (see class documentation)
+    eckit::DataHandle* retrieve(const metkit::mars::MarsRequest& request, const tracing::TraceContext& trace = {});
 
-    // TODO(kkratz): Provide doc!
-    ListIterator inspect(const metkit::mars::MarsRequest& request);
+    /// Locate the fields matching a MARS request.
+    /// @param request MarsRequest describing the data to locate
+    /// @param trace optional trace context (see class documentation)
+    /// @return ListIterator over the matching fields
+    ListIterator inspect(const metkit::mars::MarsRequest& request, const tracing::TraceContext& trace = {});
 
     /// List data present at the archive and which can be retrieved.
     /// @param request FDBToolRequest stating which data should be queried
     /// @param mode select how duplicates should be handled in the returned iterator
     /// @param level maximum level the visitor should respect
     /// @return ListIterator for iterating over the set of found items
-    ListIterator list(const FDBToolRequest& request, ListMode mode, int level = 3);
+    /// @param trace optional trace context (see class documentation)
+    ListIterator list(const FDBToolRequest& request, ListMode mode, int level = 3,
+                      const tracing::TraceContext& trace = {});
 
     /// Backwards-compatible overload using the previous deduplicate flag.
-    ListIterator list(const FDBToolRequest& request, bool deduplicate = false, int level = 3);
+    ListIterator list(const FDBToolRequest& request, bool deduplicate = false, int level = 3,
+                      const tracing::TraceContext& trace = {});
 
     /// Dump the structural content of the FDB
     ///
@@ -191,8 +217,9 @@ public:  // methods
     /// @param porcelain flag print only a list of files to be deleted / that are deleted
     /// @param unsafeWipeAll flag for omitting all security checks and force a wipe
     /// @return WipeIterator for iterating over the set of wiped items
+    /// @param trace optional trace context (see class documentation)
     WipeIterator wipe(const FDBToolRequest& request, bool doit = false, bool porcelain = false,
-                      bool unsafeWipeAll = false);
+                      bool unsafeWipeAll = false, const tracing::TraceContext& trace = {});
 
     /// Move content of one FDB database.
     ///
@@ -214,7 +241,9 @@ public:  // methods
     /// @param doit bool if true the purge is triggered, otherwise a dry-run is executed
     /// @param porcelain bool for printing only those files which are deleted
     /// @return PurgeIterator for iterating over the set of found items
-    PurgeIterator purge(const FDBToolRequest& request, bool doit = false, bool porcelain = false);
+    /// @param trace optional trace context (see class documentation)
+    PurgeIterator purge(const FDBToolRequest& request, bool doit = false, bool porcelain = false,
+                        const tracing::TraceContext& trace = {});
 
     /// Prints information about FDB databases, aggregating the
     /// information over all the databases visited into a final summary.
@@ -282,6 +311,11 @@ private:  // methods
 
     bool sorted(const metkit::mars::MarsRequest& request);
 
+    void archiveImpl(const Key& key, const void* data, size_t length);
+
+    /// The parent context for an archive call: explicit, current, or the archive-cycle trace
+    tracing::TraceContext archiveParent(const tracing::TraceContext& trace);
+
 private:
 
     friend struct remote::WipeHelper;
@@ -296,6 +330,10 @@ private:  // members
 
     bool dirty_;
     bool reportStats_;
+    bool tracing_;
+
+    /// Span covering the current archive/flush cycle, for archive calls without a caller-provided trace context
+    std::unique_ptr<tracing::Span> archiveCycle_;
 
     FDBStats stats_;
 };

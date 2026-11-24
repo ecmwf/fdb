@@ -8,6 +8,7 @@
 
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/tracing/TraceContext.h"
 
 #include <cstdint>
 #include <deque>
@@ -26,7 +27,8 @@ struct RequestInfo {
     uint32_t id;                // note request ids are only unique per connection. Client id is unique within a process
     eckit::Buffer requestBuffer;  // Payload to send to the server
     size_t requestSize;
-    size_t resultSize;  // Size of the field obtained from the store
+    size_t resultSize;                   // Size of the field obtained from the store
+    tracing::TraceContext traceContext;  // context of the read call; the request may be sent from another thread
 };
 
 // Holds a queue of all of the currently unfulfilled read requests.
