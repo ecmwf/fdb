@@ -1,0 +1,17 @@
+---
+type: catalogue
+serverPort: 10041
+serverThreaded: true
+# Wipe is granted to 127.0.0.0/8 (the test client) only: once a network sets "wipe", the clients of any other
+# network, or of none, cannot wipe.
+networks:
+- name: trusted
+  netmask: 127.0.0.0/8
+  wipe: true
+stores:
+- default: "localhost:10042"
+schema: @CMAKE_CURRENT_SOURCE_DIR@/../schema
+spaces:
+- handler: Default
+  roots:
+    - path: @CMAKE_CURRENT_BINARY_DIR@/catalogue_allowed_root

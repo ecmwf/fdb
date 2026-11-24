@@ -257,10 +257,10 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
             ASSERT(handler.wipesInProgress_.find(dbKey) == handler.wipesInProgress_.end());
 
             handler.wipesInProgress_.emplace(
-                dbKey, CatalogueHandler::WipeInProgress{unsafeWipeAll_,
-                                                        CatalogueReaderFactory::instance().build(dbKey, state.config()),
-                                                        CatalogueWipeState(dbKey, state.safeURIs(), state.deleteMap(),
-                                                                           state.indexesToMask(), state.config())});
+                dbKey, CatalogueHandler::WipeInProgress{
+                           unsafeWipeAll_, CatalogueReaderFactory::instance().build(dbKey, state.config()),
+                           CatalogueWipeState(dbKey, state.safeURIs(), state.deleteMap(), state.indexesToMask(),
+                                              state.config(), state.unrecognisedURIs())});
         }
         else {
             handler.wipesInProgress_.erase(dbKey);
@@ -378,32 +378,15 @@ void CatalogueHandler::schema(uint32_t clientID, uint32_t requestID, eckit::Buff
 
 void CatalogueHandler::stores(uint32_t clientID, uint32_t requestID) {
 
-    eckit::net::IPAddress clientIPaddress{controlSocket_.remoteAddr()};
-
-    std::string clientNetwork = "";
-    if (config_.has("networks")) {
-        for (const auto& net : config_.getSubConfigurations("networks")) {
-            if (net.has("name") && net.has("netmask")) {
-                eckit::net::NetMask netmask{net.getString("netmask")};
-                if (netmask.contains(clientIPaddress)) {
-                    clientNetwork = net.getString("name");
-                    break;
-                }
-            }
-        }
-    }
-
-    LOG_DEBUG_LIB(LibFdb5) << "Client " << clientIPaddress << " from network '" << clientNetwork << "'" << std::endl;
-
     ASSERT(config_.has("stores"));
     std::map<std::string, std::vector<eckit::net::Endpoint>> stores;
     for (const auto& configStore : config_.getSubConfigurations("stores")) {
         ASSERT(configStore.has("default"));
         eckit::net::Endpoint fieldLocationEndpoint{configStore.getString("default")};
         eckit::net::Endpoint storeEndpoint{fieldLocationEndpoint};
-        if (!clientNetwork.empty()) {
-            if (configStore.has(clientNetwork)) {
-                storeEndpoint = eckit::net::Endpoint{configStore.getString(clientNetwork)};
+        if (!clientNetwork_.empty()) {
+            if (configStore.has(clientNetwork_)) {
+                storeEndpoint = eckit::net::Endpoint{configStore.getString(clientNetwork_)};
             }
         }
 
@@ -671,7 +654,8 @@ void CatalogueHandler::doWipeUnknowns(uint32_t clientID, uint32_t requestID, eck
     std::lock_guard lock(wipesMutex_);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
 
-    std::set<eckit::URI> rec_unknownURIs{s};
+    std::set<eckit::URI> rec_unknownURIs;
+    s >> rec_unknownURIs;
 
     // The client should not talk to us unless there are unknown URIs to wipe.
     ASSERT(!rec_unknownURIs.empty());
