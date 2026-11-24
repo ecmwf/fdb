@@ -69,6 +69,29 @@ C
    fdb_flush(fdb);
    fdb_trace_end();
 
+Python
+~~~~~~
+
+The ``archive``, ``flush``, ``retrieve``, ``list``, ``inspect``, ``wipe`` and ``purge`` methods of
+``pyfdb.FDB`` accept the keyword-only arguments ``traceparent`` and ``tracestate``. With
+`OpenTelemetry for Python <https://opentelemetry.io/docs/languages/python/>`__:
+
+.. code-block:: python
+
+   from opentelemetry import trace
+   from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+
+   with trace.get_tracer(__name__).start_as_current_span("my-archive"):
+       carrier = {}
+       TraceContextTextMapPropagator().inject(carrier)
+
+       fdb.archive(data, traceparent=carrier.get("traceparent"), tracestate=carrier.get("tracestate"))
+       fdb.flush(traceparent=carrier.get("traceparent"))
+
+A malformed ``traceparent`` raises ``ValueError``. ``None`` or an empty string means no context.
+The context is passed to the FDB when the call is made. For the methods that return a generator
+(``list``, ``inspect``, ``wipe``, ``purge``), that happens when the generator is first iterated.
+
 Command line tools
 ~~~~~~~~~~~~~~~~~~
 

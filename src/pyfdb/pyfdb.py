@@ -12,6 +12,7 @@ from pyfdb._internal import (
     Config,
     ConfigMapper,
     FDBToolRequest,
+    make_trace_context,
 )
 from pyfdb.pyfdb_iterator import (
     ControlElement,
@@ -132,7 +133,14 @@ class FDB:
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.flush()
 
-    def archive(self, data: bytes, identifier: MarsIdentifier | None = None):
+    def archive(
+        self,
+        data: bytes,
+        identifier: MarsIdentifier | None = None,
+        *,
+        traceparent: str | None = None,
+        tracestate: str | None = None,
+    ):
         """
         Archive binary data into the underlying FDB.
         In case an identifier is supplied, that identifier is used to archive the data.
@@ -151,6 +159,12 @@ class FDB:
             A unique identifier for the archived data.
             - If provided, the data will be stored under this identifier.
             - If None, the data will be archived without an explicit identifier, metadata has to be derivable from the data, which is interpreted as GRIB data.
+        `traceparent` : `str` | `None`, *optional*, keyword-only
+            W3C ``traceparent`` of the caller's span, e.g. injected by OpenTelemetry's ``TraceContextTextMapPropagator``.
+            The FDB records this call as a child span of it. If `None`, the FDB starts a new trace.
+            Raises `ValueError` if malformed.
+        `tracestate` : `str` | `None`, *optional*, keyword-only
+            W3C ``tracestate`` accompanying `traceparent`
 
         Note
         ----
@@ -169,20 +183,31 @@ class FDB:
         >>> fdb.archive(identifier=Identifier([("key-1", "value-1")]), data=filename.read_bytes())
         >>> fdb.flush() # Sync the archive call
         """
+        trace = make_trace_context(traceparent, tracestate)
         if identifier is None:
-            self.FDB.archive(data, len(data))
+            self.FDB.archive(data, len(data), trace)
         else:
             mapped_identifier = UserInputMapper.map_identifier_to_internal(identifier)
-            self.FDB.archive(mapped_identifier, data, len(data))
+            self.FDB.archive(mapped_identifier, data, len(data), trace)
 
-    def flush(self):
+    def flush(
+        self,
+        *,
+        traceparent: str | None = None,
+        tracestate: str | None = None,
+    ):
         """
         Flush all buffers and close all data handles of the underlying FDB into a consistent DB state.
         *Always safe to call*
 
         Parameters
         ----------
-        None
+        `traceparent` : `str` | `None`, *optional*, keyword-only
+            W3C ``traceparent`` of the caller's span, e.g. injected by OpenTelemetry's ``TraceContextTextMapPropagator``.
+            The FDB records this call as a child span of it. If `None`, the FDB starts a new trace.
+            Raises `ValueError` if malformed.
+        `tracestate` : `str` | `None`, *optional*, keyword-only
+            W3C ``tracestate`` accompanying `traceparent`
 
         Returns
         -------
@@ -195,9 +220,15 @@ class FDB:
         >>> fdb.archive(bytes=filename.read_bytes()) # Archive
         >>> fdb.flush() # Data is synced
         """
-        self.FDB.flush()
+        self.FDB.flush(make_trace_context(traceparent, tracestate))
 
-    def retrieve(self, mars_selection: MarsSelection) -> DataHandle:
+    def retrieve(
+        self,
+        mars_selection: MarsSelection,
+        *,
+        traceparent: str | None = None,
+        tracestate: str | None = None,
+    ) -> DataHandle:
         """
         Retrieve data which is specified by a MARS selection.
 
@@ -205,6 +236,12 @@ class FDB:
         ----------
         `mars_selection`
             MARS selection which describes the data which should be retrieved
+        `traceparent` : `str` | `None`, *optional*, keyword-only
+            W3C ``traceparent`` of the caller's span, e.g. injected by OpenTelemetry's ``TraceContextTextMapPropagator``.
+            The FDB records this call as a child span of it. If `None`, the FDB starts a new trace.
+            Raises `ValueError` if malformed.
+        `tracestate` : `str` | `None`, *optional*, keyword-only
+            W3C ``tracestate`` accompanying `traceparent`
 
         Note
         ----
@@ -232,14 +269,18 @@ class FDB:
         if len(mars_selection) == 0:
             raise TypeError("FDB.retrieve: Wildcard selection aren't support for retrieving.")
 
+        trace = make_trace_context(traceparent, tracestate)
         internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
-        return DataHandle(self.FDB.retrieve(internal_mars_selection), _internal=True)
+        return DataHandle(self.FDB.retrieve(internal_mars_selection, trace), _internal=True)
 
     def list(
         self,
         mars_selection: MarsSelection,
         include_masked: bool = False,
         level: int = 3,
+        *,
+        traceparent: str | None = None,
+        tracestate: str | None = None,
     ) -> Generator[ListElement, None, None]:
         """
         List data present at the underlying fdb archive and which can be retrieved.
@@ -253,6 +294,12 @@ class FDB:
         `level` : int [1-3], *optional*
             Specifies the FDB schema level of the elements which are matching the selection.
             A level of 1 means return a level 1 key (of the FDB schema) which is matching the MARS selection.
+        `traceparent` : `str` | `None`, *optional*, keyword-only
+            W3C ``traceparent`` of the caller's span, e.g. injected by OpenTelemetry's ``TraceContextTextMapPropagator``.
+            The FDB records this call as a child span of it. If `None`, the FDB starts a new trace.
+            Raises `ValueError` if malformed.
+        `tracestate` : `str` | `None`, *optional*, keyword-only
+            W3C ``tracestate`` accompanying `traceparent`
 
         Returns
         -------
@@ -307,14 +354,25 @@ class FDB:
 
         internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_internal_mars_selection(internal_mars_selection)
-        iterator = self.FDB.list(fdb_tool_request.tool_request, not include_masked, level)
+        iterator = self.FDB.list(
+            fdb_tool_request.tool_request,
+            not include_masked,
+            level,
+            make_trace_context(traceparent, tracestate),
+        )
         for list_element in iterator:
             try:
                 yield ListElement(list_element, _internal=True)
             except StopIteration:
                 return
 
-    def inspect(self, mars_selection: MarsSelection) -> Generator[ListElement, None, None]:
+    def inspect(
+        self,
+        mars_selection: MarsSelection,
+        *,
+        traceparent: str | None = None,
+        tracestate: str | None = None,
+    ) -> Generator[ListElement, None, None]:
         """
         Inspects the content of the underlying FDB and returns a generator of list elements
         describing which field was part of the MARS selection.
@@ -323,6 +381,12 @@ class FDB:
         ----------
         `mars_selection` : `MarsSelection`
             An MARS selection for which the inspect should be executed
+        `traceparent` : `str` | `None`, *optional*, keyword-only
+            W3C ``traceparent`` of the caller's span, e.g. injected by OpenTelemetry's ``TraceContextTextMapPropagator``.
+            The FDB records this call as a child span of it. If `None`, the FDB starts a new trace.
+            Raises `ValueError` if malformed.
+        `tracestate` : `str` | `None`, *optional*, keyword-only
+            W3C ``tracestate`` accompanying `traceparent`
 
         Returns
         -------
@@ -360,7 +424,7 @@ class FDB:
         timestamp=1762537447
         """
         internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
-        iterator = self.FDB.inspect(internal_mars_selection)
+        iterator = self.FDB.inspect(internal_mars_selection, make_trace_context(traceparent, tracestate))
         for inspect_element in iterator:
             try:
                 yield ListElement(inspect_element, _internal=True)
@@ -423,6 +487,9 @@ class FDB:
         doit: bool = False,
         porcelain: bool = False,
         unsafe_wipe_all: bool = False,
+        *,
+        traceparent: str | None = None,
+        tracestate: str | None = None,
     ) -> Generator[WipeElement, None, None]:
         """
         Wipe data from the database.
@@ -441,6 +508,12 @@ class FDB:
             Restricts the output to the wiped files
         `unsafe_wipe_all` : `bool`, *optional*
             Flag for disabling all security checks and force a wipe
+        `traceparent` : `str` | `None`, *optional*, keyword-only
+            W3C ``traceparent`` of the caller's span, e.g. injected by OpenTelemetry's ``TraceContextTextMapPropagator``.
+            The FDB records this call as a child span of it. If `None`, the FDB starts a new trace.
+            Raises `ValueError` if malformed.
+        `tracestate` : `str` | `None`, *optional*, keyword-only
+            W3C ``tracestate`` accompanying `traceparent`
 
         Returns
         -------
@@ -464,7 +537,13 @@ class FDB:
         """
         internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_internal_mars_selection(internal_mars_selection)
-        iterator = self.FDB.wipe(fdb_tool_request.tool_request, doit, porcelain, unsafe_wipe_all)
+        iterator = self.FDB.wipe(
+            fdb_tool_request.tool_request,
+            doit,
+            porcelain,
+            unsafe_wipe_all,
+            make_trace_context(traceparent, tracestate),
+        )
         for wipe_element in iterator:
             try:
                 yield WipeElement(wipe_element, _internal=True)
@@ -476,6 +555,9 @@ class FDB:
         mars_selection: MarsSelection,
         doit: bool = False,
         porcelain: bool = False,
+        *,
+        traceparent: str | None = None,
+        tracestate: str | None = None,
     ) -> Generator[PurgeElement, None, None]:
         """
         Remove duplicate data from the database.
@@ -495,6 +577,12 @@ class FDB:
             If true the wipe command is executed, per default there are only dry-run
         `porcelain` : `bool`, *optional*
             Restricts the output to the wiped files
+        `traceparent` : `str` | `None`, *optional*, keyword-only
+            W3C ``traceparent`` of the caller's span, e.g. injected by OpenTelemetry's ``TraceContextTextMapPropagator``.
+            The FDB records this call as a child span of it. If `None`, the FDB starts a new trace.
+            Raises `ValueError` if malformed.
+        `tracestate` : `str` | `None`, *optional*, keyword-only
+            W3C ``tracestate`` accompanying `traceparent`
 
         Returns
         -------
@@ -524,7 +612,12 @@ class FDB:
         """
         internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_internal_mars_selection(internal_mars_selection)
-        iterator = self.FDB.purge(fdb_tool_request.tool_request, doit, porcelain)
+        iterator = self.FDB.purge(
+            fdb_tool_request.tool_request,
+            doit,
+            porcelain,
+            make_trace_context(traceparent, tracestate),
+        )
         for purge_element in iterator:
             try:
                 yield PurgeElement(purge_element, _internal=True)
@@ -647,9 +740,7 @@ class FDB:
         """
         internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_internal_mars_selection(internal_mars_selection)
-        raw_control_identifiers = [
-            control_identifier._to_raw() for control_identifier in control_identifiers
-        ]
+        raw_control_identifiers = [control_identifier._to_raw() for control_identifier in control_identifiers]
         iterator = self.FDB.control(
             fdb_tool_request.tool_request,
             control_action._to_raw(),

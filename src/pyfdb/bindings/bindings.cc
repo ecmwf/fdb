@@ -42,11 +42,13 @@
 #include "fdb5/database/IndexStats.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/fdb5_version.h"
+#include "fdb5/tracing/TraceContext.h"
 #include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsRequest.h"
 
 namespace py = pybind11;
 namespace mars = metkit::mars;
+using fdb5::tracing::TraceContext;
 
 class PyDataHandle : public eckit::DataHandle, public py::trampoline_self_life_support {
 
@@ -521,47 +523,96 @@ PYBIND11_MODULE(_pyfdb_bindings, m) {
     // @brief FDB class
     //--------------------------------------------------
 
+    //--------------------------------------------------
+    // @brief W3C trace context of the caller, passed explicitly to the traced FDB calls
+    //--------------------------------------------------
+
+    py::class_<TraceContext>(m, "TraceContext")
+        .def(py::init())
+        .def(py::init([](const std::string& traceparent, const std::string& tracestate) {
+                 // fromTraceparent() only throws eckit::BadValue for a malformed value. n.b. caught as std::exception:
+                 // with the hidden visibility of the module, an eckit type may not match across library boundaries
+                 try {
+                     return TraceContext::fromTraceparent(traceparent, tracestate);
+                 }
+                 catch (const std::exception& e) {
+                     throw py::value_error(e.what());
+                 }
+             }),
+             py::arg("traceparent"), py::arg("tracestate") = "")
+        .def("valid", &TraceContext::valid)
+        .def("traceparent", &TraceContext::traceparent)
+        .def("tracestate", [](const TraceContext& trace) { return trace.traceState(); })
+        .def("__repr__", [](const TraceContext& trace) {
+            std::stringstream buf;
+            buf << trace;
+            return buf.str();
+        });
+
     py::class_<fdb5::FDB, py::smart_holder>(m, "FDB", py::release_gil_before_calling_cpp_dtor())
         .def(py::init(), py::call_guard<py::gil_scoped_release>())
         .def(py::init<const fdb5::Config&>(), py::call_guard<py::gil_scoped_release>())
+        // n.b. the traced calls take the caller's TraceContext explicitly (an invalid one if none), rather than through
+        // the thread's current context: the Python wrappers of the iterating calls are generators, which may only call
+        // the FDB long after, and in another scope than, the call that received the trace context
         .def(
-            "archive", [](fdb5::FDB& fdb, const char* data, const size_t length) { return fdb.archive(data, length); },
+            "archive",
+            [](fdb5::FDB& fdb, const char* data, const size_t length, const TraceContext& trace) {
+                return fdb.archive(data, length, trace);
+            },
             py::call_guard<py::gil_scoped_release>())
         .def(
             "archive",
             [](fdb5::FDB& fdb, const std::vector<std::tuple<std::string, std::string>>& key, const char* data,
-               const size_t length) {
+               const size_t length, const TraceContext& trace) {
                 fdb5::Key mapped_key{};
                 for (const auto& [k, v] : key) {
                     mapped_key.push(k, v);
                 }
-                return fdb.archive(mapped_key, data, length);
+                return fdb.archive(mapped_key, data, length, trace);
             },
             py::call_guard<py::gil_scoped_release>())
-        .def("flush", &fdb5::FDB::flush, py::call_guard<py::gil_scoped_release>())
+        .def(
+            "flush", [](fdb5::FDB& fdb, const TraceContext& trace) { fdb.flush(trace); },
+            py::call_guard<py::gil_scoped_release>())
         .def("retrieve",
-             [](fdb5::FDB& fdb, const std::map<std::string, std::vector<std::string>>& selection) {
+             [](fdb5::FDB& fdb, const std::map<std::string, std::vector<std::string>>& selection,
+                const TraceContext& trace) {
                  const auto mars_request = mars_request_from_map(selection);
                  py::gil_scoped_release gil;
-                 return fdb.retrieve(mars_request);
+                 return fdb.retrieve(mars_request, trace);
              })
         .def("inspect",
-             [](fdb5::FDB& fdb, const std::map<std::string, std::vector<std::string>>& selection) {
+             [](fdb5::FDB& fdb, const std::map<std::string, std::vector<std::string>>& selection,
+                const TraceContext& trace) {
                  const auto mars_request = mars_request_from_map(selection);
                  py::gil_scoped_release gil;
-                 return fdb.inspect(mars_request);
+                 return fdb.inspect(mars_request, trace);
              })
         .def(
             "list",
-            [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request, bool deduplicate, int level) {
-                return fdb.list(tool_request, deduplicate, level);
+            [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request, bool deduplicate, int level,
+               const TraceContext& trace) { return fdb.list(tool_request, deduplicate, level, trace); },
+            py::call_guard<py::gil_scoped_release>())
+        .def(
+            "inspect",
+            [](fdb5::FDB& fdb, const metkit::mars::MarsRequest& request, const TraceContext& trace) {
+                return fdb.inspect(request, trace);
             },
             py::call_guard<py::gil_scoped_release>())
-        .def("inspect", &fdb5::FDB::inspect, py::call_guard<py::gil_scoped_release>())
         .def("dump", &fdb5::FDB::dump, py::call_guard<py::gil_scoped_release>())
         .def("status", &fdb5::FDB::status, py::call_guard<py::gil_scoped_release>())
-        .def("wipe", &fdb5::FDB::wipe, py::call_guard<py::gil_scoped_release>())
-        .def("purge", &fdb5::FDB::purge, py::call_guard<py::gil_scoped_release>())
+        .def(
+            "wipe",
+            [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request, bool doit, bool porcelain,
+               bool unsafe_wipe_all,
+               const TraceContext& trace) { return fdb.wipe(tool_request, doit, porcelain, unsafe_wipe_all, trace); },
+            py::call_guard<py::gil_scoped_release>())
+        .def(
+            "purge",
+            [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request, bool doit, bool porcelain,
+               const TraceContext& trace) { return fdb.purge(tool_request, doit, porcelain, trace); },
+            py::call_guard<py::gil_scoped_release>())
         .def(
             "stats", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request) { return fdb.stats(tool_request); },
             py::call_guard<py::gil_scoped_release>())

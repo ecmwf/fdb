@@ -146,3 +146,20 @@ class ConfigMapper:
     @classmethod
     def from_json(cls, config: str) -> dict[str, Any]:
         return json.loads(config)
+
+
+def make_trace_context(traceparent: str | None, tracestate: str | None) -> _bindings.TraceContext:
+    """
+    Builds the trace context passed to the traced FDB calls from W3C Trace Context strings.
+
+    No `traceparent` (`None` or empty) gives an invalid context: the FDB then continues the trace current on the
+    calling thread, if any, or starts a new one. A `tracestate` without `traceparent` is ignored, as W3C requires.
+
+    Raises
+    ------
+    ValueError
+        If `traceparent` is malformed
+    """
+    if not traceparent:
+        return _bindings.TraceContext()
+    return _bindings.TraceContext(traceparent, tracestate or "")
