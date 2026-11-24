@@ -1,0 +1,6 @@
+# BEGIN org baseline: maintainers own .github/, .ci/ and CODEOWNERS
+/.github/ @caraghbiner @danovaro @mcocdawc
+/.ci/ @caraghbiner @danovaro @mcocdawc
+/CODEOWNERS @caraghbiner @danovaro @mcocdawc
+/docs/CODEOWNERS @caraghbiner @danovaro @mcocdawc
+# END org baseline
