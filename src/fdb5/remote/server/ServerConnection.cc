@@ -234,12 +234,30 @@ bool ServerConnection::initialiseConnections() {
     MessageHeader hdr;
     eckit::Buffer payload1 = readControl(hdr);
 
-    ASSERT(hdr.message == Message::Startup);
-    ASSERT(hdr.requestID == 0);
+    // n.b. read from the network: never trusted with an ASSERT
+    if (hdr.message != Message::Startup || hdr.requestID != 0) {
+        std::ostringstream ss;
+        ss << "expected the Startup message, received " << hdr.message << " [requestID=" << hdr.requestID << "]";
+        throw RemoteProtocolException(ss.str(), Here());
+    }
+
+    // A payload that cannot be decoded is reported as such, rather than by the error of the stream
+    const auto invalidStartup = [](const std::exception& e) {
+        return RemoteProtocolException(std::string("invalid Startup message: ") + e.what(), Here());
+    };
 
     eckit::MemoryStream s1(payload1);
-    eckit::SessionID clientSession(s1);
-    eckit::net::Endpoint endpointFromClient(s1);
+    std::optional<eckit::SessionID> clientSessionRead;
+    std::optional<eckit::net::Endpoint> endpointRead;
+    try {
+        clientSessionRead.emplace(s1);
+        endpointRead.emplace(s1);
+    }
+    catch (const std::exception& e) {
+        throw invalidStartup(e);
+    }
+    eckit::SessionID& clientSession = *clientSessionRead;  // n.b. its comparison is not const
+    const eckit::net::Endpoint& endpointFromClient = *endpointRead;
     unsigned int remoteProtocolVersion = 0;
 
     try {
@@ -260,7 +278,14 @@ bool ServerConnection::initialiseConnections() {
         return false;
     }
 
-    RemoteConfiguration clientConf{s1};
+    std::optional<RemoteConfiguration> clientConfRead;
+    try {
+        clientConfRead.emplace(s1);
+    }
+    catch (const std::exception& e) {
+        throw invalidStartup(e);
+    }
+    RemoteConfiguration& clientConf = *clientConfRead;
     RemoteConfiguration serverConf = availableFunctionality();
     try {
         agreedConf_ = RemoteConfiguration::common(clientConf, serverConf);
@@ -564,7 +589,7 @@ void ServerConnection::listenControl(std::thread& listeningThreadData) {
 
         if (hdr.message == Message::Stop) {
             ASSERT(hdr.clientID());
-            remove(true, hdr.clientID());
+            remove(hdr.clientID());
         }
         else {
             if (hdr.message == Message::Exit) {

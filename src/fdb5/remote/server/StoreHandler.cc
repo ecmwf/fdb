@@ -293,26 +293,15 @@ void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buf
     Log::status() << "Flush complete" << std::endl;
 }
 
-bool StoreHandler::remove(bool control, uint32_t clientID) {
+void StoreHandler::remove(uint32_t clientID) {
 
     std::lock_guard<std::mutex> lock(handlerMutex_);
 
     // The client is gone (Stop), whether or not it has a store yet: what is still queued for it (e.g. a first field
-    // not archived yet) is discarded, rather than creating a store for it (see store())
+    // not archived yet) is discarded, rather than creating a store for it (see store()). Its store is released as
+    // soon as nobody uses it any more (see getStore()).
     removedClients_.insert(clientID);
-
-    auto it = stores_.find(clientID);
-    if (it != stores_.end()) {
-        // its store is released as soon as nobody uses it any more (see getStore())
-        if (it->second->controlConnection) {
-            numControlConnection_--;
-        }
-        if (it->second->dataConnection) {
-            numDataConnection_--;
-        }
-        stores_.erase(it);
-    }
-    return ((control ? numControlConnection_ : numDataConnection_) == 0);
+    stores_.erase(clientID);
 }
 
 std::shared_ptr<Store> StoreHandler::getStore(uint32_t clientID) {
@@ -341,11 +330,7 @@ std::shared_ptr<Store> StoreHandler::store(uint32_t clientID, const Key& dbKey) 
         if (removedClient(clientID)) {
             return nullptr;
         }
-        it = stores_.emplace(clientID, std::make_shared<StoreHelper>(!single_, dbKey, innerConfig_)).first;
-        numControlConnection_++;
-        if (!single_) {
-            numDataConnection_++;
-        }
+        it = stores_.emplace(clientID, std::make_shared<StoreHelper>(dbKey, innerConfig_)).first;
     }
     return std::shared_ptr<Store>(it->second, it->second->store.get());
 }
@@ -355,11 +340,7 @@ std::shared_ptr<Store> StoreHandler::getStore(uint32_t clientID, const eckit::UR
     std::lock_guard<std::mutex> lock(handlerMutex_);
     auto it = stores_.find(clientID);
     if (it == stores_.end()) {
-        it = stores_.emplace(clientID, std::make_shared<StoreHelper>(!single_, uri, innerConfig_)).first;
-        numControlConnection_++;
-        if (!single_) {
-            numDataConnection_++;
-        }
+        it = stores_.emplace(clientID, std::make_shared<StoreHelper>(uri, innerConfig_)).first;
     }
     return std::shared_ptr<Store>(it->second, it->second->store.get());
 }

@@ -117,6 +117,9 @@ public:  // methods
     /// False once the connection is lost (or torn down): requests would fail
     bool connectionUsable() const { return connection_->usable(); }
 
+    /// Joins the threads of a connection that is over (see ClientConnection::reclaimThreads())
+    bool reclaimConnectionThreads() { return connection_->reclaimThreads(); }
+
 protected:
 
     // Deregister this client from its connection. Idempotent.

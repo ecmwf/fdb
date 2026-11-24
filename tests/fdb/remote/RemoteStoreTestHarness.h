@@ -31,6 +31,9 @@ public:
         uint32_t requestID = store.generateRequestID();
         return {requestID, store.requests_.add(requestID, 320).release()};
     }
+
+    // whether the threads of the connection of the store have been joined
+    static bool connectionThreadsReclaimed(RemoteStore& store) { return store.connection_->threadsReclaimed(); }
 };
 
 }  // namespace fdb5::remote

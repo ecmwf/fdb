@@ -354,29 +354,41 @@ bool Connection::tryWriteBounded(Message message, bool control, uint32_t clientI
         auto& tcpSocket = const_cast<eckit::net::TCPSocket&>(getSocket(control));
         const int fd = tcpSocket.eckit::net::TCPSocket::socket();
 
-        // The send timeout only affects the writes, not the threads that are reading from the same socket. The
-        // mutex is held, so nobody else writes meanwhile.
-        timeval previous{};
-        socklen_t previousLength = sizeof(previous);
-        if (::getsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &previous, &previousLength) != 0) {
-            return false;
-        }
-        const timeval bound{0, errorSendTimeoutMicroseconds};
-        if (::setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &bound, sizeof(bound)) != 0) {
-            return false;
-        }
-
-        int flags = 0;
+        // Non-blocking sends, waiting (poll) for room in the send buffer until the deadline: no socket option is
+        // changed (the socket is shared with its reader), and a frame sent in several parts is completed in time.
+        // If the deadline passes with only part of the frame sent, the peer is left with a truncated frame: the caller
+        // aborts the connection right after, so the peer sees a lost connection.
+        int flags = MSG_DONTWAIT;
 #ifdef MSG_NOSIGNAL
         flags |= MSG_NOSIGNAL;
 #endif
-        // If the timeout expires with only part of the frame sent, the peer is left with a truncated frame: the
-        // caller aborts the connection right after, so the peer sees a lost connection.
-        const auto sent = ::send(fd, frame.data(), frame.size(), flags);
-
-        ::setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &previous, previousLength);
-
-        return sent == static_cast<ssize_t>(frame.size());
+        const auto sendDeadline =
+            std::chrono::steady_clock::now() + std::chrono::microseconds(errorSendTimeoutMicroseconds);
+        size_t sent = 0;
+        while (sent < frame.size()) {
+            const auto n = ::send(fd, frame.data() + sent, frame.size() - sent, flags);
+            if (n > 0) {
+                sent += static_cast<size_t>(n);
+                continue;
+            }
+            if (n < 0 && errno == EINTR) {
+                continue;
+            }
+            if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+                const auto now = std::chrono::steady_clock::now();
+                if (now >= sendDeadline) {
+                    return false;
+                }
+                pollfd pfd{fd, POLLOUT, 0};
+                const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(sendDeadline - now);
+                if (::poll(&pfd, 1, static_cast<int>(remaining.count()) + 1) < 0 && errno != EINTR) {
+                    return false;
+                }
+                continue;
+            }
+            return false;  // e.g. the connection was reset
+        }
+        return true;
     }
     catch (...) {
         return false;

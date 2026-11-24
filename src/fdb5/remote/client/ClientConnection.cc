@@ -80,11 +80,7 @@ public:
 //----------------------------------------------------------------------------------------------------------------------
 
 ClientConnection::ClientConnection(const net::Endpoint& controlEndpoint, const std::string& defaultEndpoint) :
-    controlEndpoint_(controlEndpoint),
-    defaultEndpoint_(defaultEndpoint),
-    id_(1),
-    connected_(false),
-    dataWriteQueue_(nullptr) {
+    controlEndpoint_(controlEndpoint), defaultEndpoint_(defaultEndpoint), id_(1), connected_(false), dataWriteQueue_{} {
 
     LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::ClientConnection() controlEndpoint: " << controlEndpoint << std::endl;
 }
@@ -267,6 +263,44 @@ bool ClientConnection::connect(const Configuration& config, bool singleAttempt) 
     return connected_;
 }
 
+bool ClientConnection::reclaimThreads() noexcept {
+    if (threadsReclaimed_) {
+        return true;
+    }
+    // only once the connection is over: both listeners have stopped (and released the sockets, see listenerStopped())
+    if (!connected_ || runningListeners_ != 0) {
+        return false;
+    }
+    try {
+        std::lock_guard lock(threadsMutex_);
+        {
+            // nothing more can be written: the writer ends (n.b. new writes are refused, see dataWrite())
+            std::lock_guard writeLock(dataWriteMutex_);
+            if (dataWriteQueue_) {
+                dataWriteQueue_->close();
+            }
+        }
+        joinThreads();
+        threadsReclaimed_ = true;
+        return true;
+    }
+    catch (...) {
+        return false;
+    }
+}
+
+void ClientConnection::joinThreads() {
+    if (dataWriteThread_.joinable()) {
+        dataWriteThread_.join();
+    }
+    if (listeningDataThread_.joinable()) {
+        listeningDataThread_.join();
+    }
+    if (listeningControlThread_.joinable()) {
+        listeningControlThread_.join();
+    }
+}
+
 void ClientConnection::disconnect() {
 
     {
@@ -275,14 +309,9 @@ void ClientConnection::disconnect() {
     }
 
     if (connected_) {
-        if (dataWriteThread_.joinable()) {
-            dataWriteThread_.join();
-        }
-        if (listeningDataThread_.joinable()) {
-            listeningDataThread_.join();
-        }
-        if (listeningControlThread_.joinable()) {
-            listeningControlThread_.join();
+        {
+            std::lock_guard lock(threadsMutex_);
+            joinThreads();
         }
 
         // Close both the control and data connections
@@ -382,15 +411,27 @@ void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t r
         ASSERT(clients_.find(client.clientId()) != clients_.end());
     }
 
+    std::shared_ptr<Queue<DataWriteRequest>> queue;
     {
         std::lock_guard lock(dataWriteMutex_);
+        // n.b. checked under the lock: a connection that is over never restarts its writer (see reclaimThreads())
+        if (!valid()) {
+            throw RemoteFDBException("Connection to " + std::string(controlEndpoint_) + " is no longer valid",
+                                     controlEndpoint_);
+        }
         if (!dataWriteThread_.joinable()) {
             // Reset the queue after previous done/errors
             ASSERT(!dataWriteQueue_);
 
-            dataWriteQueue_ = std::make_unique<Queue<DataWriteRequest>>(maxQueueLength);
-            dataWriteThread_ = std::thread([this] { dataWriteThreadLoop(); });
+            dataWriteQueue_ = std::make_shared<Queue<DataWriteRequest>>(maxQueueLength);
+            dataWriteThread_ = std::thread([this, queue = dataWriteQueue_] { dataWriteThreadLoop(queue); });
         }
+        // n.b. kept until the request is queued: the connection may end meanwhile, and the queue be released
+        queue = dataWriteQueue_;
+    }
+
+    if (const auto hook = dataWriteHook_.load()) {
+        hook();
     }
 
     uint32_t payloadLength = 0;
@@ -406,15 +447,33 @@ void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t r
         offset += payload.length;
     }
 
-    dataWriteQueue_->emplace(client.clientId(), msg, requestID, std::move(buffer));
+    // n.b. without the lock: this blocks while the queue is full
+    enqueueDataWrite(*queue, DataWriteRequest{client.clientId(), msg, requestID, std::move(buffer)});
 }
 
-void ClientConnection::dataWriteThreadLoop() {
+void ClientConnection::enqueueDataWrite(Queue<DataWriteRequest>& queue, DataWriteRequest&& request) const {
+    const auto noLongerValid = [this] {
+        return RemoteFDBException("Connection to " + std::string(controlEndpoint_) + " is no longer valid",
+                                  controlEndpoint_);
+    };
+    // n.b. a queue interrupted by a failure of the writer rethrows that failure; a queue closed because the connection
+    // is over (see reclaimThreads()) refuses the request: the caller gets a connection error
+    try {
+        queue.emplace(std::move(request));
+    }
+    catch (const eckit::AssertionFailed&) {
+        if (queue.closed()) {
+            throw noLongerValid();
+        }
+        throw;
+    }
+}
+
+void ClientConnection::dataWriteThreadLoop(const std::shared_ptr<Queue<DataWriteRequest>>& queue) {
 
     Timer timer;
     DataWriteRequest element;
 
-    auto* queue = dataWriteQueue_.get();
     ASSERT(queue);
 
     try {
@@ -430,8 +489,12 @@ void ClientConnection::dataWriteThreadLoop() {
             dataWrite(element);
         }
 
+        // the queue is closed: release it, unless a new one has replaced it meanwhile (n.b. a producer may still hold
+        // a reference: it finds it closed)
         std::lock_guard lock(dataWriteMutex_);
-        dataWriteQueue_.reset();
+        if (dataWriteQueue_ == queue) {
+            dataWriteQueue_.reset();
+        }
     }
     catch (...) {
         // we must not rethrow in thread (that would std::terminate)
@@ -443,23 +506,30 @@ void ClientConnection::dataWriteThreadLoop() {
 
 void ClientConnection::flushDataWrites() {
     std::future<void> written;
+    std::shared_ptr<std::promise<void>> barrier;
+    std::shared_ptr<Queue<DataWriteRequest>> queue;
     {
         std::lock_guard lock(dataWriteMutex_);
         if (!dataWriteQueue_) {
             return;
         }
-        auto barrier = std::make_shared<std::promise<void>>();
+        queue = dataWriteQueue_;  // n.b. kept until the barrier is queued
+        barrier = std::make_shared<std::promise<void>>();
         written = barrier->get_future();
         dataBarriers_.push_back(barrier);
-        try {
-            dataWriteQueue_->emplace(barrier);
-        }
-        catch (...) {
-            LOG_DEBUG_LIB(LibFdb5) << "flushDataWrites - failed to enqueue barrier!" << std::endl;
-            dataBarriers_.pop_back();
-            throw;
-        }
     }
+
+    // n.b. without the lock: this blocks while the queue is full
+    try {
+        enqueueDataWrite(*queue, DataWriteRequest{barrier});
+    }
+    catch (...) {
+        LOG_DEBUG_LIB(LibFdb5) << "flushDataWrites - failed to enqueue barrier!" << std::endl;
+        std::lock_guard lock(dataWriteMutex_);
+        dataBarriers_.erase(std::remove(dataBarriers_.begin(), dataBarriers_.end(), barrier), dataBarriers_.end());
+        throw;
+    }
+
     // block until the writer reaches the barrier (or the connection fails)
     written.get();
 }
@@ -649,6 +719,19 @@ void ClientConnection::handleConnectionError(const std::exception_ptr& eptr) {
     endConnection();
 }
 
+void ClientConnection::dataListenerEnded() {
+    {
+        std::lock_guard lock(controlListenerMutex_);
+        dataListenerEnded_ = true;
+    }
+    controlListenerCondition_.notify_all();
+}
+
+bool ClientConnection::awaitDataListener(std::chrono::milliseconds timeout) {
+    std::unique_lock lock(controlListenerMutex_);
+    return controlListenerCondition_.wait_for(lock, timeout, [this] { return dataListenerEnded_; });
+}
+
 bool ClientConnection::awaitControlListener(std::chrono::milliseconds timeout) {
     std::unique_lock lock(controlListenerMutex_);
     return controlListenerCondition_.wait_for(lock, timeout, [this] { return controlListenerDone_; });
@@ -704,6 +787,12 @@ void ClientConnection::listeningControlThreadLoop() {
                     // there is no data listener to end the streamed requests (reads, lists): their messages would
                     // have come on this socket
                     closeConnection(closureReason());
+                }
+                else if (!awaitDataListener()) {
+                    // The server ends the data channel first: the messages it sent before are left to the data
+                    // listener (bounded). It did not: end the streamed requests, and wake the data listener up.
+                    closeConnection(closureReason());
+                    abortConnection();
                 }
                 return;
             }
@@ -874,6 +963,7 @@ void ClientConnection::listeningDataThreadLoop() {
 
             if (hdr.message == Message::Exit) {
                 invalidate();
+                dataListenerEnded();
                 awaitControlListener();
                 // if the control listener has seen the server's error, the clients get that rather than a closure
                 closeConnection(closureReason());
@@ -932,6 +1022,7 @@ void ClientConnection::listeningDataThreadLoop() {
         // We don't want to let exceptions escape inside a worker thread.
     }
     catch (...) {
+        dataListenerEnded();
         awaitControlListener();
         handleConnectionError(std::current_exception());
     }

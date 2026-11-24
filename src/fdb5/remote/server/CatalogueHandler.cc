@@ -38,7 +38,7 @@ namespace fdb5::remote {
 // ***************************************************************************************
 
 CatalogueHandler::CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config) :
-    ServerConnection(socket, config), fdbControlConnection_(false), fdbDataConnection_(false) {}
+    ServerConnection(socket, config) {}
 
 CatalogueHandler::~CatalogueHandler() {
     // the workers use the members of this class
@@ -55,12 +55,6 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 auto it = fdbs_.find(clientID);
                 if (it == fdbs_.end()) {
                     fdbs_.emplace(clientID, std::make_shared<FDB>(innerConfig_));
-                    fdbControlConnection_ = true;
-                    fdbDataConnection_ = !single_;
-                    numControlConnection_++;
-                    if (fdbDataConnection_) {
-                        numDataConnection_++;
-                    }
                 }
             }
                 schema(clientID, requestID, eckit::Buffer(0));
@@ -560,37 +554,15 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
     }
 }
 
-bool CatalogueHandler::remove(bool control, uint32_t clientID) {
+void CatalogueHandler::remove(uint32_t clientID) {
 
     std::lock_guard<std::mutex> lock(handlerMutex_);
 
     // The client is gone (Stop): its state is released as soon as nobody uses it any more (see catalogueArchiver(),
-    // fdb()). n.b. in dual-connection mode there is no Stop on the data connection.
-    // It is marked as removed whether or not it has a state yet: what is still queued for it is discarded.
+    // fdb()). It is marked as removed whether or not it has a state yet: what is still queued for it is discarded.
     removedClients_.insert(clientID);
-
-    // is the client an FDB
-    if (auto it = fdbs_.find(clientID); it != fdbs_.end()) {
-        if (fdbControlConnection_) {
-            numControlConnection_--;
-        }
-        if (fdbDataConnection_) {
-            numDataConnection_--;
-        }
-        fdbControlConnection_ = false;
-        fdbDataConnection_ = false;
-        fdbs_.erase(it);
-    }
-    else if (auto it = catalogues_.find(clientID); it != catalogues_.end()) {
-        if (it->second->controlConnection) {
-            numControlConnection_--;
-        }
-        if (it->second->dataConnection) {
-            numDataConnection_--;
-        }
-        catalogues_.erase(it);
-    }
-    return ((control ? numControlConnection_ : numDataConnection_) == 0);
+    fdbs_.erase(clientID);
+    catalogues_.erase(clientID);
 }
 
 CatalogueWriter& CatalogueHandler::catalogue(uint32_t id, const Key& dbKey) {
@@ -598,11 +570,7 @@ CatalogueWriter& CatalogueHandler::catalogue(uint32_t id, const Key& dbKey) {
     auto it = catalogues_.find(id);
     if (it == catalogues_.end()) {
         // n.b. building a catalogue writer creates the database: only once per client
-        it = catalogues_.emplace(id, std::make_shared<CatalogueArchiver>(!single_, dbKey, innerConfig_)).first;
-        numControlConnection_++;
-        if (!single_) {
-            numDataConnection_++;
-        }
+        it = catalogues_.emplace(id, std::make_shared<CatalogueArchiver>(dbKey, innerConfig_)).first;
     }
     return *(it->second->catalogue);
 }

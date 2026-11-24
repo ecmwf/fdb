@@ -118,7 +118,7 @@ Every message is ``header | payload | "EFDB"``:
      -
    * - hash
      - 16
-     -
+     - reserved: never set nor checked (hashing every payload, up to the size of a field, would be expensive)
 
 * The lowest bit of the ``clientID`` field says whether the message belongs to the **control** (1) or **data** (0)
   channel. ``clientID == 0`` is reserved for connection-level messages (``Startup``, ``Exit``).
@@ -478,10 +478,19 @@ Invariants worth keeping:
 * On the server, the state of a client (store, catalogue, FDB) is looked up, created and removed under
   ``handlerMutex_`` only, and pinned (``shared_ptr``) by whoever uses it: a ``Stop`` removes it at any time, and it
   is released when its last user is done.
+* The location of an archived field, received by the listener of the connection to the store, is only queued: a
+  thread of the ``RemoteStore`` forwards it to the catalogue (``Locations``). The listener never waits for another
+  connection (a slow catalogue would otherwise stall the store connection, and the destruction of its clients); a
+  failure of the catalogue fails the archival (``flush()`` reports it), not the connection to the store.
 * ``RemoteStore::get()`` caches one read store per endpoint: a store whose connection is lost is replaced by one with
-  a new connection (the old one is kept, as other threads may still hold it).
+  a new connection (the old one is kept, as other threads may still hold it, but the threads of its connection are
+  joined as soon as they have stopped, see ``ClientConnection::reclaimThreads()``). The queue of the data writer is
+  shared: a producer keeps a reference while it queues a request, without the lock, so the queue may be closed and
+  released meanwhile; it then gets a connection error, never a released queue.
 * An ``Exit`` from the server ends the connection on both channels: it is marked invalid, the blocking requests are
-  failed and, in single-connection mode (no data listener), the streamed requests too.
+  failed and, in single-connection mode (no data listener), the streamed requests too. In dual-connection mode the
+  server ends the data channel first: the data listener is given a bounded time (2 s) to read what was sent before;
+  if the data channel has not ended by then, the streamed requests are failed and the connection is aborted.
 * A failure on one channel ends the connection on both: after the (bounded) wait for the error of the server,
   ``handleConnectionError`` ends the connection (``Connection::endConnection()``), which wakes up the listener of the
   other channel, whose socket may still be healthy.

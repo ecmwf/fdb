@@ -32,12 +32,15 @@
 #include <sys/types.h>
 
 #include <chrono>
+#include <condition_variable>
 #include <csignal>
 #include <cstdlib>
 #include <future>
 #include <iostream>
 #include <map>
 #include <memory>
+#include <mutex>
+#include <set>
 #include <string>
 #include <thread>
 #include <vector>
@@ -102,29 +105,49 @@ void restartServer(const char* scriptVariable) {
 }
 
 
-// A client of the store server that archives one field, and goes away without waiting: its Stop can overtake its field
-class AbandoningStoreClient : public remote::Client {
+// A client of the store server that archives fields, and knows when the server has archived them (the server sends
+// the location of each field once it is archived, in order)
+class StoreTestClient : public remote::Client {
 public:
 
-    explicit AbandoningStoreClient(const Config& config) :
+    explicit StoreTestClient(const Config& config) :
         Client(config, eckit::net::Endpoint("localhost", storePort()), ""), config_(config) {}
-    ~AbandoningStoreClient() override { deregister(); }
+    ~StoreTestClient() override { deregister(); }
 
-    void archiveLargeField(const Key& dbKey, const Key& idxKey) {
+    // @returns the requestID of the field
+    uint32_t archive(const Key& dbKey, const Key& idxKey, size_t size) {
         const uint32_t id = generateRequestID();
-        controlWriteCheckResponse(remote::Message::Store, id, true);
-
+        if (!archiving_) {
+            controlWriteCheckResponse(remote::Message::Store, generateRequestID(), true);
+            archiving_ = true;
+        }
         eckit::Buffer keys(4096);
         eckit::MemoryStream s(keys);
         s << dbKey;
         s << idxKey;
-        static const std::vector<char> data(64 * 1024 * 1024, 'x');  // takes a while to reach the server
+        std::vector<char> data(size, 'x');
         dataWrite(remote::Message::Blob, id, {{s.position(), keys.data()}, {data.size(), data.data()}});
+        return id;
+    }
+
+    // @returns false if the location of the field has not been received in time
+    bool awaitArchived(uint32_t requestID, std::chrono::seconds timeout) {
+        std::unique_lock lock(mutex_);
+        return archived_.wait_for(lock, timeout, [&] { return locations_.count(requestID) != 0; });
     }
 
     const eckit::Configuration& clientConfig() const override { return config_; }
     bool handle(remote::Message, uint32_t) override { return true; }
-    bool handle(remote::Message, uint32_t, eckit::Buffer&&) override { return true; }
+    bool handle(remote::Message message, uint32_t requestID, eckit::Buffer&&) override {
+        if (message == remote::Message::Store) {
+            {
+                std::lock_guard lock(mutex_);
+                locations_.insert(requestID);
+            }
+            archived_.notify_all();
+        }
+        return true;
+    }
 
 private:
 
@@ -137,6 +160,10 @@ private:
     }
 
     Config config_;
+    bool archiving_ = false;
+    std::mutex mutex_;
+    std::condition_variable archived_;
+    std::set<uint32_t> locations_;
 };
 
 // True if a database directory of the store root is for the given date
@@ -241,6 +268,7 @@ CASE("Remote FDB: an abandoned list does not block the other requests of the con
 
 CASE("Remote FDB: a catalogue client that goes away without flushing does not break its connection") {
     const std::string date = "20600102";
+    const std::string abandonedDate = "20600105";
     archiveFields(date);  // creates the database
 
     const Config config = Config{}.expandConfig();
@@ -253,7 +281,9 @@ CASE("Remote FDB: a catalogue client that goes away without flushing does not br
         dbKey.set("stream", "oper");
         dbKey.set("time", "0000");
         dbKey.set("domain", "g");
-        dbKey.set("date", date);
+        // its own database: the locations it archived before going away may be flushed when the server releases its
+        // catalogue writer, they must not be counted below
+        dbKey.set("date", abandonedDate);
 
         remote::RemoteCatalogue catalogue(dbKey, config);
         catalogue.schema();  // the server opens the database for this client
@@ -286,24 +316,30 @@ CASE("Remote FDB: a catalogue client that goes away without flushing does not br
 
 CASE("Remote store: a field of a client that went away before it was archived is discarded") {
     const std::string date = "20600103";
+    const std::string otherDate = "20600106";
+
+    const auto dbKey = [](const std::string& d) {
+        return Key{{"class", "od"}, {"expver", "xxxx"}, {"stream", "oper"},
+                   {"date", d},     {"time", "0000"},   {"domain", "g"}};
+    };
+    const Key idxKey{{"type", "fc"}, {"levtype", "sfc"}};
+
+    // Two clients of the same connection, and of the same archive worker on the server: the fields of both go through
+    // the data connection, and are archived, in order
+    StoreTestClient other(Config{});
+    other.archive(dbKey(otherDate), idxKey, 64 * 1024 * 1024);  // takes a while to reach the server
 
     {
-        AbandoningStoreClient client(Config{});
-        Key dbKey;
-        dbKey.set("class", "od");
-        dbKey.set("expver", "xxxx");
-        dbKey.set("stream", "oper");
-        dbKey.set("date", date);
-        dbKey.set("time", "0000");
-        dbKey.set("domain", "g");
-        Key idxKey;
-        idxKey.set("type", "fc");
-        idxKey.set("levtype", "sfc");
-        client.archiveLargeField(dbKey, idxKey);
-    }  // its Stop reaches the server before the end of its field
+        StoreTestClient client(Config{});
+        client.archive(dbKey(date), idxKey, 1024);  // sent after the large field of the other client
+    }  // its Stop, on the control connection, reaches the server while its field is still behind the large one
 
-    // the server processes the field meanwhile: it must not create a store (a database) for the removed client
-    std::this_thread::sleep_for(std::chrono::seconds(3));
+    // a field of the other client, after the one of the removed client: once it is archived, the field of the removed
+    // client has been processed too
+    const uint32_t last = other.archive(dbKey(otherDate), idxKey, 1024);
+    EXPECT(other.awaitArchived(last, std::chrono::seconds(60)));
+
+    // it must not have created a store (a database) for the removed client
     EXPECT(!storeHasDatabase(date));
 }
 

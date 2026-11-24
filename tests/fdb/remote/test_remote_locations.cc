@@ -117,8 +117,55 @@ CASE("Locations: complete when all the locations have been received") {
 
     EXPECT(locations.location(1, nullptr));
 
-    EXPECT(locations.finished());
+    // n.b. forwarded to the catalogue by another thread
     EXPECT(locations.wait() == 1);
+    EXPECT(locations.finished());
+}
+
+CASE("Locations: a slow catalogue does not block the delivery of the locations") {
+    remote::Locations locations;
+
+    // the catalogue takes a while to archive the first location
+    std::promise<void> catalogueAnswers;
+    std::shared_future<void> answered = catalogueAnswers.get_future().share();
+    locations.archive(1, [answered](const std::unique_ptr<const FieldLocation>&) { answered.wait(); });
+    archive(locations, 2);
+    EXPECT(!locations.complete());
+
+    // the listener of the connection to the store delivers the locations without waiting for the catalogue
+    auto delivered = std::async(
+        std::launch::async, [&locations] { return locations.location(1, nullptr) && locations.location(2, nullptr); });
+    // n.b. declared after the future: the catalogue answers before the future waits, also if the test fails
+    struct Answer {
+        std::promise<void>& answer;
+        bool done = false;
+        void now() {
+            if (!done) {
+                done = true;
+                answer.set_value();
+            }
+        }
+        ~Answer() { now(); }
+    } answer{catalogueAnswers};
+
+    EXPECT(delivered.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
+    EXPECT(!locations.finished());  // not forwarded yet
+
+    answer.now();
+    EXPECT(delivered.get());
+    EXPECT(locations.wait() == 2);
+}
+
+CASE("Locations: a failure of the catalogue fails the archival, not the connection to the store") {
+    remote::Locations locations;
+
+    locations.archive(
+        1, [](const std::unique_ptr<const FieldLocation>&) { throw eckit::SeriousBug("synthetic catalogue failure"); });
+    EXPECT(!locations.complete());
+
+    EXPECT_NO_THROW(locations.location(1, nullptr));  // n.b. the listener of the connection is not affected
+    EXPECT_THROWS_AS(locations.wait(), eckit::SeriousBug);
+    EXPECT_THROWS_AS(locations.complete(), eckit::SeriousBug);
 }
 
 CASE("Locations: a failure that lands before the flush checks is not reported as completion") {
@@ -187,6 +234,49 @@ CASE("Locations: only the requests that are pending can fail the archival") {
     remote::Locations idle;
     idle.failPending(serverFailure());
     EXPECT(idle.complete());
+}
+
+CASE("Locations: a lost connection fails the flush while the last location is still being forwarded") {
+    // n.b. declared before the Locations: it outlives its forwarding thread, which may still use it when the Locations
+    // is destroyed (e.g. if the test fails before the callback has started)
+    std::promise<void> forwarding;
+
+    remote::Locations locations;
+
+    // the catalogue does not answer for the last location
+    std::promise<void> catalogueAnswers;
+    std::shared_future<void> answered = catalogueAnswers.get_future().share();
+    locations.archive(1, [answered, &forwarding](const std::unique_ptr<const FieldLocation>&) {
+        forwarding.set_value();
+        answered.wait();
+    });
+    EXPECT(!locations.complete());
+
+    auto waiter = std::async(std::launch::async, [&locations] { return locations.wait(); });
+    // n.b. declared after the future: the catalogue answers before the future waits, also if the test fails
+    struct Answer {
+        std::promise<void>& answer;
+        bool done = false;
+        void now() {
+            if (!done) {
+                done = true;
+                answer.set_value();
+            }
+        }
+        ~Answer() { now(); }
+    } answer{catalogueAnswers};
+
+    // the last location is received: nothing is expected from the store any more, but it is being forwarded
+    EXPECT(locations.location(1, nullptr));
+    auto forwardingStarted = forwarding.get_future();
+    EXPECT(forwardingStarted.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
+
+    // the connection to the store is lost: the flush fails now, it does not wait for the catalogue
+    locations.failPending(serverFailure());
+    EXPECT(waiter.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
+    EXPECT_THROWS_AS(static_cast<void>(waiter.get()), eckit::SeriousBug);
+
+    answer.now();
 }
 
 CASE("Locations: a connection lost before registration rejects a later archive") {

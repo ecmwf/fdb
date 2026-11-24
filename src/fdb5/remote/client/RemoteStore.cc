@@ -457,6 +457,13 @@ RemoteStore& RemoteStore::get(const eckit::URI& uri) {
     static std::vector<std::unique_ptr<RemoteStore>> retiredStores_;
 
     std::lock_guard lock(storeMutex_);
+
+    // The retired stores are kept, but the threads of their connections, which are over, are joined as soon as they
+    // have stopped (their sockets are already released). n.b. a flag check once done.
+    for (auto& retired : retiredStores_) {
+        retired->reclaimConnectionThreads();
+    }
+
     const std::string& endpoint = uri.hostport();
     auto it = readStores_.find(endpoint);
     if (it != readStores_.end()) {
@@ -467,6 +474,7 @@ RemoteStore& RemoteStore::get(const eckit::URI& uri) {
         Log::warning() << "Connection to " << endpoint << " lost: reconnecting" << std::endl;
         retiredStores_.push_back(std::move(it->second));
         readStores_.erase(it);
+        retiredStores_.back()->reclaimConnectionThreads();  // if its listeners have already stopped
     }
 
     return *(readStores_[endpoint] = std::make_unique<RemoteStore>(uri, Config()));

@@ -17,15 +17,10 @@ namespace fdb5::remote {
 //----------------------------------------------------------------------------------------------------------------------
 
 struct CatalogueArchiver {
-    CatalogueArchiver(bool dataConnection, const Key& dbKey, const Config& config) :
-        controlConnection(true),
-        dataConnection(dataConnection),
+    CatalogueArchiver(const Key& dbKey, const Config& config) :
         catalogue(CatalogueWriterFactory::instance().build(dbKey, config)),
         locationsExpected(0),
         locationsArchived(0) {}
-
-    bool controlConnection;
-    bool dataConnection;
 
     std::unique_ptr<CatalogueWriter> catalogue;
     size_t locationsExpected;
@@ -69,7 +64,7 @@ private:  // methods
 
     void archiveBlob(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) override;
 
-    bool remove(bool control, uint32_t clientID) override;
+    void remove(uint32_t clientID) override;
 
     CatalogueWriter& catalogue(uint32_t catalogueID, const Key& dbKey);
     // the archiver of a client, pinned. @returns null if there is none
@@ -96,8 +91,6 @@ private:  // member
 
     std::mutex fieldLocationsMutex_;
 
-    bool fdbControlConnection_;
-    bool fdbDataConnection_;
 
     struct WipeInProgress {
         bool unsafeWipeAll = false;

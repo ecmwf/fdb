@@ -42,7 +42,7 @@ private:  // methods
 
     void writeToParent(uint32_t clientID, uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh);
 
-    bool remove(bool control, uint32_t clientID) override;
+    void remove(uint32_t clientID) override;
 
     void finaliseWipeState(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
     void doWipeUnknowns(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
@@ -80,14 +80,9 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 struct StoreHandler::StoreHelper {
-    StoreHelper(bool dataConnection, const Key& dbKey, const Config& config) :
-        dataConnection(dataConnection), store(StoreFactory::instance().build(dbKey, config)) {}
+    StoreHelper(const Key& dbKey, const Config& config) : store(StoreFactory::instance().build(dbKey, config)) {}
 
-    StoreHelper(bool dataConnection, const eckit::URI& uri, const Config& config) :
-        dataConnection(dataConnection), store(StoreFactory::instance().build(uri, config)) {}
-
-    bool controlConnection{true};
-    bool dataConnection{false};
+    StoreHelper(const eckit::URI& uri, const Config& config) : store(StoreFactory::instance().build(uri, config)) {}
 
     std::unique_ptr<Store> store;
 };

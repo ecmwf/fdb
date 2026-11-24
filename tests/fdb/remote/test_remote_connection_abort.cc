@@ -13,6 +13,7 @@
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteConfiguration.h"
 #include "fdb5/remote/client/Client.h"
+#include "fdb5/remote/client/ClientConnection.h"
 #include "fdb5/remote/client/ReadLimiter.h"
 #include "fdb5/remote/client/RemoteCatalogue.h"
 #include "fdb5/remote/client/RemoteStore.h"
@@ -39,6 +40,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <csignal>
 #include <cstdlib>
 #include <future>
@@ -111,7 +113,7 @@ private:
     void archiveBlob(uint32_t, uint32_t, const void*, size_t) override {
         throw eckit::SeriousBug("synthetic archive failure");
     }
-    bool remove(bool, uint32_t) override { return false; }
+    void remove(uint32_t) override {}
 };
 
 struct BlockingDataState {
@@ -147,7 +149,7 @@ private:
         return remote::Handled::No;
     }
     void archiveBlob(uint32_t, uint32_t, const void*, size_t) override {}
-    bool remove(bool, uint32_t) override { return false; }
+    void remove(uint32_t) override {}
 
     BlockingDataState& state_;
 };
@@ -234,7 +236,7 @@ private:
         }
         throw eckit::SeriousBug("synthetic catalogue archive failure");
     }
-    bool remove(bool, uint32_t) override { return false; }
+    void remove(uint32_t) override {}
 
     FailingCatalogueState& state_;
     std::once_flag failingOnce_;
@@ -307,6 +309,9 @@ public:
     // a graceful end of the connection by the server (Exit)
     void end() { teardown(); }
 
+    // the server ends the control channel only, and leaves the data channel open (silent)
+    void endControlOnly() { write(remote::Message::Exit, true, 0, 0); }
+
     // the data connection fails, the control connection stays healthy (and silent)
     void failDataOnly() { shutdownSocket(false); }
 
@@ -317,7 +322,7 @@ private:
         return remote::Handled::No;
     }
     void archiveBlob(uint32_t, uint32_t, const void*, size_t) override {}
-    bool remove(bool, uint32_t) override { return false; }
+    void remove(uint32_t) override {}
 };
 
 
@@ -367,7 +372,7 @@ private:
         return remote::Handled::Replied;
     }
     void archiveBlob(uint32_t, uint32_t, const void*, size_t) override {}
-    bool remove(bool, uint32_t) override { return false; }
+    void remove(uint32_t) override {}
 
     DataFirstFailureState& state_;
     bool archivedSet_{false};
@@ -397,7 +402,7 @@ private:
     void archiveBlob(uint32_t, uint32_t, const void* data, size_t length) override {
         archived.emplace_back(static_cast<const char*>(data), length);
     }
-    bool remove(bool, uint32_t) override { return false; }
+    void remove(uint32_t) override {}
 };
 
 // Frames for a MultiBlob: [header, payload, end marker]...
@@ -432,7 +437,7 @@ private:
         return remote::Handled::No;
     }
     void archiveBlob(uint32_t, uint32_t, const void*, size_t) override {}
-    bool remove(bool, uint32_t) override { return false; }
+    void remove(uint32_t) override {}
 
     ReadServerState& state_;
 };
@@ -555,7 +560,7 @@ private:
         return remote::Handled::No;
     }
     void archiveBlob(uint32_t, uint32_t, const void*, size_t) override {}
-    bool remove(bool, uint32_t) override { return false; }
+    void remove(uint32_t) override {}
 };
 
 
@@ -597,7 +602,82 @@ private:
         return remote::Handled::No;
     }
     void archiveBlob(uint32_t, uint32_t, const void*, size_t) override { throw SlowDescriptionFailure(); }
-    bool remove(bool, uint32_t) override { return false; }
+    void remove(uint32_t) override {}
+};
+
+
+// A server that accepts archive data and discards it, and can end the connection gracefully
+class DiscardingConnection : public remote::ServerConnection {
+public:
+
+    DiscardingConnection(eckit::net::TCPSocket& socket, const Config& config) : ServerConnection(socket, config) {}
+
+    void end() { teardown(); }
+
+    remote::Handled handleData(remote::Message, uint32_t, uint32_t, eckit::Buffer&&) override {
+        return remote::Handled::Replied;
+    }
+
+private:
+
+    remote::Handled handleControl(remote::Message message, uint32_t, uint32_t) override {
+        return message == remote::Message::Store ? remote::Handled::YesAddArchiveListener : remote::Handled::No;
+    }
+    remote::Handled handleControl(remote::Message, uint32_t, uint32_t, eckit::Buffer&&) override {
+        return remote::Handled::No;
+    }
+    void archiveBlob(uint32_t, uint32_t, const void*, size_t) override {}
+    void remove(uint32_t) override {}
+};
+
+
+// Pauses the next data write once it holds the queue of the writer, and before it queues its request (see
+// ClientConnection::setDataWriteHook()), until it is released. The hook is removed when the gate is destroyed.
+class WriteGate {
+public:
+
+    WriteGate() {
+        std::lock_guard lock(mutex_);
+        paused_ = false;
+        released_ = false;
+        remote::ClientConnection::setDataWriteHook(&WriteGate::hook);
+    }
+
+    WriteGate(const WriteGate&) = delete;
+    WriteGate& operator=(const WriteGate&) = delete;
+
+    ~WriteGate() {
+        release();
+        remote::ClientConnection::setDataWriteHook(nullptr);
+    }
+
+    // @returns true once a write is paused
+    bool awaitPaused(std::chrono::seconds timeout) {
+        std::unique_lock lock(mutex_);
+        return condition_.wait_for(lock, timeout, [] { return paused_; });
+    }
+
+    void release() {
+        {
+            std::lock_guard lock(mutex_);
+            released_ = true;
+        }
+        condition_.notify_all();
+    }
+
+private:
+
+    static void hook() {
+        std::unique_lock lock(mutex_);
+        paused_ = true;
+        condition_.notify_all();
+        condition_.wait(lock, [] { return released_; });
+    }
+
+    static inline std::mutex mutex_;
+    static inline std::condition_variable condition_;
+    static inline bool paused_ = false;
+    static inline bool released_ = false;
 };
 
 }  // namespace
@@ -2065,6 +2145,211 @@ CASE("the failure of the last queued location is published before it stops count
     EXPECT(connection.failureRecorded());
 
     getOrDie(archive);
+}
+
+
+CASE("an Exit on the control channel only ends the streamed requests too, after a bounded wait for the data channel") {
+    eckit::net::TCPServer listener;
+    listener.socket();
+    const Config config = catalogueClientConfig(listener.localPort());  // dual connection
+
+    std::promise<FailingOnDemandConnection*> started;
+    std::promise<void> ended;
+    auto server = std::async(std::launch::async, [&] {
+        auto& socket = listener.accept();
+        FailingOnDemandConnection connection(socket, config);
+        started.set_value(&connection);
+        connection.handle();
+        ended.get_future().wait();
+        return true;
+    });
+
+    auto store = std::make_unique<remote::RemoteStore>(
+        eckit::URI("fdb://127.0.0.1:" + std::to_string(listener.localPort())), config);
+    auto startedFuture = started.get_future();
+    FailingOnDemandConnection* connection = getOrDie(startedFuture);
+    waitForServer(*store);
+
+    auto reader = startStoreReader(remote::RemoteStoreTestHarness::registerQueue(*store).second);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    const auto start = std::chrono::steady_clock::now();
+    connection->endControlOnly();
+
+    // the read waiting for the data channel is ended (after the bounded wait for the data channel to end)
+    const auto error = getOrDie(reader);
+    eckit::Log::info()
+        << "read ended after "
+        << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count()
+        << " ms with: " << error << std::endl;
+    EXPECT(error.find("closed") != std::string::npos);
+
+    // and the connection can be destroyed: nothing is left waiting on the open data channel
+    auto destroyed = std::async(std::launch::async, [&store] {
+        store.reset();
+        return true;
+    });
+    EXPECT(getOrDie(destroyed));
+
+    ended.set_value();
+    EXPECT(getOrDie(server));
+}
+
+CASE("a read store whose connection is lost is replaced, and the threads of its connection are joined") {
+    eckit::net::TCPServer listener;
+    listener.socket();
+    const eckit::URI uri("fdb://127.0.0.1:" + std::to_string(listener.localPort()));
+    Config serverConfig;  // n.b. RemoteStore::get() uses the default configuration
+
+    std::promise<FailingOnDemandConnection*> started;
+    std::promise<void> failed;
+    auto server = std::async(std::launch::async, [&] {
+        auto& socket = listener.accept();
+        FailingOnDemandConnection connection(socket, serverConfig);
+        started.set_value(&connection);
+        connection.handle();
+        failed.get_future().wait();
+        return true;
+    });
+
+    remote::RemoteStore& lost = remote::RemoteStore::get(uri);
+    auto startedFuture = started.get_future();
+    getOrDie(startedFuture)->fail("synthetic connection failure");
+    failed.set_value();
+    EXPECT(getOrDie(server));
+
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+    while (lost.connectionUsable() && std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+    EXPECT(!lost.connectionUsable());
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));  // its listeners stop
+    EXPECT(!remote::RemoteStoreTestHarness::connectionThreadsReclaimed(lost));
+
+    // The next read replaces the store (here the server does not answer any more: the new connection fails, which
+    // does not matter). The lost store is kept, as other threads may still use it, but not the threads of its
+    // connection.
+    {
+        ScopedEnv timeout("FDB_STARTUP_TIMEOUT", "1");
+        try {
+            static_cast<void>(remote::RemoteStore::get(uri));
+        }
+        catch (const std::exception& e) {
+            eckit::Log::info() << "reconnection failed with: " << e.what() << std::endl;
+        }
+    }
+    EXPECT(remote::RemoteStoreTestHarness::connectionThreadsReclaimed(lost));
+}
+
+
+CASE("a writer holding the queue while the connection ends and its threads are joined gets a connection error") {
+    eckit::net::TCPServer listener;
+    listener.socket();
+    const Config config = catalogueClientConfig(listener.localPort());  // dual connection
+
+    std::promise<DiscardingConnection*> started;
+    std::promise<void> ended;
+    auto server = std::async(std::launch::async, [&] {
+        auto& socket = listener.accept();
+        DiscardingConnection connection(socket, config);
+        started.set_value(&connection);
+        connection.handle();
+        ended.get_future().wait();
+        return true;
+    });
+
+    TestClient client(config, eckit::net::Endpoint("127.0.0.1", listener.localPort()));
+    auto startedFuture = started.get_future();
+    DiscardingConnection* connection = getOrDie(startedFuture);
+    client.controlWriteCheckResponse(remote::Message::Store, client.generateRequestID(), true);
+
+    // the server connection is destroyed only at the end, also if the test fails before
+    struct End {
+        std::promise<void>& ended;
+        bool done = false;
+        void now() {
+            if (!done) {
+                done = true;
+                ended.set_value();
+            }
+        }
+        ~End() { now(); }
+    } end{ended};
+
+    // the writer of the connection is started, and idle
+    const char byte = 'x';
+    client.dataWrite(remote::Message::Blob, 100, {{1, &byte}});
+
+    // A write that pauses once it holds the queue: the connection was valid
+    WriteGate gate;
+    auto writer = std::async(std::launch::async, [&client, &byte] {
+        try {
+            client.dataWrite(remote::Message::Blob, 101, {{1, &byte}});
+            return std::string("queued");
+        }
+        catch (const eckit::Exception& e) {
+            return std::string(e.what());
+        }
+    });
+    // n.b. declared after the future: released before the future waits for the write, also if the test fails
+    struct Release {
+        WriteGate& gate;
+        ~Release() { gate.release(); }
+    } release{gate};
+    EXPECT(gate.awaitPaused(std::chrono::seconds(30)));
+
+    // Meanwhile the connection ends, and its threads are joined: the idle writer finds its queue closed, and releases
+    // it. Only then does the write go on, and queue its request.
+    connection->end();
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+    while (!client.reclaimConnectionThreads() && std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    EXPECT(client.reclaimConnectionThreads());
+    gate.release();
+
+    // it gets a connection error from the closed queue it holds, never a released queue
+    const auto result = getOrDie(writer);
+    eckit::Log::info() << "paused write ended with: " << result << std::endl;
+    EXPECT(result.find("is no longer valid") != std::string::npos);
+
+    end.now();
+    EXPECT(getOrDie(server));
+}
+
+
+CASE("a startup message that cannot be decoded is reported as such to the client") {
+    eckit::net::TCPServer listener;
+    listener.socket();
+    Config config;
+    config.set("supportedConnections", std::vector<int>{2});
+
+    auto server = std::async(std::launch::async, [&] {
+        auto& socket = listener.accept();
+        FailingOnDemandConnection connection(socket, config);
+        connection.handle();
+        return true;
+    });
+
+    // a startup message whose payload is not a startup message
+    eckit::net::TCPClient client;
+    client.connect("127.0.0.1", listener.localPort());
+    const std::string garbage = "not a startup message";
+    const remote::MessageHeader hdr{remote::Message::Startup, true, 0, 0, static_cast<uint32_t>(garbage.size())};
+    client.write(&hdr, sizeof(hdr));
+    client.write(garbage.data(), garbage.size());
+    client.write(remote::MessageHeader::EndMarker.data(), remote::MessageHeader::markerBytes);
+
+    // the server answers with the reason, and closes the connection
+    remote::MessageHeader reply{};
+    EXPECT(client.read(&reply, sizeof(reply)) == static_cast<long>(sizeof(reply)));
+    EXPECT(reply.message == remote::Message::Error);
+    std::string reason(reply.payloadSize, ' ');
+    EXPECT(client.read(reason.data(), reason.size()) == static_cast<long>(reason.size()));
+    eckit::Log::info() << "server answered: " << reason << std::endl;
+    EXPECT(reason.find("invalid Startup message") != std::string::npos);
+
+    EXPECT(getOrDie(server));
 }
 
 }  // namespace fdb5::test

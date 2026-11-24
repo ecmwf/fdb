@@ -176,7 +176,8 @@ private:
 
 protected:
 
-    virtual bool remove(bool control, uint32_t clientID) = 0;
+    /// The client is gone (Stop): its state is released, and what is still queued for it discarded
+    virtual void remove(uint32_t clientID) = 0;
 
     Config config_;
     Config innerConfig_;
@@ -207,8 +208,6 @@ protected:
     /// is discarded. Caller holds handlerMutex_.
     std::set<uint32_t> removedClients_;
     bool removedClient(uint32_t clientID) const { return removedClients_.count(clientID) != 0; }
-    size_t numControlConnection_{0};
-    size_t numDataConnection_{0};
 
 private:
 
