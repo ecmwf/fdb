@@ -23,6 +23,7 @@ class StoreHandler : public ServerConnection, public CallbackRegistry {
 public:  // methods
 
     StoreHandler(eckit::net::TCPSocket& socket, const Config& config);
+    ~StoreHandler() override;
 
 private:  // methods
 
@@ -41,7 +42,7 @@ private:  // methods
 
     void writeToParent(uint32_t clientID, uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh);
 
-    bool remove(bool control, uint32_t clientID) override;
+    void remove(uint32_t clientID) override;
 
     void finaliseWipeState(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
     void doWipeUnknowns(const uint32_t clientID, const uint32_t requestID, const eckit::Buffer& payload);
@@ -51,9 +52,11 @@ private:  // methods
 
     const WipeInProgress& cachedWipeState(const Key& uri) const;
 
-    Store& getStore(uint32_t clientID);
-    Store& store(uint32_t clientID, const Key& dbKey);
-    Store& getStore(uint32_t clientID, const eckit::URI& uri);
+    // The store of a client, pinned: it stays alive while it is used, even if the client is removed meanwhile
+    std::shared_ptr<Store> getStore(uint32_t clientID);
+    // ... created if needed. @returns null if the client has been removed
+    std::shared_ptr<Store> store(uint32_t clientID, const Key& dbKey);
+    std::shared_ptr<Store> getStore(uint32_t clientID, const eckit::URI& uri);
 
     void registerFlushCallback(FlushCallback callback) override;
     void registerArchiveCallback(ArchiveCallback callback) override;
@@ -62,7 +65,7 @@ private:  // members
 
     struct StoreHelper;
     // clientID --> Store
-    std::map<uint32_t, StoreHelper> stores_;
+    std::map<uint32_t, std::shared_ptr<StoreHelper>> stores_;  // guarded by handlerMutex_
 
     struct WipeInProgress {
         bool unsafeWipeAll = false;
@@ -77,14 +80,9 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 struct StoreHandler::StoreHelper {
-    StoreHelper(bool dataConnection, const Key& dbKey, const Config& config) :
-        dataConnection(dataConnection), store(StoreFactory::instance().build(dbKey, config)) {}
+    StoreHelper(const Key& dbKey, const Config& config) : store(StoreFactory::instance().build(dbKey, config)) {}
 
-    StoreHelper(bool dataConnection, const eckit::URI& uri, const Config& config) :
-        dataConnection(dataConnection), store(StoreFactory::instance().build(uri, config)) {}
-
-    bool controlConnection{true};
-    bool dataConnection{false};
+    StoreHelper(const eckit::URI& uri, const Config& config) : store(StoreFactory::instance().build(uri, config)) {}
 
     std::unique_ptr<Store> store;
 };

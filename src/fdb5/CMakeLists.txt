@@ -270,6 +270,7 @@ if(HAVE_FDB_REMOTE)
         remote/client/RemoteCatalogue.cc
         remote/client/ReadLimiter.h
         remote/client/ReadLimiter.cc
+        remote/client/RequestQueues.h
 
         remote/server/AvailablePortList.cc
         remote/server/AvailablePortList.h

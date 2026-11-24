@@ -175,7 +175,7 @@ def simple_fdb_setup(data_path, function_tmp, subtocs: bool, expver_handler: boo
         ],
     }
     (fdb_home_dir / "config.yaml").write_text(yaml.dump(fdb_config))
-    (fdb_home_dir / "user_config.yaml").write_text(yaml.dump({"useSubToc": subtocs}))
+    (fdb_home_dir / "app_config.yaml").write_text(yaml.dump({"useSubToc": subtocs}))
 
 
 def files_fdb_setup(data_path, function_tmp, subtocs: bool, expver_handler: bool) -> None:
@@ -377,17 +377,17 @@ def _create_and_validate_fdb(spec: FdbEnvSpec, function_tmp: pathlib.Path) -> FD
             else:
                 os.environ[k] = old
 
-    config, user_config = fdb.config()
+    config, app_config = fdb.config()
 
     if spec.config_style == "simple":
         assert str(function_tmp) in config["schema"]
         all(str(function_tmp) in root["path"] for root in config["spaces"][0]["roots"])
     elif spec.config_style in ("files", "yaml_tools", "json_tools"):
         assert config == {}
-        assert user_config == {}
+        assert app_config == {}
     else:  # yaml, json, mars_disks
         assert config != {}
-        assert user_config == {}
+        assert app_config == {}
 
     return fdb
 

@@ -128,7 +128,7 @@ void FdbServerBase::doRun() {
     int port = config.getInt("serverPort", 7654);
     bool threaded = config.getBool("serverThreaded", false);
 
-    net::TCPServer server(net::Port("fdb", port), net::SocketOptions::server().reusePort(true));
+    net::TCPServer server(net::Port("fdb", port));
     server.closeExec(false);
 
     port_ = server.localPort();
@@ -165,11 +165,26 @@ void FdbServerBase::startPortReaperThread(const Config& config) {
         portList.initialise();
 
         reaperThread_ = std::thread([startPort, count]() {
-            AvailablePortList portList(startPort, count);
+            // Nothing may escape from this thread: it would terminate the whole server
+            try {
+                AvailablePortList portList(startPort, count);
 
-            while (true) {
-                portList.reap(120);
-                std::this_thread::sleep_for(std::chrono::seconds(10));
+                while (true) {
+                    try {
+                        portList.reap(120);
+                    }
+                    catch (const std::exception& e) {
+                        eckit::Log::error() << "Port reaper failed, will retry: " << e.what() << std::endl;
+                    }
+                    std::this_thread::sleep_for(std::chrono::seconds(10));
+                }
+            }
+            catch (const std::exception& e) {
+                eckit::Log::error() << "Port reaper stopped, data ports will not be recycled: " << e.what()
+                                    << std::endl;
+            }
+            catch (...) {
+                eckit::Log::error() << "Port reaper stopped, data ports will not be recycled" << std::endl;
             }
         });
     }

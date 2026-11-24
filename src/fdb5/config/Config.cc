@@ -27,10 +27,10 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 Config::Config() : schemaPath_(""), schemaPathInitialised_(false), matcher_(nullptr) {
-    userConfig_ = std::make_shared<eckit::LocalConfiguration>(eckit::LocalConfiguration());
+    appConfig_ = std::make_shared<eckit::LocalConfiguration>(eckit::LocalConfiguration());
 }
 
-Config Config::make(const eckit::PathName& path, const eckit::Configuration& userConfig, const std::string& fdb_home) {
+Config Config::make(const eckit::PathName& path, const eckit::Configuration& appConfig, const std::string& fdb_home) {
     LOG_DEBUG_LIB(LibFdb5) << "Using FDB configuration file: " << path << std::endl;
     ASSERT(!path.realName().isDir());
     Config cfg{YAMLConfiguration(path)};
@@ -39,18 +39,18 @@ Config Config::make(const eckit::PathName& path, const eckit::Configuration& use
         cfg.set("fdb_home", fdb_home);
     }
     cfg.matcher_ = nullptr;
-    cfg.userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
+    cfg.appConfig_ = std::make_shared<eckit::LocalConfiguration>(appConfig);
 
     return cfg;
 }
 
-Config::Config(const Configuration& config, const eckit::Configuration& userConfig) :
+Config::Config(const Configuration& config, const eckit::Configuration& appConfig) :
     LocalConfiguration(config), schemaPathInitialised_(false), matcher_(nullptr) {
-    userConfig_ = std::make_shared<eckit::LocalConfiguration>(userConfig);
+    appConfig_ = std::make_shared<eckit::LocalConfiguration>(appConfig);
 }
 
 Config::Config(const Config& other) :
-    LocalConfiguration(other), schemaPathInitialised_(false), userConfig_(other.userConfig_), matcher_(other.matcher_) {
+    LocalConfiguration(other), schemaPathInitialised_(false), appConfig_(other.appConfig_), matcher_(other.matcher_) {
     std::lock_guard lock(other.schemaMutex_);
     schemaPath_ = other.schemaPath_;
     schemaPathInitialised_ = other.schemaPathInitialised_;
@@ -67,7 +67,7 @@ Config& Config::operator=(const Config& other) {
     schemaPath_ = other.schemaPath_;
     schemaPathInitialised_ = other.schemaPathInitialised_;
     matcher_ = other.matcher_;
-    userConfig_ = other.userConfig_;
+    appConfig_ = other.appConfig_;
     return *this;
 }
 
@@ -87,8 +87,8 @@ Config Config::expandConfig() const {
         std::string s(config_str);
         Config cfg{YAMLConfiguration(s)};
         cfg.set("configSource", "environment");
-        if (!cfg.userConfig_) {
-            cfg.userConfig_ = userConfig_;
+        if (!cfg.appConfig_ || cfg.appConfig_->empty()) {
+            cfg.appConfig_ = appConfig_;
         }
         return cfg;
     }
@@ -136,7 +136,7 @@ Config Config::expandConfig() const {
     }
 
     if (found) {
-        return Config::make(actual_path, userConfig_ ? *userConfig_ : eckit::LocalConfiguration(),
+        return Config::make(actual_path, appConfig_ ? *appConfig_ : eckit::LocalConfiguration(),
                             getString("fdb_home", ""));
     }
 
@@ -209,6 +209,45 @@ void Config::initializeSchemaPath() const {
         schemaPath_ = expandPath(fdbSchemaFile);
     }
 
+    // A schemaVersion selects the file "<schema>.<version>", where the FDB_SCHEMA_VERSION resource overrides
+    // the one in the config. Version 0 selects the unsuffixed schema. If the version is newer than the
+    // latest one this software can parse, fall back to the most recent versioned schema file present,
+    // and finally to the unsuffixed one.
+    const long versionOverride = Resource<long>("fdbSchemaVersion;$FDB_SCHEMA_VERSION", -1);
+    if (versionOverride >= 0 || has("schemaVersion")) {
+        const long version = versionOverride >= 0 ? versionOverride : getLong("schemaVersion");
+        const long maxVersion = LibFdb5::maxSchemaVersion();
+        if (version < 0) {
+            throw eckit::UserError("Invalid schemaVersion: " + std::to_string(version), Here());
+        }
+
+        auto versioned = [&](long v) { return PathName(schemaPath_.asString() + "." + std::to_string(v)); };
+
+        if (version == 0) {
+            // base schema name, no suffix
+        }
+        else if (version <= maxVersion) {
+            schemaPath_ = versioned(version);
+        }
+        else {
+            LOG_DEBUG_LIB(LibFdb5) << "Requested schemaVersion " << version << " is newer than the maximum supported "
+                                   << maxVersion << std::endl;
+            long v = maxVersion;
+            while (v >= 1 && !versioned(v).exists()) {
+                --v;
+            }
+            if (v >= 1) {
+                schemaPath_ = versioned(v);
+            }
+            else if (!schemaPath_.exists()) {
+                std::ostringstream ss;
+                ss << "No schema file found for " << schemaPath_ << " with version <= " << maxVersion;
+                throw eckit::UserError(ss.str(), Here());
+            }
+            // otherwise: no versioned schema present, use the unsuffixed one
+        }
+    }
+
     schemaPathInitialised_ = true;
     LOG_DEBUG_LIB(LibFdb5) << "Using FDB schema: " << schemaPath_ << std::endl;
 }
@@ -232,14 +271,14 @@ mode_t Config::umask() const {
 size_t Config::readIndexThreads() const {
     constexpr long maxReadIndexThreads = 64;
     static const long fromResource = eckit::Resource<long>("fdbReadIndexThreads;$FDB_READ_INDEX_THREADS", -1);
-    const long threads = fromResource > 0 ? fromResource : userConfig().getLong("readIndexThreads", 1);
+    const long threads = fromResource > 0 ? fromResource : appConfig().getLong("readIndexThreads", 1);
     return static_cast<size_t>(std::clamp(threads, 1L, maxReadIndexThreads));
 }
 
 size_t Config::apiQueueSize() const {
     constexpr long maxApiQueueSize = 1024 * 1024;
     static const long fromResource = eckit::Resource<long>("fdbApiQueueSize;$FDB_API_QUEUE_SIZE", -1);
-    const long size = fromResource > 0 ? fromResource : userConfig().getLong("apiQueueSize", 100);
+    const long size = fromResource > 0 ? fromResource : appConfig().getLong("apiQueueSize", 100);
     return static_cast<size_t>(std::clamp(size, 1L, maxApiQueueSize));
 }
 
@@ -249,7 +288,7 @@ size_t Config::apiMaxQueues() const {
     // A sub-queue is claimed per index being visited, so the default scales with the number of
     // visitation threads, with headroom for queues that are filled but not yet drained.
     const long byThreads = 2 * static_cast<long>(readIndexThreads());
-    const long queues = fromResource > 0 ? fromResource : userConfig().getLong("apiMaxQueues", byThreads);
+    const long queues = fromResource > 0 ? fromResource : appConfig().getLong("apiMaxQueues", byThreads);
     return static_cast<size_t>(std::clamp(queues, 1L, maxApiMaxQueues));
 }
 
@@ -258,7 +297,7 @@ std::vector<Config> Config::getSubConfigs(const std::string& name) const {
 
     for (auto configuration : getSubConfigurations(name)) {
         Config config{configuration};
-        config.userConfig_ = userConfig_;
+        config.appConfig_ = appConfig_;
         out.push_back(config);
     }
     return out;
@@ -269,7 +308,7 @@ std::vector<Config> Config::getSubConfigs() const {
 
     for (auto configuration : getSubConfigurations()) {
         Config config{configuration};
-        config.userConfig_ = userConfig_;
+        config.appConfig_ = appConfig_;
         out.push_back(config);
     }
     return out;

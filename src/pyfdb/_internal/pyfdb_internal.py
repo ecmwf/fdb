@@ -93,7 +93,7 @@ class ConfigMapper:
         Parameters
         ----------
         `config`: `str` | `dict` | `Path`
-                System or user configuration
+                System or application configuration
 
         Note
         ----

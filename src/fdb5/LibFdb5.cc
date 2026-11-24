@@ -33,10 +33,10 @@ LibFdb5& LibFdb5::instance() {
     return libfdb;
 }
 
-const Config& LibFdb5::defaultConfig(const eckit::Configuration& userConfig) {
+const Config& LibFdb5::defaultConfig(const eckit::Configuration& appConfig) {
     if (!config_) {
         Config cfg;
-        config_.reset(new Config(std::move(cfg.expandConfig()), userConfig));
+        config_.reset(new Config(std::move(cfg.expandConfig()), appConfig));
     }
     return *config_;
 }
@@ -73,6 +73,10 @@ std::string LibFdb5::gitsha1(unsigned int count) const {
 
 RemoteProtocolVersion LibFdb5::remoteProtocolVersion() const {
     return RemoteProtocolVersion{};
+}
+
+int LibFdb5::maxSchemaVersion() {
+    return 1;
 }
 
 

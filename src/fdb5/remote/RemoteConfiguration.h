@@ -56,6 +56,9 @@ public:
     bool singleConnection() const;
     uint64_t enabledFeatures() const { return enabledFeatures_; }
 
+    /// Withdraws features (a mask of Message, see toMask()), e.g. those the server grants to some networks only
+    void disableFeatures(uint64_t mask) { enabledFeatures_ &= ~mask; }
+
     /// Highest supported/agreed trace-context propagation version, 0 if none
     int tracingVersion() const { return tracingVersions_.empty() ? 0 : tracingVersions_.back(); }
 

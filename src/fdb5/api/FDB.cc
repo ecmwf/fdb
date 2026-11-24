@@ -53,6 +53,7 @@
 
 #include <cctype>
 #include <cstddef>
+#include <exception>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -154,7 +155,15 @@ FDB::FDB(const Config& config) :
 
 
 FDB::~FDB() {
-    flush();
+    try {
+        flush();
+    }
+    catch (const std::exception& e) {
+        eckit::Log::error() << "FDB flush failed during destruction: " << e.what() << std::endl;
+    }
+    catch (...) {
+        eckit::Log::error() << "FDB flush failed during destruction with an unknown exception" << std::endl;
+    }
     if (reportStats_ && internal_) {
         stats_.report(eckit::Log::info(), (internal_->name() + " ").c_str());
     }

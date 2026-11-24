@@ -36,9 +36,9 @@ static FDBBuilder<SelectFDB> selectFdbBuilder("select");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-SelectFDB::FDBLane::FDBLane(const eckit::LocalConfiguration& config, const eckit::Configuration& userConfig,
+SelectFDB::FDBLane::FDBLane(const eckit::LocalConfiguration& config, const eckit::Configuration& appConfig,
                             std::shared_ptr<Callbacks> callbacks) :
-    config_(config, userConfig), fdb_(nullptr), callbacks_(callbacks) {
+    config_(config, appConfig), fdb_(nullptr), callbacks_(callbacks) {
     config_.setMatcher(std::make_unique<SelectMatcher>(config));
 }
 
@@ -80,19 +80,25 @@ SelectFDB::SelectFDB(const Config& config, const std::string& name) : FDBBase(co
     }
 
     std::string schema = config.getString("schema", "");
+    const bool hasSchemaVersion = config.has("schemaVersion");
+    const long schemaVersion = config.getLong("schemaVersion", 0);
     std::string fdb_home = config.getString("fdb_home", "");
 
     for (auto& c : config.getSubConfigs("fdbs")) {
         /// inject parent schema into the SelectFDB sub-fdbs
         /// note: a sub-fdb can be a remote or select FDB, se we do not worry if neither parent nor children are
         /// defining a schema: it could be defined in the grand-children
+        /// the schemaVersion is inherited together with the schema, unless the sub-fdb defines its own
+        if (hasSchemaVersion && !c.has("schemaVersion") && !c.has("schema")) {
+            c.set("schemaVersion", schemaVersion);
+        }
         if (!schema.empty() && !c.has("schema")) {
             c.set("schema", schema);
         }
         if (!fdb_home.empty() && !c.has("fdb_home")) {
             c.set("fdb_home", fdb_home);
         }
-        subFdbs_.emplace_back(FDBLane{c, config.userConfig(), callbacks_});
+        subFdbs_.emplace_back(FDBLane{c, config.appConfig(), callbacks_});
     }
 }
 

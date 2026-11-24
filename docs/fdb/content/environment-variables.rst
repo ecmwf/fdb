@@ -32,7 +32,7 @@ Deprecated. Equivalent to ``FDB_CONFIG``. If both are specified, ``FDB_CONFIG`` 
 If set to `1`, the FDB process will write to its own sub toc files instead of the main toc file.
 This mode is useful for avoiding contention on the main toc file when multiple FDB processes are writing concurrently.
 
-This variable overrides the `useSubToc` flag provided by the user config.
+This variable overrides the ``useSubToc`` flag provided by the :doc:`application config <app-config>`.
 
 
 ``FDB_READ_INDEX_THREADS``
@@ -53,13 +53,36 @@ is set to.
 
    export FDB_READ_INDEX_THREADS=8
 
-This variable overrides the ``readIndexThreads`` value provided by the user config.
+This variable overrides the ``readIndexThreads`` value provided by the :doc:`application config <app-config>`.
 
 
 ``FDB_LOAD_INDEX_THREADS``
 ---------------------------
 Override FDB_READ_INDEX_THREADS to use a different thread count for constructing the index
 objects from the information read from the tocs.
+
+
+``FDB_API_QUEUE_SIZE``
+----------------------
+
+Capacity of the queues that carry results (e.g. the entries of a ``list``) from the worker threads
+that produce them to the caller that consumes them. Values below 1 are treated as 1, and the value
+is capped at 1048576.
+
+Default: ``100``.
+
+This variable overrides the ``apiQueueSize`` value provided by the :doc:`application config <app-config>`.
+
+
+``FDB_API_MAX_QUEUES``
+----------------------
+
+Maximum number of sub-queues that may be open at once when results are gathered per index. Values
+below 1 are treated as 1, and the value is capped at 1024.
+
+Default: twice the number of read-index threads (see ``FDB_READ_INDEX_THREADS``).
+
+This variable overrides the ``apiMaxQueues`` value provided by the :doc:`application config <app-config>`.
 
 
 ``FDB_CONFIG_FILE``
@@ -102,6 +125,17 @@ Path to the FDB schema file, which defines the set of keys and their order used 
 Default: ``~fdb/etc/fdb/schema``.
 
 If a ``schema`` is set in the FDB configuration, that value takes precedence over this variable.
+If the configuration defines a ``schemaVersion``, it is appended to the schema path
+as ``.<schemaVersion>`` (see :doc:`config-schema`).
+
+``FDB_SCHEMA_VERSION``
+----------------------
+
+Overrides the ``schemaVersion`` defined in the FDB configuration (see :doc:`config-schema`).
+The value is appended to the schema path as ``.<FDB_SCHEMA_VERSION>``.
+``FDB_SCHEMA_VERSION=0`` selects the base schema name, with no suffix.
+
+Default: unset (the ``schemaVersion`` of the configuration, if any, is used).
 
 
 ``FDB_ROOTS_FILE``
@@ -269,7 +303,7 @@ Default: ``false``.
 Memory limit, in bytes, for the remote read limiter, which caps the amount of data buffered in
 memory while reading from a remote FDB.
 
-Default: the ``limits.read`` value from the user configuration, or 1 GiB if unset.
+Default: 1 GiB.
 
 
 ``FDB_LOAD_INDEX_THREADS``
