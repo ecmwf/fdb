@@ -19,6 +19,7 @@
 #include "fdb5/api/helpers/WipeIterator.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/fdb5_version.h"
+#include "fdb5/tracing/TraceContext.h"
 
 #include "fdb5/api/fdb_c.h"
 
@@ -446,6 +447,29 @@ int fdb_retrieve(fdb_handle_t* fdb, fdb_request_t* req, fdb_datareader_t* dr) {
         ASSERT(req);
         ASSERT(dr);
         dr->set(fdb->retrieve(req->request()));
+    });
+}
+
+namespace {
+/// Contexts replaced by fdb_trace_begin() on this thread, restored by fdb_trace_end()
+thread_local std::vector<fdb5::tracing::TraceContext> previousTraceContexts;
+}  // namespace
+
+int fdb_trace_begin(const char* traceparent, const char* tracestate) {
+    return wrapApiFunction([traceparent, tracestate] {
+        ASSERT(traceparent);
+        auto ctx = fdb5::tracing::TraceContext::fromTraceparent(traceparent, tracestate ? tracestate : "");
+        previousTraceContexts.push_back(fdb5::tracing::exchangeCurrent(std::move(ctx)));
+    });
+}
+
+int fdb_trace_end() {
+    return wrapApiFunction([] {
+        if (previousTraceContexts.empty()) {
+            throw eckit::UserError("fdb_trace_end() without a matching fdb_trace_begin() on this thread", Here());
+        }
+        fdb5::tracing::exchangeCurrent(std::move(previousTraceContexts.back()));
+        previousTraceContexts.pop_back();
     });
 }
 

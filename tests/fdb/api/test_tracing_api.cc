@@ -15,6 +15,7 @@
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/api/FDB.h"
+#include "fdb5/api/fdb_c.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/tracing/TraceContext.h"
 #include "fdb5/tracing/Tracer.h"
@@ -257,6 +258,52 @@ CASE("Tracing disabled in the FDB configuration records nothing") {
     archiveSome(fdb, 2, TraceContext::fromTraceparent(callerTraceparent));
     fdb.flush();
     EXPECT(fx.exporter->spans().empty());
+}
+
+CASE("C API: fdb_trace_begin/end scope the calling thread's context") {
+    EXPECT(!current().valid());
+    EXPECT_EQUAL(fdb_trace_begin(callerTraceparent, "vendor=abc"), FDB_SUCCESS);
+    EXPECT_EQUAL(current().traceparent(), std::string{callerTraceparent});
+    EXPECT_EQUAL(current().traceState(), "vendor=abc");
+
+    const char* nested = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01";
+    EXPECT_EQUAL(fdb_trace_begin(nested, nullptr), FDB_SUCCESS);
+    EXPECT_EQUAL(current().traceparent(), std::string{nested});
+    EXPECT_EQUAL(fdb_trace_end(), FDB_SUCCESS);
+    EXPECT_EQUAL(current().traceparent(), std::string{callerTraceparent});
+
+    EXPECT_EQUAL(fdb_trace_end(), FDB_SUCCESS);
+    EXPECT(!current().valid());
+
+    EXPECT(fdb_trace_end() != FDB_SUCCESS);  // unbalanced
+    EXPECT(fdb_trace_begin("garbage", nullptr) != FDB_SUCCESS);
+    EXPECT(!current().valid());
+}
+
+CASE("C API: archives within a trace scope are children of the caller's context") {
+    Fixture fx;
+    fdb_handle_t* fdb = nullptr;
+    EXPECT_EQUAL(fdb_new_handle(&fdb), FDB_SUCCESS);
+
+    fdb_key_t* key = nullptr;
+    EXPECT_EQUAL(fdb_new_key(&key), FDB_SUCCESS);
+    Key k = makeKey("7");
+    for (const auto& [name, value] : k) {
+        EXPECT_EQUAL(fdb_key_add(key, name.c_str(), value.c_str()), FDB_SUCCESS);
+    }
+
+    EXPECT_EQUAL(fdb_trace_begin(callerTraceparent, nullptr), FDB_SUCCESS);
+    EXPECT_EQUAL(fdb_archive(fdb, key, payload.data(), payload.size()), FDB_SUCCESS);
+    EXPECT_EQUAL(fdb_flush(fdb), FDB_SUCCESS);
+    EXPECT_EQUAL(fdb_trace_end(), FDB_SUCCESS);
+
+    EXPECT_EQUAL(fdb_delete_key(key), FDB_SUCCESS);
+    EXPECT_EQUAL(fdb_delete_handle(fdb), FDB_SUCCESS);
+
+    TraceContext caller = TraceContext::fromTraceparent(callerTraceparent);
+    auto archives = fx.exporter->named("fdb.archive");
+    EXPECT_EQUAL(archives.size(), 1);
+    EXPECT(archives[0].parentSpanId == caller.spanId());
 }
 
 //----------------------------------------------------------------------------------------------------------------------

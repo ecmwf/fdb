@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+# FDB tools record their FDB calls under the trace context given with --traceparent, or by the OpenTelemetry
+# environment carrier TRACEPARENT/TRACESTATE
+
+set -euxo pipefail
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+wd=$(mktemp -d "@CMAKE_CURRENT_BINARY_DIR@/tracing_tools.XXXXXX")
+trap 'rm -rf "$wd"' EXIT
+
+mkdir -p "$wd/root"
+export FDB_ROOT_DIRECTORY="$wd/root"
+export FDB_TRACING_EXPORTER=log
+unset TRACEPARENT TRACESTATE FDB_TRACING_ENABLED || true
+
+trace_id=0af7651916cd43dd8448eb211c80319c
+
+list_span() {
+    # the fdb.list span of a span file
+    grep '"name":"fdb.list"' "$1"
+}
+
+# --- explicit option
+FDB_TRACING_LOG_PATH="$wd/option.jsonl" fdb-list --all --minimum-keys="" --ignore-no-data --traceparent="00-${trace_id}-b7ad6b7169203331-01"
+list_span "$wd/option.jsonl" | grep "\"trace_id\":\"${trace_id}\"" | grep -q '"parent_span_id":"b7ad6b7169203331"'
+
+# --- environment carrier, with tracestate
+TRACEPARENT="00-${trace_id}-00f067aa0ba902b7-01" TRACESTATE="vendor=abc" FDB_TRACING_LOG_PATH="$wd/env.jsonl" \
+    fdb-list --all --minimum-keys="" --ignore-no-data
+list_span "$wd/env.jsonl" | grep "\"trace_id\":\"${trace_id}\"" | grep '"parent_span_id":"00f067aa0ba902b7"' \
+    | grep -q '"trace_state":"vendor=abc"'
+
+# --- a malformed explicit traceparent is an error
+if fdb-list --all --minimum-keys="" --ignore-no-data --traceparent=garbage 2>"$wd/err.txt"; then
+    echo "Malformed --traceparent accepted" && exit 1
+fi
+grep -q "Invalid W3C traceparent 'garbage'" "$wd/err.txt"
+
+# --- a malformed propagated traceparent is ignored: the call is a new root
+TRACEPARENT=garbage FDB_TRACING_LOG_PATH="$wd/bad.jsonl" fdb-list --all --minimum-keys="" --ignore-no-data
+list_span "$wd/bad.jsonl" | grep -q '"parent_span_id":""'
+
+# --- tracing disabled: nothing recorded
+FDB_TRACING_ENABLED=false TRACEPARENT="00-${trace_id}-00f067aa0ba902b7-01" FDB_TRACING_LOG_PATH="$wd/off.jsonl" \
+    fdb-list --all --minimum-keys="" --ignore-no-data
+[ ! -s "$wd/off.jsonl" ] || (echo "Spans recorded with tracing disabled" && exit 1)
