@@ -126,8 +126,6 @@ jobs:
           ecbuild_bundle( PROJECT fdb    GIT "https://github.com/ecmwf/fdb"    BRANCH develop MANUAL )
           ecbuild_bundle_finalize()
           CMAKE
-          # FDB_TEST_NFS_MOUNT is read at configure time (fdb/tests/fdb/database/CMakeLists.txt)
-          # and forwarded into the test environment.
           cmake -S bundle -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Debug \
             -DENABLE_MPI=OFF \
@@ -138,6 +136,8 @@ jobs:
           cmake --build build --parallel --target fdb_test_database_nfs
 
       - name: Run NFS tests
+        env:
+          FDB_TEST_NFS_REQUIRE_MOUNT: "1"
         run: |
           ctest --test-dir build -R nfs --output-on-failure
 
