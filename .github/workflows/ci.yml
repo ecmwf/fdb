@@ -60,7 +60,7 @@ jobs:
       - id: mint
         uses: ecmwf/ci-infrastructure/actions/mint-token@main
         with:
-          client-id: ${{ secrets.CI_READER_APP_CLIENT_ID }}
+          client-id: ${{ vars.CI_READER_APP_CLIENT_ID }}
           private-key: ${{ secrets.CI_READER_APP_PRIVATE_KEY }}
           repositories: ecbuild,eccodes,eckit,fdb,metkit,stack-dependencies
           permissions: contents:read actions:read
@@ -91,7 +91,7 @@ jobs:
         with:
           dispatch-plans: ${{ needs.resolve.outputs.dispatch-plans }}
           repositories: ecbuild,eccodes,eckit,fdb,metkit,stack-dependencies
-          client-id: ${{ secrets.CI_DISPATCHER_APP_CLIENT_ID }}
+          client-id: ${{ vars.CI_DISPATCHER_APP_CLIENT_ID }}
           app-private-key: ${{ secrets.CI_DISPATCHER_APP_PRIVATE_KEY }}
 
   build:
@@ -109,7 +109,7 @@ jobs:
       - id: mint
         uses: ecmwf/ci-infrastructure/actions/mint-token@main
         with:
-          client-id: ${{ secrets.CI_READER_APP_CLIENT_ID }}
+          client-id: ${{ vars.CI_READER_APP_CLIENT_ID }}
           private-key: ${{ secrets.CI_READER_APP_PRIVATE_KEY }}
           repositories: ecbuild,eccodes,eckit,fdb,metkit,stack-dependencies
           permissions: contents:read actions:read
@@ -155,7 +155,7 @@ jobs:
       - id: mint
         uses: ecmwf/ci-infrastructure/actions/mint-token@main
         with:
-          client-id: ${{ secrets.CI_READER_APP_CLIENT_ID }}
+          client-id: ${{ vars.CI_READER_APP_CLIENT_ID }}
           private-key: ${{ secrets.CI_READER_APP_PRIVATE_KEY }}
           repositories: ecbuild,eccodes,eckit,fdb,metkit,stack-dependencies
           permissions: contents:read actions:read
@@ -201,7 +201,7 @@ jobs:
       - id: mint
         uses: ecmwf/ci-infrastructure/actions/mint-token@main
         with:
-          client-id: ${{ secrets.CI_READER_APP_CLIENT_ID }}
+          client-id: ${{ vars.CI_READER_APP_CLIENT_ID }}
           private-key: ${{ secrets.CI_READER_APP_PRIVATE_KEY }}
           repositories: ecbuild,eccodes,eckit,fdb,metkit,stack-dependencies
           permissions: contents:read actions:read
