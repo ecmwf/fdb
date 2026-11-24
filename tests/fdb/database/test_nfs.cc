@@ -55,15 +55,31 @@ namespace fdb5::test {
 
 namespace {
 
-/// Directory on a real NFS mount, as provided by the test harness (e.g. a docker nfs-server
-/// export mounted at FDB_TEST_NFS_MOUNT). Empty when unset, so the NFS-backed cases self-skip in
-/// environments without NFS (normal CI).
-eckit::PathName nfsMountDir() {
+// General CI can inherit a path from a harness whose mount is not visible in the test container.
+// The dedicated NFS job must fail instead of silently skipping coverage in that situation.
+std::optional<eckit::PathName> nfsMountDir(bool required = false) {
     const char* mount = ::getenv("FDB_TEST_NFS_MOUNT");
-    if (mount == nullptr || mount[0] == '\0') {
-        return {};
+    std::string reason = "FDB_TEST_NFS_MOUNT is unset or empty";
+    if (mount != nullptr && mount[0] != '\0') {
+        const eckit::PathName directory{mount};
+        reason = std::string("FDB_TEST_NFS_MOUNT=") + mount;
+        if (!directory.exists() || !directory.isDir()) {
+            reason += " is not an existing directory";
+        }
+        else {
+            const std::string filesystem = directory.fileSystemType();
+            if (filesystem == "nfs") {
+                return directory;
+            }
+            reason += " is on " + filesystem + ", not NFS";
+        }
     }
-    return eckit::PathName{mount};
+    const char* require_mount = ::getenv("FDB_TEST_NFS_REQUIRE_MOUNT");
+    if (required || (require_mount != nullptr && std::string(require_mount) == "1")) {
+        throw eckit::UserError(reason, Here());
+    }
+    eckit::Log::info() << reason << " -- skipping NFS-backed checks" << std::endl;
+    return std::nullopt;
 }
 
 bool usesNFSLocking(const eckit::LocalPathName& directory) {
@@ -380,14 +396,12 @@ CASE("NFS paths: only unique names on NFS get a random token") {
         EXPECT_EQUAL(dots(name), dots(eckit::LocalPathName::unique(local / "field")));
     }
 
-    const eckit::PathName mount = nfsMountDir();
-    if (mount.path().empty() || !mount.exists()) {
-        eckit::Log::info() << "NFS mount (FDB_TEST_NFS_MOUNT) not available -- skipping NFS part of unique path test"
-                           << std::endl;
+    const auto mount = nfsMountDir();
+    if (!mount) {
         return;
     }
 
-    const eckit::LocalPathName shared{mount.localPath()};
+    const eckit::LocalPathName shared{mount->localPath()};
     const std::string first = fdb5::TocCommon::uniquePath(shared / "field").asString();
     const std::string second = fdb5::TocCommon::uniquePath(shared / "field").asString();
 
@@ -404,15 +418,13 @@ CASE("NFS paths: only unique names on NFS get a random token") {
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("NFS mount: the harness export has shared locking") {
-    const eckit::PathName mount = nfsMountDir();
-    if (mount.path().empty() || !mount.exists()) {
-        eckit::Log::info() << "NFS mount (FDB_TEST_NFS_MOUNT) not available -- skipping NFS lock option test"
-                           << std::endl;
+    const auto mount = nfsMountDir();
+    if (!mount) {
         return;
     }
 
 #if defined(__linux__)
-    const eckit::LocalPathName directory{mount.localPath()};
+    const eckit::LocalPathName directory{mount->localPath()};
 
     // A client-local mount would make the contention cases below pass without testing the locks.
     EXPECT(!eckit::filesystem::nfs::local_lock_option(directory.device()));
@@ -428,18 +440,14 @@ CASE("NFS mount: the harness export has shared locking") {
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("NFS mount: detection fires and a TOC round-trips on a real NFS export") {
-    const eckit::PathName mount = nfsMountDir();
-    if (mount.path().empty() || !mount.exists()) {
-        eckit::Log::info() << "NFS mount (FDB_TEST_NFS_MOUNT) not available -- skipping NFS-backed test" << std::endl;
+    const auto mount = nfsMountDir();
+    if (!mount) {
         return;
     }
 
-    // The mount is present, so it must really be NFS; otherwise the harness is misconfigured
-    // and this case would validate the wrong filesystem.
-    EXPECT_EQUAL(mount.fileSystemType(), std::string("nfs"));
-    EXPECT(usesNFSLocking(eckit::LocalPathName{mount.localPath()}));
+    EXPECT(usesNFSLocking(eckit::LocalPathName{mount->localPath()}));
 
-    const eckit::TmpDir dir{mount.localPath()};
+    const eckit::TmpDir dir{mount->localPath()};
 
     fdb5::Config config = fdb5::Config().expandConfig();
     fdb5::Key key{{{"class", "od"}, {"expver", "0001"}, {"stream", "oper"}}};
@@ -459,10 +467,8 @@ CASE("NFS mount: detection fires and a TOC round-trips on a real NFS export") {
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("NFS mount: concurrent creators and writers preserve complete TOC records") {
-    const eckit::PathName mount = nfsMountDir();
-    if (mount.path().empty() || !mount.exists()) {
-        eckit::Log::info() << "NFS mount (FDB_TEST_NFS_MOUNT) not available -- skipping NFS contention test"
-                           << std::endl;
+    const auto mount = nfsMountDir();
+    if (!mount) {
         return;
     }
 
@@ -478,7 +484,7 @@ CASE("NFS mount: concurrent creators and writers preserve complete TOC records")
 #endif
     constexpr size_t records_per_thread = 25;
 
-    const eckit::TmpDir dir{mount.localPath()};
+    const eckit::TmpDir dir{mount->localPath()};
 
     const fdb5::Config config = fdb5::Config().expandConfig();
     const fdb5::Key key{{{"class", "od"}, {"expver", "0001"}, {"stream", "oper"}}};
@@ -551,9 +557,7 @@ CASE("NFS mount: independent clients preserve records in a shared TOC") {
         return;
     }
 
-    const eckit::PathName mount = nfsMountDir();
-    EXPECT(!mount.path().empty());
-    EXPECT_EQUAL(mount.fileSystemType(), std::string("nfs"));
+    nfsMountDir(true);
 
     const eckit::PathName dir{shared_dir};
     EXPECT(dir.exists());
