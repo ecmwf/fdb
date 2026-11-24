@@ -77,7 +77,8 @@ Handled StoreHandler::handleControl(Message message, uint32_t clientID, uint32_t
     try {
         if (!enabled(agreedConf_.enabledFeatures(), message)) {
             std::ostringstream ss;
-            ss << "'" << message << "' is disabled in the configuration of FDB server " << host() << ":" << port();
+            // not agreed for this connection: disabled by either side, or not granted to the network of the client
+            ss << "'" << message << "' is not permitted for this client on FDB server " << host() << ":" << port();
             unauthorised(ss.str(), clientID, requestID);
             return Handled::Replied;
         }
@@ -235,8 +236,7 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
     auto ss = store(clientID, dbKey);
     if (!ss) {
         // the client went away without flushing: nobody is waiting for this field any more
-        Log::warning() << "Discarding a field for the removed client " << clientID << ": " << ss_key.str()
-                       << std::endl;
+        Log::warning() << "Discarding a field for the removed client " << clientID << ": " << ss_key.str() << std::endl;
         return;
     }
 

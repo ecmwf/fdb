@@ -158,11 +158,19 @@ Two modes, chosen by negotiation (``supportedConnections``, ``preferSingleConnec
        Note over C: start control listener thread<br/>(+ data listener thread if dual)
 
 ``agreedConf`` contains the common ``RemoteFieldLocation`` version, the number of connections, and
-``enabledFeatures`` = client mask AND server mask. A message outside that mask is normally refused by the client
-before it is sent (``checkEnabled`` throws a ``UserError``: "'X' is not permitted on FDB server host:port: the
-feature is disabled in the client or server configuration"). The reply of the server, ``Unauthorised`` ("'X' is
-disabled in the configuration of FDB server host:port"), is only a second line of defence. Only ``Wipe`` can be
-disabled (``wipe: false``), server-wide, not per user or network.
+``enabledFeatures`` = client mask AND server mask. Only ``Wipe`` can be disabled: by the client or the server
+configuration (``wipe: false``), or, on the server, for the clients of some networks only (``networks``, see the
+configuration reference below; the server works out the network of the client from its address, and withdraws the
+feature from the mask it offers to that client).
+
+A message outside the agreed mask is refused by the client before it is sent: ``checkEnabled`` throws a
+``UserError``, which says which side does not allow it, as the client remembers the mask it offered:
+
+* "'X' is disabled in the client configuration (FDB server host:port)"
+* "'X' is not permitted on FDB server host:port: the server does not allow it for this client"
+
+The reply of the server, ``Unauthorised`` ("'X' is not permitted for this client on FDB server host:port"), is only a
+second line of defence.
 
 
 Control versus data
@@ -371,11 +379,11 @@ Error and failure propagation
      - What the client sees
    * - Error in a blocking request (control)
      - the promise gets a ``RemoteFDBException``
-   * - Feature disabled by configuration (e.g. wipe)
-     - ``UserError`` "'X' is not permitted on FDB server host:port: the feature is disabled in the client or server
-       configuration", thrown by the client before sending; the ``Unauthorised`` reply of the server ("'X' is
-       disabled in the configuration of FDB server ...") reaches the client as a ``UserError`` "Unauthorised X
-       request - ..."
+   * - Feature disabled by configuration (e.g. wipe, also per client network)
+     - ``UserError`` thrown by the client before sending, saying whether the client ("'X' is disabled in the client
+       configuration ...") or the server ("'X' is not permitted on FDB server ...: the server does not allow it for
+       this client") does not allow it; the ``Unauthorised`` reply of the server ("'X' is not permitted for this
+       client on FDB server ...") reaches the client as a ``UserError`` "Unauthorised X request - ..."
    * - Error in a list/axes/... worker, or a read
      - the queue of the request is interrupted with ``RemoteFDBException``; the iterator or ``DataHandle::read``
        throws
@@ -512,17 +520,25 @@ Server (``type: catalogue | store``):
    * - ``dataPortStart``, ``dataPortCount``
      - restrict the ephemeral data ports
    * - ``wipe``
-     - set to ``false`` to disable wipe
-   * - ``stores``, ``networks``
-     - catalogue server: store endpoints, optionally per client network
+     - set to ``false`` to disable wipe (client or server)
+   * - ``networks``
+     - server: list of ``name`` and ``netmask``; the first network containing the address of a client is its
+       network. A network may set ``wipe: true``: once any network sets ``wipe``, wipe is granted only to the
+       clients of the networks setting it to ``true``, and denied to every other client, including those of no
+       network
+   * - ``stores``
+     - catalogue server: store endpoints, by default and optionally per client network (keyed by network ``name``)
 
 Resources: ``fdbReadLimit`` / ``$FDB_READ_LIMIT``, ``fdbDataWriteQueueLength``, ``fdbServerMaxQueueSize``,
-``fdbRetrieveQueueSize``, ``fdbMaxConnectRetries``, ``fdbConnectTimeout``.
+``fdbRetrieveQueueSize``, ``fdbMaxConnectRetries``, ``fdbConnectTimeout``, ``fdbStartupTimeout`` /
+``$FDB_STARTUP_TIMEOUT`` (client: answer to the startup message, 60 s), ``fdbDataConnectionTimeout`` /
+``$FDB_DATA_CONNECTION_TIMEOUT`` (server: data connection of a client, 60 s), ``fdbServerMaxPayloadSize`` /
+``$FDB_SERVER_MAX_PAYLOAD_SIZE`` (server: largest message after the handshake, unlimited by default).
 
 
 Operational note
 ----------------
 
-``fdb-server`` opens its listening socket with ``SO_REUSEPORT``. A leftover server on the same port is not rejected;
-the kernel then spreads new connections between old and new servers, which shows up as random hangs or failures
-(typically in tests). Kill stale ``fdb-server`` processes before debugging connection problems.
+``fdb-server`` does not open its listening socket with ``SO_REUSEPORT`` (it did, which let a leftover server on the
+same port silently share the new connections, showing up as random hangs or failures). A server whose port is still
+in use now fails to start: kill the stale ``fdb-server`` process first.

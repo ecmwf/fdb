@@ -146,7 +146,7 @@ CASE("Locations: a failure while waiting wakes the waiter up with the failure") 
     auto waiter = std::async(std::launch::async, [&] { return locations.wait(); });
 
     locations.failPending(serverFailure());
-    EXPECT_THROWS_AS(waiter.get(), eckit::SeriousBug);
+    EXPECT_THROWS_AS(static_cast<void>(waiter.get()), eckit::SeriousBug);
 }
 
 CASE("Locations: a failure of one request fails all the pending ones, whoever sent them") {

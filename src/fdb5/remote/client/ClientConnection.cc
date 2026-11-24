@@ -162,7 +162,8 @@ bool ClientConnection::remove(uint32_t clientID) {
                 try {
                     std::ostringstream ss;
                     ss << "Client " << clientID << " removed from the connection to " << controlEndpoint_;
-                    entry->client.closeConnection(std::make_exception_ptr(RemoteFDBException(ss.str(), controlEndpoint_)));
+                    entry->client.closeConnection(
+                        std::make_exception_ptr(RemoteFDBException(ss.str(), controlEndpoint_)));
                 }
                 catch (...) {
                     Log::error() << "ClientConnection::remove() - failed to cancel the requests of client " << clientID
@@ -192,8 +193,8 @@ bool ClientConnection::remove(uint32_t clientID) {
             Connection::write(Message::Stop, true, clientID, 0);
         }
         catch (...) {
-            Log::error() << "ClientConnection::remove() - failed to send STOP message to server for clientID " << clientID
-                         << std::endl;
+            Log::error() << "ClientConnection::remove() - failed to send STOP message to server for clientID "
+                         << clientID << std::endl;
         }
     }
 
@@ -768,8 +769,8 @@ void ClientConnection::listeningControlThreadLoop() {
                     });
                     if (!found && wasRemoved(hdr.clientID())) {
                         // the client went away while the server was still sending: nobody will read it
-                        LOG_DEBUG_LIB(LibFdb5) << "Discarding " << msgHeader(hdr, controlEndpoint_) << " for a removed client"
-                                               << std::endl;
+                        LOG_DEBUG_LIB(LibFdb5) << "Discarding " << msgHeader(hdr, controlEndpoint_)
+                                               << " for a removed client" << std::endl;
                         continue;
                     }
                     if (!found) {
@@ -894,8 +895,8 @@ void ClientConnection::listeningDataThreadLoop() {
                 });
                 if (!found && wasRemoved(hdr.clientID())) {
                     // the client went away while the server was still sending: nobody will read it
-                    LOG_DEBUG_LIB(LibFdb5) << "Discarding " << msgHeader(hdr, dataEndpoint_) << " for a removed client"
-                                           << std::endl;
+                    LOG_DEBUG_LIB(LibFdb5)
+                        << "Discarding " << msgHeader(hdr, dataEndpoint_) << " for a removed client" << std::endl;
                     continue;
                 }
                 if (!found) {

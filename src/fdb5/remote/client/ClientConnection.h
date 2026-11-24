@@ -149,8 +149,8 @@ private:  // members
     struct ClientEntry {
         explicit ClientEntry(Client& c) : client(c) {}
         Client& client;
-        size_t pins{0};         // guarded by clientsMutex_
-        bool retiring{false};   // guarded by clientsMutex_
+        size_t pins{0};        // guarded by clientsMutex_
+        bool retiring{false};  // guarded by clientsMutex_
     };
 
     // Calls f(Client&) without holding clientsMutex_, with the client pinned

@@ -9,15 +9,15 @@
 #pragma once
 
 #include <atomic>
-#include <exception>
 #include <cstdint>
+#include <exception>
 #include <future>
 #include <mutex>
+#include <set>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
-#include <set>
-#include <string_view>
 
 #include "eckit/container/Queue.h"
 #include "eckit/io/Buffer.h"

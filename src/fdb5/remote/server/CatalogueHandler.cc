@@ -14,7 +14,6 @@
 #include "fdb5/remote/server/ServerConnection.h"
 
 #include "eckit/config/Resource.h"
-#include "eckit/net/NetMask.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/serialisation/ResizableMemoryStream.h"
@@ -101,7 +100,8 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
     try {
         if (!enabled(agreedConf_.enabledFeatures(), message)) {
             std::ostringstream ss;
-            ss << "'" << message << "' is disabled in the configuration of FDB server " << host() << ":" << port();
+            // not agreed for this connection: disabled by either side, or not granted to the network of the client
+            ss << "'" << message << "' is not permitted for this client on FDB server " << host() << ":" << port();
             unauthorised(ss.str(), clientID, requestID);
             return Handled::Replied;
         }
@@ -310,28 +310,27 @@ void CatalogueHandler::handleApiCall(uint32_t clientID, uint32_t requestID, ecki
     // pinned by the worker: it stays alive even if the client is removed meanwhile
     std::shared_ptr<FDB> clientFDB = fdb(clientID);
 
-    workerThreads_.emplace(requestID, std::async(std::launch::async, [request, clientID, requestID, helper, clientFDB,
-                                                                      this]() {
-                               try {
-                                   auto iterator = helper.apiCall(*clientFDB, request);
+    workerThreads_.emplace(
+        requestID, std::async(std::launch::async, [request, clientID, requestID, helper, clientFDB, this]() {
+            try {
+                auto iterator = helper.apiCall(*clientFDB, request);
 
-                                   typename decltype(iterator)::value_type elem = helper.makeValue(*this);
-                                   while (iterator.next(elem)) {
-                                       auto encoded(helper.encode(elem, *this));
-                                       write(Message::Blob, false, clientID, requestID, encoded.buf, encoded.position);
-                                   }
-                                   write(Message::Complete, false, clientID, requestID);
-                               }
-                               catch (std::exception& e) {
-                                   // n.b. more general than eckit::Exception
-                                   tryError(false, e.what(), clientID, requestID);
-                               }
-                               catch (...) {
-                                   // We really don't want to std::terminate the thread
-                                   tryError(false, "Caught unexpected, unknown exception in worker", clientID,
-                                            requestID);
-                               }
-                           }));
+                typename decltype(iterator)::value_type elem = helper.makeValue(*this);
+                while (iterator.next(elem)) {
+                    auto encoded(helper.encode(elem, *this));
+                    write(Message::Blob, false, clientID, requestID, encoded.buf, encoded.position);
+                }
+                write(Message::Complete, false, clientID, requestID);
+            }
+            catch (std::exception& e) {
+                // n.b. more general than eckit::Exception
+                tryError(false, e.what(), clientID, requestID);
+            }
+            catch (...) {
+                // We really don't want to std::terminate the thread
+                tryError(false, "Caught unexpected, unknown exception in worker", clientID, requestID);
+            }
+        }));
 }
 
 void CatalogueHandler::list(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {

@@ -36,8 +36,8 @@
 #include <cstring>
 #include <exception>
 #include <future>
-#include <limits>
 #include <iterator>
+#include <limits>
 #include <map>
 #include <mutex>
 #include <optional>
@@ -547,10 +547,10 @@ void ServerConnection::listenControl(std::thread& listeningThreadData) {
     }
 
     // n.b. archived fields are sent as a single message
-    static const auto maxPayload = static_cast<uint32_t>(std::min<size_t>(
-        eckit::Resource<size_t>("fdbServerMaxPayloadSize;$FDB_SERVER_MAX_PAYLOAD_SIZE",
-                                std::numeric_limits<uint32_t>::max()),
-        std::numeric_limits<uint32_t>::max()));
+    static const auto maxPayload = static_cast<uint32_t>(
+        std::min<size_t>(eckit::Resource<size_t>("fdbServerMaxPayloadSize;$FDB_SERVER_MAX_PAYLOAD_SIZE",
+                                                 std::numeric_limits<uint32_t>::max()),
+                         std::numeric_limits<uint32_t>::max()));
     maxPayloadSize(maxPayload);
 
     MessageHeader hdr{};

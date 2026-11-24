@@ -47,7 +47,9 @@ public:  // types
             owner_(&owner), requestID_(requestID), queue_(std::move(queue)) {}
 
         Registration(Registration&& other) noexcept :
-            owner_(std::exchange(other.owner_, nullptr)), requestID_(other.requestID_), queue_(std::move(other.queue_)) {}
+            owner_(std::exchange(other.owner_, nullptr)),
+            requestID_(other.requestID_),
+            queue_(std::move(other.queue_)) {}
 
         Registration(const Registration&) = delete;
         Registration& operator=(const Registration&) = delete;

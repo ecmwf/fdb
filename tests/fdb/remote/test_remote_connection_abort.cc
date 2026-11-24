@@ -8,13 +8,13 @@
 #include "RemoteStoreTestHarness.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/remote/RemoteConfiguration.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
+#include "fdb5/remote/RemoteConfiguration.h"
 #include "fdb5/remote/client/Client.h"
-#include "fdb5/remote/client/RemoteCatalogue.h"
 #include "fdb5/remote/client/ReadLimiter.h"
+#include "fdb5/remote/client/RemoteCatalogue.h"
 #include "fdb5/remote/client/RemoteStore.h"
 #include "fdb5/remote/client/RequestQueues.h"
 #include "fdb5/remote/server/ServerConnection.h"
@@ -1590,13 +1590,13 @@ CASE("a server that never answers the handshake neither blocks the other connect
         EXPECT(stalledClient.wait_for(std::chrono::seconds(0)) == std::future_status::timeout);
         eckit::Log::info() << "connected to the healthy server in "
                            << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() -
-                                                                                     healthyStart)
+                                                                                    healthyStart)
                                   .count()
                            << " ms" << std::endl;
     }
     eckit::Log::info() << "healthy connection opened and closed in "
                        << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() -
-                                                                                 healthyStart)
+                                                                                healthyStart)
                               .count()
                        << " ms" << std::endl;
 

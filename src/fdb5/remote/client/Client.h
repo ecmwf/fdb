@@ -51,7 +51,8 @@ public:
 class RemoteFDBTimeout : public RemoteFDBException {
 public:
 
-    RemoteFDBTimeout(const std::string& msg, const eckit::net::Endpoint& endpoint) : RemoteFDBException(msg, endpoint) {}
+    RemoteFDBTimeout(const std::string& msg, const eckit::net::Endpoint& endpoint) :
+        RemoteFDBException(msg, endpoint) {}
 
     bool retryOnClient() const override { return true; }
 };

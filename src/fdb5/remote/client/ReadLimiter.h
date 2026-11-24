@@ -22,8 +22,8 @@ class RemoteStore;
 //----------------------------------------------------------------------------------------------------------------------
 
 struct RequestInfo {
-    RemoteStore* client;        // Non-owning
-    uint32_t id;                // note request ids are only unique per connection. Client id is unique within a process
+    RemoteStore* client;  // Non-owning
+    uint32_t id;          // note request ids are only unique per connection. Client id is unique within a process
     eckit::Buffer requestBuffer;  // Payload to send to the server
     size_t requestSize;
     size_t resultSize;  // Size of the field obtained from the store

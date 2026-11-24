@@ -11,9 +11,9 @@
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListElement.h"
-#include "fdb5/database/Key.h"
 #include "fdb5/config/Config.h"
 #include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/Key.h"
 #include "fdb5/remote/client/Client.h"
 #include "fdb5/remote/client/RemoteCatalogue.h"
 #include "fdb5/remote/client/RemoteStore.h"
@@ -21,12 +21,12 @@
 
 #include "metkit/mars/MarsRequest.h"
 
-#include "eckit/io/Buffer.h"
-#include "eckit/io/DataHandle.h"
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/filesystem/PathName.h"
-#include "eckit/serialisation/MemoryStream.h"
+#include "eckit/io/Buffer.h"
+#include "eckit/io/DataHandle.h"
 #include "eckit/log/Log.h"
+#include "eckit/serialisation/MemoryStream.h"
 #include "eckit/testing/Test.h"
 
 #include <sys/types.h>
@@ -372,9 +372,16 @@ CASE("Remote store: reads reconnect once the store is restarted, rather than fai
     // and the field archived before the restart can be read
     FDB fdb{};
     metkit::mars::MarsRequest request("retrieve");
-    for (const auto& [k, v] : std::map<std::string, std::string>{
-             {"class", "od"}, {"expver", "xxxx"}, {"stream", "oper"}, {"time", "0000"}, {"domain", "g"},
-             {"levtype", "sfc"}, {"param", "167"}, {"date", "20500101"}, {"type", "fc"}, {"step", "1"}}) {
+    for (const auto& [k, v] : std::map<std::string, std::string>{{"class", "od"},
+                                                                 {"expver", "xxxx"},
+                                                                 {"stream", "oper"},
+                                                                 {"time", "0000"},
+                                                                 {"domain", "g"},
+                                                                 {"levtype", "sfc"},
+                                                                 {"param", "167"},
+                                                                 {"date", "20500101"},
+                                                                 {"type", "fc"},
+                                                                 {"step", "1"}}) {
         request.setValue(k, v);
     }
     std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(request));

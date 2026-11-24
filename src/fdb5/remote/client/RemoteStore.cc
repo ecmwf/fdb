@@ -93,7 +93,8 @@ public:  // methods
             // for this request are discarded (see RemoteStore::handle), rather than filling the queue and blocking
             // the listener of the connection.
             RequestQueues<RemoteStore::StoredMessage>::cancel(
-                *queue_, std::make_exception_ptr(RemoteFDBException("Read request abandoned by the client", remoteEndpoint_)));
+                *queue_,
+                std::make_exception_ptr(RemoteFDBException("Read request abandoned by the client", remoteEndpoint_)));
             // Make sure it doesn't still take up space in the ReadLimiter. n.b. never throws.
             ReadLimiter::instance().finishRequest(clientID_, requestID_);
         }
@@ -373,9 +374,8 @@ bool RemoteStore::handle(Message message, uint32_t requestID) {
     switch (message) {
         case Message::Complete: {
             // the request is unregistered once its last message is queued (see RequestQueues::complete)
-            return requests_.complete(requestID, [message](MessageQueue& queue) {
-                queue.emplace(std::make_pair(message, Buffer(0)));
-            });
+            return requests_.complete(
+                requestID, [message](MessageQueue& queue) { queue.emplace(std::make_pair(message, Buffer(0))); });
         }
         default:
             Log::warning() << *this << " - Received unexpected [message=" << message << ",requestID=" << requestID

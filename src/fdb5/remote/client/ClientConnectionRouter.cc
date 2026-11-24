@@ -67,7 +67,7 @@ size_t random(size_t const max) {
 //----------------------------------------------------------------------------------------------------------------------
 
 ClientConnectionRouter::Key ClientConnectionRouter::key(const eckit::net::Endpoint& endpoint,
-                                                       const std::string& defaultEndpoint) {
+                                                        const std::string& defaultEndpoint) {
     // the default endpoint is part of the identity of a connection: it is used to build the field locations
     return {std::string(endpoint), defaultEndpoint};
 }
@@ -157,8 +157,7 @@ std::shared_ptr<ClientConnection> ClientConnectionRouter::connection(
         }
         catch (const std::exception& e) {
             // e.g. no answer in time, transport error: may work later
-            eckit::Log::warning() << "Unable to connect to FDB endpoint " << endpoint << ": " << e.what()
-                                  << std::endl;
+            eckit::Log::warning() << "Unable to connect to FDB endpoint " << endpoint << ": " << e.what() << std::endl;
             transient = true;
             if (firstFailureReason.empty()) {
                 firstFailureReason = e.what();
