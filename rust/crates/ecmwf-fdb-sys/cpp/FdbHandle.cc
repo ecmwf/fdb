@@ -287,8 +287,8 @@ std::unique_ptr<FdbHandle> FdbHandle::from_config(const eckit_bridge::ConfigWrap
     return std::make_unique<FdbHandle>(config);
 }
 
-std::unique_ptr<FdbHandle> FdbHandle::from_config_with_user(const eckit_bridge::ConfigWrapper& config,
-                                                            const eckit_bridge::ConfigWrapper& app_config) {
+std::unique_ptr<FdbHandle> FdbHandle::from_config_with_app(const eckit_bridge::ConfigWrapper& config,
+                                                           const eckit_bridge::ConfigWrapper& app_config) {
     return std::make_unique<FdbHandle>(config, app_config);
 }
 

@@ -21,7 +21,7 @@ export PATH=@CMAKE_BINARY_DIR@/bin:${ECCODES_BINARY_PATH}:$PATH
 export FDB_HOME=@PROJECT_BINARY_DIR@
 
 # Config::readIndexThreads() reads this through a static eckit::Resource that takes priority over
-# the user config, which is where --threads lands. Left set, --threads would be ignored and every
+# the app config, which is where --threads lands. Left set, --threads would be ignored and every
 # comparison below would be 8 against 8.
 unset FDB_READ_INDEX_THREADS || true
 

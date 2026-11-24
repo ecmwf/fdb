@@ -115,7 +115,7 @@ impl Fdb {
             (None, None) => fdb_sys::FdbHandle::create()?,
             (Some(cfg), None) => fdb_sys::FdbHandle::from_config(cfg.as_sys())?,
             (Some(cfg), Some(app)) => {
-                fdb_sys::FdbHandle::from_config_with_user(cfg.as_sys(), app.as_sys())?
+                fdb_sys::FdbHandle::from_config_with_app(cfg.as_sys(), app.as_sys())?
             }
             (None, Some(_)) => {
                 return Err(crate::Error::Eckit(eckit::Error::UserError(

@@ -1994,7 +1994,7 @@ fn archive_one_record(fdb: &Fdb) {
     fdb.flush().expect("flush failed");
 }
 
-/// Verify that the `useSubToc` user-config flag is actually plumbed through
+/// Verify that the `useSubToc` app-config flag is actually plumbed through
 /// `fdb5::Config`'s second constructor argument: with the flag off the
 /// database directory contains only the main `toc`, with the flag on we get
 /// at least one `toc.<unique>` subtoc file in the same place.

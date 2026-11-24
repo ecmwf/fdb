@@ -58,11 +58,16 @@ class FDB:
 
         Note
         ----
-        Every config parameter but is converted accordingly depending on its type:
+        Every config parameter is converted accordingly depending on its type:
             - `str` is used as a yaml representation to parse the config
             - `dict` is interpreted as hierarchical format to represent a config, see example
             - `Path` is interpreted as a location of the config and read as a YAML file
             - `None` is the fallback. The default config in `$FDB_HOME` is loaded
+
+        `config` describes the FDB itself (type, schema, spaces, ...). `app_config` holds options that
+        tune the behaviour of the calling application, independently of the FDB installation:
+        `useSubToc`, `preloadTocBTree`, `readIndexThreads`, `apiQueueSize` and `apiMaxQueues`. Environment
+        variables (e.g. `FDB_READ_INDEX_THREADS`) take precedence over the values given in `app_config`.
 
         Using a single PyFDB instance per individual threads is safe. Sharing the instances across threads isn't supported.
         However, the underlying FDB and its methods are thread-safe; the caller needs to be aware that flush acts on all archive calls,
@@ -764,7 +769,7 @@ class FDB:
 
     def config(self) -> tuple[dict[str, Any], dict[str, Any]]:
         """
-        Return the system and user configuration of the underlying FDB.
+        Return the system and application configuration of the underlying FDB.
 
         Parameters
         ----------
@@ -773,7 +778,7 @@ class FDB:
         Returns
         -------
         `tuple[dict[str, Any], dict[str, Any]]`
-            Python dictionaries describing the system and user configuration
+            Python dictionaries describing the system and application configuration
 
 
         Examples

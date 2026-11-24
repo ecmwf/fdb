@@ -514,7 +514,7 @@ mod ffi {
         /// Create a new FDB handle from an `eckit::Config` with an app-config
         /// overlay.
         #[Self = "FdbHandle"]
-        fn from_config_with_user(
+        fn from_config_with_app(
             config: &ConfigWrapper,
             app_config: &ConfigWrapper,
         ) -> Result<UniquePtr<FdbHandle>>;
