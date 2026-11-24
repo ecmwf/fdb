@@ -29,13 +29,11 @@ public:
 
     static std::pair<uint32_t, std::shared_ptr<RemoteStore::MessageQueue>> registerQueue(RemoteStore& store) {
         uint32_t requestID = store.generateRequestID();
-
-        std::lock_guard<std::mutex> lock(store.messageMutex_);
-        auto entry = store.messageQueues_.emplace(requestID, std::make_shared<RemoteStore::MessageQueue>(320));
-        ASSERT(entry.second);
-
-        return {requestID, entry.first->second};
+        return {requestID, store.requests_.add(requestID, 320).release()};
     }
+
+    // whether the threads of the connection of the store have been joined
+    static bool connectionThreadsReclaimed(RemoteStore& store) { return store.connection_->threadsReclaimed(); }
 };
 
 }  // namespace fdb5::remote

@@ -14,12 +14,12 @@
 #include "fdb5/remote/server/ServerConnection.h"
 
 #include "eckit/config/Resource.h"
-#include "eckit/net/NetMask.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/serialisation/ResizableMemoryStream.h"
 #include "eckit/utils/Literals.h"
 
+#include <chrono>
 #include <future>
 #include <mutex>
 #include <utility>
@@ -38,9 +38,12 @@ namespace fdb5::remote {
 // ***************************************************************************************
 
 CatalogueHandler::CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config) :
-    ServerConnection(socket, config), fdbControlConnection_(false), fdbDataConnection_(false) {}
+    ServerConnection(socket, config) {}
 
-CatalogueHandler::~CatalogueHandler() {}
+CatalogueHandler::~CatalogueHandler() {
+    // the workers use the members of this class
+    stopWorkers(true);
+}
 
 Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint32_t requestID) {
 
@@ -51,13 +54,7 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 std::lock_guard<std::mutex> lock(handlerMutex_);
                 auto it = fdbs_.find(clientID);
                 if (it == fdbs_.end()) {
-                    fdbs_.emplace(clientID, innerConfig_);
-                    fdbControlConnection_ = true;
-                    fdbDataConnection_ = !single_;
-                    numControlConnection_++;
-                    if (fdbDataConnection_) {
-                        numDataConnection_++;
-                    }
+                    fdbs_.emplace(clientID, std::make_shared<FDB>(innerConfig_));
                 }
             }
                 schema(clientID, requestID, eckit::Buffer(0));
@@ -97,7 +94,8 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
     try {
         if (!enabled(agreedConf_.enabledFeatures(), message)) {
             std::ostringstream ss;
-            ss << "Unauthorized message: " << message;
+            // not agreed for this connection: disabled by either side, or not granted to the network of the client
+            ss << "'" << message << "' is not permitted for this client on FDB server " << host() << ":" << port();
             unauthorised(ss.str(), clientID, requestID);
             return Handled::Replied;
         }
@@ -303,42 +301,30 @@ void CatalogueHandler::handleApiCall(uint32_t clientID, uint32_t requestID, ecki
     // Construct worker thread to feed responses back to client
     ASSERT(workerThreads_.find(requestID) == workerThreads_.end());
 
-    {
-        std::lock_guard<std::mutex> lock(fdbMutex_);
-        auto it = fdbs_.find(clientID);
-        if (it == fdbs_.end()) {
-            fdbs_.emplace(clientID, innerConfig_);
-        }
-    }
+    // pinned by the worker: it stays alive even if the client is removed meanwhile
+    std::shared_ptr<FDB> clientFDB = fdb(clientID);
 
-    workerThreads_.emplace(requestID, std::async(std::launch::async, [request, clientID, requestID, helper, this]() {
-                               try {
-                                   FDB* fdb = nullptr;
-                                   {
-                                       std::lock_guard<std::mutex> lock(handlerMutex_);
-                                       auto it = fdbs_.find(clientID);
-                                       ASSERT(it != fdbs_.end());
-                                       fdb = &it->second;
-                                       ASSERT(fdb);
-                                   }
-                                   auto iterator = helper.apiCall(*fdb, request);
+    workerThreads_.emplace(
+        requestID, std::async(std::launch::async, [request, clientID, requestID, helper, clientFDB, this]() {
+            try {
+                auto iterator = helper.apiCall(*clientFDB, request);
 
-                                   typename decltype(iterator)::value_type elem = helper.makeValue(*this);
-                                   while (iterator.next(elem)) {
-                                       auto encoded(helper.encode(elem, *this));
-                                       write(Message::Blob, false, clientID, requestID, encoded.buf, encoded.position);
-                                   }
-                                   write(Message::Complete, false, clientID, requestID);
-                               }
-                               catch (std::exception& e) {
-                                   // n.b. more general than eckit::Exception
-                                   error(false, e.what(), clientID, requestID);
-                               }
-                               catch (...) {
-                                   // We really don't want to std::terminate the thread
-                                   error(false, "Caught unexpected, unknown exception in worker", clientID, requestID);
-                               }
-                           }));
+                typename decltype(iterator)::value_type elem = helper.makeValue(*this);
+                while (iterator.next(elem)) {
+                    auto encoded(helper.encode(elem, *this));
+                    write(Message::Blob, false, clientID, requestID, encoded.buf, encoded.position);
+                }
+                write(Message::Complete, false, clientID, requestID);
+            }
+            catch (std::exception& e) {
+                // n.b. more general than eckit::Exception
+                tryError(false, e.what(), clientID, requestID);
+            }
+            catch (...) {
+                // We really don't want to std::terminate the thread
+                tryError(false, "Caught unexpected, unknown exception in worker", clientID, requestID);
+            }
+        }));
 }
 
 void CatalogueHandler::list(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
@@ -462,28 +448,64 @@ void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffe
         return;
     }
 
-    auto it = catalogues_.find(clientID);
-    ASSERT(it != catalogues_.end());
+    rethrowArchiveFailure();
+
+    auto archiver = catalogueArchiver(clientID);
+    if (!archiver) {
+        throw SeriousBug("Flush requested for unknown catalogue id: " + std::to_string(clientID), Here());
+    }
+    // n.b. pinned while the flush waits
 
     {
         std::lock_guard<std::mutex> lock(fieldLocationsMutex_);
-        it->second.locationsExpected =
+        archiver->locationsExpected =
             numArchived;  // setting locationsExpected also means that a flush has been requested
-        it->second.archivalCompleted = it->second.fieldLocationsReceived.get_future();
-        if (it->second.locationsArchived == numArchived) {
-            it->second.fieldLocationsReceived.set_value(numArchived);
+        archiver->archivalCompleted = archiver->fieldLocationsReceived.get_future();
+        if (archiver->locationsArchived == numArchived) {
+            archiver->fieldLocationsReceived.set_value(numArchived);
         }
     }
 
-    it->second.archivalCompleted.wait();
+    while (archiver->archivalCompleted.wait_for(std::chrono::milliseconds(100)) != std::future_status::ready) {
+        rethrowArchiveFailure();
+
+        if (aborted()) {
+            throw SeriousBug("Connection terminated before all field locations were archived", Here());
+        }
+
+        // The archive worker only finishes before teardown if it failed; don't wait for locations that will never come
+        if (archiveFuture_.valid() && archiveFuture_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            static_cast<void>(archiveFuture_.get());  // rethrows the failure of the worker, if any
+            throw SeriousBug("Archive worker terminated before all field locations were archived", Here());
+        }
+
+        // No more locations can arrive (single connection, or the data connection has ended), and those already
+        // queued have been archived: a count still short will never complete
+        if (archiveDataEnded() && archivePending() == 0 &&
+            archiver->archivalCompleted.wait_for(std::chrono::seconds(0)) != std::future_status::ready) {
+            // the failure of the last element processed, if any, is published before it was counted as processed:
+            // it is the reason of the short count
+            rethrowArchiveFailure();
+
+            size_t archived = 0;
+            {
+                std::lock_guard<std::mutex> lock(fieldLocationsMutex_);
+                archived = archiver->locationsArchived;
+            }
+            std::ostringstream ss;
+            ss << "Flush of " << numArchived << " field locations, but only " << archived
+               << " were received: no more can arrive";
+            throw SeriousBug(ss.str(), Here());
+        }
+    }
     {
         std::lock_guard<std::mutex> lock(fieldLocationsMutex_);
-        it->second.fieldLocationsReceived = std::promise<size_t>{};
-        it->second.locationsExpected = 0;
-        it->second.locationsArchived = 0;
+        archiver->fieldLocationsReceived = std::promise<size_t>{};
+        archiver->locationsExpected = 0;
+        archiver->locationsArchived = 0;
     }
 
-    it->second.catalogue->flush(numArchived);
+    archiver->catalogue->flush(numArchived);
 
     Log::info() << "Flush complete" << std::endl;
     Log::status() << "Flush complete" << std::endl;
@@ -502,74 +524,70 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
     LOG_DEBUG_LIB(LibFdb5) << "CatalogueHandler::archiveBlob key: " << idxKey << datumKey
                            << "  location: " << location->uri() << std::endl;
 
-    std::map<uint32_t, CatalogueArchiver>::iterator it;
+    // pinned: a Stop may remove the client meanwhile
+    std::shared_ptr<CatalogueArchiver> archiver;
     {
         std::lock_guard<std::mutex> lock(handlerMutex_);
-        it = catalogues_.find(clientID);
+        auto it = catalogues_.find(clientID);
         if (it == catalogues_.end()) {
-            std::string what("Requested unknown catalogue id: " + std::to_string(clientID));
-            error(false, what, 0, 0);
-            throw SeriousBug(what, Here());
+            if (removedClient(clientID)) {
+                // the client went away without flushing: nobody is waiting for this location any more
+                Log::warning() << "Discarding a field location for the removed client " << clientID << std::endl;
+                return;
+            }
+            throw SeriousBug("Requested unknown catalogue id: " + std::to_string(clientID), Here());
         }
+        archiver = it->second;
     }
 
-    if (!it->second.catalogue->selectIndex(idxKey)) {
-        it->second.catalogue->createIndex(idxKey, datumKey.keys().size());
+    if (!archiver->catalogue->selectIndex(idxKey)) {
+        archiver->catalogue->createIndex(idxKey, datumKey.keys().size());
     }
-    it->second.catalogue->archive(idxKey, datumKey, std::move(location));
+    archiver->catalogue->archive(idxKey, datumKey, std::move(location));
     {
         std::lock_guard<std::mutex> lock(fieldLocationsMutex_);
-        it->second.locationsArchived++;
-        if (it->second.locationsExpected != 0 && it->second.archivalCompleted.valid() &&
-            it->second.locationsExpected == it->second.locationsArchived) {
-            it->second.fieldLocationsReceived.set_value(it->second.locationsExpected);
+        archiver->locationsArchived++;
+        if (archiver->locationsExpected != 0 && archiver->archivalCompleted.valid() &&
+            archiver->locationsExpected == archiver->locationsArchived) {
+            archiver->fieldLocationsReceived.set_value(archiver->locationsExpected);
         }
     }
 }
 
-bool CatalogueHandler::remove(bool control, uint32_t clientID) {
+void CatalogueHandler::remove(uint32_t clientID) {
 
     std::lock_guard<std::mutex> lock(handlerMutex_);
 
-    // is the client an FDB
-    auto it = fdbs_.find(clientID);
-    if (it != fdbs_.end()) {
-        if (control) {
-            fdbControlConnection_ = false;
-            numControlConnection_--;
-        }
-        else {
-            fdbDataConnection_ = false;
-            numDataConnection_--;
-        }
-    }
-    else {
-
-        auto it = catalogues_.find(clientID);
-        if (it != catalogues_.end()) {
-            if (control) {
-                it->second.controlConnection = false;
-                numControlConnection_--;
-            }
-            else {
-                it->second.dataConnection = false;
-                numDataConnection_--;
-            }
-            if (!it->second.controlConnection && !it->second.dataConnection) {
-                catalogues_.erase(it);
-            }
-        }
-    }
-    return ((control ? numControlConnection_ : numDataConnection_) == 0);
+    // The client is gone (Stop): its state is released as soon as nobody uses it any more (see catalogueArchiver(),
+    // fdb()). It is marked as removed whether or not it has a state yet: what is still queued for it is discarded.
+    removedClients_.insert(clientID);
+    fdbs_.erase(clientID);
+    catalogues_.erase(clientID);
 }
 
 CatalogueWriter& CatalogueHandler::catalogue(uint32_t id, const Key& dbKey) {
     std::lock_guard<std::mutex> lock(handlerMutex_);
-    numControlConnection_++;
-    if (!single_) {
-        numDataConnection_++;
+    auto it = catalogues_.find(id);
+    if (it == catalogues_.end()) {
+        // n.b. building a catalogue writer creates the database: only once per client
+        it = catalogues_.emplace(id, std::make_shared<CatalogueArchiver>(dbKey, innerConfig_)).first;
     }
-    return *((catalogues_.emplace(id, CatalogueArchiver(!single_, dbKey, innerConfig_)).first)->second.catalogue);
+    return *(it->second->catalogue);
+}
+
+std::shared_ptr<CatalogueArchiver> CatalogueHandler::catalogueArchiver(uint32_t clientID) {
+    std::lock_guard<std::mutex> lock(handlerMutex_);
+    auto it = catalogues_.find(clientID);
+    return it == catalogues_.end() ? nullptr : it->second;
+}
+
+std::shared_ptr<FDB> CatalogueHandler::fdb(uint32_t clientID) {
+    std::lock_guard<std::mutex> lock(handlerMutex_);
+    auto it = fdbs_.find(clientID);
+    if (it == fdbs_.end()) {
+        it = fdbs_.emplace(clientID, std::make_shared<FDB>(innerConfig_)).first;
+    }
+    return it->second;
 }
 
 const CatalogueHandler::WipeInProgress& CatalogueHandler::cachedWipeState(Key dbKey) const {
