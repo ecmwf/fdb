@@ -205,7 +205,7 @@ CASE("TOC read: a failed read is not cached") {
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("NFS locks: each policy is parsed from its name, case-insensitively") {
-    using Policy = NFSTocLocking::Policy;
+    using Policy = NFSTocLocking::LocalLockPolicy;
 
     EXPECT(NFSTocLocking::parsePolicy("error") == Policy::Error);
     EXPECT(NFSTocLocking::parsePolicy("ERROR") == Policy::Error);
@@ -230,7 +230,7 @@ CASE("NFS locks: an unknown policy is rejected, naming its source and the accept
 }
 
 CASE("NFS locks: the environment overrides the config, which overrides the default") {
-    using Policy = NFSTocLocking::Policy;
+    using Policy = NFSTocLocking::LocalLockPolicy;
 
     const char* saved = ::getenv("FDB_NFS_LOCAL_LOCK_POLICY");
     const std::optional<std::string> previous = saved ? std::optional<std::string>{saved} : std::nullopt;
@@ -267,7 +267,7 @@ CASE("NFS locks: the environment overrides the config, which overrides the defau
 }
 
 CASE("NFS locks: only the error policy throws, and only for client-local mounts") {
-    using Policy = NFSTocLocking::Policy;
+    using Policy = NFSTocLocking::LocalLockPolicy;
 
     const eckit::TmpDir tmp;  // the device of an existing directory is looked up
     const eckit::LocalPathName directory{tmp};
@@ -293,7 +293,7 @@ CASE("NFS locks: only the error policy throws, and only for client-local mounts"
 }
 
 CASE("NFS locks: a filesystem is looked up once per locking") {
-    using Policy = NFSTocLocking::Policy;
+    using Policy = NFSTocLocking::LocalLockPolicy;
 
     const eckit::TmpDir tmp;
     const eckit::LocalPathName directory{tmp};
@@ -333,7 +333,7 @@ CASE("TOC locking: a local filesystem takes no locks, the NFS locking takes one 
     }
 
     // Usable on any filesystem: the lookup is only needed to validate a directory.
-    const NFSTocLocking nfs{NFSTocLocking::Policy::Allow,
+    const NFSTocLocking nfs{NFSTocLocking::LocalLockPolicy::Allow,
                             [](const std::string&) -> std::optional<std::string> { return std::nullopt; }};
     EXPECT(nfs.excludesWriters());
     EXPECT(nfs.holdForWrite(fd, file));
@@ -356,7 +356,7 @@ CASE("TOC locking: only the NFS locking moves an append descriptor to the end") 
         EXPECT_EQUAL(::lseek(fd, 0, SEEK_CUR), 0);
     }
 
-    const NFSTocLocking nfs{NFSTocLocking::Policy::Allow,
+    const NFSTocLocking nfs{NFSTocLocking::LocalLockPolicy::Allow,
                             [](const std::string&) -> std::optional<std::string> { return std::nullopt; }};
     nfs.openedForAppend(fd, file);
     EXPECT_EQUAL(::lseek(fd, 0, SEEK_CUR), 10);
@@ -372,7 +372,7 @@ CASE("TOC locking: a directory that is not created yet counts as the filesystem 
     EXPECT_EQUAL(&TocLocking::forDirectory(missing), &TocLocking::forDirectory(directory));
     EXPECT_NO_THROW(TocCommon::uniquePath(missing / "field"));
 
-    const NFSTocLocking nfs{NFSTocLocking::Policy::Error,
+    const NFSTocLocking nfs{NFSTocLocking::LocalLockPolicy::Error,
                             [](const std::string&) -> std::optional<std::string> { return std::nullopt; }};
     EXPECT_NO_THROW(nfs.validate(missing));
 }

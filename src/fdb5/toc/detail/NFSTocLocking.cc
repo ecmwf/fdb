@@ -51,9 +51,9 @@ namespace fdb5 {
 
 namespace {
 
-/// Blocking whole-file advisory lock.
-// Prefer open-file-description locks if available, otherwise fall back to classic POSIX locks.
-void fileLock(int fd, short type, const eckit::PathName& path) {
+/// Blocks until `fd` holds an advisory lock of `type` (F_RDLCK or F_WRLCK) on its whole file.
+/// Prefers open-file-description locks, and falls back to classic POSIX locks where there are none.
+void lock_file(int fd, short type, const eckit::PathName& path) {
     struct flock lock{};
     lock.l_type = type;
     lock.l_whence = SEEK_SET;
@@ -109,8 +109,8 @@ class ProcessLock final : public TocLock {
         const std::scoped_lock lock{registry.mutex};
 
         if (const auto found = registry.locks.find(identity); found != registry.locks.end()) {
-            if (auto file_mutex = found->second.lock()) {
-                return file_mutex;
+            if (auto fileMutex = found->second.lock()) {
+                return fileMutex;
             }
         }
 
@@ -120,9 +120,9 @@ class ProcessLock final : public TocLock {
             entry = entry->second.expired() ? registry.locks.erase(entry) : std::next(entry);
         }
 
-        auto file_mutex = std::make_shared<std::mutex>();
-        registry.locks[identity] = file_mutex;
-        return file_mutex;
+        auto fileMutex = std::make_shared<std::mutex>();
+        registry.locks[identity] = fileMutex;
+        return fileMutex;
     }
 
 public:
@@ -135,22 +135,22 @@ private:
     std::unique_lock<std::mutex> lock_;
 };
 
-std::optional<std::string> mount_option(const std::string& device) {
+std::optional<std::string> system_local_lock_option(const std::string& device) {
     return eckit::filesystem::nfs::local_lock_option(device);
 }
 
-std::string describe(const eckit::LocalPathName& directory, const std::string& option) {
+std::string client_local_locks_message(const eckit::LocalPathName& directory, const std::string& option) {
     std::ostringstream message;
     message << "NFS mount of " << directory << " has client-local locking (" << option << ")";
     return message.str();
 }
 
-using Policy = NFSTocLocking::Policy;
+using LocalLockPolicy = NFSTocLocking::LocalLockPolicy;
 
-constexpr std::array<std::pair<Policy, std::string_view>, 2> policy_names{
+constexpr std::array<std::pair<LocalLockPolicy, std::string_view>, 2> policyNames{
     {
-        {Policy::Error, "error"},
-        {Policy::Allow, "allow"},
+        {LocalLockPolicy::Error, "error"},
+        {LocalLockPolicy::Allow, "allow"},
     },
 };
 
@@ -158,10 +158,10 @@ constexpr std::array<std::pair<Policy, std::string_view>, 2> policy_names{
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Policy NFSTocLocking::parsePolicy(const std::string& value, const std::string& source) {
+LocalLockPolicy NFSTocLocking::parsePolicy(const std::string& value, const std::string& source) {
     const auto lowered = eckit::StringTools::lower(value);
 
-    for (const auto& [policy, name] : policy_names) {
+    for (const auto& [policy, name] : policyNames) {
         if (lowered == name) {
             return policy;
         }
@@ -169,14 +169,14 @@ Policy NFSTocLocking::parsePolicy(const std::string& value, const std::string& s
 
     std::ostringstream message;
     message << "Invalid " << source << "=" << value << " (expected ";
-    for (size_t i = 0; i < policy_names.size(); ++i) {
-        message << (i == 0 ? "" : ", ") << policy_names[i].second;
+    for (size_t i = 0; i < policyNames.size(); ++i) {
+        message << (i == 0 ? "" : ", ") << policyNames[i].second;
     }
     message << ")";
     throw eckit::UserError(message.str(), Here());
 }
 
-Policy NFSTocLocking::resolvePolicy(const eckit::Configuration& config, Policy fallback) {
+LocalLockPolicy NFSTocLocking::resolvePolicy(const eckit::Configuration& config, LocalLockPolicy fallback) {
     const std::string fromResource =
         eckit::Resource<std::string>("fdbNfsLocalLockPolicy;$FDB_NFS_LOCAL_LOCK_POLICY", "");
     if (!fromResource.empty()) {
@@ -188,9 +188,10 @@ Policy NFSTocLocking::resolvePolicy(const eckit::Configuration& config, Policy f
     return fallback;
 }
 
-NFSTocLocking::NFSTocLocking(Policy policy, Lookup lookup) : policy_{policy}, lookup_{std::move(lookup)} {}
+NFSTocLocking::NFSTocLocking(LocalLockPolicy policy, LocalLockLookup lookup) :
+    policy_{policy}, localLockLookup_{std::move(lookup)} {}
 
-NFSTocLocking::NFSTocLocking() : NFSTocLocking{Policy::Error, mount_option} {}
+NFSTocLocking::NFSTocLocking() : NFSTocLocking{LocalLockPolicy::Error, system_local_lock_option} {}
 
 void NFSTocLocking::validate(const eckit::LocalPathName& directory, const eckit::Configuration& config) const {
     validate(directory, resolvePolicy(config, policy_));
@@ -200,15 +201,15 @@ void NFSTocLocking::validate(const eckit::LocalPathName& directory) const {
     validate(directory, policy_);
 }
 
-void NFSTocLocking::validate(const eckit::LocalPathName& directory, Policy policy) const {
+void NFSTocLocking::validate(const eckit::LocalPathName& directory, LocalLockPolicy policy) const {
     const std::string device = locateExistingDirectory(directory).device();
 
     const std::scoped_lock lock{mutex_};
 
-    auto entry = options_.find(device);
-    const bool first_lookup = (entry == options_.end());
-    if (first_lookup) {
-        entry = options_.emplace(device, lookup_(device)).first;
+    auto entry = localLockOptions_.find(device);
+    const bool firstLookup = (entry == localLockOptions_.end());
+    if (firstLookup) {
+        entry = localLockOptions_.emplace(device, localLockLookup_(device)).first;
     }
 
     const auto& option = entry->second;
@@ -216,24 +217,24 @@ void NFSTocLocking::validate(const eckit::LocalPathName& directory, Policy polic
         return;
     }
 
-    if (policy == Policy::Error) {
-        throw eckit::UserError(describe(directory, *option), Here());
+    if (policy == LocalLockPolicy::Error) {
+        throw eckit::UserError(client_local_locks_message(directory, *option), Here());
     }
 
-    if (first_lookup) {
-        eckit::Log::warning() << describe(directory, *option) << std::endl;
+    if (firstLookup) {
+        eckit::Log::warning() << client_local_locks_message(directory, *option) << std::endl;
     }
 }
 
 std::unique_ptr<TocLock> NFSTocLocking::holdForRead(int fd, const eckit::PathName& path) const {
     auto lock = std::make_unique<ProcessLock>(fd, path);
-    fileLock(fd, F_RDLCK, path);
+    lock_file(fd, F_RDLCK, path);
     return lock;
 }
 
 std::unique_ptr<TocLock> NFSTocLocking::holdForWrite(int fd, const eckit::PathName& path) const {
     auto lock = std::make_unique<ProcessLock>(fd, path);
-    fileLock(fd, F_WRLCK, path);
+    lock_file(fd, F_WRLCK, path);
     return lock;
 }
 

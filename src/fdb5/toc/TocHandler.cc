@@ -234,7 +234,7 @@ void TocHandler::openForAppend() {
 
     checkUID();  // n.b. may openForRead
 
-    const TocLocking& toc_locking = locking();  // before any state changes: may throw
+    const TocLocking& tocLocking = locking();  // before any state changes: may throw
 
     if (cachedToc_) {
         cachedToc_.reset();
@@ -259,8 +259,8 @@ void TocHandler::openForAppend() {
     // Serialise appenders (a no-op where O_APPEND is atomic), then let the locking make sure the next write lands
     // at the true end of the file. Both are released on close().
     try {
-        tocLock_ = toc_locking.holdForWrite(fd_, tocPath_);
-        toc_locking.openedForAppend(fd_, tocPath_);
+        tocLock_ = tocLocking.holdForWrite(fd_, tocPath_);
+        tocLocking.openedForAppend(fd_, tocPath_);
     }
     catch (...) {
         ::close(fd_);
@@ -283,7 +283,7 @@ void TocHandler::openForRead() const {
 
     ASSERT(fd_ == -1);
 
-    const TocLocking& toc_locking = locking();  // before the open: may throw
+    const TocLocking& tocLocking = locking();  // before the open: may throw
 
     writeMode_ = false;
 
@@ -306,30 +306,30 @@ void TocHandler::openForRead() const {
 
     if (fdbCacheTocsOnRead) {
 
-        const auto toc_fd = fd_;
+        const auto tocFd = fd_;
         fd_ = -1;
 
-        std::unique_ptr<TocLock> toc_lock;  // declared first: released after the descriptor is closed
-        FileDescHandle toc(toc_fd, true);
+        std::unique_ptr<TocLock> readLock;  // declared first: released after the descriptor is closed
+        FileDescHandle toc(tocFd, true);
         AutoClose closer(toc);
 
-        toc_lock = toc_locking.holdForRead(toc_fd, tocPath_);
+        readLock = tocLocking.holdForRead(tocFd, tocPath_);
 
         // n.b. the size must be taken *after* the lock is held
         const auto tocSize = tocPath_.size();
 
         bool grow = true;
-        auto toc_cache = std::make_unique<eckit::MemoryHandle>(tocSize, grow);
+        auto tocCache = std::make_unique<eckit::MemoryHandle>(tocSize, grow);
 
         long buffersize = 4_MiB;
-        toc.copyTo(*toc_cache, buffersize, tocSize, tocReadStats_);
-        toc_cache->openForRead();
+        toc.copyTo(*tocCache, buffersize, tocSize, tocReadStats_);
+        tocCache->openForRead();
 
-        cachedToc_ = std::move(toc_cache);  // only a complete read is kept
+        cachedToc_ = std::move(tocCache);  // only a complete read is kept
     }
     else {
         try {
-            tocLock_ = toc_locking.holdForRead(fd_, tocPath_);  // released on close()
+            tocLock_ = tocLocking.holdForRead(fd_, tocPath_);  // released on close()
         }
         catch (...) {
             ::close(fd_);
@@ -1080,7 +1080,7 @@ static eckit::StaticMutex local_mutex;
 
 void TocHandler::writeInitRecord(const Key& key) {
 
-    const TocLocking& toc_locking = locking();
+    const TocLocking& tocLocking = locking();
 
     // Process-wide: keeps the handlers of this process from creating the same directory and TOC at once. Where the
     // TOC lock also keeps them apart (NFS), it is released early so it is not held while blocking on another client.
@@ -1095,7 +1095,7 @@ void TocHandler::writeInitRecord(const Key& key) {
         fdb5LustreapiFileCreate(tocPath_, stripeIndexLustreSettings());
     }
 
-    if (toc_locking.excludesWriters()) {
+    if (tocLocking.excludesWriters()) {
         initLock.unlock();  // the TOC lock serialises the rest
     }
 
@@ -1106,7 +1106,7 @@ void TocHandler::writeInitRecord(const Key& key) {
 
     TocHandlerCloser closer(*this);
 
-    tocLock_ = toc_locking.holdForWrite(fd_, tocPath_);
+    tocLock_ = tocLocking.holdForWrite(fd_, tocPath_);
 
     auto r = std::make_unique<TocRecord>(
         serialisationVersion_.used());  // allocate (large) TocRecord on heap not stack (MARS-779)

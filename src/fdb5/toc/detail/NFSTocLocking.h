@@ -35,34 +35,34 @@ class NFSTocLocking final : public TocLocking {
 public:  // types
 
     /// What to do when an NFS mount has client-local locks, which do not keep other clients out.
-    enum class Policy {
+    enum class LocalLockPolicy {
         Error,  ///< throw eckit::UserError
         Allow   ///< go ahead, logging a warning once per filesystem
     };
 
-    /// The mount option that makes the locks of a device ("major:minor") client-local, if there is one.
-    using Lookup = std::function<std::optional<std::string>(const std::string& device)>;
+    /// Finds the mount option that makes the locks of a device ("major:minor") client-local, if there is one.
+    using LocalLockLookup = std::function<std::optional<std::string>(const std::string& device)>;
 
     /// Parses the name of a policy (case-insensitive). `source` names where `value` came from, for the error.
     /// @throws eckit::UserError for any other value.
-    static Policy parsePolicy(const std::string& value, const std::string& source = "NFS local lock policy");
+    static LocalLockPolicy parsePolicy(const std::string& value, const std::string& source = "NFS local lock policy");
 
     /// The policy from $FDB_NFS_LOCAL_LOCK_POLICY if set, else from "nfsLocalLockPolicy" in `config` (the config of
     /// the FDB, not the user config), else `fallback`.
     /// @throws eckit::UserError if the value is not a policy.
-    static Policy resolvePolicy(const eckit::Configuration& config, Policy fallback);
+    static LocalLockPolicy resolvePolicy(const eckit::Configuration& config, LocalLockPolicy fallback);
 
 public:  // methods
 
     /// `policy` is the default, used when neither the environment nor the config of the FDB selects one.
-    NFSTocLocking(Policy policy, Lookup lookup);
+    NFSTocLocking(LocalLockPolicy policy, LocalLockLookup lookup);
 
-    /// Defaults to Policy::Error and reads the mount options from the system.
+    /// Defaults to LocalLockPolicy::Error and reads the mount options from the system.
     /// Only Linux reports them: elsewhere no mount is client-local as far as this class can tell.
     NFSTocLocking();
 
     /// Applies the policy resolved from `config` (see resolvePolicy()).
-    /// @throws eckit::UserError if the policy is invalid, or under Policy::Error.
+    /// @throws eckit::UserError if the policy is invalid, or under LocalLockPolicy::Error.
     void validate(const eckit::LocalPathName& directory, const eckit::Configuration& config) const override;
 
     /// Applies the default policy.
@@ -70,8 +70,8 @@ public:  // methods
 
     /// Applies `policy` if the mount holding `directory` has client-local locks. A filesystem is looked up once.
     /// Allow warns once, Error throws on every call.
-    /// @throws eckit::UserError under Policy::Error.
-    void validate(const eckit::LocalPathName& directory, Policy policy) const;
+    /// @throws eckit::UserError under LocalLockPolicy::Error.
+    void validate(const eckit::LocalPathName& directory, LocalLockPolicy policy) const;
 
     std::unique_ptr<TocLock> holdForRead(int fd, const eckit::PathName& path) const override;
 
@@ -88,11 +88,12 @@ public:  // methods
 
 private:  // members
 
-    Policy policy_;
-    Lookup lookup_;
+    LocalLockPolicy policy_;
+    LocalLockLookup localLockLookup_;
 
     mutable std::mutex mutex_;
-    mutable std::map<std::string, std::optional<std::string>> options_;  ///< by device
+    /// What the lookup found, by device. Guarded by mutex_.
+    mutable std::map<std::string, std::optional<std::string>> localLockOptions_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
