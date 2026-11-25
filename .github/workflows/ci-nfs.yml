@@ -9,11 +9,8 @@ on:
       - "**"
 
   # Trigger the workflow on pull request
-  pull_request: ~
-
-  # Trigger on public pull request approval
-  pull_request_target:
-    types: [labeled]
+  pull_request:
+    types: [opened, reopened, synchronize]
 
   # Trigger the workflow manually
   workflow_dispatch: ~
@@ -23,13 +20,25 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
+  # A fork's pull request runs only once a maintainer has re-run it, as in ci.yml.
+  ci-approval:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: ecmwf/ci-infrastructure/actions/require-ci-approval@main
+
   nfs:
     name: Test NFS
-    if: ${{ !github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci' }}
+    needs: ci-approval
     runs-on: ubuntu-latest
 
     env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
       # Branch used for eckit/metkit when the PR branch has no matching branch in that repo.
       DEPS_FALLBACK_BRANCH: develop
       # NFS harness: a local kernel NFS export, loopback-mounted, consumed by the test via FDB_TEST_NFS_MOUNT.
@@ -40,18 +49,18 @@ jobs:
 
     steps:
       - name: Checkout fdb
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
-          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           path: bundle/fdb
+          persist-credentials: false
 
       # ecbuild bootstraps the bundle; the bundle itself checks out eckit/metkit at configure time.
       - name: Checkout ecbuild
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ecmwf/ecbuild
           path: bundle/ecbuild
+          persist-credentials: false
 
       - name: Cache apt packages
         uses: actions/cache@v4
@@ -97,11 +106,13 @@ jobs:
           test -w "${FDB_TEST_NFS_MOUNT}"
 
       - name: Build bundle
+        env:
+          # Not interpolated into the script: a branch name is chosen by the author of the pull request.
+          PR_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
-          pr_branch="${{ github.head_ref || github.ref_name }}"
           resolve_ref() {
-            if git ls-remote --exit-code --heads "https://github.com/ecmwf/$1.git" "${pr_branch}" >/dev/null 2>&1; then
-              echo "${pr_branch}"
+            if git ls-remote --exit-code "https://github.com/ecmwf/$1.git" "refs/heads/${PR_BRANCH}" >/dev/null 2>&1; then
+              echo "${PR_BRANCH}"
             else
               echo "${DEPS_FALLBACK_BRANCH}"
             fi
