@@ -172,9 +172,12 @@ private:
 class FDB::ArchiveOperation : public tracing::SpanAggregator::Operation {
 public:
 
-    /// Untraced if @p spans is null, i.e. if the tracing of the FDB is disabled (see UntracedScope)
-    ArchiveOperation(tracing::SpanAggregator* spans, const tracing::TraceContext& parent) :
-        Operation(spans, parent), untraced_(spans != nullptr) {}
+    /// An archive call of @p fdb, with the caller's context @p trace (see archiveParent). Untraced if the tracing of
+    /// the FDB is disabled (see UntracedScope).
+    ArchiveOperation(FDB& fdb, const tracing::TraceContext& trace) :
+        ArchiveOperation(
+            fdb, trace,
+            fdb.archiveSpans() ? std::unique_lock<std::mutex>(fdb.mutex_) : std::unique_lock<std::mutex>()) {}
 
     /// Archive one field, recording it in the span (and its key, if it fails)
     template <typename F>
@@ -192,6 +195,15 @@ public:
     }
 
 private:
+
+    /// n.b. the parent is chosen, and the operation registered in its aggregate, with @p lock (FDB::mutex_) held: the
+    /// lock is released once the delegating constructor completes. A concurrent flush thus closes the archive cycle,
+    /// and ends its aggregates, either before the parent is chosen (the operation is in the next cycle) or after the
+    /// operation is registered (its aggregate, kept open by the operation, ends when it is over). It never ends a cycle
+    /// that an archive is about to join. The archival itself is not under the lock.
+    ArchiveOperation(FDB& fdb, const tracing::TraceContext& trace, std::unique_lock<std::mutex>&& /* lock */) :
+        Operation(fdb.archiveSpans(), fdb.archiveSpans() ? fdb.archiveParent(trace) : tracing::TraceContext{}),
+        untraced_(fdb.archiveSpans() != nullptr) {}
 
     UntracedScope untraced_;
 };
@@ -262,10 +274,6 @@ tracing::TraceContext FDB::archiveParent(const tracing::TraceContext& trace) {
     if (tracing::current().valid()) {
         return tracing::current();
     }
-    if (!tracing_) {
-        return {};
-    }
-    std::lock_guard lock(mutex_);
     if (!archiveCycle_) {
         archiveCycle_ =
             std::make_unique<tracing::Span>("fdb.archive_cycle", tracing::SpanKind::Internal, tracing::TraceContext{});
@@ -274,13 +282,13 @@ tracing::TraceContext FDB::archiveParent(const tracing::TraceContext& trace) {
 }
 
 void FDB::archive(eckit::message::Message msg, const tracing::TraceContext& trace) {
-    ArchiveOperation op(archiveSpans(), archiveParent(trace));
+    ArchiveOperation op(*this, trace);
     fdb5::Key key = MessageDecoder::messageToKey(msg);
     op.archive(key, msg.length(), [&] { archiveImpl(key, msg.data(), msg.length()); });
 }
 
 void FDB::archive(eckit::DataHandle& handle, const tracing::TraceContext& trace) {
-    ArchiveOperation op(archiveSpans(), archiveParent(trace));
+    ArchiveOperation op(*this, trace);
     eckit::message::Message msg;
     eckit::message::Reader reader(handle);
 
@@ -297,7 +305,7 @@ void FDB::archive(const void* data, size_t length, const tracing::TraceContext& 
 
 void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& handle,
                   const tracing::TraceContext& trace) {
-    ArchiveOperation op(archiveSpans(), archiveParent(trace));
+    ArchiveOperation op(*this, trace);
     try {
         archiveRequest(op, request, handle);
     }
@@ -341,7 +349,7 @@ void FDB::archiveRequest(ArchiveOperation& op, const metkit::mars::MarsRequest& 
 }
 
 void FDB::archive(const Key& key, const void* data, size_t length, const tracing::TraceContext& trace) {
-    ArchiveOperation op(archiveSpans(), archiveParent(trace));
+    ArchiveOperation op(*this, trace);
     op.archive(key, length, [&] { archiveImpl(key, data, length); });
 }
 
@@ -596,7 +604,8 @@ void FDB::print(std::ostream& s) const {
 void FDB::flush(const tracing::TraceContext& trace) {
     std::lock_guard lock(mutex_);
 
-    // The archive-cycle span (if any) is ended once the flush is complete, after the flush span
+    // The archive-cycle span (if any) is ended once the flush is complete, after the flush span. Every archive which
+    // joined it is registered in its aggregate span (see ArchiveOperation): later archives start the next cycle.
     std::unique_ptr<tracing::Span> cycle = std::move(archiveCycle_);
 
     // The archive spans of the cycle end within the flush span, while their trace is still open in this process: if

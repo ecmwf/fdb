@@ -2,11 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include <algorithm>
+#include <atomic>
 #include <future>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -348,6 +351,41 @@ CASE("keep_errors: a failing flush exports the archive spans of its trace") {
 
     Tracer::instance().keepErrors(false);
     Tracer::instance().sampler(Sampler{});
+}
+
+CASE("A concurrent flush never closes the cycle that an archive is joining") {
+    // The archive cycle is closed by a flush either before an archive chooses its parent (the archive is in the next
+    // cycle), or after it is registered in its aggregate: an aggregate never starts in a cycle that has ended (with
+    // keep_errors, the trace would be complete, and its spans not exported if the next flush fails)
+    Fixture fx;
+    constexpr size_t n = 2000;
+
+    {
+        FDB fdb;
+        std::atomic<bool> done{false};
+        std::thread flusher([&] {
+            while (!done) {
+                fdb.flush();
+            }
+        });
+        archiveSome(fdb, n);
+        done = true;
+        flusher.join();
+        fdb.flush();
+    }
+
+    std::map<TraceContext::SpanId, SpanData> cycles;
+    for (const auto& cycle : fx.exporter->named("fdb.archive_cycle")) {
+        cycles.emplace(cycle.context.spanId(), cycle);
+    }
+    size_t fields = 0;
+    for (const auto& archive : fx.exporter->named("fdb.archive")) {
+        auto cycle = cycles.find(archive.parentSpanId);
+        EXPECT(cycle != cycles.end());
+        EXPECT(archive.start <= cycle->second.end);
+        fields += attribute(archive, "fdb.fields");
+    }
+    EXPECT_EQUAL(fields, n);
 }
 
 CASE("A moved-from FDB can be destroyed") {
