@@ -284,6 +284,7 @@ private:  // members
     mutable std::unique_ptr<TocLock> tocLock_;      ///< held with the lock of the open toc file, if any
 };
 
+
 //-----------------------------------------------------------------------------
 
 }  // namespace fdb5

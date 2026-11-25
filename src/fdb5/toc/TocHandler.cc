@@ -3,26 +3,21 @@
 
 #include <fcntl.h>
 #include <pwd.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <algorithm>
 #include <cstddef>
-#include <map>
-#include <memory>
 #include <mutex>
-#include <string>
 #include <utility>
 
 #include "eckit/config/Resource.h"
-#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
-#include "eckit/filesystem/StdDir.h"
-#include "eckit/io/DataHandle.h"
 #include "eckit/io/FileDescHandle.h"
 #include "eckit/io/FileHandle.h"
+#include "eckit/log/BigNum.h"
 #include "eckit/log/Log.h"
 #include "eckit/maths/Functions.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/thread/AutoLock.h"
 #include "eckit/thread/StaticMutex.h"
 #include "eckit/utils/Literals.h"
 
@@ -31,6 +26,7 @@
 #include "fdb5/database/Index.h"
 #include "fdb5/io/LustreSettings.h"
 #include "fdb5/toc/TocCommon.h"
+#include "fdb5/toc/TocFieldLocation.h"
 #include "fdb5/toc/TocHandler.h"
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/toc/TocStats.h"
@@ -215,6 +211,7 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, Memory
         }
     }
 }
+
 
 TocHandler::~TocHandler() {
     close();
@@ -660,7 +657,6 @@ void TocHandler::close() const {
             SYSCALL2(eckit::fdatasync(fd_), tocPath_);
             dirty_ = false;
         }
-
         SYSCALL2(::close(fd_), tocPath_);
         fd_ = -1;
         writeMode_ = false;
