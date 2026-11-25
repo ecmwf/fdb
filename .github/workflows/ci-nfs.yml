@@ -147,10 +147,21 @@ jobs:
           cmake --build build --parallel --target fdb_test_database_nfs
 
       - name: Run NFS tests
+        timeout-minutes: 15
         env:
           FDB_TEST_NFS_REQUIRE_MOUNT: "1"
         run: |
-          ctest --test-dir build -R nfs --output-on-failure
+          # Anchored: eckit has NFS tests too, which this job does not build.
+          ctest --test-dir build -R '^fdb_test_database_nfs$' --no-tests=error --output-on-failure
+
+      # The loopback mount above is a single NFS client, so it cannot lose a TOC record to another
+      # client. This runs the cross-client case from clients that do not share a cache.
+      - name: Run NFS tests from independent clients
+        timeout-minutes: 15
+        run: |
+          sudo env FDB_TEST_NFS_EXPORT="${FDB_TEST_NFS_EXPORT}" \
+            bash bundle/fdb/tests/fdb/database/test_nfs_clients.sh \
+              build/fdb/tests/fdb/database/fdb_test_database_nfs build/fdb
 
       - name: Dump NFS diagnostics on failure
         if: failure()
@@ -165,6 +176,8 @@ jobs:
           ls -la "${FDB_TEST_NFS_EXPORT}" || true
           echo "=== mount point ==="
           ls -la "${FDB_TEST_NFS_MOUNT}" || true
+          echo "=== network namespaces ==="
+          ip netns list || true
           echo "=== nfs-kernel-server status ==="
           sudo systemctl status nfs-kernel-server --no-pager || true
           echo "=== CTest temporary files ==="
