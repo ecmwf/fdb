@@ -137,6 +137,15 @@ if (HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB)
         NOINSTALL
     )
 
+    # An fdb-server whose store flush fails for the requests asking for it (in their trace state)
+    ecbuild_add_executable(
+        TARGET    fdb_test_remote_failing_store
+        SOURCES   fdb_test_remote_failing_store.cc
+        INCLUDES  ${ECKIT_INCLUDE_DIRS}
+        LIBS      fdb5
+        NOINSTALL
+    )
+
     foreach( _variant enabled client_disabled server_disabled )
         set( TRACING_VARIANT ${_variant} )
         set( TRACING_CLIENT true )
@@ -157,7 +166,8 @@ if (HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB)
             COMMAND        ${FDB_TEST_SERVER_SCRIPT}
             ARGS           ${CMAKE_CURRENT_BINARY_DIR} tracing_${_variant}_client.yaml tracing_${_variant}_catalogue.yaml
                            tracing_${_variant}_store.yaml "$<TARGET_FILE:fdb_test_remote_tracing_bin>"
-            TEST_DEPENDS   fdb_test_remote_tracing_bin
+                           "$<TARGET_FILE:fdb_test_remote_failing_store>"
+            TEST_DEPENDS   fdb_test_remote_tracing_bin fdb_test_remote_failing_store
             ENVIRONMENT    "${test_environment}" "FDB_TRACING_TEST_VARIANT=${_variant}"
                            "FDB_TRACING_TEST_DIR=${CMAKE_CURRENT_BINARY_DIR}"
             TEST_PROPERTIES

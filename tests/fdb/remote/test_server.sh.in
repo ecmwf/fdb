@@ -24,6 +24,8 @@ server="$<TARGET_FILE:fdb-server>"
 # Optional 5th arg: path to the client test binary to run. Defaults to fdb_test_remote_api_bin
 # for backward compatibility with callers that only pass 4 args.
 test="${5:-$<TARGET_FILE:fdb_test_remote_api_bin>}"
+# Optional 6th arg: the server binary of the store (e.g. one injecting failures). Defaults to fdb-server.
+store_server="${6:-$server}"
 
 # --- Cleanup and setup
 cleanup() {
@@ -47,7 +49,7 @@ fdb_remote_init "$testdir/remote_servers"
 catalogue_args=(CATALOGUE "$catalogue_config" "$(fdb_remote_config_port "$catalogue_config")"
   FDB5_SUB_TOCS=1 FDB_DEBUG=1 FDB_WIPE_SECRET=123 -- "$server")
 store_args=(STORE "$store_config" "$(fdb_remote_config_port "$store_config")"
-  FDB5_SUB_TOCS=1 FDB_DEBUG=1 FDB_WIPE_SECRET=123 -- "$server")
+  FDB5_SUB_TOCS=1 FDB_DEBUG=1 FDB_WIPE_SECRET=123 -- "$store_server")
 
 fdb_remote_start_server "${catalogue_args[@]}"
 fdb_remote_start_server "${store_args[@]}"
