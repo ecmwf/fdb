@@ -480,6 +480,8 @@ bool TocHandler::readNext(TocRecord& r, bool walkSubTocs, bool hideSubTocEntries
         if (subTocRead_) {
             len = subTocRead_->readNext(r, walkSubTocs, hideSubTocEntries, hideClearEntries, readMasked, data, length);
             if (len == 0) {
+                // Its walk is over: give up its descriptor, and with it the lock that keeps its other handlers out.
+                subTocRead_->close();
                 subTocRead_ = nullptr;
                 if (parentTocPath) {
                     *parentTocPath = "";

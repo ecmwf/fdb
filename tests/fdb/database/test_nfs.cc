@@ -86,6 +86,21 @@ bool usesNFSLocking(const eckit::LocalPathName& directory) {
     return dynamic_cast<const NFSTocLocking*>(&TocLocking::forDirectory(directory)) != nullptr;
 }
 
+/// A main TOC in `dir` with one sub toc linked into it: three records to walk. Returns the path of the sub toc.
+eckit::PathName createTocWithSubToc(const eckit::PathName& dir, const fdb5::Config& config, const fdb5::Key& key) {
+    const eckit::PathName sub_toc_path = dir / "toc.sub";
+
+    fdb5::TocHandler toc(dir, config);
+    toc.writeInitRecord(key);
+
+    fdb5::TocHandler sub_toc(sub_toc_path, key);
+    sub_toc.writeInitRecord(key);
+
+    toc.writeSubTocRecord(sub_toc);
+
+    return sub_toc_path;
+}
+
 template <typename Worker>
 bool runConcurrently(size_t thread_count, const Worker& worker) {
     std::atomic<bool> start{false};
@@ -617,16 +632,7 @@ CASE("NFS mount: a linked sub toc is read under its lock") {
     const fdb5::Config config = fdb5::Config().expandConfig();
     const fdb5::Key key{{{"class", "od"}, {"expver", "0001"}, {"stream", "oper"}}};
 
-    const eckit::PathName sub_toc_path = dir / "toc.sub";
-    {
-        fdb5::TocHandler toc(dir, config);
-        toc.writeInitRecord(key);
-
-        fdb5::TocHandler sub_toc(sub_toc_path, key);
-        sub_toc.writeInitRecord(key);
-
-        toc.writeSubTocRecord(sub_toc);
-    }
+    const eckit::PathName sub_toc_path = createTocWithSubToc(dir, config, key);
 
     // Hold the sub toc as one of its writers does. A reader that walks the main TOC has to wait for it: reading
     // the sub toc without its lock would finish at once.
@@ -644,6 +650,38 @@ CASE("NFS mount: a linked sub toc is read under its lock") {
 
     // The init record and the link of the main TOC, then the init record of the sub toc.
     EXPECT_EQUAL(records.get(), size_t{3});
+}
+
+CASE("NFS mount: a linked sub toc is released once it has been read") {
+    const auto mount = nfsMountDir();
+    if (!mount) {
+        return;
+    }
+
+    const eckit::TmpDir dir{mount->localPath()};
+
+    const fdb5::Config config = fdb5::Config().expandConfig();
+    const fdb5::Key key{{{"class", "od"}, {"expver", "0001"}, {"stream", "oper"}}};
+
+    const eckit::PathName sub_toc_path = createTocWithSubToc(dir, config, key);
+
+    const fdb5::TocHandler first(dir, config);
+    EXPECT_EQUAL(first.numberOfRecords(), size_t{3});
+
+#if defined(F_OFD_SETLK)
+    // `first` is still alive. A lock it kept on the sub toc is refused here, rather than waited for below.
+    const int fd = ::open(sub_toc_path.localPath(), O_RDWR);
+    EXPECT(fd >= 0);
+    struct flock whole_file{};
+    whole_file.l_type = F_WRLCK;
+    whole_file.l_whence = SEEK_SET;
+    const int locked = ::fcntl(fd, F_OFD_SETLK, &whole_file);
+    ::close(fd);
+    EXPECT_EQUAL(locked, 0);
+#endif
+
+    const fdb5::TocHandler second(dir, config);
+    EXPECT_EQUAL(second.numberOfRecords(), size_t{3});
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -151,8 +151,8 @@ jobs:
         env:
           FDB_TEST_NFS_REQUIRE_MOUNT: "1"
         run: |
-          # Anchored: eckit has NFS tests too, which this job does not build.
-          ctest --test-dir build -R '^fdb_test_database_nfs$' --no-tests=error --output-on-failure
+          # Anchored: eckit has NFS tests too, which this job does not build. The second run reads TOCs uncached.
+          ctest --test-dir build -R '^fdb_test_database_nfs(_uncached)?$' --no-tests=error --output-on-failure
 
       # The loopback mount above is a single NFS client, so it cannot lose a TOC record to another
       # client. This runs the cross-client case from clients that do not share a cache.
