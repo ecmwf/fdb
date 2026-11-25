@@ -57,7 +57,7 @@ namespace {
 
 // General CI can inherit a path from a harness whose mount is not visible in the test container.
 // The dedicated NFS job must fail instead of silently skipping coverage in that situation.
-std::optional<eckit::PathName> nfsMountDir(bool required = false) {
+std::optional<eckit::PathName> nfsMountDir() {
     const char* mount = ::getenv("FDB_TEST_NFS_MOUNT");
     std::string reason = "FDB_TEST_NFS_MOUNT is unset or empty";
     if (mount != nullptr && mount[0] != '\0') {
@@ -75,7 +75,7 @@ std::optional<eckit::PathName> nfsMountDir(bool required = false) {
         }
     }
     const char* require_mount = ::getenv("FDB_TEST_NFS_REQUIRE_MOUNT");
-    if (required || (require_mount != nullptr && std::string(require_mount) == "1")) {
+    if (require_mount != nullptr && std::string(require_mount) == "1") {
         throw eckit::UserError(reason, Here());
     }
     eckit::Log::info() << reason << " -- skipping NFS-backed checks" << std::endl;
@@ -585,13 +585,15 @@ CASE("NFS mount: independent clients preserve records in a shared TOC") {
         return;
     }
 
-    nfsMountDir(true);
-
     const eckit::PathName dir{shared_dir};
     EXPECT(dir.exists());
     if (!dir.exists()) {
         return;
     }
+
+    // On any other filesystem the clients would not share a TOC over NFS, and the counts below would still add up.
+    EXPECT_EQUAL(dir.fileSystemType(), std::string("nfs"));
+    EXPECT(usesNFSLocking(eckit::LocalPathName{dir.localPath()}));
 
     constexpr size_t records_per_client = 100;
     const char* clients_env = ::getenv("FDB_TEST_NFS_CLIENTS");
