@@ -50,7 +50,7 @@ pub use iterator::{
 pub use key::Key;
 #[allow(deprecated)]
 pub use options::UserConfig;
-pub use options::{AccessTime, Appconfig, DumpOptions, ListOptions, PurgeOptions, WipeOptions};
+pub use options::{AccessTime, AppConfig, DumpOptions, ListOptions, PurgeOptions, WipeOptions};
 
 // Re-export control and access enums from the cxx bindings
 pub use fdb_sys::{AccessIdentifier, ControlAction, ControlIdentifier};
