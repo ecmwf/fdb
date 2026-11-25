@@ -11,5 +11,6 @@ spaces:
     - path: @CMAKE_CURRENT_BINARY_DIR@/catalogue_root
 tracing:
   enabled: @TRACING_SERVER@
+  sampler: parentbased_always_on
   exporter: log
   path: @CMAKE_CURRENT_BINARY_DIR@/tracing_@TRACING_VARIANT@_catalogue.jsonl

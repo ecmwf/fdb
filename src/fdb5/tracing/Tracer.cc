@@ -297,7 +297,7 @@ Tracer& Tracer::instance() {
     return tracer;
 }
 
-Tracer::Tracer() {
+Tracer::Tracer() : exporter_(std::make_shared<LogSpanExporter>()) {
     if (const char* e = env("FDB_TRACING_ENABLED")) {
         enabled_ = parseBool(e);
         envDisabled_ = !enabled_;
@@ -307,6 +307,9 @@ Tracer::Tracer() {
         if (const char* s = env("FDB_TRACING_SAMPLER", "OTEL_TRACES_SAMPLER")) {
             const char* a = env("FDB_TRACING_SAMPLER_ARG", "OTEL_TRACES_SAMPLER_ARG");
             sampler_ = Sampler::fromName(s, a ? a : "");
+        }
+        if (const char* k = env("FDB_TRACING_KEEP_ERRORS")) {
+            keepErrors_ = parseBool(k);
         }
         if (const char* x = env("FDB_TRACING_EXPORTER")) {
             const char* p = env("FDB_TRACING_LOG_PATH");
@@ -324,7 +327,7 @@ void Tracer::configureFrom(const eckit::Configuration& fdbConfig) {
         return;
     }
     eckit::LocalConfiguration tracing = fdbConfig.getSubConfiguration("tracing");
-    if (!(tracing.has("sampler") || tracing.has("exporter"))) {
+    if (!(tracing.has("sampler") || tracing.has("exporter") || tracing.has("keep_errors"))) {
         return;
     }
     {
@@ -355,9 +358,13 @@ void Tracer::configure(const eckit::Configuration& config) {
     if (config.has("exporter")) {
         exporter_ = makeExporter(config.getString("exporter"), config.getString("path", ""));
     }
+    if (config.has("keep_errors")) {
+        keepErrors_ = config.getBool("keep_errors");
+    }
 
     LOG_DEBUG_LIB(LibFdb5) << "FDB tracing configured: enabled=" << enabled_ << ", sampler=" << sampler_.name()
-                           << ", exporting=" << static_cast<bool>(exporter_) << std::endl;
+                           << ", keep_errors=" << keepErrors_ << ", exporting=" << static_cast<bool>(exporter_)
+                           << std::endl;
 }
 
 bool Tracer::enabled() const {
@@ -390,6 +397,16 @@ Sampler Tracer::sampler() const {
     return sampler_;
 }
 
+void Tracer::keepErrors(bool keep) {
+    std::lock_guard lock(mutex_);
+    keepErrors_ = keep;
+}
+
+bool Tracer::keepErrors() const {
+    std::lock_guard lock(mutex_);
+    return keepErrors_;
+}
+
 TraceContext Tracer::newSpanContext(const TraceContext& parent) const {
     const TraceContext::TraceId traceId = parent.valid() ? parent.traceId() : newTraceId();
     const bool sampled = sampler().shouldSample(parent, traceId);
@@ -409,6 +426,75 @@ void Tracer::exportSpan(const SpanData& span) const {
             eckit::Log::warning() << "FDB tracing: failed to export span " << span.name << ": " << ex.what()
                                   << std::endl;
         }
+    }
+}
+
+bool Tracer::startSpan(const TraceContext& context) {
+    {
+        std::lock_guard lock(mutex_);
+        if (!exporter_) {
+            return false;
+        }
+        if (context.sampled()) {
+            return true;
+        }
+        if (!keepErrors_) {
+            return false;
+        }
+    }
+    std::lock_guard lock(heldMutex_);
+    ++held_[context.traceId()].open;
+    return true;
+}
+
+void Tracer::endSpan(SpanData&& span) {
+    if (span.context.sampled()) {
+        exportSpan(span);
+        return;
+    }
+
+    // Unsampled, recorded because of keep_errors
+    const bool failed = span.status == StatusCode::Error;
+    std::vector<SpanData> toExport;
+    size_t dropped = 0;
+    {
+        std::lock_guard lock(heldMutex_);
+        auto it = held_.find(span.context.traceId());
+        if (it == held_.end()) {
+            // Started before keep_errors was set
+            if (failed) {
+                toExport.push_back(std::move(span));
+            }
+        }
+        else {
+            HeldTrace& trace = it->second;
+            if (failed && !trace.failed) {
+                trace.failed = true;
+                toExport = std::move(trace.spans);
+                dropped = trace.dropped;
+            }
+            if (trace.failed) {
+                toExport.push_back(std::move(span));
+            }
+            else if (trace.spans.size() < maxHeldSpansPerTrace) {
+                trace.spans.push_back(std::move(span));
+            }
+            else {
+                ++trace.dropped;
+            }
+            if (--trace.open == 0) {
+                held_.erase(it);
+            }
+        }
+    }
+
+    if (dropped != 0) {
+        eckit::Log::warning() << "FDB tracing: " << dropped << " spans of failed trace "
+                              << toExport.back().context.traceIdHex() << " were not kept (more than "
+                              << maxHeldSpansPerTrace << " spans held)" << std::endl;
+    }
+    for (const auto& s : toExport) {
+        exportSpan(s);
     }
 }
 
@@ -448,7 +534,7 @@ Span::Span(std::string name, SpanKind kind, const TraceContext& parent) {
     context_ = tracer.newSpanContext(parent);
     uncaughtExceptions_ = std::uncaught_exceptions();
 
-    if (context_.sampled() && tracer.exporting()) {
+    if (tracer.startSpan(context_)) {
         data_ = std::make_unique<SpanData>();
         data_->name = std::move(name);
         data_->kind = kind;
@@ -497,7 +583,7 @@ void Span::end() {
     if (data_) {
         data_->end = std::chrono::system_clock::now();
         std::unique_ptr<SpanData> data = std::move(data_);
-        Tracer::instance().exportSpan(*data);
+        Tracer::instance().endSpan(std::move(*data));
     }
 }
 

@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cstdint>
 #include <iosfwd>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -118,7 +119,7 @@ public:
 
 private:
 
-    Kind kind_{Kind::AlwaysOn};
+    Kind kind_{Kind::AlwaysOff};
     bool parentBased_{true};
     double ratio_{1.0};
 };
@@ -132,10 +133,19 @@ private:
 ///
 ///   tracing:
 ///     enabled: true              # FDB_TRACING_ENABLED (env 'false' always wins: kill switch)
-///     sampler: parentbased_always_on    # FDB_TRACING_SAMPLER, then OTEL_TRACES_SAMPLER
+///     sampler: parentbased_always_off   # FDB_TRACING_SAMPLER, then OTEL_TRACES_SAMPLER
 ///     ratio: 0.01                # FDB_TRACING_SAMPLER_ARG, then OTEL_TRACES_SAMPLER_ARG
-///     exporter: none             # none | log           FDB_TRACING_EXPORTER
+///     exporter: log              # none | log           FDB_TRACING_EXPORTER
 ///     path: /path/to/spans.jsonl # log exporter target  FDB_TRACING_LOG_PATH (default: eckit::Log::info())
+///     keep_errors: true          # also export the unsampled spans of failing requests  FDB_TRACING_KEEP_ERRORS
+///
+/// By default, only the spans of failing requests, and of the requests whose caller samples them, are exported,
+/// to the info log.
+///
+/// With keep_errors, the spans which the sampler does not sample are recorded too, and held per trace until the
+/// trace has no open span left in this process (i.e. until the request it belongs to is complete). If one of them
+/// has an error status, all the held spans of the trace are exported, as is every later span of that request;
+/// otherwise they are discarded. Sampled spans are exported as soon as they end, as without keep_errors.
 class Tracer {
 public:
 
@@ -162,10 +172,23 @@ public:
     void sampler(const Sampler& sampler);
     Sampler sampler() const;
 
+    void keepErrors(bool keep);
+    bool keepErrors() const;
+
+    /// At most this many spans are held per unsampled trace (see keep_errors); further successful spans are dropped
+    static constexpr size_t maxHeldSpansPerTrace = 10000;
+
     /// Context for a new span: a child of @p parent if valid, otherwise a new root. Applies the sampler.
     TraceContext newSpanContext(const TraceContext& parent) const;
 
     void exportSpan(const SpanData& span) const;
+
+    /// Whether a new span with this context is to be recorded. An unsampled span recorded because of keep_errors is
+    /// held until its trace is complete: every span for which this returns true must then be passed to endSpan().
+    bool startSpan(const TraceContext& context);
+
+    /// A recorded span has ended: export it, or hold it until its trace is complete (see keep_errors)
+    void endSpan(SpanData&& span);
 
     static TraceContext::TraceId newTraceId();
     static TraceContext::SpanId newSpanId();
@@ -180,19 +203,32 @@ private:
 
 private:
 
+    /// The unsampled spans of a trace recorded because of keep_errors, until the trace is complete in this process
+    struct HeldTrace {
+        size_t open{0};      // spans started and not yet ended
+        bool failed{false};  // a span has ended with an error status: its spans are exported
+        size_t dropped{0};   // spans not held, beyond maxHeldSpansPerTrace
+        std::vector<SpanData> spans;
+    };
+
     mutable std::mutex mutex_;
     bool enabled_{true};
     bool envDisabled_{false};
     bool configuredFromConfig_{false};
+    bool keepErrors_{true};
     Sampler sampler_;
     std::shared_ptr<SpanExporter> exporter_;
+
+    std::mutex heldMutex_;
+    std::map<TraceContext::TraceId, HeldTrace> held_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 /// A span. Creating one generates its context immediately (so it can be propagated); timing and attributes are
-/// only recorded if the span is sampled and an exporter is installed. The span ends (and is exported) when end()
-/// is called or on destruction. If destroyed during stack unwinding with an unset status, the status is Error.
+/// only recorded if an exporter is installed and the span is sampled (or keep_errors is set, see Tracer). The span ends
+/// (and is exported) when end() is called or on destruction. If destroyed during stack unwinding with an unset status,
+/// the status is Error.
 ///
 /// A default-constructed Span is a no-op with an invalid context.
 class Span {

@@ -249,6 +249,40 @@ CASE("Purge and wipe are traced") {
     EXPECT(wipes[0].parentSpanId == caller.spanId());
 }
 
+CASE("keep_errors: unsampled archive cycles are exported only if an archive fails") {
+    Fixture fx;
+    Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
+    Tracer::instance().keepErrors(true);
+    FDB fdb;
+
+    archiveSome(fdb, 2);
+    fdb.flush();
+    EXPECT(fx.exporter->spans().empty());
+
+    archiveSome(fdb, 2);
+    Key invalid = makeKey("0");
+    invalid.unset("param");  // matches no rule of the schema
+    EXPECT_THROWS(fdb.archive(invalid, payload.data(), payload.size()));
+    archiveSome(fdb, 1);
+    fdb.flush();
+
+    auto archives = fx.exporter->named("fdb.archive");
+    auto cycle = fx.exporter->named("fdb.archive_cycle");
+    EXPECT_EQUAL(archives.size(), 4);  // those held before the failure, the failure, and the next one
+    EXPECT_EQUAL(cycle.size(), 1);
+    EXPECT_EQUAL(fx.exporter->named("fdb.flush").size(), 1);
+    EXPECT_EQUAL(std::count_if(archives.begin(), archives.end(),
+                               [](const SpanData& s) { return s.status == StatusCode::Error; }),
+                 1);
+    for (const auto& a : archives) {
+        EXPECT(a.parentSpanId == cycle[0].context.spanId());
+        EXPECT(!a.context.sampled());
+    }
+
+    Tracer::instance().keepErrors(false);
+    Tracer::instance().sampler(Sampler{});
+}
+
 CASE("Tracing disabled in the FDB configuration records nothing") {
     Fixture fx;
     Config config = Config().expandConfig();

@@ -53,7 +53,12 @@ def make_config(data_path, root: pathlib.Path, span_file: pathlib.Path, enabled:
         "engine": "toc",
         "schema": str(schema),
         "spaces": [{"handler": "Default", "roots": [{"path": str(store)}]}],
-        "tracing": {"enabled": enabled, "exporter": "log", "path": str(span_file)},
+        "tracing": {
+            "enabled": enabled,
+            "sampler": "parentbased_always_on",
+            "exporter": "log",
+            "path": str(span_file),
+        },
     }
     return yaml.dump(config)
 

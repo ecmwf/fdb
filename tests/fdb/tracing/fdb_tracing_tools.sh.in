@@ -14,6 +14,7 @@ trap 'rm -rf "$wd"' EXIT
 mkdir -p "$wd/root"
 export FDB_ROOT_DIRECTORY="$wd/root"
 export FDB_TRACING_EXPORTER=log
+export FDB_TRACING_SAMPLER=parentbased_always_on
 unset TRACEPARENT TRACESTATE FDB_TRACING_ENABLED || true
 
 trace_id=0af7651916cd43dd8448eb211c80319c

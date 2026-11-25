@@ -49,10 +49,12 @@ struct ExporterFixture {
     ExporterFixture() : exporter(std::make_shared<CollectingExporter>()) {
         Tracer::instance().exporter(exporter);
         Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOn, true});
+        Tracer::instance().keepErrors(false);
     }
     ~ExporterFixture() {
         Tracer::instance().exporter(nullptr);
         Tracer::instance().sampler(Sampler{});
+        Tracer::instance().keepErrors(true);
     }
     std::shared_ptr<CollectingExporter> exporter;
 };
@@ -148,7 +150,14 @@ CASE("Current context is thread local") {
     EXPECT(current().valid());
 }
 
+CASE("Defaults: parent-based always_off sampler, keep_errors, info log exporter") {
+    EXPECT_EQUAL(Sampler{}.name(), "parentbased_always_off");
+    EXPECT(Tracer::instance().keepErrors());
+    EXPECT(std::dynamic_pointer_cast<LogSpanExporter>(Tracer::instance().exporter()));
+}
+
 CASE("Span: child of an explicit parent keeps trace-id, gets a new span-id") {
+    Tracer::instance().exporter(nullptr);
     TraceContext parent = TraceContext::fromTraceparent(sampleTraceparent, "vendor=abc");
     Span span("test", SpanKind::Internal, parent);
     EXPECT(span.context().valid());
@@ -221,6 +230,118 @@ CASE("Parent-based sampling follows an unsampled parent") {
         EXPECT(!s.recording());
     }
     EXPECT_EQUAL(fx.exporter->spans().size(), 0);
+}
+
+CASE("keep_errors: the unsampled spans of a successful trace are discarded") {
+    ExporterFixture fx;
+    Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
+    Tracer::instance().keepErrors(true);
+    {
+        ScopedSpan root("root");
+        EXPECT(!root.context().sampled());
+        EXPECT(root.span().recording());
+        { ScopedSpan child("child"); }
+    }
+    EXPECT_EQUAL(fx.exporter->spans().size(), 0);
+}
+
+CASE("keep_errors: all the spans of a failing trace are exported, including those ended before the failure") {
+    ExporterFixture fx;
+    Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
+    Tracer::instance().keepErrors(true);
+
+    TraceContext::TraceId traceId{};
+    try {
+        ScopedSpan root("root");
+        traceId = root.context().traceId();
+        { ScopedSpan ok("ok"); }
+        EXPECT_EQUAL(fx.exporter->spans().size(), 0);  // held: the trace is not complete
+        ScopedSpan failing("failing");
+        throw std::runtime_error("boom");
+    }
+    catch (const std::runtime_error&) {
+    }
+
+    auto spans = fx.exporter->spans();
+    EXPECT_EQUAL(spans.size(), 3);
+    for (const auto& s : spans) {
+        EXPECT(s.context.traceId() == traceId);
+    }
+    EXPECT_EQUAL(spans[0].name, "ok");
+    EXPECT(spans[0].status == StatusCode::Unset);
+    EXPECT_EQUAL(spans[1].name, "failing");
+    EXPECT(spans[1].status == StatusCode::Error);
+    EXPECT_EQUAL(spans[2].name, "root");
+
+    // an error status set explicitly counts as well
+    {
+        Span s("explicit", SpanKind::Internal, TraceContext{});
+        s.setStatus(StatusCode::Error, "failed");
+    }
+    EXPECT_EQUAL(fx.exporter->spans().size(), 4);
+}
+
+CASE("keep_errors: sampled spans are exported as they end") {
+    ExporterFixture fx;
+    Tracer::instance().keepErrors(true);
+    {
+        ScopedSpan root("root");
+        { ScopedSpan child("child"); }
+        EXPECT_EQUAL(fx.exporter->spans().size(), 1);
+    }
+    EXPECT_EQUAL(fx.exporter->spans().size(), 2);
+}
+
+CASE("keep_errors: an unsampled caller context is kept if the request fails") {
+    ExporterFixture fx;
+    Tracer::instance().keepErrors(true);
+    TraceContext unsampled = TraceContext::fromTraceparent("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00");
+    { Span s("ok", SpanKind::Internal, unsampled); }
+    EXPECT_EQUAL(fx.exporter->spans().size(), 0);
+    {
+        Span s("failing", SpanKind::Internal, unsampled);
+        s.setStatus(StatusCode::Error);
+    }
+    auto spans = fx.exporter->spans();
+    EXPECT_EQUAL(spans.size(), 1);
+    EXPECT(spans[0].parentSpanId == unsampled.spanId());
+    EXPECT(!spans[0].context.sampled());
+}
+
+CASE("keep_errors: without it, the unsampled spans of a failing trace are not recorded") {
+    ExporterFixture fx;
+    Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
+    try {
+        ScopedSpan s("failing");
+        EXPECT(!s.span().recording());
+        throw std::runtime_error("boom");
+    }
+    catch (const std::runtime_error&) {
+    }
+    EXPECT_EQUAL(fx.exporter->spans().size(), 0);
+}
+
+CASE("keep_errors: the spans held per trace are bounded") {
+    ExporterFixture fx;
+    Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
+    Tracer::instance().keepErrors(true);
+    {
+        ScopedSpan root("root");
+        for (size_t i = 0; i < Tracer::maxHeldSpansPerTrace + 5; ++i) {
+            ScopedSpan child("child");
+        }
+        root.span().setStatus(StatusCode::Error);
+    }
+    EXPECT_EQUAL(fx.exporter->spans().size(), Tracer::maxHeldSpansPerTrace + 1);
+    EXPECT_EQUAL(fx.exporter->spans().back().name, "root");
+}
+
+CASE("keep_errors from configuration") {
+    eckit::LocalConfiguration config;
+    config.set("keep_errors", true);
+    Tracer::instance().configure(config);
+    EXPECT(Tracer::instance().keepErrors());
+    Tracer::instance().keepErrors(false);
 }
 
 CASE("Sampler names and ratio") {
