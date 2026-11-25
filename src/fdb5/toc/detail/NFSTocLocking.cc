@@ -189,14 +189,14 @@ Policy NFSTocLocking::parsePolicy(const std::string& value, const std::string& s
     throw eckit::UserError(message.str(), Here());
 }
 
-Policy NFSTocLocking::resolvePolicy(const eckit::Configuration& userConfig, Policy fallback) {
+Policy NFSTocLocking::resolvePolicy(const eckit::Configuration& config, Policy fallback) {
     const std::string fromResource =
         eckit::Resource<std::string>("fdbNfsLocalLockPolicy;$FDB_NFS_LOCAL_LOCK_POLICY", "");
     if (!fromResource.empty()) {
         return parsePolicy(fromResource, "FDB_NFS_LOCAL_LOCK_POLICY");
     }
-    if (userConfig.has("nfsLocalLockPolicy")) {
-        return parsePolicy(userConfig.getString("nfsLocalLockPolicy"), "nfsLocalLockPolicy");
+    if (config.has("nfsLocalLockPolicy")) {
+        return parsePolicy(config.getString("nfsLocalLockPolicy"), "nfsLocalLockPolicy");
     }
     return fallback;
 }
@@ -205,8 +205,8 @@ NFSTocLocking::NFSTocLocking(Policy policy, Lookup lookup) : policy_{policy}, lo
 
 NFSTocLocking::NFSTocLocking() : NFSTocLocking{Policy::Error, mount_option} {}
 
-void NFSTocLocking::validate(const eckit::LocalPathName& directory, const eckit::Configuration& userConfig) const {
-    validate(directory, resolvePolicy(userConfig, policy_));
+void NFSTocLocking::validate(const eckit::LocalPathName& directory, const eckit::Configuration& config) const {
+    validate(directory, resolvePolicy(config, policy_));
 }
 
 void NFSTocLocking::validate(const eckit::LocalPathName& directory) const {

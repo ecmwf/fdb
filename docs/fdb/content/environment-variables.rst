@@ -384,8 +384,9 @@ This variable selects what happens when such a mount is detected when a TOC is o
 
 Values are case-insensitive. Any other value is an error.
 
-The policy can also be set per FDB in the user config, with the key ``nfsLocalLockPolicy``. The
-environment variable, if set, takes precedence over the user config.
+The policy can also be set in the configuration of the FDB holding the TOC (see :doc:`config-schema`),
+with the key ``nfsLocalLockPolicy``. It is not read from the user config passed by a client. The
+environment variable, if set, takes precedence over the configuration.
 
 Detection reads ``/proc/self/mountinfo``, so it is implemented on Linux only. It is not implemented
 on macOS and the BSDs, where the policy has no effect. Avoid ``locallocks`` on macOS (NFSv2/3) and

@@ -144,7 +144,7 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     numSubtocsRaw_(0),
     writeMode_(false),
     dirty_(false),
-    lockPolicyConfig_(&dbConfig_.userConfig()) {
+    lockPolicyConfig_(&dbConfig_) {
     // An override to enable using sub tocs without configurations being passed in, for ease
     // of debugging
     const char* subTocOverride = ::getenv("FDB_SUB_TOCS");
@@ -173,7 +173,7 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, Memory
     numSubtocsRaw_(0),
     writeMode_(false),
     dirty_(false),
-    lockPolicyConfig_(lockPolicyConfig ? lockPolicyConfig : &dbConfig_.userConfig()) {
+    lockPolicyConfig_(lockPolicyConfig ? lockPolicyConfig : &dbConfig_) {
 
     if (cachedToc_) {
         cachedToc_->openForRead();

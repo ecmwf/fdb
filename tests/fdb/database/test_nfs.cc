@@ -236,7 +236,7 @@ CASE("NFS locks: an unknown policy is rejected, naming its source and the accept
     }
 }
 
-CASE("NFS locks: the environment overrides the user config, which overrides the default") {
+CASE("NFS locks: the environment overrides the config, which overrides the default") {
     using Policy = NFSTocLocking::Policy;
 
     const char* saved = ::getenv("FDB_NFS_LOCAL_LOCK_POLICY");
@@ -464,7 +464,7 @@ CASE("NFS mount: detection fires and a TOC round-trips on a real NFS export") {
     }
 }
 
-CASE("NFS mount: a sub toc takes the lock policy from the user config it is given") {
+CASE("NFS mount: the lock policy comes from the FDB config, which a sub toc is given") {
     const auto mount = nfsMountDir();
     if (!mount) {
         return;
@@ -474,13 +474,30 @@ CASE("NFS mount: a sub toc takes the lock policy from the user config it is give
     const std::optional<std::string> previous = saved ? std::optional<std::string>{saved} : std::nullopt;
     ::unsetenv("FDB_NFS_LOCAL_LOCK_POLICY");
 
-    const eckit::TmpDir dir{mount->localPath()};
     const fdb5::Key key{{{"class", "od"}, {"expver", "0001"}, {"stream", "oper"}}};
 
+    // The policy is parsed before the mount is looked at, so an invalid one shows which config was read.
     eckit::LocalConfiguration invalid;
     invalid.set("nfsLocalLockPolicy", "strict");
 
-    // The policy is parsed before the mount is looked at, so an invalid one shows which config was read.
+    const fdb5::Config valid = fdb5::Config().expandConfig();
+
+    {
+        const eckit::TmpDir dir{mount->localPath()};
+        fdb5::Config config = valid;
+        config.set("nfsLocalLockPolicy", "strict");
+        fdb5::TocHandler handler(dir, config);
+        EXPECT_THROWS_AS(handler.writeInitRecord(key), eckit::UserError);
+    }
+
+    {
+        const eckit::TmpDir dir{mount->localPath()};
+        fdb5::TocHandler handler(dir, fdb5::Config{valid, invalid});  // n.b. as the user config: not read
+        EXPECT_NO_THROW(handler.writeInitRecord(key));
+    }
+
+    const eckit::TmpDir dir{mount->localPath()};
+
     fdb5::TocHandler configured(dir / "toc.configured", key, nullptr, &invalid);
     EXPECT_THROWS_AS(configured.writeInitRecord(key), eckit::UserError);
 

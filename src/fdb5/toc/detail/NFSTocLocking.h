@@ -48,23 +48,23 @@ public:  // types
     /// @throws eckit::UserError for any other value.
     static Policy parsePolicy(const std::string& value, const std::string& source = "NFS local lock policy");
 
-    /// The policy from $FDB_NFS_LOCAL_LOCK_POLICY if set, else from "nfsLocalLockPolicy" in `userConfig`, else
-    /// `fallback`.
+    /// The policy from $FDB_NFS_LOCAL_LOCK_POLICY if set, else from "nfsLocalLockPolicy" in `config` (the config of
+    /// the FDB, not the user config), else `fallback`.
     /// @throws eckit::UserError if the value is not a policy.
-    static Policy resolvePolicy(const eckit::Configuration& userConfig, Policy fallback);
+    static Policy resolvePolicy(const eckit::Configuration& config, Policy fallback);
 
 public:  // methods
 
-    /// `policy` is the default, used when neither the environment nor the user config selects one.
+    /// `policy` is the default, used when neither the environment nor the config of the FDB selects one.
     NFSTocLocking(Policy policy, Lookup lookup);
 
     /// Defaults to Policy::Error and reads the mount options from the system.
     /// Only Linux reports them: elsewhere no mount is client-local as far as this class can tell.
     NFSTocLocking();
 
-    /// Applies the policy resolved from `userConfig` (see resolvePolicy()).
+    /// Applies the policy resolved from `config` (see resolvePolicy()).
     /// @throws eckit::UserError if the policy is invalid, or under Policy::Error.
-    void validate(const eckit::LocalPathName& directory, const eckit::Configuration& userConfig) const override;
+    void validate(const eckit::LocalPathName& directory, const eckit::Configuration& config) const override;
 
     /// Applies the default policy.
     void validate(const eckit::LocalPathName& directory) const;

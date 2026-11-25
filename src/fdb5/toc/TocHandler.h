@@ -99,8 +99,8 @@ public:  // methods
     TocHandler(const eckit::PathName& dir, const Config& config);
 
     /// For initialising sub tocs or diagnostic interrogation.
-    /// `lockPolicyConfig` is the user config of the database a sub toc is reached from: only its NFS lock policy is
-    /// read, the sub toc is otherwise configured as before.
+    /// `lockPolicyConfig` is the config of the database a sub toc is reached from: only its NFS lock policy is read,
+    /// the sub toc is otherwise configured as before.
     TocHandler(const eckit::PathName& path, const Key& parentKey, eckit::MemoryHandle* cachedToc = nullptr,
                const eckit::Configuration* lockPolicyConfig = nullptr);
 
