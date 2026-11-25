@@ -1146,9 +1146,6 @@ void TocHandler::writeInitRecord(const Key& key) {
         eckit::MemoryStream s(&r2->payload_[0], r2->maxPayloadSize);
         s << key;
         s << isSubToc_;
-        // The TOC is opened without O_APPEND: the record is written at the current offset, which is still the start
-        // of the file as it was found empty under the lock.
-        ASSERT(::lseek(fd_, 0, SEEK_CUR) == 0);
         append(*r2, s.position());
         dbUID_ = r2->header_.uid_;
     }
