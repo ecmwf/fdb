@@ -13,8 +13,9 @@ FDB does not depend on the OpenTelemetry SDK. Spans follow the OpenTelemetry dat
 (trace-id, span-id, parent, kind, attributes, status) and are handed to a pluggable exporter.
 
 Tracing is enabled by default. Trace contexts are always generated and propagated. Spans are
-written to the FDB info log (``eckit::Log::info()``) for the requests that fail, and for the
-requests whose caller passes a sampled trace context. Successful requests without such a context
+written to the FDB log for the requests that fail, and for the requests whose caller passes a
+sampled trace context: the spans with an error status to the error log (``eckit::Log::error()``),
+the others to the info log (``eckit::Log::info()``). Successful requests without such a context
 print nothing (see :ref:`FDB_Tracing_Keep_Errors`). With ``exporter: none``, nothing is recorded.
 
 Traced operations
@@ -128,18 +129,16 @@ In an FDB client or ``fdb-server`` configuration:
 .. code-block:: yaml
 
    tracing:
-     enabled: true                     # false (or 'tracing: false') disables tracing for this FDB/server
+     enabled: true                     # false (or 'tracing: false') disables tracing in the process
      sampler: parentbased_always_off   # always_on | always_off | traceidratio | parentbased_*
      ratio: 0.01                       # for traceidratio samplers
      exporter: log                     # log (default) | none
-     path: /path/to/spans.jsonl        # log exporter target (implies 'exporter: log'); default: the info log
      keep_errors: true                 # also export the spans of failing requests that are not sampled
 
-``enabled`` applies to each FDB instance: one whose tracing is disabled records no spans, and
-propagates no trace context, not even that of its caller. The FDBs of a server whose tracing is
-disabled are not traced either, unless their own (``fdb``) configuration enables it.
-``sampler``, ``ratio``, ``exporter``, ``path`` and ``keep_errors`` are process-wide: the first
-configuration that provides them is used.
+All these settings are process-wide: the ``tracing`` block of the first configuration that
+provides one is used (for an ``fdb-server``, its own configuration, which also applies to the
+FDBs it opens). With tracing disabled, no span is recorded and no trace context is sent to the
+FDB servers.
 
 .. _FDB_Tracing_Keep_Errors:
 
@@ -181,7 +180,8 @@ Notes:
 
 The ``log`` exporter writes one JSON object per span and line, with OTLP field names
 (``trace_id``, ``span_id``, ``parent_span_id``, ``start_time_unix_nano``, ``attributes``, ...),
-suitable for ingestion by an OpenTelemetry Collector ``filelog`` receiver. Applications already
+to the error log for the spans with an error status, and to the info log for the others. The
+logging infrastructure forwards them, e.g. to an OpenTelemetry Collector. Applications already
 using the OpenTelemetry SDK can instead install their own ``fdb5::tracing::SpanExporter``.
 
 Environment variables
@@ -195,7 +195,6 @@ Variable                       Meaning
 ``FDB_TRACING_SAMPLER_ARG``    sampler argument (falls back to ``OTEL_TRACES_SAMPLER_ARG``)
 ``FDB_TRACING_KEEP_ERRORS``    ``false`` exports only sampled spans, failing or not
 ``FDB_TRACING_EXPORTER``       ``log`` (default) or ``none``
-``FDB_TRACING_LOG_PATH``       file the ``log`` exporter appends to (implies ``log``)
 ``OTEL_SERVICE_NAME``          ``service.name`` resource attribute of the exported spans
 =============================  ================================================================
 
@@ -208,7 +207,6 @@ common version. Only then does the client precede a request with a ``Trace`` mes
 carries the binary trace context (trace-id, span-id, flags, tracestate) for the following
 message with the same client and request ids.
 
-If either side predates this feature, or has tracing disabled (a server in its configuration,
-a client in its process: connections are shared by the FDBs of a process), the key is absent
+If either side predates this feature, or has tracing disabled in its process, the key is absent
 and no ``Trace`` message is ever sent: the wire protocol is unchanged. A ``Trace`` message that the
 server cannot use is logged and ignored; tracing never causes a request to fail.

@@ -81,69 +81,35 @@ std::string toAttributeString(const T& value) {
     return s;
 }
 
-/// An FDB whose tracing is disabled propagates no trace context, not even that of its caller (e.g. set by a
-/// tracing::ScopedContext, or by fdb_trace_begin()): while in scope, the calling thread has no current context. Work
-/// deferred to other threads (e.g. queued remote writes and reads, asynchronous iterators) captures the current
-/// context, so it inherits this decision.
-class UntracedScope {
-public:
-
-    explicit UntracedScope(bool tracing) {
-        if (!tracing) {
-            scope_.emplace(tracing::TraceContext{});
-        }
-    }
-
-private:
-
-    std::optional<tracing::ScopedContext> scope_;
-};
-
 /// The span of one FDB API call. It is the current context of the calling thread while in scope, so that work
-/// done on behalf of the call (including remote requests) is attributed to it. When tracing is disabled, there is
-/// no span, and no current context (see UntracedScope).
+/// done on behalf of the call (including remote requests) is attributed to it. A no-op if tracing is disabled.
 class ApiSpan {
 public:
 
     /// Child of @p parent if valid, otherwise of the calling thread's current context (or a new root)
-    ApiSpan(bool enabled, const char* name, const tracing::TraceContext& parent) : untraced_(enabled) {
-        if (enabled) {
-            span_.emplace(name, tracing::SpanKind::Internal, parent.valid() ? parent : tracing::current());
-        }
-    }
+    ApiSpan(const char* name, const tracing::TraceContext& parent) :
+        span_(name, tracing::SpanKind::Internal, parent.valid() ? parent : tracing::current()) {}
 
-    bool recording() { return span_ && span_->span().recording(); }
+    bool recording() { return span_.span().recording(); }
 
     template <typename T>
     void setAttribute(const char* key, T&& value) {
-        if (span_) {
-            span_->setAttribute(key, std::forward<T>(value));
-        }
+        span_.setAttribute(key, std::forward<T>(value));
     }
 
 private:
 
-    UntracedScope untraced_;
-    std::optional<tracing::ScopedSpan> span_;
+    tracing::ScopedSpan span_;
 };
 
 /// For API calls returning an iterator: the span is current while the iterator is created (so that asynchronous
-/// workers and remote requests inherit it) and is then handed over to the iterator, ending with the iteration. When
-/// tracing is disabled, there is no current context while the iterator is created (see UntracedScope).
+/// workers and remote requests inherit it) and is then handed over to the iterator, ending with the iteration.
 class IteratorSpan {
 public:
 
-    IteratorSpan(bool enabled, const char* name, const tracing::TraceContext& explicitParent) {
-        if (enabled) {
-            span_ = tracing::Span(name, tracing::SpanKind::Internal,
-                                  explicitParent.valid() ? explicitParent : tracing::current());
-        }
-        if (!enabled) {
-            scope_.emplace(tracing::TraceContext{});
-        }
-        else {
-            scope_.emplace(span_.context().valid() ? span_.context() : tracing::current());
-        }
+    IteratorSpan(const char* name, const tracing::TraceContext& explicitParent) :
+        span_(name, tracing::SpanKind::Internal, explicitParent.valid() ? explicitParent : tracing::current()) {
+        scope_.emplace(span_.context().valid() ? span_.context() : tracing::current());
     }
 
     template <typename T>
@@ -172,12 +138,9 @@ private:
 class FDB::ArchiveOperation : public tracing::SpanAggregator::Operation {
 public:
 
-    /// An archive call of @p fdb, with the caller's context @p trace (see archiveParent). Untraced if the tracing of
-    /// the FDB is disabled (see UntracedScope).
-    ArchiveOperation(FDB& fdb, const tracing::TraceContext& trace) :
-        ArchiveOperation(
-            fdb, trace,
-            fdb.archiveSpans() ? std::unique_lock<std::mutex>(fdb.mutex_) : std::unique_lock<std::mutex>()) {}
+    /// An archive call of @p fdb, with the caller's context @p trace (see archiveParent). Untraced if tracing is
+    /// disabled.
+    ArchiveOperation(FDB& fdb, const tracing::TraceContext& trace) : ArchiveOperation(fdb, trace, fdb.archiveSpans()) {}
 
     /// Archive one field, recording it in the span (and its key, if it fails)
     template <typename F>
@@ -196,16 +159,18 @@ public:
 
 private:
 
+    ArchiveOperation(FDB& fdb, const tracing::TraceContext& trace, tracing::SpanAggregator* spans) :
+        ArchiveOperation(fdb, trace, spans,
+                         spans ? std::unique_lock<std::mutex>(fdb.mutex_) : std::unique_lock<std::mutex>()) {}
+
     /// n.b. the parent is chosen, and the operation registered in its aggregate, with @p lock (FDB::mutex_) held: the
     /// lock is released once the delegating constructor completes. A concurrent flush thus closes the archive cycle,
     /// and ends its aggregates, either before the parent is chosen (the operation is in the next cycle) or after the
     /// operation is registered (its aggregate, kept open by the operation, ends when it is over). It never ends a cycle
     /// that an archive is about to join. The archival itself is not under the lock.
-    ArchiveOperation(FDB& fdb, const tracing::TraceContext& trace, std::unique_lock<std::mutex>&& /* lock */) :
-        Operation(fdb.archiveSpans(), fdb.archiveSpans() ? fdb.archiveParent(trace) : tracing::TraceContext{}),
-        untraced_(fdb.archiveSpans() != nullptr) {}
-
-    UntracedScope untraced_;
+    ArchiveOperation(FDB& fdb, const tracing::TraceContext& trace, tracing::SpanAggregator* spans,
+                     std::unique_lock<std::mutex>&& /* lock */) :
+        Operation(spans, spans ? fdb.archiveParent(trace) : tracing::TraceContext{}) {}
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -214,9 +179,6 @@ FDB::FDB(const Config& config) :
     internal_(FDBFactory::instance().build(config)),
     dirty_(false),
     reportStats_(config.getBool("statistics", false)),
-    // n.b. the effective configuration is that expanded by the factory (e.g. loaded from ~fdb/etc/fdb/config.yaml).
-    // The expansion replaces a configuration without a type: tracing disabled by either one is disabled.
-    tracing_(tracing::Tracer::enabledIn(config) && tracing::Tracer::enabledIn(internal_->config())),
     archiveSpans_(std::make_unique<tracing::SpanAggregator>("fdb.archive", tracing::SpanKind::Internal)) {
     // n.b. the first tracing settings found in the process apply: those supplied take precedence
     tracing::Tracer::instance().configureFrom(config);
@@ -245,7 +207,6 @@ FDB::FDB(FDB&& rhs) noexcept :
     internal_(std::move(rhs.internal_)),
     dirty_(rhs.dirty_),
     reportStats_(rhs.reportStats_),
-    tracing_(rhs.tracing_),
     archiveCycle_(std::move(rhs.archiveCycle_)),
     archiveSpans_(std::move(rhs.archiveSpans_)),
     stats_(std::move(rhs.stats_)) {
@@ -258,13 +219,16 @@ FDB& FDB::operator=(FDB&& rhs) noexcept {
         internal_ = std::move(rhs.internal_);
         dirty_ = rhs.dirty_;
         reportStats_ = rhs.reportStats_;
-        tracing_ = rhs.tracing_;
         archiveCycle_ = std::move(rhs.archiveCycle_);
         archiveSpans_ = std::move(rhs.archiveSpans_);
         stats_ = std::move(rhs.stats_);
         rhs.dirty_ = false;
     }
     return *this;
+}
+
+tracing::SpanAggregator* FDB::archiveSpans() const {
+    return tracing::Tracer::instance().enabled() ? archiveSpans_.get() : nullptr;
 }
 
 tracing::TraceContext FDB::archiveParent(const tracing::TraceContext& trace) {
@@ -383,7 +347,6 @@ void FDB::archiveImpl(const Key& key, const void* data, size_t length) {
 }
 
 void FDB::reindex(const Key& key, const FieldLocation& location) {
-    UntracedScope untraced(tracing_);
     internal_->reindex(key, location);
     std::lock_guard lock(mutex_);
     dirty_ = true;
@@ -406,14 +369,14 @@ bool FDB::sorted(const metkit::mars::MarsRequest& request) {
 }
 
 eckit::DataHandle* FDB::read(const eckit::URI& uri, const tracing::TraceContext& trace) {
-    ApiSpan span(tracing_, "fdb.read", trace);
+    ApiSpan span("fdb.read", trace);
     span.setAttribute("fdb.fields", 1);
     auto location = std::unique_ptr<FieldLocation>(FieldLocationFactory::instance().build(uri.scheme(), uri));
     return location->dataHandle();
 }
 
 eckit::DataHandle* FDB::read(const std::vector<eckit::URI>& uris, bool sorted, const tracing::TraceContext& trace) {
-    ApiSpan span(tracing_, "fdb.read", trace);
+    ApiSpan span("fdb.read", trace);
     span.setAttribute("fdb.fields", uris.size());
     HandleGatherer result(sorted);
 
@@ -426,7 +389,7 @@ eckit::DataHandle* FDB::read(const std::vector<eckit::URI>& uris, bool sorted, c
 }
 
 eckit::DataHandle* FDB::read(ListIterator& it, bool sorted, const tracing::TraceContext& trace) {
-    ApiSpan span(tracing_, "fdb.read", trace);
+    ApiSpan span("fdb.read", trace);
     size_t fields = 0;
 
     eckit::Timer timer;
@@ -485,7 +448,7 @@ eckit::DataHandle* FDB::read(ListIterator& it, bool sorted, const tracing::Trace
 eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request, const tracing::TraceContext& trace) {
     static bool seekable = eckit::Resource<bool>("fdbSeekableDataHandle;$FDB_SEEKABLE_DATA_HANDLE", false);
 
-    ApiSpan span(tracing_, "fdb.retrieve", trace);
+    ApiSpan span("fdb.retrieve", trace);
     if (span.recording()) {
         span.setAttribute("fdb.request", toAttributeString(request));
     }
@@ -496,7 +459,7 @@ eckit::DataHandle* FDB::retrieve(const metkit::mars::MarsRequest& request, const
 }
 
 ListIterator FDB::inspect(const metkit::mars::MarsRequest& request, const tracing::TraceContext& trace) {
-    IteratorSpan span(tracing_, "fdb.inspect", trace);
+    IteratorSpan span("fdb.inspect", trace);
     if (span.recording()) {
         span.setAttribute("fdb.request", toAttributeString(request));
     }
@@ -505,7 +468,7 @@ ListIterator FDB::inspect(const metkit::mars::MarsRequest& request, const tracin
 
 ListIterator FDB::list(const FDBToolRequest& request, const ListMode mode, const int level,
                        const tracing::TraceContext& trace) {
-    IteratorSpan span(tracing_, "fdb.list", trace);
+    IteratorSpan span("fdb.list", trace);
     if (span.recording()) {
         span.setAttribute("fdb.request", toAttributeString(request.request()));
     }
@@ -519,19 +482,17 @@ ListIterator FDB::list(const FDBToolRequest& request, const bool deduplicate, co
 }
 
 DumpIterator FDB::dump(const FDBToolRequest& request, bool simple) {
-    UntracedScope untraced(tracing_);
     return internal_->dump(request, simple);
 }
 
 StatusIterator FDB::status(const FDBToolRequest& request) {
-    UntracedScope untraced(tracing_);
     return internal_->status(request);
 }
 
 WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll,
                        const tracing::TraceContext& trace) {
 
-    IteratorSpan span(tracing_, "fdb.wipe", trace);
+    IteratorSpan span("fdb.wipe", trace);
     if (span.recording()) {
         span.setAttribute("fdb.request", toAttributeString(request.request()));
     }
@@ -561,7 +522,7 @@ WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain,
 }
 
 PurgeIterator FDB::purge(const FDBToolRequest& request, bool doit, bool porcelain, const tracing::TraceContext& trace) {
-    IteratorSpan span(tracing_, "fdb.purge", trace);
+    IteratorSpan span("fdb.purge", trace);
     if (span.recording()) {
         span.setAttribute("fdb.request", toAttributeString(request.request()));
     }
@@ -570,17 +531,14 @@ PurgeIterator FDB::purge(const FDBToolRequest& request, bool doit, bool porcelai
 }
 
 StatsIterator FDB::stats(const FDBToolRequest& request) {
-    UntracedScope untraced(tracing_);
     return internal_->stats(request);
 }
 
 ControlIterator FDB::control(const FDBToolRequest& request, ControlAction action, ControlIdentifiers identifiers) {
-    UntracedScope untraced(tracing_);
     return internal_->control(request, action, identifiers);
 }
 
 MoveIterator FDB::move(const FDBToolRequest& request, const eckit::URI& dest) {
-    UntracedScope untraced(tracing_);
     return internal_->move(request, dest);
 }
 
@@ -624,7 +582,7 @@ void FDB::flush(const tracing::TraceContext& trace) {
         // explicit context, else the current one, else the archive cycle being flushed
         const tracing::TraceContext& parent =
             (trace.valid() || tracing::current().valid() || !cycle) ? trace : cycle->context();
-        ApiSpan span(tracing_, "fdb.flush", parent);
+        ApiSpan span("fdb.flush", parent);
         endArchiveSpans();
 
         eckit::Timer timer;
@@ -649,7 +607,6 @@ IndexAxis FDB::axes(const FDBToolRequest& request, int level) {
 }
 
 AxesIterator FDB::axesIterator(const FDBToolRequest& request, int level) {
-    UntracedScope untraced(tracing_);
     return internal_->axesIterator(request, level);
 }
 

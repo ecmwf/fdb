@@ -8,7 +8,6 @@
 #include "fdb5/remote/client/Client.h"
 #include "fdb5/remote/client/ClientConnectionRouter.h"
 #include "fdb5/tracing/TraceContext.h"
-#include "fdb5/tracing/Tracer.h"
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/config/Resource.h"
@@ -330,12 +329,7 @@ const net::Endpoint& ClientConnection::controlEndpoint() const {
 }
 
 RemoteConfiguration ClientConnection::availableFunctionality(const Configuration& config) const {
-    RemoteConfiguration conf{config};
-    // n.b. a connection is shared by the FDBs of the process (see ClientConnectionRouter), whatever their
-    // configuration: it can propagate trace contexts if tracing is enabled in the process. Whether a request carries
-    // one is up to the FDB making it (one whose tracing is disabled makes requests without a current context).
-    conf.offerTracing(tracing::Tracer::instance().enabled());
-    return conf;
+    return RemoteConfiguration{config};
 }
 
 //----------------------------------------------------------------------------------------------------------------------

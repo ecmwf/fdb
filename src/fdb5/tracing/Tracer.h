@@ -77,23 +77,16 @@ public:
     virtual void exportSpan(const SpanData& span) = 0;
 };
 
-/// Writes one JSON object per span (one line each), using OTLP field names, to eckit::Log::info() or to a file.
+/// Writes one JSON object per span (one line each), using OTLP field names, to the log: the spans with an error status
+/// to eckit::Log::error(), the others to eckit::Log::info(). The log infrastructure forwards them (e.g. to an
+/// OpenTelemetry collector).
 class LogSpanExporter : public SpanExporter {
 public:
-
-    /// @param path file to append to; empty means eckit::Log::info()
-    explicit LogSpanExporter(const std::string& path = {});
-    ~LogSpanExporter() override;
 
     void exportSpan(const SpanData& span) override;
 
     /// Serialise a span as a single-line JSON object (exposed for testing)
     static void toJSON(std::ostream& out, const SpanData& span);
-
-private:
-
-    std::mutex mutex_;
-    std::unique_ptr<std::ostream> file_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -132,18 +125,18 @@ private:
 /// Process-wide tracing configuration.
 ///
 /// Initialised from the environment, then optionally overridden by configure() (called with the 'tracing' block of
-/// the first FDB configuration that provides one, by the fdb-server, or by the application):
+/// the first FDB configuration that provides one, by the fdb-server, or by the application). All the settings apply to
+/// the whole process, including 'enabled' (also given as a plain 'tracing: false'):
 ///
 ///   tracing:
 ///     enabled: true              # FDB_TRACING_ENABLED (env 'false' always wins: kill switch)
 ///     sampler: parentbased_always_off   # FDB_TRACING_SAMPLER, then OTEL_TRACES_SAMPLER
 ///     ratio: 0.01                # FDB_TRACING_SAMPLER_ARG, then OTEL_TRACES_SAMPLER_ARG
-///     exporter: log              # none | log           FDB_TRACING_EXPORTER
-///     path: /path/to/spans.jsonl # log exporter target  FDB_TRACING_LOG_PATH (default: eckit::Log::info())
+///     exporter: log              # none | log (see LogSpanExporter)  FDB_TRACING_EXPORTER
 ///     keep_errors: true          # also export the unsampled spans of failing requests  FDB_TRACING_KEEP_ERRORS
 ///
 /// By default, only the spans of failing requests, and of the requests whose caller samples them, are exported,
-/// to the info log.
+/// to the log.
 ///
 /// With keep_errors, the spans which the sampler does not sample are recorded too, and held per trace until the
 /// trace has no open span left in this process (i.e. until the request it belongs to is complete). If one of them
@@ -157,12 +150,11 @@ public:
     /// Apply a 'tracing' configuration block (see class documentation)
     void configure(const eckit::Configuration& config);
 
-    /// Apply the process-wide settings (sampler, ratio, exporter, path) of the 'tracing' block of an FDB or
-    /// fdb-server configuration, unless an earlier configuration already provided them: the first one wins.
-    /// 'enabled' is per-FDB (see enabledIn()) and is not applied globally.
+    /// Apply the 'tracing' block (or plain 'tracing: false') of an FDB or fdb-server configuration, unless an earlier
+    /// configuration already provided one: the first one wins.
     void configureFrom(const eckit::Configuration& fdbConfig);
 
-    /// True unless tracing has been disabled globally
+    /// True unless tracing is disabled, i.e. no span is created and no trace context is sent to remote servers
     bool enabled() const;
 
     /// True if finished spans are exported (an exporter is installed). When false, spans still propagate
@@ -195,10 +187,6 @@ public:
 
     static TraceContext::TraceId newTraceId();
     static TraceContext::SpanId newSpanId();
-
-    /// Whether tracing is enabled for an FDB with this configuration: global switch AND 'tracing.enabled' (or a
-    /// plain boolean 'tracing: false'), defaulting to true.
-    static bool enabledIn(const eckit::Configuration& fdbConfig);
 
 private:
 

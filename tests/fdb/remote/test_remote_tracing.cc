@@ -3,7 +3,8 @@
 
 // End-to-end trace-context propagation between a client and remote catalogue/store servers.
 //
-// Run by fdb_test_server.sh against servers exporting their spans to JSON-lines files (see tracing_*.yaml.in).
+// Run by fdb_test_server.sh against servers exporting their spans to their log (see tracing_*.yaml.in), i.e. to the
+// files in FDB_REMOTE_CATALOGUE_LOG and FDB_REMOTE_STORE_LOG.
 // FDB_TRACING_TEST_VARIANT selects the expectation:
 //   enabled          - server spans join the caller's trace, as children of the client spans
 //   client_disabled  - client has 'tracing: false': no client spans, no propagation (servers trace on their own)
@@ -14,7 +15,6 @@
 #include <fstream>
 #include <memory>
 #include <mutex>
-#include <optional>
 #include <set>
 #include <sstream>
 #include <string>
@@ -88,21 +88,24 @@ std::string env(const char* name) {
     return v;
 }
 
-std::string spanFile(const std::string& role) {
-    return env("FDB_TRACING_TEST_DIR") + "/tracing_" + env("FDB_TRACING_TEST_VARIANT") + "_" + role + ".jsonl";
+/// The log of a server ("catalogue" or "store"), which its spans are exported to
+std::string logFile(const std::string& role) {
+    return env(role == "store" ? "FDB_REMOTE_STORE_LOG" : "FDB_REMOTE_CATALOGUE_LOG");
 }
 
-/// Spans exported by a server, skipping the first @p skip lines (written before this run)
+/// Spans exported by a server, skipping the first @p skip lines of its log (written before this run)
 std::vector<ExportedSpan> serverSpans(const std::string& role, size_t skip = 0) {
     std::vector<ExportedSpan> out;
-    std::ifstream in(spanFile(role));
+    std::ifstream in(logFile(role));
     std::string line;
     size_t n = 0;
     while (std::getline(in, line)) {
-        if (n++ < skip || line.empty()) {
+        // n.b. the other lines of the log are not spans
+        const auto start = line.find("{\"name\":\"");
+        if (n++ < skip || start == std::string::npos) {
             continue;
         }
-        eckit::Value v = eckit::JSONParser::decodeString(line);
+        eckit::Value v = eckit::JSONParser::decodeString(line.substr(start));
         eckit::Value attributes = v["attributes"];
         int64_t fields = attributes.contains("fdb.fields") ? static_cast<long long>(attributes["fdb.fields"]) : 0;
         out.push_back({v["name"], v["trace_id"], v["span_id"], v["parent_span_id"], fields, v["status"]});
@@ -111,7 +114,7 @@ std::vector<ExportedSpan> serverSpans(const std::string& role, size_t skip = 0) 
 }
 
 size_t lineCount(const std::string& role) {
-    std::ifstream in(spanFile(role));
+    std::ifstream in(logFile(role));
     size_t n = 0;
     std::string line;
     while (std::getline(in, line)) {
@@ -226,25 +229,10 @@ CASE("Remote trace-context propagation") {
     const TraceContext caller{Tracer::newTraceId(), Tracer::newSpanId(), TraceContext::sampledFlag};
     const std::string traceId = caller.traceIdHex();
 
-    // A tracing-disabled FDB, making requests in a caller's trace (e.g. set by fdb_trace_begin()), propagates no
-    // context. It is kept alive, so that the FDB below shares the connections it opened: their tracing capability
-    // is that of the process, not that of the FDB that happened to open them.
-    const TraceContext untraced{Tracer::newTraceId(), Tracer::newSpanId(), TraceContext::sampledFlag};
-    std::optional<FDB> disabled;
-    if (variant == "enabled") {
-        Config config = Config().expandConfig();
-        config.set("tracing", false);
-        disabled.emplace(config);
-        ScopedContext scope(untraced);
-        disabled->archive(makeKey(dates[0], steps[0]), payload.data(), payload.size());
-        disabled->flush();
-    }
-
     {
         FDB fdb;
         exercise(fdb, caller);
     }
-    disabled.reset();
 
     auto client = inTrace(exporter->spans(), traceId);
 
@@ -296,11 +284,6 @@ CASE("Remote trace-context propagation") {
         checkServer("store", storeSkip, {"fdb.server.archive", "fdb.server.flush", "fdb.server.read"});
         checkServer("catalogue", catalogueSkip,
                     {"fdb.server.archive", "fdb.server.flush", "fdb.server.list", "fdb.server.inspect"});
-
-        // The requests of the tracing-disabled FDB (made earlier) reached the servers without its caller's context
-        EXPECT(inTrace(exporter->spans(), untraced.traceIdHex()).empty());
-        EXPECT(inTrace(serverSpans("store", storeSkip), untraced.traceIdHex()).empty());
-        EXPECT(inTrace(serverSpans("catalogue", catalogueSkip), untraced.traceIdHex()).empty());
 
         // and on each server, one aggregated span per client (i.e. per database: one per date), ended by its flush
         for (const auto& [role, skip] : {std::pair{"store", storeSkip}, std::pair{"catalogue", catalogueSkip}}) {

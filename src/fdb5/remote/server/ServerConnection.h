@@ -196,7 +196,7 @@ protected:
     Config config_;
     Config innerConfig_;
 
-    /// Whether this server records spans (its 'tracing' configuration)
+    /// Whether this server records spans (tracing enabled in the process, see FdbServerBase::doRun())
     bool tracing_;
 
     /// The archived messages are traced as one span per client and incoming trace context, ended by the flush of

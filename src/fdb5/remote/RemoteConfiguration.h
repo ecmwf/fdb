@@ -40,7 +40,7 @@ public:
 /// that it isn't supported).
 ///
 /// "Tracing" lists the supported versions of trace-context propagation (Message::Trace frames). It is only offered
-/// when tracing is enabled (by a server: in its configuration; by a client: in the process, see offerTracing()), and
+/// when tracing is enabled in the process (see tracing::Tracer), and
 /// only included in the agreed configuration if both sides support a common version. Peers predating it neither send
 /// nor return the key, hence never receive Message::Trace.
 
@@ -59,9 +59,6 @@ public:
 
     /// Withdraws features (a mask of Message, see toMask()), e.g. those the server grants to some networks only
     void disableFeatures(uint64_t mask) { enabledFeatures_ &= ~mask; }
-
-    /// Offer (or not) trace-context propagation, whatever the configuration
-    void offerTracing(bool offer);
 
     /// Highest supported/agreed trace-context propagation version, 0 if none
     int tracingVersion() const { return tracingVersions_.empty() ? 0 : tracingVersions_.back(); }

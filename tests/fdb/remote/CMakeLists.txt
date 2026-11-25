@@ -147,7 +147,6 @@ if (HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB)
     )
 
     foreach( _variant enabled client_disabled server_disabled )
-        set( TRACING_VARIANT ${_variant} )
         set( TRACING_CLIENT true )
         set( TRACING_SERVER true )
         if( _variant STREQUAL "client_disabled" )
@@ -169,7 +168,6 @@ if (HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB)
                            "$<TARGET_FILE:fdb_test_remote_failing_store>"
             TEST_DEPENDS   fdb_test_remote_tracing_bin fdb_test_remote_failing_store
             ENVIRONMENT    "${test_environment}" "FDB_TRACING_TEST_VARIANT=${_variant}"
-                           "FDB_TRACING_TEST_DIR=${CMAKE_CURRENT_BINARY_DIR}"
             TEST_PROPERTIES
             TIMEOUT 120
             RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests

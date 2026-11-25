@@ -71,7 +71,7 @@ class SpanAggregator;
 /// context, typically built with tracing::TraceContext::fromTraceparent() from the caller's current span. Each call
 /// is recorded as a span, child of (in order of precedence) the given context, the calling thread's current context
 /// (tracing::ScopedContext), or a newly generated root. Archive calls without a context join a trace spanning the
-/// current archive/flush cycle. Tracing can be disabled with 'tracing: false' in the configuration.
+/// current archive/flush cycle. Tracing can be disabled in the process (see tracing::Tracer).
 class FDB {
 
 public:  // methods
@@ -323,7 +323,8 @@ private:  // methods
 
     void archiveRequest(ArchiveOperation& op, const metkit::mars::MarsRequest& request, eckit::DataHandle& handle);
 
-    tracing::SpanAggregator* archiveSpans() const { return tracing_ ? archiveSpans_.get() : nullptr; }
+    /// The aggregator of the archive spans, null if tracing is disabled
+    tracing::SpanAggregator* archiveSpans() const;
 
 private:
 
@@ -339,7 +340,6 @@ private:  // members
 
     bool dirty_;
     bool reportStats_;
-    bool tracing_;
 
     /// Span covering the current archive/flush cycle, for archive calls without a caller-provided trace context
     std::unique_ptr<tracing::Span> archiveCycle_;

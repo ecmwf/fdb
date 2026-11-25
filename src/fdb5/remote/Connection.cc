@@ -329,8 +329,9 @@ void Connection::write(const Message msg, const bool control, const uint32_t cli
     // Fail before the Trace frame is written: it must never be left without the frame it announces
     framePayloadLength(msg, payloads);
 
-    // Never emit a Trace frame unless the peer agreed to it at startup: legacy peers would not understand it
-    const bool sendTrace = tracingVersion_ > 0 && trace.valid();
+    // Never emit a Trace frame unless the peer agreed to it at startup: legacy peers would not understand it. Nor
+    // once tracing is disabled (e.g. by a configuration read after the connection was established).
+    const bool sendTrace = tracingVersion_ > 0 && trace.valid() && tracing::Tracer::instance().enabled();
     const std::string encodedTrace = sendTrace ? trace.encode() : std::string{};
 
     const auto& socket = getSocket(control);

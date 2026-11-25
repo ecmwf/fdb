@@ -122,18 +122,13 @@ private:
 
 ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& config) :
     config_(config),
-    tracing_(tracing::Tracer::enabledIn(config)),
+    tracing_(tracing::Tracer::instance().enabled()),
     dataListenHostname_(config.getString("dataListenHostname", "")),
     readLocationQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", defaultRetrieveQueueSize)),
     archiveQueue_(eckit::Resource<size_t>("fdbServerMaxQueueSize", defaultArchiveQueueSize)),
     controlSocket_(socket) {
 
     innerConfig_ = config_.has("fdb") ? Config{config_.getSubConfiguration("fdb"), config_.appConfig()} : config_;
-
-    // The FDBs of a server whose tracing is disabled are not traced either, unless their configuration says otherwise
-    if (!tracing_ && !innerConfig_.has("tracing")) {
-        innerConfig_.set("tracing", false);
-    }
 
     // Until the client is identified, anybody who can connect is talking: only the startup message is expected
     maxPayloadSize(maxStartupPayloadSize);

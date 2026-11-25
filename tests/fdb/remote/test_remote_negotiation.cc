@@ -12,6 +12,7 @@
 
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteConfiguration.h"
+#include "fdb5/tracing/Tracer.h"
 
 namespace fdb5::test {
 
@@ -42,10 +43,17 @@ RemoteConfiguration legacyPeer() {
     return RemoteConfiguration{in};
 }
 
+/// The configuration offered by a peer whose process has tracing enabled (or not)
 RemoteConfiguration withTracing(bool enabled) {
-    eckit::LocalConfiguration config;
-    config.set("tracing", enabled);
-    return RemoteConfiguration{config};
+    auto configureEnabled = [](bool e) {
+        eckit::LocalConfiguration tracing;
+        tracing.set("enabled", e);
+        tracing::Tracer::instance().configure(tracing);
+    };
+    configureEnabled(enabled);
+    RemoteConfiguration conf{eckit::LocalConfiguration{}};
+    configureEnabled(true);
+    return conf;
 }
 
 bool sendsTracingKey(const RemoteConfiguration& conf) {
@@ -105,14 +113,6 @@ CASE("Tracing disabled on either side: not offered, not agreed") {
         RemoteConfiguration server = withTracing(false);
         EXPECT_EQUAL(RemoteConfiguration::common(client, server).tracingVersion(), 0);
     }
-}
-
-CASE("Tracing block form of the configuration") {
-    eckit::LocalConfiguration config;
-    eckit::LocalConfiguration tracing;
-    tracing.set("enabled", false);
-    config.set("tracing", tracing);
-    EXPECT_EQUAL(RemoteConfiguration{config}.tracingVersion(), 0);
 }
 
 CASE("Existing negotiated features are unaffected") {

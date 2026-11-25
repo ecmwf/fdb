@@ -79,14 +79,7 @@ RemoteConfiguration::RemoteConfiguration(const eckit::Configuration& config) {
         enabledFeatures_ |= toMask(Message::Wipe);
     }
 
-    if (tracing::Tracer::enabledIn(config)) {
-        tracingVersions_ = {tracingProtocolVersion};
-    }
-}
-
-void RemoteConfiguration::offerTracing(bool offer) {
-    tracingVersions_.clear();
-    if (offer) {
+    if (tracing::Tracer::instance().enabled()) {
         tracingVersions_ = {tracingProtocolVersion};
     }
 }

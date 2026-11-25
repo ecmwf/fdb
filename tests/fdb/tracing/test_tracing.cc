@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
 // SPDX-License-Identifier: Apache-2.0
 
-#include <cstdio>
-#include <fstream>
 #include <memory>
 #include <mutex>
 #include <sstream>
@@ -13,6 +11,7 @@
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
 
 #include "fdb5/tracing/TraceContext.h"
@@ -496,40 +495,30 @@ CASE("Sampler names and ratio") {
     EXPECT(sampled > n / 2 - n / 10 && sampled < n / 2 + n / 10);
 }
 
-CASE("Per-FDB enablement from configuration") {
-    eckit::LocalConfiguration none;
-    EXPECT(Tracer::enabledIn(none));
+CASE("Log exporter: the spans with an error status to the error log, the others to the info log") {
+    SpanData ok;
+    ok.name = "ok_span";
+    ok.context = TraceContext::fromTraceparent(sampleTraceparent);
+    ok.status = StatusCode::Ok;
+    SpanData failed = ok;
+    failed.name = "failed_span";
+    failed.status = StatusCode::Error;
 
-    eckit::LocalConfiguration off;
-    off.set("tracing", false);
-    EXPECT(!Tracer::enabledIn(off));
+    std::ostringstream info;
+    std::ostringstream error;
+    // n.b. in a thread of its own, whose log channels are redirected: eckit's log channels are per thread
+    std::thread([&] {
+        eckit::Log::info().setStream(info);
+        eckit::Log::error().setStream(error);
+        LogSpanExporter exporter;
+        exporter.exportSpan(ok);
+        exporter.exportSpan(failed);
+    }).join();
 
-    eckit::LocalConfiguration block;
-    eckit::LocalConfiguration tracing;
-    tracing.set("enabled", false);
-    block.set("tracing", tracing);
-    EXPECT(!Tracer::enabledIn(block));
-}
-
-CASE("Log exporter: a path alone selects it, writing to that file") {
-    const std::string path = "test_tracing_path_only.jsonl";  // n.b. in the working directory of the test
-    std::remove(path.c_str());
-    {
-        ExporterFixture fx;
-        eckit::LocalConfiguration tracing;
-        tracing.set("path", path);
-        eckit::LocalConfiguration fdbConfig;
-        fdbConfig.set("tracing", tracing);
-        Tracer::instance().configureFrom(fdbConfig);  // n.b. the first configuration of the process providing one
-
-        EXPECT(std::dynamic_pointer_cast<LogSpanExporter>(Tracer::instance().exporter()));
-        Span("path_only", SpanKind::Internal, TraceContext{}).end();
-    }  // n.b. the exporter is released: the file is closed
-
-    std::ifstream in(path);
-    std::string line;
-    EXPECT(std::getline(in, line));
-    EXPECT(line.find("\"name\":\"path_only\"") != std::string::npos);
+    EXPECT(info.str().find("\"name\":\"ok_span\"") != std::string::npos);
+    EXPECT(info.str().find("failed_span") == std::string::npos);
+    EXPECT(error.str().find("\"name\":\"failed_span\"") != std::string::npos);
+    EXPECT(error.str().find("ok_span") == std::string::npos);
 }
 
 CASE("Log exporter writes one JSON object with OTLP field names") {

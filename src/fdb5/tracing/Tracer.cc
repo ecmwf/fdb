@@ -9,7 +9,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <exception>
-#include <fstream>
 #include <functional>
 #include <limits>
 #include <ostream>
@@ -72,13 +71,13 @@ bool parseBool(const std::string& s) {
     return !(l == "0" || l == "false" || l == "off" || l == "no");
 }
 
-std::shared_ptr<SpanExporter> makeExporter(const std::string& name, const std::string& path) {
+std::shared_ptr<SpanExporter> makeExporter(const std::string& name) {
     std::string n = eckit::StringTools::lower(name);
     if (n.empty() || n == "none") {
         return nullptr;
     }
     if (n == "log") {
-        return std::make_shared<LogSpanExporter>(path);
+        return std::make_shared<LogSpanExporter>();
     }
     std::ostringstream ss;
     ss << "Unknown tracing exporter '" << name << "' (supported: none, log)";
@@ -143,18 +142,6 @@ std::ostream& operator<<(std::ostream& s, StatusCode code) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-LogSpanExporter::LogSpanExporter(const std::string& path) {
-    if (!path.empty()) {
-        auto f = std::make_unique<std::ofstream>(path, std::ios::app);
-        if (!*f) {
-            throw eckit::CantOpenFile(path, Here());
-        }
-        file_ = std::move(f);
-    }
-}
-
-LogSpanExporter::~LogSpanExporter() = default;
-
 void LogSpanExporter::toJSON(std::ostream& out, const SpanData& span) {
     std::ostringstream kind;
     kind << span.kind;
@@ -209,13 +196,9 @@ void LogSpanExporter::exportSpan(const SpanData& span) {
     std::ostringstream line;
     toJSON(line, span);
 
-    std::lock_guard lock(mutex_);
-    if (file_) {
-        *file_ << line.str() << std::endl;
-    }
-    else {
-        eckit::Log::info() << line.str() << std::endl;
-    }
+    // n.b. eckit's log channels are per thread
+    std::ostream& log = span.status == StatusCode::Error ? eckit::Log::error() : eckit::Log::info();
+    log << line.str() << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -311,11 +294,8 @@ Tracer::Tracer() : exporter_(std::make_shared<LogSpanExporter>()) {
         if (const char* k = env("FDB_TRACING_KEEP_ERRORS")) {
             keepErrors_ = parseBool(k);
         }
-        // n.b. a log path alone selects the log exporter (the default one) writing to that file
-        const char* x = env("FDB_TRACING_EXPORTER");
-        const char* p = env("FDB_TRACING_LOG_PATH");
-        if (x || p) {
-            exporter_ = makeExporter(x ? x : "log", p ? p : "");
+        if (const char* x = env("FDB_TRACING_EXPORTER")) {
+            exporter_ = makeExporter(x);
         }
     }
     catch (const std::exception& e) {
@@ -325,12 +305,19 @@ Tracer::Tracer() : exporter_(std::make_shared<LogSpanExporter>()) {
 }
 
 void Tracer::configureFrom(const eckit::Configuration& fdbConfig) {
-    if (!fdbConfig.has("tracing") || fdbConfig.isBoolean("tracing")) {
+    if (!fdbConfig.has("tracing")) {
         return;
     }
-    eckit::LocalConfiguration tracing = fdbConfig.getSubConfiguration("tracing");
-    if (!(tracing.has("sampler") || tracing.has("exporter") || tracing.has("path") || tracing.has("keep_errors"))) {
-        return;
+    eckit::LocalConfiguration tracing;
+    if (fdbConfig.isBoolean("tracing")) {
+        tracing.set("enabled", fdbConfig.getBool("tracing"));
+    }
+    else {
+        tracing = fdbConfig.getSubConfiguration("tracing");
+        if (!(tracing.has("enabled") || tracing.has("sampler") || tracing.has("exporter") ||
+              tracing.has("keep_errors"))) {
+            return;
+        }
     }
     {
         std::lock_guard lock(mutex_);
@@ -339,7 +326,6 @@ void Tracer::configureFrom(const eckit::Configuration& fdbConfig) {
         }
         configuredFromConfig_ = true;
     }
-    tracing.remove("enabled");
     configure(tracing);
 }
 
@@ -357,9 +343,8 @@ void Tracer::configure(const eckit::Configuration& config) {
         }
         sampler_ = Sampler::fromName(config.getString("sampler"), arg);
     }
-    // n.b. a path alone selects the log exporter (the default one) writing to that file
-    if (config.has("exporter") || config.has("path")) {
-        exporter_ = makeExporter(config.getString("exporter", "log"), config.getString("path", ""));
+    if (config.has("exporter")) {
+        exporter_ = makeExporter(config.getString("exporter"));
     }
     if (config.has("keep_errors")) {
         keepErrors_ = config.getBool("keep_errors");
@@ -511,19 +496,6 @@ TraceContext::SpanId Tracer::newSpanId() {
     TraceContext::SpanId id;
     fillRandomNonZero(id);
     return id;
-}
-
-bool Tracer::enabledIn(const eckit::Configuration& fdbConfig) {
-    if (!instance().enabled()) {
-        return false;
-    }
-    if (!fdbConfig.has("tracing")) {
-        return true;
-    }
-    if (fdbConfig.isBoolean("tracing")) {
-        return fdbConfig.getBool("tracing");
-    }
-    return fdbConfig.getSubConfiguration("tracing").getBool("enabled", true);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -3,20 +3,18 @@
 
 #include <algorithm>
 #include <atomic>
-#include <future>
 #include <map>
 #include <memory>
 #include <mutex>
-#include <sstream>
 #include <string>
 #include <thread>
 #include <utility>
 #include <vector>
 
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/io/DataHandle.h"
-#include "eckit/log/JSON.h"
 #include "eckit/testing/Test.h"
 
 #include "metkit/mars/MarsRequest.h"
@@ -398,60 +396,25 @@ CASE("A moved-from FDB can be destroyed") {
     EXPECT_EQUAL(fx.exporter->named("fdb.archive").size(), 1);
 }
 
-CASE("Tracing disabled in the FDB configuration records nothing") {
+CASE("Tracing disabled in the process records nothing") {
     Fixture fx;
-    Config config = Config().expandConfig();
-    config.set("tracing", false);
-    FDB fdb(config);
+    struct Disabled {
+        Disabled() { configureEnabled(false); }
+        ~Disabled() { configureEnabled(true); }
+        static void configureEnabled(bool enabled) {
+            eckit::LocalConfiguration config;
+            config.set("enabled", enabled);
+            Tracer::instance().configure(config);
+        }
+    } disabled;
 
+    FDB fdb;
     archiveSome(fdb, 2, TraceContext::fromTraceparent(callerTraceparent));
+    archiveSome(fdb, 2);
     fdb.flush();
-    EXPECT(fx.exporter->spans().empty());
-}
-
-CASE("Tracing disabled in the effective configuration (expanded by the factory) records nothing") {
-    Fixture fx;
-    Config config = Config().expandConfig();
-    config.set("tracing", false);
-    std::ostringstream yaml;
-    eckit::JSON json(yaml);
-    json << config;
-    eckit::testing::SetEnv fdbConfig("FDB_CONFIG", yaml.str().c_str());
-
-    FDB fdb(Config{});  // n.b. without a type: replaced by the configuration of FDB_CONFIG
-    EXPECT(!fdb.config().getBool("tracing", true));
-
-    archiveSome(fdb, 2, TraceContext::fromTraceparent(callerTraceparent));
-    fdb.flush();
-    EXPECT(fx.exporter->spans().empty());
-}
-
-CASE("An FDB with tracing disabled propagates no context, not even its caller's") {
-    Fixture fx;
-    Config config = Config().expandConfig();
-    config.set("tracing", false);
-    FDB fdb(config);
-
-    std::vector<TraceContext> seen;
-    fdb.registerArchiveCallback(
-        [&seen](const Key&, const void*, size_t, std::future<std::shared_ptr<const FieldLocation>>) {
-            seen.push_back(current());
-        });
-    fdb.registerFlushCallback([&seen] { seen.push_back(current()); });
-
-    const TraceContext caller = TraceContext::fromTraceparent(callerTraceparent);
-    {
-        ScopedContext scope(caller);
-        archiveSome(fdb, 1);
-        archiveSome(fdb, 1, caller);
-        fdb.flush();
-        EXPECT_EQUAL(current().traceparent(), std::string{callerTraceparent});  // restored
-    }
-
-    EXPECT_EQUAL(seen.size(), 3);
-    for (const auto& ctx : seen) {
-        EXPECT(!ctx.valid());
-    }
+    ListIterator it = fdb.list(allRequest());
+    ListElement elem;
+    EXPECT(it.next(elem));
     EXPECT(fx.exporter->spans().empty());
 }
 

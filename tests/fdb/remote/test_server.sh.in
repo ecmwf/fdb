@@ -63,6 +63,9 @@ export FDB_REMOTE_STORE_PGID="${FDB_REMOTE_SERVER_PGIDS[1]}"
 # Tests that make a root read-only use these
 export FDB_REMOTE_CATALOGUE_ROOT="$catalogue_rootdir"
 export FDB_REMOTE_STORE_ROOT="$store_rootdir"
+# Tests that read what the servers log (e.g. their spans) use these
+export FDB_REMOTE_CATALOGUE_LOG="$FDB_REMOTE_STATE_DIR/CATALOGUE.log"
+export FDB_REMOTE_STORE_LOG="$FDB_REMOTE_STATE_DIR/STORE.log"
 # Tests that restart a server they have killed run these scripts
 export FDB_REMOTE_CATALOGUE_RESTART="$FDB_REMOTE_STATE_DIR/restart_catalogue.sh"
 export FDB_REMOTE_STORE_RESTART="$FDB_REMOTE_STATE_DIR/restart_store.sh"
