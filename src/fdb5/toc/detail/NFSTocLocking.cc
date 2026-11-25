@@ -176,7 +176,7 @@ LocalLockPolicy NFSTocLocking::parsePolicy(const std::string& value, const std::
     throw eckit::UserError(message.str(), Here());
 }
 
-LocalLockPolicy NFSTocLocking::resolvePolicy(const eckit::Configuration& config, LocalLockPolicy fallback) {
+LocalLockPolicy NFSTocLocking::resolvePolicy(const eckit::Configuration& config) {
     const std::string fromResource =
         eckit::Resource<std::string>("fdbNfsLocalLockPolicy;$FDB_NFS_LOCAL_LOCK_POLICY", "");
     if (!fromResource.empty()) {
@@ -185,20 +185,15 @@ LocalLockPolicy NFSTocLocking::resolvePolicy(const eckit::Configuration& config,
     if (config.has("nfsLocalLockPolicy")) {
         return parsePolicy(config.getString("nfsLocalLockPolicy"), "nfsLocalLockPolicy");
     }
-    return fallback;
+    return LocalLockPolicy::Error;
 }
 
-NFSTocLocking::NFSTocLocking(LocalLockPolicy policy, LocalLockLookup lookup) :
-    policy_{policy}, localLockLookup_{std::move(lookup)} {}
+NFSTocLocking::NFSTocLocking(LocalLockLookup lookup) : localLockLookup_{std::move(lookup)} {}
 
-NFSTocLocking::NFSTocLocking() : NFSTocLocking{LocalLockPolicy::Error, system_local_lock_option} {}
+NFSTocLocking::NFSTocLocking() : NFSTocLocking{system_local_lock_option} {}
 
 void NFSTocLocking::validate(const eckit::LocalPathName& directory, const eckit::Configuration& config) const {
-    validate(directory, resolvePolicy(config, policy_));
-}
-
-void NFSTocLocking::validate(const eckit::LocalPathName& directory) const {
-    validate(directory, policy_);
+    validate(directory, resolvePolicy(config));
 }
 
 void NFSTocLocking::validate(const eckit::LocalPathName& directory, LocalLockPolicy policy) const {

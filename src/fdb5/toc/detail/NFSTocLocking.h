@@ -48,25 +48,22 @@ public:  // types
     static LocalLockPolicy parsePolicy(const std::string& value, const std::string& source = "NFS local lock policy");
 
     /// The policy from $FDB_NFS_LOCAL_LOCK_POLICY if set, else from "nfsLocalLockPolicy" in `config` (the config of
-    /// the FDB, not the user config), else `fallback`.
+    /// the FDB, not the user config), else LocalLockPolicy::Error.
     /// @throws eckit::UserError if the value is not a policy.
-    static LocalLockPolicy resolvePolicy(const eckit::Configuration& config, LocalLockPolicy fallback);
+    static LocalLockPolicy resolvePolicy(const eckit::Configuration& config);
 
 public:  // methods
 
-    /// `policy` is the default, used when neither the environment nor the config of the FDB selects one.
-    NFSTocLocking(LocalLockPolicy policy, LocalLockLookup lookup);
+    /// `lookup` stands in for the mount options of the system.
+    explicit NFSTocLocking(LocalLockLookup lookup);
 
-    /// Defaults to LocalLockPolicy::Error and reads the mount options from the system.
+    /// Reads the mount options from the system.
     /// Only Linux reports them: elsewhere no mount is client-local as far as this class can tell.
     NFSTocLocking();
 
     /// Applies the policy resolved from `config` (see resolvePolicy()).
     /// @throws eckit::UserError if the policy is invalid, or under LocalLockPolicy::Error.
     void validate(const eckit::LocalPathName& directory, const eckit::Configuration& config) const override;
-
-    /// Applies the default policy.
-    void validate(const eckit::LocalPathName& directory) const;
 
     /// Applies `policy` if the mount holding `directory` has client-local locks. A filesystem is looked up once.
     /// Allow warns once, Error throws on every call.
@@ -88,7 +85,6 @@ public:  // methods
 
 private:  // members
 
-    LocalLockPolicy policy_;
     LocalLockLookup localLockLookup_;
 
     mutable std::mutex mutex_;
