@@ -398,11 +398,11 @@ void CatalogueHandler::stats(uint32_t clientID, uint32_t requestID, eckit::Buffe
 }
 
 void CatalogueHandler::status(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
-    handleApiCall<StatusHelper>(clientID, requestID, std::move(payload));
+    handleApiCall<StatusHelper>("fdb.server.status", clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::touch(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
-    handleApiCall<TouchHelper>(clientID, requestID, std::move(payload));
+    handleApiCall<TouchHelper>("fdb.server.touch", clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::schema(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
