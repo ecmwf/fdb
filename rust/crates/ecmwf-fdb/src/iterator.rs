@@ -272,6 +272,8 @@ impl Iterator for StatusIterator {
             Ok(data) => Some(Ok(StatusElement {
                 location: data.location,
                 status: key_values_to_vec(data.status),
+                last_read: known_time(data.last_read),
+                last_write: known_time(data.last_write),
             })),
             Err(e) => {
                 self.exhausted = true;
@@ -296,6 +298,17 @@ pub struct StatusElement {
     pub location: String,
     /// Status information as key-value pairs.
     pub status: Vec<(String, String)>,
+    /// Last recorded read access (Unix epoch seconds).
+    /// `None` means the value is unknown (not recorded)
+    pub last_read: Option<i64>,
+    /// Last recorded write access (Unix epoch seconds).
+    /// `None` means the value is unknown (not recorded)
+    pub last_write: Option<i64>,
+}
+
+/// Map the zero that `fdb5::StatusElement` uses for an unknown time to `None`.
+fn known_time(time: i64) -> Option<i64> {
+    (time != 0).then_some(time)
 }
 
 // =============================================================================
