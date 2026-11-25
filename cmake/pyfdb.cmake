@@ -81,5 +81,5 @@ add_custom_target(pyfdb-wheel ALL DEPENDS ${CMAKE_BINARY_DIR}/pyfdb.wheel.stamp)
 
 install(CODE "
     file(GLOB _whl \"${CMAKE_BINARY_DIR}/pyfdb-*.whl\")
-    file(INSTALL \${_whl} DESTINATION \"\${CMAKE_INSTALL_PREFIX}\")
+    file(INSTALL \${_whl} DESTINATION \"\${CMAKE_INSTALL_PREFIX}/wheels\")
 ")
