@@ -50,10 +50,10 @@ pub use iterator::{
 pub use key::Key;
 #[allow(deprecated)]
 pub use options::UserConfig;
-pub use options::{AppConfig, DumpOptions, ListOptions, PurgeOptions, WipeOptions};
+pub use options::{AccessTime, Appconfig, DumpOptions, ListOptions, PurgeOptions, WipeOptions};
 
-// Re-export control enums from the cxx bindings
-pub use fdb_sys::{ControlAction, ControlIdentifier};
+// Re-export control and access enums from the cxx bindings
+pub use fdb_sys::{AccessIdentifier, ControlAction, ControlIdentifier};
 
 /// Version string of the underlying FDB C++ library.
 #[must_use]

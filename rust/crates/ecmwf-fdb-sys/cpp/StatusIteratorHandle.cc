@@ -40,6 +40,8 @@ StatusElementData StatusIteratorHandle::next() {
 
     StatusElementData data;
     data.location = rust::String(current_.location.asString());
+    data.last_read = static_cast<int64_t>(current_.lastRead);
+    data.last_write = static_cast<int64_t>(current_.lastWrite);
     return data;
 }
 
