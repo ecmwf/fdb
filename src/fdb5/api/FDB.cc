@@ -142,13 +142,36 @@ private:
 
 }  // namespace
 
+/// An archive call, traced as part of the aggregated archive span of its flush cycle and parent context
+class FDB::ArchiveOperation : public tracing::SpanAggregator::Operation {
+public:
+
+    using tracing::SpanAggregator::Operation::Operation;
+
+    /// Archive one field, recording it in the span (and its key, if it fails)
+    template <typename F>
+    void archive(const Key& key, size_t length, F&& doArchive) {
+        try {
+            doArchive();
+        }
+        catch (const std::exception& e) {
+            if (recording()) {
+                failed(e.what(), {{"fdb.key", toAttributeString(key)}});
+            }
+            throw;
+        }
+        add(1, length);
+    }
+};
+
 //----------------------------------------------------------------------------------------------------------------------
 
 FDB::FDB(const Config& config) :
     internal_(FDBFactory::instance().build(config)),
     dirty_(false),
     reportStats_(config.getBool("statistics", false)),
-    tracing_(tracing::Tracer::enabledIn(config)) {
+    tracing_(tracing::Tracer::enabledIn(config)),
+    archiveSpans_(std::make_unique<tracing::SpanAggregator>("fdb.archive", tracing::SpanKind::Internal)) {
     tracing::Tracer::instance().configureFrom(config);
     LibFdb5::instance().constructorCallback()(*internal_);
 }
@@ -176,6 +199,7 @@ FDB::FDB(FDB&& rhs) noexcept :
     reportStats_(rhs.reportStats_),
     tracing_(rhs.tracing_),
     archiveCycle_(std::move(rhs.archiveCycle_)),
+    archiveSpans_(std::move(rhs.archiveSpans_)),
     stats_(std::move(rhs.stats_)) {
     // clear the dirty flag so its destructor does not flush its now null internal_
     rhs.dirty_ = false;
@@ -188,6 +212,7 @@ FDB& FDB::operator=(FDB&& rhs) noexcept {
         reportStats_ = rhs.reportStats_;
         tracing_ = rhs.tracing_;
         archiveCycle_ = std::move(rhs.archiveCycle_);
+        archiveSpans_ = std::move(rhs.archiveSpans_);
         stats_ = std::move(rhs.stats_);
         rhs.dirty_ = false;
     }
@@ -213,30 +238,20 @@ tracing::TraceContext FDB::archiveParent(const tracing::TraceContext& trace) {
 }
 
 void FDB::archive(eckit::message::Message msg, const tracing::TraceContext& trace) {
-    ApiSpan span(tracing_, "fdb.archive", archiveParent(trace));
+    ArchiveOperation op(archiveSpans(), archiveParent(trace));
     fdb5::Key key = MessageDecoder::messageToKey(msg);
-    if (span.recording()) {
-        span.setAttribute("fdb.key", toAttributeString(key));
-    }
-    span.setAttribute("fdb.fields", 1);
-    span.setAttribute("fdb.bytes", msg.length());
-    archiveImpl(key, msg.data(), msg.length());
+    op.archive(key, msg.length(), [&] { archiveImpl(key, msg.data(), msg.length()); });
 }
 
 void FDB::archive(eckit::DataHandle& handle, const tracing::TraceContext& trace) {
-    ApiSpan span(tracing_, "fdb.archive", archiveParent(trace));
+    ArchiveOperation op(archiveSpans(), archiveParent(trace));
     eckit::message::Message msg;
     eckit::message::Reader reader(handle);
 
-    size_t fields = 0;
-    size_t bytes = 0;
     while ((msg = reader.next())) {
-        archiveImpl(MessageDecoder::messageToKey(msg), msg.data(), msg.length());
-        ++fields;
-        bytes += msg.length();
+        fdb5::Key key = MessageDecoder::messageToKey(msg);
+        op.archive(key, msg.length(), [&] { archiveImpl(key, msg.data(), msg.length()); });
     }
-    span.setAttribute("fdb.fields", fields);
-    span.setAttribute("fdb.bytes", bytes);
 }
 
 void FDB::archive(const void* data, size_t length, const tracing::TraceContext& trace) {
@@ -246,17 +261,23 @@ void FDB::archive(const void* data, size_t length, const tracing::TraceContext& 
 
 void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& handle,
                   const tracing::TraceContext& trace) {
-    ApiSpan span(tracing_, "fdb.archive", archiveParent(trace));
-    if (span.recording()) {
-        span.setAttribute("fdb.request", toAttributeString(request));
+    ArchiveOperation op(archiveSpans(), archiveParent(trace));
+    try {
+        archiveRequest(op, request, handle);
     }
+    catch (const std::exception& e) {
+        if (op.recording()) {
+            op.failed(e.what(), {{"fdb.request", toAttributeString(request)}});
+        }
+        throw;
+    }
+}
 
+void FDB::archiveRequest(ArchiveOperation& op, const metkit::mars::MarsRequest& request, eckit::DataHandle& handle) {
     eckit::message::Message msg;
     eckit::message::Reader reader(handle);
 
     metkit::hypercube::HyperCube cube(request);
-    size_t fields = 0;
-    size_t bytes = 0;
 
     while ((msg = reader.next())) {
         fdb5::Key key = MessageDecoder::messageToKey(msg);
@@ -268,12 +289,8 @@ void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& h
             LOG_DEBUG_LIB(LibFdb5) << ss.str();
             throw eckit::UserError(ss.str(), Here());
         }
-        archiveImpl(key, msg.data(), msg.length());
-        ++fields;
-        bytes += msg.length();
+        op.archive(key, msg.length(), [&] { archiveImpl(key, msg.data(), msg.length()); });
     }
-    span.setAttribute("fdb.fields", fields);
-    span.setAttribute("fdb.bytes", bytes);
     if (cube.countVacant()) {
         std::ostringstream ss;
         ss << "FDB archive - missing " << cube.countVacant() << " messages" << std::endl;
@@ -288,13 +305,8 @@ void FDB::archive(const metkit::mars::MarsRequest& request, eckit::DataHandle& h
 }
 
 void FDB::archive(const Key& key, const void* data, size_t length, const tracing::TraceContext& trace) {
-    ApiSpan span(tracing_, "fdb.archive", archiveParent(trace));
-    if (span.recording()) {
-        span.setAttribute("fdb.key", toAttributeString(key));
-    }
-    span.setAttribute("fdb.fields", 1);
-    span.setAttribute("fdb.bytes", length);
-    archiveImpl(key, data, length);
+    ArchiveOperation op(archiveSpans(), archiveParent(trace));
+    op.archive(key, length, [&] { archiveImpl(key, data, length); });
 }
 
 void FDB::archiveImpl(const Key& key, const void* data, size_t length) {
@@ -544,6 +556,11 @@ void FDB::flush(const tracing::TraceContext& trace) {
 
     // The archive-cycle span (if any) is ended once the flush is complete, after the flush span
     std::unique_ptr<tracing::Span> cycle = std::move(archiveCycle_);
+
+    // The archive spans of this cycle end before the flush span starts (n.b. none in a moved-from FDB)
+    if (archiveSpans_) {
+        archiveSpans_->endAll();
+    }
 
     if (dirty_) {
         // explicit context, else the current one, else the archive cycle being flushed

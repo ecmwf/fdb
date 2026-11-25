@@ -452,11 +452,8 @@ size_t ServerConnection::archiveThreadLoop() {
                 continue;
             }
 
-            std::optional<tracing::ScopedSpan> span;
-            if (tracing_) {
-                span.emplace("fdb.server.archive", tracing::SpanKind::Server, elem.trace_);
-                span->setAttribute("fdb.bytes", elem.payload_.size());
-            }
+            // n.b. after the guard above: counted before a flush waiting for this element can end the span
+            tracing::SpanAggregator::Operation span(tracing_ ? &archiveSpans_ : nullptr, elem.trace_, elem.clientID_);
 
             try {
                 if (elem.multiblob_) {
@@ -503,12 +500,14 @@ size_t ServerConnection::archiveThreadLoop() {
                         offset += MessageHeader::markerBytes;
 
                         archiveBlob(elem.clientID_, elem.requestID_, payloadData, hdr.payloadSize);
+                        span.add(1, hdr.payloadSize);
                         totalArchived += 1;
                     }
                 }
                 else {
                     // Handle single blob
                     archiveBlob(elem.clientID_, elem.requestID_, elem.payload_.data(), elem.payload_.size());
+                    span.add(1, elem.payload_.size());
                     totalArchived += 1;
                 }
             }
@@ -516,6 +515,14 @@ size_t ServerConnection::archiveThreadLoop() {
                 // Published before this element is counted as processed (when the guard above is destroyed): a flush
                 // that sees no pending work must also see the failure, not report missing locations
                 recordArchiveFailure(std::current_exception());
+                try {
+                    throw;
+                }
+                catch (const std::exception& e) {
+                    span.failed(e.what());
+                }
+                catch (...) {
+                }
                 throw;
             }
         }
@@ -675,6 +682,7 @@ void ServerConnection::listenControl(std::thread& listeningThreadData) {
         if (hdr.message == Message::Stop) {
             ASSERT(hdr.clientID());
             remove(hdr.clientID());
+            archiveSpans_.end(hdr.clientID());
         }
         else {
             if (hdr.message == Message::Exit) {

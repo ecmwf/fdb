@@ -344,6 +344,136 @@ CASE("keep_errors from configuration") {
     Tracer::instance().keepErrors(false);
 }
 
+namespace {
+
+int64_t intAttribute(const SpanData& span, const std::string& name) {
+    for (const auto& [key, value] : span.attributes) {
+        if (key == name) {
+            return std::get<int64_t>(value);
+        }
+    }
+    return -1;
+}
+
+}  // namespace
+
+CASE("SpanAggregator: one span per group and parent, with the totals, ended by end()") {
+    ExporterFixture fx;
+    TraceContext parent = TraceContext::fromTraceparent(sampleTraceparent);
+    SpanAggregator aggregator("aggregated", SpanKind::Internal);
+
+    TraceContext aggregateContext;
+    for (size_t i = 0; i < 3; ++i) {
+        SpanAggregator::Operation op(&aggregator, parent, 1);
+        op.add(2, 10);
+        aggregateContext = current();  // the aggregate span is current during the operation
+    }
+    {
+        SpanAggregator::Operation op(&aggregator, parent, 2);
+        op.add(1, 5);
+    }
+    EXPECT(aggregateContext.traceId() == parent.traceId());
+    EXPECT(aggregateContext.spanId() != parent.spanId());
+    EXPECT(!current().valid());
+    EXPECT_EQUAL(fx.exporter->spans().size(), 0);
+
+    aggregator.end(1);
+    auto spans = fx.exporter->spans();
+    EXPECT_EQUAL(spans.size(), 1);
+    EXPECT_EQUAL(spans[0].name, "aggregated");
+    EXPECT(spans[0].context.spanId() == aggregateContext.spanId());
+    EXPECT(spans[0].parentSpanId == parent.spanId());
+    EXPECT_EQUAL(intAttribute(spans[0], "fdb.calls"), 3);
+    EXPECT_EQUAL(intAttribute(spans[0], "fdb.fields"), 6);
+    EXPECT_EQUAL(intAttribute(spans[0], "fdb.bytes"), 30);
+    EXPECT(intAttribute(spans[0], "fdb.busy_ns") >= 0);
+
+    aggregator.endAll();
+    spans = fx.exporter->spans();
+    EXPECT_EQUAL(spans.size(), 2);
+    EXPECT_EQUAL(intAttribute(spans[1], "fdb.calls"), 1);
+
+    // a new aggregate after end()
+    { SpanAggregator::Operation op(&aggregator, parent, 1); }
+    aggregator.endAll();
+    spans = fx.exporter->spans();
+    EXPECT_EQUAL(spans.size(), 3);
+    EXPECT(spans[2].context.spanId() != spans[0].context.spanId());
+}
+
+CASE("SpanAggregator: a failing operation ends its aggregate at once, the next one starts a new one") {
+    ExporterFixture fx;
+    SpanAggregator aggregator("aggregated", SpanKind::Internal);
+    TraceContext parent = TraceContext::fromTraceparent(sampleTraceparent);
+
+    { SpanAggregator::Operation op(&aggregator, parent); }
+    try {
+        SpanAggregator::Operation op(&aggregator, parent);
+        throw std::runtime_error("boom");
+    }
+    catch (const std::runtime_error&) {
+    }
+    auto spans = fx.exporter->spans();
+    EXPECT_EQUAL(spans.size(), 1);
+    EXPECT(spans[0].status == StatusCode::Error);
+    EXPECT_EQUAL(intAttribute(spans[0], "fdb.calls"), 2);
+
+    {
+        SpanAggregator::Operation op(&aggregator, parent);
+        op.failed("explicit", {{"fdb.key", AttributeValue{std::string{"{param=1}"}}}});
+        op.failed("second", {{"fdb.request", AttributeValue{std::string{"retrieve"}}}});
+    }
+    spans = fx.exporter->spans();
+    EXPECT_EQUAL(spans.size(), 2);
+    EXPECT_EQUAL(spans[1].statusMessage, "explicit");
+    EXPECT_EQUAL(spans[1].attributes.size(), 6);  // fdb.key, fdb.request and the four totals
+
+    { SpanAggregator::Operation op(&aggregator, parent); }
+    aggregator.endAll();
+    spans = fx.exporter->spans();
+    EXPECT_EQUAL(spans.size(), 3);
+    EXPECT(spans[2].status == StatusCode::Unset);
+}
+
+CASE("SpanAggregator: concurrent operations, and an aggregate ended while one is in progress") {
+    ExporterFixture fx;
+    SpanAggregator aggregator("aggregated", SpanKind::Internal);
+    TraceContext parent = TraceContext::fromTraceparent(sampleTraceparent);
+
+    std::vector<std::thread> threads;
+    for (size_t t = 0; t < 4; ++t) {
+        threads.emplace_back([&] {
+            for (size_t i = 0; i < 250; ++i) {
+                SpanAggregator::Operation op(&aggregator, parent);
+                op.add(1, 1);
+            }
+        });
+    }
+    for (auto& t : threads) {
+        t.join();
+    }
+    {
+        SpanAggregator::Operation op(&aggregator, parent);
+        aggregator.endAll();
+        EXPECT_EQUAL(fx.exporter->spans().size(), 0);  // ends when the operation is over
+        op.add(1, 1);
+    }
+    auto spans = fx.exporter->spans();
+    EXPECT_EQUAL(spans.size(), 1);
+    EXPECT_EQUAL(intAttribute(spans[0], "fdb.fields"), 1001);
+}
+
+CASE("SpanAggregator: a null aggregator is a no-op") {
+    ExporterFixture fx;
+    {
+        SpanAggregator::Operation op(nullptr, TraceContext::fromTraceparent(sampleTraceparent));
+        op.add(1, 1);
+        EXPECT(!op.recording());
+        EXPECT(!current().valid());
+    }
+    EXPECT_EQUAL(fx.exporter->spans().size(), 0);
+}
+
 CASE("Sampler names and ratio") {
     EXPECT_EQUAL(Sampler::fromName("parentbased_always_on").name(), "parentbased_always_on");
     EXPECT_EQUAL(Sampler::fromName("always_off").name(), "always_off");

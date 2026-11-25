@@ -296,6 +296,8 @@ void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buf
         callbacks_.flushCallback_();
     }
 
+    archiveSpans_.end(clientID);
+
     Log::info() << "Flush complete" << std::endl;
     Log::status() << "Flush complete" << std::endl;
 }

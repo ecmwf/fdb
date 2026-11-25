@@ -31,6 +31,7 @@
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteConfiguration.h"
 #include "fdb5/tracing/TraceContext.h"
+#include "fdb5/tracing/Tracer.h"
 
 namespace fdb5::remote {
 
@@ -197,6 +198,10 @@ protected:
 
     /// Whether this server records spans (its 'tracing' configuration)
     bool tracing_;
+
+    /// The archived messages are traced as one span per client and incoming trace context, ended by the flush of
+    /// the client, or when it is removed. n.b. declared before the archive worker, which uses it.
+    tracing::SpanAggregator archiveSpans_{"fdb.server.archive", tracing::SpanKind::Server};
 
     std::string dataListenHostname_;
 

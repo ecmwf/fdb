@@ -528,6 +528,8 @@ void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffe
 
     archiver->catalogue->flush(numArchived);
 
+    archiveSpans_.end(clientID);
+
     Log::info() << "Flush complete" << std::endl;
     Log::status() << "Flush complete" << std::endl;
 }

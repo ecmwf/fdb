@@ -46,6 +46,7 @@ struct ExportedSpan {
     std::string traceId;
     std::string spanId;
     std::string parentSpanId;
+    int64_t fields = 0;  // the fdb.fields attribute, if any
 };
 
 class CollectingExporter : public SpanExporter {
@@ -53,9 +54,15 @@ public:
 
     void exportSpan(const SpanData& span) override {
         TraceContext parent{span.context.traceId(), span.parentSpanId, 0};
+        int64_t fields = 0;
+        for (const auto& [key, value] : span.attributes) {
+            if (key == "fdb.fields") {
+                fields = std::get<int64_t>(value);
+            }
+        }
         std::lock_guard lock(mutex_);
         spans_.push_back({span.name, span.context.traceIdHex(), span.context.spanIdHex(),
-                          parent.valid() ? parent.spanIdHex() : std::string{}});
+                          parent.valid() ? parent.spanIdHex() : std::string{}, fields});
     }
 
     std::vector<ExportedSpan> spans() const {
@@ -90,7 +97,9 @@ std::vector<ExportedSpan> serverSpans(const std::string& role, size_t skip = 0) 
             continue;
         }
         eckit::Value v = eckit::JSONParser::decodeString(line);
-        out.push_back({v["name"], v["trace_id"], v["span_id"], v["parent_span_id"]});
+        eckit::Value attributes = v["attributes"];
+        int64_t fields = attributes.contains("fdb.fields") ? static_cast<long long>(attributes["fdb.fields"]) : 0;
+        out.push_back({v["name"], v["trace_id"], v["span_id"], v["parent_span_id"], fields});
     }
     return out;
 }
@@ -119,6 +128,15 @@ size_t countNamed(const std::vector<ExportedSpan>& spans, const std::string& nam
     size_t n = 0;
     for (const auto& s : spans) {
         n += (s.name == name) ? 1 : 0;
+    }
+    return n;
+}
+
+/// Total of the fdb.fields attributes of the spans with this name
+int64_t fieldsOf(const std::vector<ExportedSpan>& spans, const std::string& name) {
+    int64_t n = 0;
+    for (const auto& s : spans) {
+        n += (s.name == name) ? s.fields : 0;
     }
     return n;
 }
@@ -209,9 +227,13 @@ CASE("Remote trace-context propagation") {
 
     auto client = inTrace(exporter->spans(), traceId);
 
+    const auto archived = static_cast<int64_t>(dates.size() * steps.size());
+
     if (variant == "enabled") {
 
-        EXPECT_EQUAL(countNamed(client, "fdb.archive"), dates.size() * steps.size());
+        // one aggregated span for the archives of the flush cycle
+        EXPECT_EQUAL(countNamed(client, "fdb.archive"), 1);
+        EXPECT_EQUAL(fieldsOf(client, "fdb.archive"), archived);
         EXPECT_EQUAL(countNamed(client, "fdb.flush"), 1);
         EXPECT_EQUAL(countNamed(client, "fdb.list"), 1);
         EXPECT_EQUAL(countNamed(client, "fdb.retrieve"), 1);
@@ -253,6 +275,13 @@ CASE("Remote trace-context propagation") {
         checkServer("store", storeSkip, {"fdb.server.archive", "fdb.server.flush", "fdb.server.read"});
         checkServer("catalogue", catalogueSkip,
                     {"fdb.server.archive", "fdb.server.flush", "fdb.server.list", "fdb.server.inspect"});
+
+        // and on each server, one aggregated span per client (i.e. per database: one per date), ended by its flush
+        for (const auto& [role, skip] : {std::pair{"store", storeSkip}, std::pair{"catalogue", catalogueSkip}}) {
+            auto spans = inTrace(serverSpans(role, skip), traceId);
+            EXPECT_EQUAL(countNamed(spans, "fdb.server.archive"), dates.size());
+            EXPECT_EQUAL(fieldsOf(spans, "fdb.server.archive"), archived);
+        }
     }
     else if (variant == "client_disabled") {
 
@@ -265,7 +294,8 @@ CASE("Remote trace-context propagation") {
     }
     else if (variant == "server_disabled") {
 
-        EXPECT_EQUAL(countNamed(client, "fdb.archive"), dates.size() * steps.size());
+        EXPECT_EQUAL(countNamed(client, "fdb.archive"), 1);
+        EXPECT_EQUAL(fieldsOf(client, "fdb.archive"), archived);
 
         std::this_thread::sleep_for(std::chrono::seconds(1));
         EXPECT(serverSpans("store", storeSkip).empty());

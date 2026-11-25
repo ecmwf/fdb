@@ -23,7 +23,7 @@ Traced operations
 ========================  =====================================================================
 Span                      Recorded for
 ========================  =====================================================================
-``fdb.archive``           ``FDB::archive`` (all overloads)
+``fdb.archive``           ``FDB::archive`` (all overloads), aggregated: see below
 ``fdb.archive_cycle``     archives made without a trace context, from the first archive to the flush
 ``fdb.flush``             ``FDB::flush``
 ``fdb.retrieve``          ``FDB::retrieve``, with ``fdb.inspect`` and ``fdb.read`` as children
@@ -34,6 +34,24 @@ Span                      Recorded for
 ``fdb.purge``             ``FDB::purge``
 ``fdb.server.*``          the corresponding work on a remote catalogue or store server (kind ``server``)
 ========================  =====================================================================
+
+Archives are not traced one span per field. The archive calls of a flush cycle are aggregated into
+one ``fdb.archive`` span per parent context, from the first archive call to the end of the last one.
+It is ended by the flush, and carries the totals of its calls:
+
+=====================  ==========================================================================
+Attribute              Meaning
+=====================  ==========================================================================
+``fdb.calls``          number of archive calls
+``fdb.fields``         number of fields archived
+``fdb.bytes``          number of bytes archived
+``fdb.busy_ns``        time spent in the archive calls, as opposed to between them
+=====================  ==========================================================================
+
+If an archive call fails, its span ends at once, with an error status and the key (or request)
+that failed; the next call starts a new span. Likewise, a server records one
+``fdb.server.archive`` span per client (i.e. per database) and parent context, ended by the
+client's flush.
 
 Each span is a child of, in order of precedence:
 

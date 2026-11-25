@@ -580,8 +580,12 @@ void Span::setStatus(StatusCode code, std::string message) {
 }
 
 void Span::end() {
+    end(std::chrono::system_clock::now());
+}
+
+void Span::end(std::chrono::system_clock::time_point endTime) {
     if (data_) {
-        data_->end = std::chrono::system_clock::now();
+        data_->end = endTime;
         std::unique_ptr<SpanData> data = std::move(data_);
         Tracer::instance().endSpan(std::move(*data));
     }
@@ -593,6 +597,136 @@ ScopedSpan::ScopedSpan(std::string name, SpanKind kind, const TraceContext& pare
     span_(std::move(name), kind, parent), scope_(span_.context().valid() ? span_.context() : current()) {}
 
 ScopedSpan::ScopedSpan(std::string name, SpanKind kind) : ScopedSpan(std::move(name), kind, current()) {}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+struct SpanAggregator::Aggregate {
+
+    Aggregate(Key k, std::string name, SpanKind kind, const TraceContext& parent) :
+        key(std::move(k)), span(std::move(name), kind, parent) {}
+
+    ~Aggregate() {
+        span.setAttribute("fdb.calls", calls);
+        span.setAttribute("fdb.fields", fields);
+        span.setAttribute("fdb.bytes", bytes);
+        span.setAttribute("fdb.busy_ns", busy.count());
+        // n.b. ended explicitly: the destructor of a Span marks it as failed if it runs during stack unwinding
+        span.end(calls != 0 ? lastEnd : std::chrono::system_clock::now());
+    }
+
+    const Key key;
+    Span span;
+
+    std::mutex mutex;
+    size_t calls{0};
+    size_t fields{0};
+    size_t bytes{0};
+    std::chrono::nanoseconds busy{0};
+    std::chrono::system_clock::time_point lastEnd;
+    bool failed{false};
+};
+
+SpanAggregator::SpanAggregator(std::string name, SpanKind kind) : name_(std::move(name)), kind_(kind) {}
+
+SpanAggregator::~SpanAggregator() {
+    endAll();
+}
+
+void SpanAggregator::end(uint64_t group) {
+    std::vector<std::shared_ptr<Aggregate>> ended;  // n.b. released (and exported) outside the lock
+    std::lock_guard lock(mutex_);
+    for (auto it = open_.begin(); it != open_.end();) {
+        if (std::get<0>(it->first) == group) {
+            ended.push_back(std::move(it->second));
+            it = open_.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
+}
+
+void SpanAggregator::endAll() {
+    std::map<Key, std::shared_ptr<Aggregate>> ended;
+    std::lock_guard lock(mutex_);
+    std::swap(ended, open_);
+}
+
+void SpanAggregator::detach(const std::shared_ptr<Aggregate>& aggregate) {
+    std::lock_guard lock(mutex_);
+    if (auto it = open_.find(aggregate->key); it != open_.end() && it->second == aggregate) {
+        open_.erase(it);
+    }
+}
+
+SpanAggregator::Operation::Operation(SpanAggregator* aggregator, const TraceContext& parent, uint64_t group) :
+    aggregator_(aggregator) {
+    if (!aggregator_) {
+        return;
+    }
+    start_ = std::chrono::steady_clock::now();
+    uncaughtExceptions_ = std::uncaught_exceptions();
+
+    Key key{group, parent.valid() ? parent.traceId() : TraceContext::TraceId{},
+            parent.valid() ? parent.spanId() : TraceContext::SpanId{}};
+    {
+        std::lock_guard lock(aggregator_->mutex_);
+        auto& aggregate = aggregator_->open_[key];
+        if (!aggregate) {
+            aggregate = std::make_shared<Aggregate>(key, aggregator_->name_, aggregator_->kind_, parent);
+        }
+        aggregate_ = aggregate;
+    }
+    scope_.emplace(aggregate_->span.context().valid() ? aggregate_->span.context() : current());
+}
+
+SpanAggregator::Operation::~Operation() {
+    if (!aggregate_) {
+        return;
+    }
+    scope_.reset();
+
+    const bool failed = failed_ || std::uncaught_exceptions() > uncaughtExceptions_;
+    {
+        std::lock_guard lock(aggregate_->mutex);
+        ++aggregate_->calls;
+        aggregate_->fields += fields_;
+        aggregate_->bytes += bytes_;
+        aggregate_->busy += std::chrono::steady_clock::now() - start_;
+        aggregate_->lastEnd = std::chrono::system_clock::now();
+        if (failed && !aggregate_->failed) {
+            aggregate_->failed = true;
+            aggregate_->span.setStatus(StatusCode::Error, failure_.empty() ? "exception" : failure_);
+            for (auto& [key, value] : failureAttributes_) {
+                aggregate_->span.setAttribute(std::move(key), std::move(value));
+            }
+        }
+    }
+    if (failed) {
+        // the next operation starts a new aggregate; this one ends as soon as no operation uses it any more
+        aggregator_->detach(aggregate_);
+    }
+    aggregate_.reset();
+}
+
+bool SpanAggregator::Operation::recording() const {
+    return aggregate_ && aggregate_->span.recording();
+}
+
+void SpanAggregator::Operation::add(size_t fields, size_t bytes) {
+    fields_ += fields;
+    bytes_ += bytes;
+}
+
+void SpanAggregator::Operation::failed(std::string message, Attributes attributes) {
+    if (!failed_) {
+        failed_ = true;
+        failure_ = std::move(message);
+    }
+    for (auto& attribute : attributes) {
+        failureAttributes_.push_back(std::move(attribute));
+    }
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

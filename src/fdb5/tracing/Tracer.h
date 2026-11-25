@@ -11,7 +11,9 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -264,12 +266,18 @@ public:
 
     void end();
 
+    /// End the span with this end time (e.g. that of the last of the operations it covers)
+    void end(std::chrono::system_clock::time_point endTime);
+
 private:
 
     template <typename T>
     static AttributeValue toAttribute(T&& value) {
         using U = std::decay_t<T>;
-        if constexpr (std::is_same_v<U, bool>) {
+        if constexpr (std::is_same_v<U, AttributeValue>) {
+            return std::forward<T>(value);
+        }
+        else if constexpr (std::is_same_v<U, bool>) {
             return value;
         }
         else if constexpr (std::is_integral_v<U> || std::is_enum_v<U>) {
@@ -310,6 +318,86 @@ private:
 
     Span span_;
     ScopedContext scope_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+/// Aggregates many short operations of the same kind (e.g. the archive calls of a flush cycle) into one span per group
+/// and parent context, instead of one span per operation.
+///
+/// The span of an aggregate starts with its first operation and is the current context of the thread during each of
+/// its operations (so that the context propagates, e.g. to a remote server). It ends when end()/endAll() is called
+/// (e.g. at the flush), with the end time of its last operation, and carries the totals of its operations:
+/// fdb.calls, fdb.fields, fdb.bytes and fdb.busy_ns (the time spent in the operations, as opposed to between them).
+///
+/// If an operation fails, its aggregate ends as soon as the operation is over, with an error status, and the next
+/// operation starts a new aggregate. Thread-safe.
+class SpanAggregator {
+
+    struct Aggregate;
+
+public:
+
+    using Attributes = std::vector<std::pair<std::string, AttributeValue>>;
+
+    /// One operation, from construction to destruction. A failure is detected if the operation is left by an
+    /// exception, or reported with failed().
+    class Operation {
+    public:
+
+        /// A no-op if @p aggregator is null
+        Operation(SpanAggregator* aggregator, const TraceContext& parent, uint64_t group = 0);
+        ~Operation();
+
+        Operation(const Operation&) = delete;
+        Operation& operator=(const Operation&) = delete;
+
+        /// Whether the aggregate span records attributes (worth computing those of a failure)
+        bool recording() const;
+
+        void add(size_t fields, size_t bytes);
+
+        /// The operation has failed: its aggregate ends with an error status, and these attributes. If called
+        /// more than once, the first message is kept and the attributes are added.
+        void failed(std::string message, Attributes attributes = {});
+
+    private:
+
+        SpanAggregator* aggregator_;
+        std::shared_ptr<Aggregate> aggregate_;
+        std::optional<ScopedContext> scope_;
+        std::chrono::steady_clock::time_point start_;
+        size_t fields_{0};
+        size_t bytes_{0};
+        bool failed_{false};
+        std::string failure_;
+        Attributes failureAttributes_;
+        int uncaughtExceptions_{0};
+    };
+
+    SpanAggregator(std::string name, SpanKind kind);
+    ~SpanAggregator();
+
+    SpanAggregator(const SpanAggregator&) = delete;
+    SpanAggregator& operator=(const SpanAggregator&) = delete;
+
+    /// End the aggregates of a group. Those with an operation in progress end when it is over.
+    void end(uint64_t group);
+
+    /// End all the aggregates
+    void endAll();
+
+private:
+
+    using Key = std::tuple<uint64_t, TraceContext::TraceId, TraceContext::SpanId>;
+
+    void detach(const std::shared_ptr<Aggregate>& aggregate);
+
+    const std::string name_;
+    const SpanKind kind_;
+
+    std::mutex mutex_;
+    std::map<Key, std::shared_ptr<Aggregate>> open_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

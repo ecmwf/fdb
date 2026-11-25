@@ -100,6 +100,25 @@ void archiveSome(FDB& fdb, size_t n, const TraceContext& trace = {}) {
     }
 }
 
+/// An integer attribute of a span, or -1 if it has none
+int64_t attribute(const SpanData& span, const std::string& name) {
+    for (const auto& [key, value] : span.attributes) {
+        if (key == name) {
+            return std::get<int64_t>(value);
+        }
+    }
+    return -1;
+}
+
+bool hasAttribute(const SpanData& span, const std::string& name) {
+    for (const auto& a : span.attributes) {
+        if (a.first == name) {
+            return true;
+        }
+    }
+    return false;
+}
+
 FDBToolRequest allRequest() {
     return FDBToolRequest::requestsFromString("class=od,expver=xxxx")[0];
 }
@@ -121,15 +140,18 @@ CASE("Archive without a caller context joins the archive-cycle trace, closed by 
     auto archives = fx.exporter->named("fdb.archive");
     auto flushes = fx.exporter->named("fdb.flush");
     EXPECT_EQUAL(cycle.size(), 1);
-    EXPECT_EQUAL(archives.size(), 3);
+    EXPECT_EQUAL(archives.size(), 1);  // the archives of the cycle are aggregated
     EXPECT_EQUAL(flushes.size(), 1);
 
     const auto& traceId = cycle[0].context.traceId();
     EXPECT(TraceContext(traceId, cycle[0].parentSpanId, 0).spanIdHex() == "0000000000000000");  // root
-    for (const auto& a : archives) {
-        EXPECT(a.context.traceId() == traceId);
-        EXPECT(a.parentSpanId == cycle[0].context.spanId());
-    }
+    EXPECT(archives[0].context.traceId() == traceId);
+    EXPECT(archives[0].parentSpanId == cycle[0].context.spanId());
+    EXPECT_EQUAL(attribute(archives[0], "fdb.calls"), 3);
+    EXPECT_EQUAL(attribute(archives[0], "fdb.fields"), 3);
+    EXPECT_EQUAL(attribute(archives[0], "fdb.bytes"), static_cast<int64_t>(3 * payload.size()));
+    EXPECT(attribute(archives[0], "fdb.busy_ns") > 0);
+    EXPECT(archives[0].end <= flushes[0].start);  // ends with the last archive, before the flush
     EXPECT(flushes[0].parentSpanId == cycle[0].context.spanId());
     EXPECT(flushes[0].end <= cycle[0].end);
 
@@ -152,12 +174,10 @@ CASE("An explicit caller context is the parent of the API span") {
 
     EXPECT(fx.exporter->named("fdb.archive_cycle").empty());
     auto archives = fx.exporter->named("fdb.archive");
-    EXPECT_EQUAL(archives.size(), 2);
-    for (const auto& a : archives) {
-        EXPECT(a.context.traceId() == caller.traceId());
-        EXPECT(a.parentSpanId == caller.spanId());
-        EXPECT_EQUAL(a.attributes.size(), 3);  // fdb.key, fdb.fields, fdb.bytes
-    }
+    EXPECT_EQUAL(archives.size(), 1);
+    EXPECT(archives[0].context.traceId() == caller.traceId());
+    EXPECT(archives[0].parentSpanId == caller.spanId());
+    EXPECT_EQUAL(attribute(archives[0], "fdb.fields"), 2);
     auto flushes = fx.exporter->named("fdb.flush");
     EXPECT_EQUAL(flushes.size(), 1);
     EXPECT(flushes[0].parentSpanId == caller.spanId());
@@ -263,17 +283,23 @@ CASE("keep_errors: unsampled archive cycles are exported only if an archive fail
     Key invalid = makeKey("0");
     invalid.unset("param");  // matches no rule of the schema
     EXPECT_THROWS(fdb.archive(invalid, payload.data(), payload.size()));
+    EXPECT_EQUAL(fx.exporter->named("fdb.archive").size(), 1);  // exported at once, not at the flush
     archiveSome(fdb, 1);
     fdb.flush();
 
     auto archives = fx.exporter->named("fdb.archive");
     auto cycle = fx.exporter->named("fdb.archive_cycle");
-    EXPECT_EQUAL(archives.size(), 4);  // those held before the failure, the failure, and the next one
+    EXPECT_EQUAL(archives.size(), 2);  // ended by the failure, and the next one
     EXPECT_EQUAL(cycle.size(), 1);
     EXPECT_EQUAL(fx.exporter->named("fdb.flush").size(), 1);
-    EXPECT_EQUAL(std::count_if(archives.begin(), archives.end(),
-                               [](const SpanData& s) { return s.status == StatusCode::Error; }),
-                 1);
+
+    // the failing call ends its aggregate, with the key that failed
+    EXPECT(archives[0].status == StatusCode::Error);
+    EXPECT_EQUAL(attribute(archives[0], "fdb.calls"), 3);
+    EXPECT_EQUAL(attribute(archives[0], "fdb.fields"), 2);
+    EXPECT(hasAttribute(archives[0], "fdb.key"));
+    EXPECT(archives[1].status == StatusCode::Unset);
+    EXPECT_EQUAL(attribute(archives[1], "fdb.fields"), 1);
     for (const auto& a : archives) {
         EXPECT(a.parentSpanId == cycle[0].context.spanId());
         EXPECT(!a.context.sampled());
@@ -281,6 +307,16 @@ CASE("keep_errors: unsampled archive cycles are exported only if an archive fail
 
     Tracer::instance().keepErrors(false);
     Tracer::instance().sampler(Sampler{});
+}
+
+CASE("A moved-from FDB can be destroyed") {
+    Fixture fx;
+    auto fdb = std::make_unique<FDB>();
+    archiveSome(*fdb, 1);
+    FDB other(std::move(*fdb));
+    fdb.reset();
+    other.flush();
+    EXPECT_EQUAL(fx.exporter->named("fdb.archive").size(), 1);
 }
 
 CASE("Tracing disabled in the FDB configuration records nothing") {

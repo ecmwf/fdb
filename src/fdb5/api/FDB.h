@@ -54,7 +54,8 @@ class Key;
 
 namespace tracing {
 class Span;
-}
+class SpanAggregator;
+}  // namespace tracing
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -313,8 +314,15 @@ private:  // methods
 
     void archiveImpl(const Key& key, const void* data, size_t length);
 
+    /// An archive call, traced in the aggregated archive span of its flush cycle (see archiveSpans_)
+    class ArchiveOperation;
+
     /// The parent context for an archive call: explicit, current, or the archive-cycle trace
     tracing::TraceContext archiveParent(const tracing::TraceContext& trace);
+
+    void archiveRequest(ArchiveOperation& op, const metkit::mars::MarsRequest& request, eckit::DataHandle& handle);
+
+    tracing::SpanAggregator* archiveSpans() const { return tracing_ ? archiveSpans_.get() : nullptr; }
 
 private:
 
@@ -334,6 +342,9 @@ private:  // members
 
     /// Span covering the current archive/flush cycle, for archive calls without a caller-provided trace context
     std::unique_ptr<tracing::Span> archiveCycle_;
+
+    /// The archive calls of a flush cycle are traced as one span per parent context, ended by the flush
+    std::unique_ptr<tracing::SpanAggregator> archiveSpans_;
 
     FDBStats stats_;
 };
