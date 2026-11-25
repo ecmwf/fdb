@@ -745,20 +745,25 @@ CASE("Ids: a forked process does not repeat the ids of its parent") {
     int fds[2];
     EXPECT(::pipe(fds) == 0);
     const pid_t pid = ::fork();
-    EXPECT(pid >= 0);
     if (pid == 0) {
+        ::close(fds[0]);
         const auto id = Tracer::newSpanId();
         const bool ok = ::write(fds[1], id.data(), id.size()) == static_cast<ssize_t>(id.size());
         ::_exit(ok ? 0 : 1);
     }
-    const auto parent = Tracer::newSpanId();
-    TraceContext::SpanId child{};
-    const bool received = ::read(fds[0], child.data(), child.size()) == static_cast<ssize_t>(child.size());
-    int status = 0;
-    ::waitpid(pid, &status, 0);
-    ::close(fds[0]);
+    // n.b. closed before reading: if the child exits without writing, the read ends (EOF) instead of hanging
     ::close(fds[1]);
 
+    const auto parent = Tracer::newSpanId();
+    TraceContext::SpanId child{};
+    bool received = false;
+    if (pid > 0) {
+        received = ::read(fds[0], child.data(), child.size()) == static_cast<ssize_t>(child.size());
+        ::waitpid(pid, nullptr, 0);
+    }
+    ::close(fds[0]);
+
+    EXPECT(pid > 0);
     EXPECT(received);
     EXPECT(child != parent);
 }

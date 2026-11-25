@@ -142,6 +142,21 @@ public:
     /// disabled.
     ArchiveOperation(FDB& fdb, const tracing::TraceContext& trace) : ArchiveOperation(fdb, trace, fdb.archiveSpans()) {}
 
+    /// If the call fails (left by an exception, whatever the cause: the backend, an invalid request, ...), the traces
+    /// of the archives not yet flushed are exported too, possibly other ones: the backend may have failed to flush
+    /// their data (e.g. the implicit flush of a database evicted by the Archiver), and they are what a caller retrying
+    /// the request needs to see.
+    ~ArchiveOperation() {
+        if (spans_ && std::uncaught_exceptions() > uncaughtExceptions_) {
+            try {
+                spans_->retainTracesOfNewFields(spans_->mark());
+            }
+            catch (...) {
+                // never throw while unwinding
+            }
+        }
+    }
+
     /// Archive one field, recording it in the span (and its key, if it fails)
     template <typename F>
     void archive(const Key& key, size_t length, F&& doArchive) {
@@ -152,11 +167,6 @@ public:
         catch (const std::exception& e) {
             if (recording()) {
                 failed(e.what(), {{"fdb.key", toAttributeString(key)}});
-            }
-            // The backend may have failed to flush the data of earlier archives too (e.g. the implicit flush of a
-            // database evicted by the Archiver): their traces, possibly other ones, are part of the failure
-            if (spans_) {
-                spans_->retainTracesOfNewFields(spans_->mark());
             }
             throw;
         }
@@ -180,6 +190,7 @@ private:
         Operation(spans, spans ? fdb.archiveParent(trace) : tracing::TraceContext{}), spans_(spans) {}
 
     tracing::SpanAggregator* spans_;  // null if tracing is disabled
+    const int uncaughtExceptions_{std::uncaught_exceptions()};
 };
 
 //----------------------------------------------------------------------------------------------------------------------

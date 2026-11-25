@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -15,6 +16,7 @@
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/io/DataHandle.h"
+#include "eckit/io/MemoryHandle.h"
 #include "eckit/testing/Test.h"
 
 #include "metkit/mars/MarsRequest.h"
@@ -376,20 +378,30 @@ CASE("Failures: a failing flush exports the archive spans of other traces") {
 CASE("Failures: a failing archive exports the traces of the archives not yet flushed") {
     // The backend may fail to flush earlier data during an archive (e.g. that of a database evicted by the Archiver):
     // the traces of the archives whose data is not yet durable are part of the failure, whichever trace they belong to
-    Fixture fx;
-    Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
     TraceContext unsampled = TraceContext::fromTraceparent("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00");
 
-    {
+    // a failure in the backend, and an invalid request (missing messages), in the archive-cycle trace
+    const std::vector<std::function<void(FDB&)>> failures{
+        [](FDB& fdb) {
+            Key invalid = makeKey("0");
+            invalid.unset("param");  // matches no rule of the schema
+            fdb.archive(invalid, payload.data(), payload.size());
+        },
+        [](FDB& fdb) {
+            eckit::MemoryHandle empty(payload.data(), 0);
+            fdb.archive(makeKey("9").request("archive"), empty);
+        }};
+
+    for (const auto& fail : failures) {
+        Fixture fx;
+        Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
         FDB fdb;
         archiveSome(fdb, 1, unsampled);
         fdb.flush(unsampled);  // durable: not part of the failure
         EXPECT(fx.exporter->spans().empty());
 
         archiveSome(fdb, 2, unsampled);
-        Key invalid = makeKey("0");
-        invalid.unset("param");  // matches no rule of the schema
-        EXPECT_THROWS(fdb.archive(invalid, payload.data(), payload.size()));  // in the archive-cycle trace
+        EXPECT_THROWS(fail(fdb));
         fdb.flush();  // succeeds
 
         size_t retained = 0;

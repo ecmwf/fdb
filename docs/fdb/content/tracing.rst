@@ -175,9 +175,9 @@ Notes:
   Only ``exporter: none`` or ``enabled: false`` avoid this cost.
 * The spans exported because of a failure keep ``trace_flags`` 0: they were not sampled.
 * If a flush fails, the traces of the archive spans which it closes are exported with it, whichever trace they
-  belong to. The archive spans keep their own status. So, if an archive fails (the backend may have
-  failed to flush earlier data, e.g. when it evicts a database), are the traces of the archives not
-  yet flushed.
+  belong to. The archive spans keep their own status. So, if an archive call fails for any reason
+  (the backend may have failed to flush earlier data, e.g. when it evicts a database, or the request
+  is invalid), are the traces of the archives not yet flushed.
 * Each process decides for its own spans: a server exports its part of a request if it fails on
   the server, or if the request is sampled. A request that fails on the client only (e.g. a lost
   connection) is exported by the client, while the server exports its part only if it is sampled.
