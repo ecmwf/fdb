@@ -593,8 +593,29 @@ void Span::end(std::chrono::system_clock::time_point endTime) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+namespace {
+
+/// The innermost ScopedSpan of the thread (see recordError())
+thread_local ScopedSpan* innermostScopedSpan = nullptr;
+
+}  // namespace
+
 ScopedSpan::ScopedSpan(std::string name, SpanKind kind, const TraceContext& parent) :
-    span_(std::move(name), kind, parent), scope_(span_.context().valid() ? span_.context() : current()) {}
+    span_(std::move(name), kind, parent),
+    scope_(span_.context().valid() ? span_.context() : current()),
+    outer_(innermostScopedSpan) {
+    innermostScopedSpan = this;
+}
+
+ScopedSpan::~ScopedSpan() {
+    innermostScopedSpan = outer_;
+}
+
+void recordError(std::string_view message) {
+    if (innermostScopedSpan) {
+        innermostScopedSpan->span().setStatus(StatusCode::Error, std::string{message});
+    }
+}
 
 ScopedSpan::ScopedSpan(std::string name, SpanKind kind) : ScopedSpan(std::move(name), kind, current()) {}
 

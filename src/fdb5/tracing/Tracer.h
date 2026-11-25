@@ -13,6 +13,7 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -299,12 +300,16 @@ private:
 };
 
 /// A Span that is also the current context of the calling thread for its lifetime. If the span is a no-op
-/// (tracing disabled), the current context is left unchanged.
+/// (tracing disabled), the current context is left unchanged. It is also the span recordError() applies to.
 class ScopedSpan {
 public:
 
     ScopedSpan(std::string name, SpanKind kind, const TraceContext& parent);
     explicit ScopedSpan(std::string name, SpanKind kind = SpanKind::Internal);
+    ~ScopedSpan();
+
+    ScopedSpan(const ScopedSpan&) = delete;
+    ScopedSpan& operator=(const ScopedSpan&) = delete;
 
     Span& span() { return span_; }
     const TraceContext& context() const { return span_.context(); }
@@ -318,7 +323,12 @@ private:
 
     Span span_;
     ScopedContext scope_;
+    ScopedSpan* outer_;
 };
+
+/// Sets the error status of the innermost ScopedSpan of the calling thread, if any. For code which reports a failure
+/// (e.g. in an error reply to a client) instead of throwing it, so that the failure is not lost (see keep_errors).
+void recordError(std::string_view message);
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -9,11 +9,14 @@
 //   client_disabled  - client has 'tracing: false': no client spans, no propagation (servers trace on their own)
 //   server_disabled  - servers have tracing disabled: client spans only, servers record nothing
 
+#include <sys/stat.h>
+
 #include <chrono>
 #include <cstdlib>
 #include <fstream>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <set>
 #include <sstream>
 #include <string>
@@ -163,6 +166,7 @@ Key makeKey(const std::string& date, const std::string& step) {
 
 const std::vector<std::string> dates{"20101010", "20111213"};
 const std::vector<std::string> steps{"1", "2"};
+const std::string readOnlyDate = "20121212";  // a database of its own, made read-only to fail a flush
 const std::string payload = "Tracing payload, tracing payload, tracing payload";
 
 /// Archive, flush, list and retrieve, all as part of the caller's trace
@@ -314,6 +318,77 @@ CASE("Remote trace-context propagation") {
             for (const auto& span : inTrace(serverSpans("store", storeSkip), failing.traceIdHex())) {
                 if (span.name == "fdb.server.read" && span.status == "error") {
                     return true;
+                }
+            }
+            return false;
+        }));
+
+        // A flush failing on the catalogue server, in a request which is not sampled: the spans of the request are
+        // exported all the same, on the client and on the server. The flush fails because the database directory is
+        // made read-only once the field is archived (its index exists): the flush must create a new index file.
+        const TraceContext unsampled{Tracer::newTraceId(), Tracer::newSpanId(), 0};
+        // n.b. the roots are created empty, and deleted, by test_server.sh: nothing to clean up here
+        const eckit::PathName catalogueRoot = env("FDB_REMOTE_CATALOGUE_ROOT");
+        auto databaseOf = [&](const std::string& date) -> std::optional<eckit::PathName> {
+            std::vector<eckit::PathName> files;
+            std::vector<eckit::PathName> dirs;
+            catalogueRoot.children(files, dirs);
+            for (const auto& d : dirs) {
+                if (d.baseName().asString().find(date) != std::string::npos) {
+                    return d;
+                }
+            }
+            return std::nullopt;
+        };
+        {
+            FDB fdb;
+            fdb.archive(makeKey(readOnlyDate, steps[0]), payload.data(), payload.size(), unsampled);
+
+            // the location reaches the catalogue asynchronously: wait until it is in an index
+            std::optional<eckit::PathName> found;
+            EXPECT(eventually([&] {
+                found = databaseOf(readOnlyDate);
+                if (!found) {
+                    return false;
+                }
+                std::vector<eckit::PathName> files;
+                std::vector<eckit::PathName> dirs;
+                found->children(files, dirs);
+                for (const auto& f : files) {
+                    if (f.extension() == ".index") {
+                        return true;
+                    }
+                }
+                return false;
+            }));
+            ASSERT(found);
+            const eckit::PathName database = *found;
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));  // the index file is created before the entry
+
+            ::chmod(database.localPath(), 0555);
+            try {
+                EXPECT_THROWS(fdb.flush(unsampled));
+            }
+            catch (...) {
+                ::chmod(database.localPath(), 0755);
+                throw;
+            }
+            ::chmod(database.localPath(), 0755);
+        }
+
+        auto failed = inTrace(exporter->spans(), unsampled.traceIdHex());
+        EXPECT_EQUAL(countNamed(failed, "fdb.archive"), 1);
+        EXPECT_EQUAL(countNamed(failed, "fdb.flush"), 1);
+        EXPECT(eventually([&] {
+            auto spans = inTrace(serverSpans("catalogue", catalogueSkip), unsampled.traceIdHex());
+            for (const auto& span : spans) {
+                if (span.name == "fdb.server.flush" && span.status == "error") {
+                    // the archive itself succeeded: only the flush failed
+                    for (const auto& archive : spans) {
+                        if (archive.name == "fdb.server.archive") {
+                            return archive.status == "unset";
+                        }
+                    }
                 }
             }
             return false;

@@ -40,9 +40,7 @@ private:  // methods
 
     void readLocationThreadLoop();
 
-    /// Sends the data to the client, or the failure to read it (also recorded in @p span, if any)
-    void writeToParent(uint32_t clientID, uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh,
-                       tracing::Span* span = nullptr);
+    void writeToParent(uint32_t clientID, uint32_t requestID, std::unique_ptr<eckit::DataHandle> dh);
 
     void remove(uint32_t clientID) override;
 

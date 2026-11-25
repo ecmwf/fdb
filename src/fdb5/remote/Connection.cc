@@ -2,6 +2,7 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/remote/Messages.h"
+#include "fdb5/tracing/Tracer.h"
 
 #include "eckit/io/Buffer.h"
 #include "eckit/log/Log.h"
@@ -343,6 +344,8 @@ void Connection::write(const Message msg, const bool control, const uint32_t cli
 }
 
 void Connection::error(bool control, std::string_view msg, uint32_t clientID, uint32_t requestID) const {
+    // An error reply means that the request being handled has failed: so does its span, if any (see recordError())
+    tracing::recordError(msg);
     eckit::Log::error() << "[clientID=" << clientID << ",requestID=" << requestID << "]  " << msg << std::endl;
     write(Message::Error, control, clientID, requestID, msg.data(), msg.length());
 }
@@ -433,6 +436,7 @@ bool Connection::tryWriteBounded(Message message, bool control, uint32_t clientI
 bool Connection::tryErrorBounded(bool control, std::string_view msg, uint32_t clientID,
                                  uint32_t requestID) const noexcept {
     try {
+        tracing::recordError(msg);
         eckit::Log::error() << "[clientID=" << clientID << ",requestID=" << requestID << "]  " << msg << std::endl;
     }
     catch (...) {

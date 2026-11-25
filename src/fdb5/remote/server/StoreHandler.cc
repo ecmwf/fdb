@@ -179,7 +179,8 @@ void StoreHandler::readLocationThreadLoop() {
             }
 
             // Forward the API call
-            writeToParent(elem.clientID, elem.requestID, std::move(elem.readLocation), span ? &span->span() : nullptr);
+            // n.b. a failure is reported to the client, and recorded in the span (see Connection::error())
+            writeToParent(elem.clientID, elem.requestID, std::move(elem.readLocation));
         }
     }
     catch (std::exception& e) {
@@ -191,7 +192,7 @@ void StoreHandler::readLocationThreadLoop() {
 }
 
 void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t requestID,
-                                 std::unique_ptr<eckit::DataHandle> dh, tracing::Span* span) {
+                                 std::unique_ptr<eckit::DataHandle> dh) {
     try {
         Log::status() << "Reading: " << requestID << std::endl;
         // Write the data to the parent, in chunks if necessary.
@@ -218,18 +219,11 @@ void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t request
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        if (span) {
-            span->setStatus(tracing::StatusCode::Error, e.what());
-        }
         tryError(false, e.what(), clientID, requestID);
     }
     catch (...) {
         // We really don't want to std::terminate the thread
-        const char* what = "Caught unexpected , unknown exception in retrieve worker";
-        if (span) {
-            span->setStatus(tracing::StatusCode::Error, what);
-        }
-        tryError(false, what, clientID, requestID);
+        tryError(false, "Caught unexpected , unknown exception in retrieve worker", clientID, requestID);
     }
 }
 
