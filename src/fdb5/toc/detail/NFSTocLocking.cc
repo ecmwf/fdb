@@ -158,19 +158,6 @@ constexpr std::array<std::pair<Policy, std::string_view>, 2> policy_names{
 
 //----------------------------------------------------------------------------------------------------------------------
 
-std::string to_string(Policy policy) {
-    for (const auto& [value, name] : policy_names) {
-        if (value == policy) {
-            return std::string{name};
-        }
-    }
-    NOTIMP;
-}
-
-std::ostream& operator<<(std::ostream& out, Policy policy) {
-    return out << to_string(policy);
-}
-
 Policy NFSTocLocking::parsePolicy(const std::string& value, const std::string& source) {
     const auto lowered = eckit::StringTools::lower(value);
 

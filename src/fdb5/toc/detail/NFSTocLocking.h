@@ -18,7 +18,6 @@
 #include <memory>
 #include <mutex>
 #include <optional>
-#include <ostream>
 #include <string>
 
 #include "eckit/filesystem/LocalPathName.h"
@@ -95,11 +94,6 @@ private:  // members
     mutable std::mutex mutex_;
     mutable std::map<std::string, std::optional<std::string>> options_;  ///< by device
 };
-
-/// The name parsePolicy() accepts for `policy`.
-std::string to_string(NFSTocLocking::Policy policy);
-
-std::ostream& operator<<(std::ostream& out, NFSTocLocking::Policy policy);
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -23,7 +23,6 @@
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
-#include "eckit/utils/StringTools.h"
 
 #include <fcntl.h>
 #include <sys/wait.h>
@@ -35,7 +34,6 @@
 #include <cerrno>
 #include <cstdlib>
 #include <optional>
-#include <sstream>
 #include <string>
 #include <thread>
 #include <typeinfo>
@@ -204,20 +202,13 @@ CASE("TOC read: a failed read is not cached") {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-CASE("NFS locks: each policy round-trips through its name, parsed case-insensitively") {
+CASE("NFS locks: each policy is parsed from its name, case-insensitively") {
     using Policy = NFSTocLocking::Policy;
 
-    for (const auto policy : {Policy::Error, Policy::Allow}) {
-        EXPECT(NFSTocLocking::parsePolicy(to_string(policy)) == policy);
-        EXPECT(NFSTocLocking::parsePolicy(eckit::StringTools::upper(to_string(policy))) == policy);
-
-        std::ostringstream out;
-        out << policy;
-        EXPECT_EQUAL(out.str(), to_string(policy));
-    }
-
-    EXPECT_EQUAL(to_string(Policy::Error), "error");
-    EXPECT_EQUAL(to_string(Policy::Allow), "allow");
+    EXPECT(NFSTocLocking::parsePolicy("error") == Policy::Error);
+    EXPECT(NFSTocLocking::parsePolicy("ERROR") == Policy::Error);
+    EXPECT(NFSTocLocking::parsePolicy("allow") == Policy::Allow);
+    EXPECT(NFSTocLocking::parsePolicy("Allow") == Policy::Allow);
 }
 
 CASE("NFS locks: an unknown policy is rejected, naming its source and the accepted values") {
