@@ -10,6 +10,7 @@ ecbuild_add_test( TARGET fdb_test_database_indexaxis
 
 # Inherit the harness settings at test time: the mount may not be visible where CMake runs.
 ecbuild_add_test( TARGET fdb_test_database_nfs
+    CONDITION HAVE_TOCFDB
     SOURCES test_nfs.cc
     LIBS fdb5
     LABELS nfs
