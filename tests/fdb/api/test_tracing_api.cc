@@ -5,6 +5,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "eckit/filesystem/LocalPathName.h"
@@ -303,6 +304,42 @@ CASE("keep_errors: unsampled archive cycles are exported only if an archive fail
     for (const auto& a : archives) {
         EXPECT(a.parentSpanId == cycle[0].context.spanId());
         EXPECT(!a.context.sampled());
+    }
+
+    Tracer::instance().keepErrors(false);
+    Tracer::instance().sampler(Sampler{});
+}
+
+CASE("keep_errors: a failing flush exports the archive spans of its trace") {
+    Fixture fx;
+    Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
+    Tracer::instance().keepErrors(true);
+    TraceContext unsampled = TraceContext::fromTraceparent("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00");
+
+    {
+        FDB fdb;
+        bool fail = true;
+        fdb.registerFlushCallback([&fail] {
+            if (std::exchange(fail, false)) {
+                throw eckit::SeriousBug("flush failed", Here());
+            }
+        });
+
+        archiveSome(fdb, 2, unsampled);
+        EXPECT_THROWS_AS(fdb.flush(unsampled), eckit::SeriousBug);
+
+        auto flushes = fx.exporter->named("fdb.flush");
+        auto archives = fx.exporter->named("fdb.archive");
+        EXPECT_EQUAL(flushes.size(), 1);
+        EXPECT(flushes[0].status == StatusCode::Error);
+        EXPECT_EQUAL(archives.size(), 1);
+        EXPECT_EQUAL(attribute(archives[0], "fdb.fields"), 2);
+        EXPECT(archives[0].parentSpanId == unsampled.spanId());
+        EXPECT(archives[0].end <= flushes[0].start);
+
+        fx.exporter->clear();
+        fdb.flush(unsampled);  // succeeds: nothing exported
+        EXPECT(fx.exporter->spans().empty());
     }
 
     Tracer::instance().keepErrors(false);

@@ -557,16 +557,24 @@ void FDB::flush(const tracing::TraceContext& trace) {
     // The archive-cycle span (if any) is ended once the flush is complete, after the flush span
     std::unique_ptr<tracing::Span> cycle = std::move(archiveCycle_);
 
-    // The archive spans of this cycle end before the flush span starts (n.b. none in a moved-from FDB)
-    if (archiveSpans_) {
-        archiveSpans_->endAll();
-    }
+    // The archive spans of the cycle end within the flush span, while their trace is still open in this process: if
+    // the flush fails, they are exported with it (see keep_errors). Their end time is that of their last archive.
+    // n.b. there are none in a moved-from FDB
+    auto endArchiveSpans = [this] {
+        if (archiveSpans_) {
+            archiveSpans_->endAll();
+        }
+    };
 
-    if (dirty_) {
+    if (!dirty_) {
+        endArchiveSpans();
+    }
+    else {
         // explicit context, else the current one, else the archive cycle being flushed
         const tracing::TraceContext& parent =
             (trace.valid() || tracing::current().valid() || !cycle) ? trace : cycle->context();
         ApiSpan span(tracing_, "fdb.flush", parent);
+        endArchiveSpans();
 
         eckit::Timer timer;
         timer.start();

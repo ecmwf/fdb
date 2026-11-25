@@ -15,11 +15,13 @@
 #include <memory>
 #include <mutex>
 #include <set>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/log/Log.h"
@@ -47,6 +49,7 @@ struct ExportedSpan {
     std::string spanId;
     std::string parentSpanId;
     int64_t fields = 0;  // the fdb.fields attribute, if any
+    std::string status;
 };
 
 class CollectingExporter : public SpanExporter {
@@ -60,9 +63,11 @@ public:
                 fields = std::get<int64_t>(value);
             }
         }
+        std::ostringstream status;
+        status << span.status;
         std::lock_guard lock(mutex_);
         spans_.push_back({span.name, span.context.traceIdHex(), span.context.spanIdHex(),
-                          parent.valid() ? parent.spanIdHex() : std::string{}, fields});
+                          parent.valid() ? parent.spanIdHex() : std::string{}, fields, status.str()});
     }
 
     std::vector<ExportedSpan> spans() const {
@@ -99,7 +104,7 @@ std::vector<ExportedSpan> serverSpans(const std::string& role, size_t skip = 0) 
         eckit::Value v = eckit::JSONParser::decodeString(line);
         eckit::Value attributes = v["attributes"];
         int64_t fields = attributes.contains("fdb.fields") ? static_cast<long long>(attributes["fdb.fields"]) : 0;
-        out.push_back({v["name"], v["trace_id"], v["span_id"], v["parent_span_id"], fields});
+        out.push_back({v["name"], v["trace_id"], v["span_id"], v["parent_span_id"], fields, v["status"]});
     }
     return out;
 }
@@ -282,6 +287,37 @@ CASE("Remote trace-context propagation") {
             EXPECT_EQUAL(countNamed(spans, "fdb.server.archive"), dates.size());
             EXPECT_EQUAL(fieldsOf(spans, "fdb.server.archive"), archived);
         }
+
+        // A read failing on the store server (here, its data file has gone) is recorded as an error
+        const TraceContext failing{Tracer::newTraceId(), Tracer::newSpanId(), TraceContext::sampledFlag};
+        {
+            FDB fdb;
+            auto request = FDBToolRequest::requestsFromString(
+                "class=od,expver=xxxx,stream=oper,time=0000,domain=g,date=" + dates[1])[0];
+            std::set<std::string> files;
+            ListIterator it = fdb.list(request, ListMode::Deduplicate, 3);
+            ListElement elem;
+            while (it.next(elem)) {
+                files.insert(elem.uri().path());
+            }
+            EXPECT(!files.empty());
+            for (const auto& f : files) {
+                eckit::PathName(f).unlink();
+            }
+
+            std::unique_ptr<eckit::DataHandle> dh(
+                fdb.retrieve(makeKey(dates[1], steps[0]).request("retrieve"), failing));
+            eckit::MemoryHandle out;
+            EXPECT_THROWS(dh->saveInto(out));
+        }
+        EXPECT(eventually([&] {
+            for (const auto& span : inTrace(serverSpans("store", storeSkip), failing.traceIdHex())) {
+                if (span.name == "fdb.server.read" && span.status == "error") {
+                    return true;
+                }
+            }
+            return false;
+        }));
     }
     else if (variant == "client_disabled") {
 

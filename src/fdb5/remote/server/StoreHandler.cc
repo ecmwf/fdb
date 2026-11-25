@@ -179,7 +179,7 @@ void StoreHandler::readLocationThreadLoop() {
             }
 
             // Forward the API call
-            writeToParent(elem.clientID, elem.requestID, std::move(elem.readLocation));
+            writeToParent(elem.clientID, elem.requestID, std::move(elem.readLocation), span ? &span->span() : nullptr);
         }
     }
     catch (std::exception& e) {
@@ -191,7 +191,7 @@ void StoreHandler::readLocationThreadLoop() {
 }
 
 void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t requestID,
-                                 std::unique_ptr<eckit::DataHandle> dh) {
+                                 std::unique_ptr<eckit::DataHandle> dh, tracing::Span* span) {
     try {
         Log::status() << "Reading: " << requestID << std::endl;
         // Write the data to the parent, in chunks if necessary.
@@ -218,11 +218,18 @@ void StoreHandler::writeToParent(const uint32_t clientID, const uint32_t request
     }
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
+        if (span) {
+            span->setStatus(tracing::StatusCode::Error, e.what());
+        }
         tryError(false, e.what(), clientID, requestID);
     }
     catch (...) {
         // We really don't want to std::terminate the thread
-        tryError(false, "Caught unexpected , unknown exception in retrieve worker", clientID, requestID);
+        const char* what = "Caught unexpected , unknown exception in retrieve worker";
+        if (span) {
+            span->setStatus(tracing::StatusCode::Error, what);
+        }
+        tryError(false, what, clientID, requestID);
     }
 }
 
@@ -270,6 +277,14 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
 
 void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buffer& payload) {
 
+    // The archive spans of the client end within the flush span (current while handling this message), also if the
+    // flush fails: then they are exported with it (see keep_errors)
+    struct EndArchiveSpans {
+        tracing::SpanAggregator& spans;
+        uint32_t clientID;
+        ~EndArchiveSpans() { spans.end(clientID); }
+    } endArchiveSpans{archiveSpans_, clientID};
+
     size_t numArchived = 0;
 
 
@@ -295,8 +310,6 @@ void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buf
 
         callbacks_.flushCallback_();
     }
-
-    archiveSpans_.end(clientID);
 
     Log::info() << "Flush complete" << std::endl;
     Log::status() << "Flush complete" << std::endl;
