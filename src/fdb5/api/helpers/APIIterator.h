@@ -89,7 +89,11 @@ public:  // methods
 
     /// Attach the tracing span of the API call that created this iterator. The span ends when the iteration is
     /// exhausted, fails, or the iterator is destroyed.
-    void attachSpan(tracing::Span&& span) { span_ = std::move(span); }
+    void attachSpan(tracing::Span&& span) {
+        span_ = std::move(span);
+        // the iterator may be destroyed while the caller is unwinding for unrelated reasons: that is not a failure
+        span_.detectUnwinding(false);
+    }
 
 private:  // members
 

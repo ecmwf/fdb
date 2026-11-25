@@ -50,12 +50,10 @@ struct ExporterFixture {
     ExporterFixture() : exporter(std::make_shared<CollectingExporter>()) {
         Tracer::instance().exporter(exporter);
         Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOn, true});
-        Tracer::instance().keepErrors(false);
     }
     ~ExporterFixture() {
         Tracer::instance().exporter(nullptr);
         Tracer::instance().sampler(Sampler{});
-        Tracer::instance().keepErrors(true);
     }
     std::shared_ptr<CollectingExporter> exporter;
 };
@@ -151,9 +149,8 @@ CASE("Current context is thread local") {
     EXPECT(current().valid());
 }
 
-CASE("Defaults: parent-based always_off sampler, keep_errors, info log exporter") {
+CASE("Defaults: parent-based always_off sampler, info log exporter") {
     EXPECT_EQUAL(Sampler{}.name(), "parentbased_always_off");
-    EXPECT(Tracer::instance().keepErrors());
     EXPECT(std::dynamic_pointer_cast<LogSpanExporter>(Tracer::instance().exporter()));
 }
 
@@ -228,15 +225,14 @@ CASE("Parent-based sampling follows an unsampled parent") {
         Span s("unsampled", SpanKind::Internal, unsampled);
         EXPECT(s.context().valid());  // still propagated
         EXPECT(!s.context().sampled());
-        EXPECT(!s.recording());
+        EXPECT(s.recording());  // held until its trace is complete, in case it fails
     }
-    EXPECT_EQUAL(fx.exporter->spans().size(), 0);
+    EXPECT_EQUAL(fx.exporter->spans().size(), 0);  // not exported: it did not fail
 }
 
-CASE("keep_errors: the unsampled spans of a successful trace are discarded") {
+CASE("Failures: the unsampled spans of a successful trace are discarded") {
     ExporterFixture fx;
     Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
-    Tracer::instance().keepErrors(true);
     {
         ScopedSpan root("root");
         EXPECT(!root.context().sampled());
@@ -246,10 +242,9 @@ CASE("keep_errors: the unsampled spans of a successful trace are discarded") {
     EXPECT_EQUAL(fx.exporter->spans().size(), 0);
 }
 
-CASE("keep_errors: all the spans of a failing trace are exported, including those ended before the failure") {
+CASE("Failures: all the spans of a failing trace are exported, including those ended before the failure") {
     ExporterFixture fx;
     Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
-    Tracer::instance().keepErrors(true);
 
     TraceContext::TraceId traceId{};
     try {
@@ -282,9 +277,8 @@ CASE("keep_errors: all the spans of a failing trace are exported, including thos
     EXPECT_EQUAL(fx.exporter->spans().size(), 4);
 }
 
-CASE("keep_errors: sampled spans are exported as they end") {
+CASE("Failures: sampled spans are exported as they end") {
     ExporterFixture fx;
-    Tracer::instance().keepErrors(true);
     {
         ScopedSpan root("root");
         { ScopedSpan child("child"); }
@@ -293,9 +287,8 @@ CASE("keep_errors: sampled spans are exported as they end") {
     EXPECT_EQUAL(fx.exporter->spans().size(), 2);
 }
 
-CASE("keep_errors: an unsampled caller context is kept if the request fails") {
+CASE("Failures: an unsampled caller context is kept if the request fails") {
     ExporterFixture fx;
-    Tracer::instance().keepErrors(true);
     TraceContext unsampled = TraceContext::fromTraceparent("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00");
     { Span s("ok", SpanKind::Internal, unsampled); }
     EXPECT_EQUAL(fx.exporter->spans().size(), 0);
@@ -309,23 +302,9 @@ CASE("keep_errors: an unsampled caller context is kept if the request fails") {
     EXPECT(!spans[0].context.sampled());
 }
 
-CASE("keep_errors: without it, the unsampled spans of a failing trace are not recorded") {
+CASE("Failures: the spans held per trace are bounded") {
     ExporterFixture fx;
     Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
-    try {
-        ScopedSpan s("failing");
-        EXPECT(!s.span().recording());
-        throw std::runtime_error("boom");
-    }
-    catch (const std::runtime_error&) {
-    }
-    EXPECT_EQUAL(fx.exporter->spans().size(), 0);
-}
-
-CASE("keep_errors: the spans held per trace are bounded") {
-    ExporterFixture fx;
-    Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
-    Tracer::instance().keepErrors(true);
     {
         ScopedSpan root("root");
         for (size_t i = 0; i < Tracer::maxHeldSpansPerTrace + 5; ++i) {
@@ -335,14 +314,6 @@ CASE("keep_errors: the spans held per trace are bounded") {
     }
     EXPECT_EQUAL(fx.exporter->spans().size(), Tracer::maxHeldSpansPerTrace + 1);
     EXPECT_EQUAL(fx.exporter->spans().back().name, "root");
-}
-
-CASE("keep_errors from configuration") {
-    eckit::LocalConfiguration config;
-    config.set("keep_errors", true);
-    Tracer::instance().configure(config);
-    EXPECT(Tracer::instance().keepErrors());
-    Tracer::instance().keepErrors(false);
 }
 
 namespace {
@@ -462,6 +433,296 @@ CASE("SpanAggregator: concurrent operations, and an aggregate ended while one is
     auto spans = fx.exporter->spans();
     EXPECT_EQUAL(spans.size(), 1);
     EXPECT_EQUAL(intAttribute(spans[0], "fdb.fields"), 1001);
+}
+
+CASE("SpanAggregator: detached aggregates end when released, and export their traces if asked to") {
+    ExporterFixture fx;
+    Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
+    SpanAggregator aggregator("aggregated", SpanKind::Internal);
+    TraceContext unsampled = TraceContext::fromTraceparent("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00");
+
+    { SpanAggregator::Operation op(&aggregator, unsampled); }
+    {
+        auto detached = aggregator.detachIdle();
+        // the operations which follow join a new aggregate, not the detached one
+        { SpanAggregator::Operation op(&aggregator, unsampled); }
+        EXPECT_EQUAL(fx.exporter->spans().size(), 0);  // held: the trace is not complete
+        detached.retainTraces();
+    }
+    auto spans = fx.exporter->spans();
+    EXPECT_EQUAL(spans.size(), 1);  // the detached one, in a trace which is exported
+    EXPECT(spans[0].status == StatusCode::Unset);  // its status is not changed
+    EXPECT_EQUAL(intAttribute(spans[0], "fdb.calls"), 1);
+
+    aggregator.endAll();  // the other one belongs to the failed trace, which is exported as it ends
+    EXPECT_EQUAL(fx.exporter->spans().size(), 2);
+}
+
+CASE("SpanAggregator: detaching leaves the aggregates of operations in progress open") {
+    ExporterFixture fx;
+    SpanAggregator aggregator("aggregated", SpanKind::Internal);
+    TraceContext parent = TraceContext::fromTraceparent(sampleTraceparent);
+
+    {
+        SpanAggregator::Operation running(&aggregator, parent);
+        running.add(1, 1);
+        { auto detached = aggregator.detachIdle(); }
+        EXPECT_EQUAL(fx.exporter->spans().size(), 0);  // still open
+    }
+    // idle now: the next flush takes it
+    { auto detached = aggregator.detachIdle(); }
+    auto spans = fx.exporter->spans();
+    EXPECT_EQUAL(spans.size(), 1);
+    EXPECT_EQUAL(intAttribute(spans[0], "fdb.fields"), 1);
+}
+
+CASE("SpanAggregator: detaching a group takes the aggregates of the operations in progress too") {
+    // e.g. a server which has acknowledged an archive before its operation is over, then fails the flush
+    ExporterFixture fx;
+    Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
+    SpanAggregator aggregator("aggregated", SpanKind::Internal);
+    TraceContext unsampled = TraceContext::fromTraceparent("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00");
+
+    {
+        SpanAggregator::Operation running(&aggregator, unsampled, 7);
+        running.add(1, 1);
+        {
+            auto detached = aggregator.detach(7);
+            EXPECT(!aggregator.usesParent(unsampled));
+            detached.retainTraces();  // the flush has failed
+        }
+        EXPECT_EQUAL(fx.exporter->spans().size(), 0);  // ends with its operation
+    }
+    auto spans = fx.exporter->spans();
+    EXPECT_EQUAL(spans.size(), 1);  // exported: its trace was retained
+    EXPECT(spans[0].status == StatusCode::Unset);
+    EXPECT_EQUAL(intAttribute(spans[0], "fdb.fields"), 1);
+}
+
+CASE("SpanAggregator: the traces of the aggregates left open by detachIdle() are retained too") {
+    // e.g. a multi-field archive in progress when a flush fails: it has written data which the flush was to make durable
+    ExporterFixture fx;
+    Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
+    SpanAggregator aggregator("aggregated", SpanKind::Internal);
+    TraceContext unsampled = TraceContext::fromTraceparent("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00");
+
+    {
+        SpanAggregator::Operation running(&aggregator, unsampled);
+        running.add(1, 1);
+        {
+            auto detached = aggregator.detachIdle();
+            EXPECT(aggregator.usesParent(unsampled));  // left open
+            detached.retainTraces();                   // the flush has failed
+        }
+        EXPECT_EQUAL(fx.exporter->spans().size(), 0);
+    }
+    { auto detached = aggregator.detachIdle(); }  // the next flush
+    EXPECT_EQUAL(fx.exporter->spans().size(), 1);  // exported: its trace was retained
+}
+
+CASE("SpanAggregator: the trace of an operation in progress which has archived nothing is not retained") {
+    ExporterFixture fx;
+    Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
+    SpanAggregator aggregator("aggregated", SpanKind::Internal);
+    TraceContext unsampled = TraceContext::fromTraceparent("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00");
+
+    {
+        SpanAggregator::Operation running(&aggregator, unsampled);
+        {
+            auto detached = aggregator.detachIdle();
+            detached.retainTraces();  // a flush has failed: not because of this archive, which has written nothing
+        }
+        running.add(1, 1);  // later
+    }
+    { auto detached = aggregator.detachIdle(); }
+    EXPECT_EQUAL(fx.exporter->spans().size(), 0);  // it succeeded: nothing exported
+}
+
+CASE("SpanAggregator: a field being archived counts, and one covered by a previous flush does not") {
+    Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
+    TraceContext unsampled = TraceContext::fromTraceparent("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00");
+
+    // a field which is being written, not yet recorded by add(): a flush may cover it
+    {
+        ExporterFixture fx;
+        SpanAggregator aggregator("aggregated", SpanKind::Internal);
+        {
+            SpanAggregator::Operation running(&aggregator, unsampled);
+            running.begin();
+            auto detached = aggregator.detachIdle();
+            detached.retainTraces();  // the flush has failed
+        }
+        aggregator.endAll();
+        EXPECT_EQUAL(fx.exporter->spans().size(), 1);  // exported, in a retained trace
+    }
+
+    // a field covered by a flush which succeeded is not the concern of a later flush which fails
+    {
+        ExporterFixture fx;
+        SpanAggregator aggregator("aggregated", SpanKind::Internal);
+        {
+            SpanAggregator::Operation running(&aggregator, unsampled);
+            running.begin();
+            running.add(1, 1);
+            {
+                auto detached = aggregator.detachIdle();
+                detached.flushed();  // the flush succeeds
+            }
+            auto detached = aggregator.detachIdle();
+            detached.retainTraces();  // another one fails
+        }
+        aggregator.endAll();
+        EXPECT_EQUAL(fx.exporter->spans().size(), 0);
+    }
+
+    // but a field written after the first flush is
+    {
+        ExporterFixture fx;
+        SpanAggregator aggregator("aggregated", SpanKind::Internal);
+        {
+            SpanAggregator::Operation running(&aggregator, unsampled);
+            running.begin();
+            running.add(1, 1);
+            {
+                auto detached = aggregator.detachIdle();
+                detached.flushed();  // the flush succeeds
+            }
+            running.begin();
+            auto detached = aggregator.detachIdle();
+            detached.retainTraces();  // another one fails
+            running.add(1, 1);
+        }
+        aggregator.endAll();
+        EXPECT_EQUAL(fx.exporter->spans().size(), 1);
+    }
+
+    // a field which was still being written when a flush succeeded may have missed it: it remains of concern
+    {
+        ExporterFixture fx;
+        SpanAggregator aggregator("aggregated", SpanKind::Internal);
+        {
+            SpanAggregator::Operation running(&aggregator, unsampled);
+            running.begin();
+            {
+                auto detached = aggregator.detachIdle();
+                detached.flushed();  // the flush succeeds
+            }
+            {
+                auto detached = aggregator.detachIdle();
+                detached.retainTraces();  // another one fails, after the field was written
+            }
+            running.add(1, 1);
+        }
+        aggregator.endAll();
+        EXPECT_EQUAL(fx.exporter->spans().size(), 1);
+    }
+
+    // and one which failed to cover it leaves it to the next
+    {
+        ExporterFixture fx;
+        SpanAggregator aggregator("aggregated", SpanKind::Internal);
+        {
+            SpanAggregator::Operation running(&aggregator, unsampled);
+            running.begin();
+            running.add(1, 1);
+            { auto detached = aggregator.detachIdle(); }  // the flush fails: not flushed()
+            auto detached = aggregator.detachIdle();
+            detached.retainTraces();  // the next one fails too
+        }
+        aggregator.endAll();
+        EXPECT_EQUAL(fx.exporter->spans().size(), 1);
+    }
+
+    Tracer::instance().sampler(Sampler{});
+}
+
+CASE("SpanAggregator: fields begun after detachIdle() and before the failure are retained") {
+    ExporterFixture fx;
+    Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
+    SpanAggregator aggregator("aggregated", SpanKind::Internal);
+    TraceContext unsampled = TraceContext::fromTraceparent("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00");
+    TraceContext other = TraceContext::fromTraceparent("00-5bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b8-00");
+    TraceContext after = TraceContext::fromTraceparent("00-6bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b9-00");
+
+    SpanAggregator::Operation before(&aggregator, other);  // archived nothing yet
+    auto detached = aggregator.detachIdle();                // the flush starts
+
+    {
+        SpanAggregator::Operation during(&aggregator, unsampled);  // the archive starts during the flush
+        during.begin();
+
+        const auto failedAt = aggregator.mark();  // the flush fails
+        SpanAggregator::Operation afterwards(&aggregator, after);  // an archive begins after the failure
+        afterwards.begin();
+
+        aggregator.retainTracesOfNewFields(failedAt);
+    }
+    detached = SpanAggregator::Detached{};
+    aggregator.endAll();
+    auto spans = fx.exporter->spans();
+    EXPECT_EQUAL(spans.size(), 1);  // only the archive which began during the flush
+    EXPECT(spans[0].context.traceId() == unsampled.traceId());
+}
+
+CASE("SpanAggregator: a flush which flushes nothing ends the finished spans and covers nothing") {
+    ExporterFixture fx;
+    Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, true});  // follows the parent
+    TraceContext sampled = TraceContext::fromTraceparent("00-5bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b8-01");
+    TraceContext unsampled = TraceContext::fromTraceparent("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00");
+
+    SpanAggregator aggregator("aggregated", SpanKind::Internal);
+    {
+        SpanAggregator::Operation finished(&aggregator, sampled);
+        finished.add(1, 1);
+    }
+    {
+        SpanAggregator::Operation running(&aggregator, unsampled);
+        running.begin();
+
+        { auto detached = aggregator.detachIdle(false); }  // a flush with nothing to flush
+        EXPECT_EQUAL(fx.exporter->spans().size(), 1);      // the finished one ends
+
+        // the field being written is still of concern to the next flush, which fails
+        auto detached = aggregator.detachIdle();
+        detached.retainTraces();
+    }
+    aggregator.endAll();
+    EXPECT_EQUAL(fx.exporter->spans().size(), 2);  // and the running one is exported, in a retained trace
+}
+
+CASE("SpanAggregator: no aggregate is ended early, however many parents: all the traces can be retained") {
+    ExporterFixture fx;
+    Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
+    SpanAggregator aggregator("aggregated", SpanKind::Internal);
+
+    constexpr size_t n = 2000;
+    for (size_t i = 0; i < n; ++i) {
+        TraceContext parent{Tracer::newTraceId(), Tracer::newSpanId(), 0};
+        SpanAggregator::Operation op(&aggregator, parent);
+        op.add(1, 1);
+    }
+    EXPECT_EQUAL(fx.exporter->spans().size(), 0);
+
+    auto detached = aggregator.detachIdle();
+    detached.retainTraces();  // e.g. the flush has failed
+    detached = SpanAggregator::Detached{};
+    EXPECT_EQUAL(fx.exporter->spans().size(), n);
+}
+
+CASE("TraceContext: an oversized tracestate is dropped, however the context is made") {
+    const std::string tooLong(TraceContext::maxTraceStateLength + 1, 'a');
+    const std::string longest(TraceContext::maxTraceStateLength, 'a');
+
+    TraceContext ctx{Tracer::newTraceId(), Tracer::newSpanId(), 0, tooLong};
+    EXPECT(ctx.traceState().empty());
+    EXPECT(ctx.encode().size() <= TraceContext::maxBinarySize);
+
+    TraceContext ok{Tracer::newTraceId(), Tracer::newSpanId(), 0, longest};
+    EXPECT_EQUAL(ok.traceState(), longest);
+    EXPECT_EQUAL(ok.encode().size(), TraceContext::maxBinarySize);
+
+    // also when derived from another context
+    EXPECT(ok.withSpanId(Tracer::newSpanId()).traceState() == longest);
 }
 
 CASE("SpanAggregator: a null aggregator is a no-op") {

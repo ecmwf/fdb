@@ -11,6 +11,7 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/tools/FDBTool.h"
 #include "fdb5/tracing/TraceContext.h"
+#include "fdb5/tracing/Tracer.h"
 
 namespace fdb5 {
 
@@ -39,7 +40,15 @@ void FDBTool::run() {
 
     eckit::option::CmdArgs args(&fdb5::usage, options_, numberOfPositionalArguments(), minimumPositionalArguments());
 
+    // the log channels carry the results of the tools: spans must not be mixed with them
+    tracing::LogSpanExporter::toStderr(true);
+
     tracing::ScopedContext traceScope(traceContext(args));
+
+    // machine-readable output (n.b. fdb-list --json implies --porcelain): no span may be mixed with it
+    if (args.getBool("porcelain", false) || args.getBool("json", false)) {
+        tracing::Tracer::instance().suppressExport(true);
+    }
 
     init(args);
     execute(args);

@@ -145,6 +145,7 @@ public:
     /// Archive one field, recording it in the span (and its key, if it fails)
     template <typename F>
     void archive(const Key& key, size_t length, F&& doArchive) {
+        begin();  // from now on, a flush may cover the field, before it is recorded
         try {
             doArchive();
         }
@@ -161,13 +162,14 @@ private:
 
     ArchiveOperation(FDB& fdb, const tracing::TraceContext& trace, tracing::SpanAggregator* spans) :
         ArchiveOperation(fdb, trace, spans,
-                         spans ? std::unique_lock<std::mutex>(fdb.mutex_) : std::unique_lock<std::mutex>()) {}
+                         spans ? std::unique_lock<std::mutex>(fdb.cycleMutex_) : std::unique_lock<std::mutex>()) {}
 
-    /// n.b. the parent is chosen, and the operation registered in its aggregate, with @p lock (FDB::mutex_) held: the
+    /// n.b. the parent is chosen, and the operation registered in its aggregate, with @p lock (FDB::cycleMutex_) held: the
     /// lock is released once the delegating constructor completes. A concurrent flush thus closes the archive cycle,
     /// and ends its aggregates, either before the parent is chosen (the operation is in the next cycle) or after the
     /// operation is registered (its aggregate, kept open by the operation, ends when it is over). It never ends a cycle
-    /// that an archive is about to join. The archival itself is not under the lock.
+    /// that an archive is about to join. The archival itself is not under the lock, and neither is FDB::mutex_ (held
+    /// by a flush for its whole duration): archive calls do not wait for a flush in progress.
     ArchiveOperation(FDB& fdb, const tracing::TraceContext& trace, tracing::SpanAggregator* spans,
                      std::unique_lock<std::mutex>&& /* lock */) :
         Operation(spans, spans ? fdb.archiveParent(trace) : tracing::TraceContext{}) {}
@@ -175,13 +177,23 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
+namespace {
+
+/// Build the implementation of an FDB. The tracing settings of the configuration apply first: connecting to a remote
+/// FDB negotiates trace-context propagation, which depends on them.
+std::shared_ptr<FDBBase> buildInternal(const Config& config) {
+    tracing::Tracer::instance().configureFrom(config);
+    return FDBFactory::instance().build(config);
+}
+
+}  // namespace
+
 FDB::FDB(const Config& config) :
-    internal_(FDBFactory::instance().build(config)),
+    internal_(buildInternal(config)),
     dirty_(false),
     reportStats_(config.getBool("statistics", false)),
     archiveSpans_(std::make_unique<tracing::SpanAggregator>("fdb.archive", tracing::SpanKind::Internal)) {
-    // n.b. the first tracing settings found in the process apply: those supplied take precedence
-    tracing::Tracer::instance().configureFrom(config);
+    // n.b. the first tracing settings found in the process apply: those supplied (see buildInternal) take precedence
     tracing::Tracer::instance().configureFrom(internal_->config());
     LibFdb5::instance().constructorCallback()(*internal_);
 }
@@ -241,6 +253,8 @@ tracing::TraceContext FDB::archiveParent(const tracing::TraceContext& trace) {
     if (!archiveCycle_) {
         archiveCycle_ =
             std::make_unique<tracing::Span>("fdb.archive_cycle", tracing::SpanKind::Internal, tracing::TraceContext{});
+        // ended by flush(), possibly while unwinding for an unrelated reason (~FDB): not a failure of the cycle
+        archiveCycle_->detectUnwinding(false);
     }
     return archiveCycle_->context();
 }
@@ -566,38 +580,64 @@ void FDB::print(std::ostream& s) const {
 void FDB::flush(const tracing::TraceContext& trace) {
     std::lock_guard lock(mutex_);
 
-    // The archive-cycle span (if any) is ended once the flush is complete, after the flush span. Every archive which
-    // joined it is registered in its aggregate span (see ArchiveOperation): later archives start the next cycle.
-    std::unique_ptr<tracing::Span> cycle = std::move(archiveCycle_);
-
-    // The archive spans of the cycle end within the flush span, while their trace is still open in this process: if
-    // the flush fails, they are exported with it (see keep_errors). Their end time is that of their last archive.
-    // n.b. there are none in a moved-from FDB
-    auto endArchiveSpans = [this] {
-        if (archiveSpans_) {
-            archiveSpans_->endAll();
-        }
-    };
+    // The archive spans of the cycle are taken, and end once the flush is over. If it fails, their traces are exported
+    // with it: they may be other traces than the flush (e.g. archives with an explicit context), which would
+    // otherwise be complete, and not exported. Their end time is that of their last archive.
+    // The aggregates of the archives still in progress (in other threads) stay open: the next flush takes them, but
+    // their traces are exported too if this one fails (they may have written data that it makes durable). So does
+    // the archive-cycle span the aggregates are children of: it is ended once all its archives are, after the flush
+    // span, so that the next flush is in the same trace. The aggregates of other parents (explicit contexts) do not
+    // keep it open. Every archive which joined the cycle is registered in its aggregate (see ArchiveOperation): later
+    // archives start the next cycle.
+    // A flush with nothing to flush ends the spans which are over all the same, but covers nothing: the fields being
+    // written are left for the flush which covers them.
+    // n.b. cycleMutex_ is held until then, not during the flush itself. There are no archive spans in a moved-from FDB
+    std::unique_lock cycleLock(cycleMutex_);
+    std::unique_ptr<tracing::Span> cycle;
+    tracing::SpanAggregator::Detached archives;
+    if (archiveSpans_) {
+        archives = archiveSpans_->detachIdle(dirty_);
+    }
+    // n.b. the context of the cycle, which may stay open (see above)
+    const tracing::TraceContext cycleContext = archiveCycle_ ? archiveCycle_->context() : tracing::TraceContext{};
+    if (!archiveSpans_ || !cycleContext.valid() || !archiveSpans_->usesParent(cycleContext)) {
+        cycle = std::move(archiveCycle_);
+    }
+    cycleLock.unlock();
 
     if (!dirty_) {
-        endArchiveSpans();
+        return;
     }
-    else {
-        // explicit context, else the current one, else the archive cycle being flushed
-        const tracing::TraceContext& parent =
-            (trace.valid() || tracing::current().valid() || !cycle) ? trace : cycle->context();
-        ApiSpan span("fdb.flush", parent);
-        endArchiveSpans();
 
-        eckit::Timer timer;
-        timer.start();
+    // explicit context, else the current one, else the archive cycle being flushed
+    const tracing::TraceContext& parent =
+        (trace.valid() || tracing::current().valid() || !cycleContext.valid()) ? trace : cycleContext;
+    ApiSpan span("fdb.flush", parent);
 
+    eckit::Timer timer;
+    timer.start();
+
+    try {
         internal_->flush();
-        dirty_ = false;
-
-        timer.stop();
-        stats_.addFlush(timer);
     }
+    catch (...) {
+        // The archives which began after the spans were taken, and before the data was flushed, may be covered; not
+        // those which begin from now on. n.b. the first thing: it is the position of the failure that counts.
+        // This is the earliest that FDB::flush can tell: the backend throws from its own frames, which unwind before
+        // this handler runs. An archive which begins during that time is attributed to the failure too (an extra
+        // trace exported, nothing lost). Making it exact needs the backends to report where they failed.
+        const uint64_t failedAt = archiveSpans_ ? archiveSpans_->mark() : 0;
+        archives.retainTraces();
+        if (archiveSpans_) {
+            archiveSpans_->retainTracesOfNewFields(failedAt);
+        }
+        throw;
+    }
+    archives.flushed();
+    dirty_ = false;
+
+    timer.stop();
+    stats_.addFlush(timer);
 }
 
 IndexAxis FDB::axes(const FDBToolRequest& request, int level) {

@@ -15,8 +15,7 @@ namespace fdb5::tracing {
 
 namespace {
 
-/// W3C recommends supporting tracestate values of at least 512 bytes; longer values are dropped
-constexpr size_t maxTraceStateLength = 512;
+constexpr size_t maxTraceStateLength = TraceContext::maxTraceStateLength;
 
 int hexValue(char c) {
     // W3C mandates lowercase hex
@@ -116,7 +115,7 @@ thread_local TraceContext currentContext;
 //----------------------------------------------------------------------------------------------------------------------
 
 TraceContext::TraceContext(const TraceId& traceId, const SpanId& spanId, uint8_t flags, std::string traceState) :
-    traceId_(traceId), spanId_(spanId), flags_(flags), traceState_(std::move(traceState)) {}
+    traceId_(traceId), spanId_(spanId), flags_(flags), traceState_(sanitiseTraceState(traceState)) {}
 
 TraceContext TraceContext::fromTraceparent(std::string_view traceparent, std::string_view tracestate) {
     TraceContext ctx;

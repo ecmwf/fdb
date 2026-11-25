@@ -655,8 +655,6 @@ PYBIND11_MODULE(_pyfdb_bindings, m) {
                 return fdb.touch(tool_request, internal_access_identifiers, when);
             },
             py::call_guard<py::gil_scoped_release>())
-        .def("wipe", &fdb5::FDB::wipe, py::call_guard<py::gil_scoped_release>())
-        .def("purge", &fdb5::FDB::purge, py::call_guard<py::gil_scoped_release>())
         .def(
             "stats", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request) { return fdb.stats(tool_request); },
             py::call_guard<py::gil_scoped_release>())

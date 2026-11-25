@@ -5,9 +5,11 @@
 
 #pragma once
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <iosfwd>
+#include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -85,6 +87,10 @@ public:
 
     void exportSpan(const SpanData& span) override;
 
+    /// For command line tools, whose standard log channels carry their results: write all the spans to stderr instead,
+    /// so that they cannot corrupt (e.g. the JSON output of) the tool. Process-wide.
+    static void toStderr(bool enable);
+
     /// Serialise a span as a single-line JSON object (exposed for testing)
     static void toJSON(std::ostream& out, const SpanData& span);
 };
@@ -133,15 +139,14 @@ private:
 ///     sampler: parentbased_always_off   # FDB_TRACING_SAMPLER, then OTEL_TRACES_SAMPLER
 ///     ratio: 0.01                # FDB_TRACING_SAMPLER_ARG, then OTEL_TRACES_SAMPLER_ARG
 ///     exporter: log              # none | log (see LogSpanExporter)  FDB_TRACING_EXPORTER
-///     keep_errors: true          # also export the unsampled spans of failing requests  FDB_TRACING_KEEP_ERRORS
 ///
 /// By default, only the spans of failing requests, and of the requests whose caller samples them, are exported,
 /// to the log.
 ///
-/// With keep_errors, the spans which the sampler does not sample are recorded too, and held per trace until the
-/// trace has no open span left in this process (i.e. until the request it belongs to is complete). If one of them
-/// has an error status, all the held spans of the trace are exported, as is every later span of that request;
-/// otherwise they are discarded. Sampled spans are exported as soon as they end, as without keep_errors.
+/// The failing requests are always traced: the spans which the sampler does not sample are recorded too, and held per
+/// trace until the trace has no open span left in this process (i.e. until the request it belongs to is complete). If
+/// one of them has an error status, all the held spans of the trace are exported, as is every later span of that
+/// request; otherwise they are discarded. Sampled spans are exported as soon as they end.
 class Tracer {
 public:
 
@@ -161,16 +166,17 @@ public:
     /// context but record nothing.
     bool exporting() const;
 
+    /// Process-wide override, whatever the configuration (which may install an exporter later): no span is exported,
+    /// or even recorded. Trace contexts still propagate. For machine-readable output (e.g. fdb-list --porcelain).
+    void suppressExport(bool suppress);
+
     void exporter(std::shared_ptr<SpanExporter> exporter);
     std::shared_ptr<SpanExporter> exporter() const;
 
     void sampler(const Sampler& sampler);
     Sampler sampler() const;
 
-    void keepErrors(bool keep);
-    bool keepErrors() const;
-
-    /// At most this many spans are held per unsampled trace (see keep_errors); further successful spans are dropped
+    /// At most this many spans are held per unsampled trace ; further successful spans are dropped
     static constexpr size_t maxHeldSpansPerTrace = 10000;
 
     /// Context for a new span: a child of @p parent if valid, otherwise a new root. Applies the sampler.
@@ -178,11 +184,16 @@ public:
 
     void exportSpan(const SpanData& span) const;
 
-    /// Whether a new span with this context is to be recorded. An unsampled span recorded because of keep_errors is
+    /// Whether a new span with this context is to be recorded. An unsampled span is
     /// held until its trace is complete: every span for which this returns true must then be passed to endSpan().
     bool startSpan(const TraceContext& context);
 
-    /// A recorded span has ended: export it, or hold it until its trace is complete (see keep_errors)
+    /// A request of this trace has failed elsewhere than in a span of this process (or in a span of another trace): its
+    /// held spans are exported, as is every later span of the trace, as if one of them had failed. No effect on a trace
+    /// which holds nothing (sampled, or without recorded spans).
+    void failTrace(const TraceContext::TraceId& traceId);
+
+    /// A recorded span has ended: export it, or hold it until its trace is complete 
     void endSpan(SpanData&& span);
 
     static TraceContext::TraceId newTraceId();
@@ -194,7 +205,7 @@ private:
 
 private:
 
-    /// The unsampled spans of a trace recorded because of keep_errors, until the trace is complete in this process
+    /// The unsampled spans of a trace recorded in case it fails, until the trace is complete in this process
     struct HeldTrace {
         size_t open{0};      // spans started and not yet ended
         bool failed{false};  // a span has ended with an error status: its spans are exported
@@ -205,8 +216,11 @@ private:
     mutable std::mutex mutex_;
     bool enabled_{true};
     bool envDisabled_{false};
+    bool exportSuppressed_{false};
+
+    std::mutex configureMutex_;  // serialises configureFrom(), see there; guards configuredFromConfig_
     bool configuredFromConfig_{false};
-    bool keepErrors_{true};
+
     Sampler sampler_;
     std::shared_ptr<SpanExporter> exporter_;
 
@@ -217,7 +231,7 @@ private:
 //----------------------------------------------------------------------------------------------------------------------
 
 /// A span. Creating one generates its context immediately (so it can be propagated); timing and attributes are
-/// only recorded if an exporter is installed and the span is sampled (or keep_errors is set, see Tracer). The span ends
+/// only recorded if an exporter is installed and the span is sampled (or not: see Tracer). The span ends
 /// (and is exported) when end() is called or on destruction. If destroyed during stack unwinding with an unset status,
 /// the status is Error.
 ///
@@ -253,6 +267,12 @@ public:
 
     void setStatus(StatusCode code, std::string message = {});
 
+    /// By default a span destroyed during stack unwinding, with an unset status, gets an Error status. That only makes
+    /// sense for a span destroyed in the scope that created it. Disable it for a span whose ownership moves elsewhere
+    /// or which is kept in an object, where the destructor may run for unrelated reasons (e.g. an unrelated exception
+    /// unwinding through the object that holds it); the status must then be set explicitly.
+    void detectUnwinding(bool enable) { detectUnwinding_ = enable; }
+
     void end();
 
     /// End the span with this end time (e.g. that of the last of the operations it covers)
@@ -285,6 +305,7 @@ private:
     TraceContext context_;
     std::unique_ptr<SpanData> data_;
     int uncaughtExceptions_{0};
+    bool detectUnwinding_{true};
 };
 
 /// A Span that is also the current context of the calling thread for its lifetime. If the span is a no-op
@@ -315,7 +336,7 @@ private:
 };
 
 /// Sets the error status of the innermost ScopedSpan of the calling thread, if any. For code which reports a failure
-/// (e.g. in an error reply to a client) instead of throwing it, so that the failure is not lost (see keep_errors).
+/// (e.g. in an error reply to a client) instead of throwing it, so that the failure is not lost (see Tracer).
 void recordError(std::string_view message);
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -353,6 +374,11 @@ public:
         /// Whether the aggregate span records attributes (worth computing those of a failure)
         bool recording() const;
 
+        /// The operation is about to archive @p fields fields: it may write data from now on, which a flush covers
+        /// (see SpanAggregator::detachIdle()), before the fields can be recorded by add().
+        void begin(size_t fields = 1);
+
+        /// Record the fields archived (and their bytes) by this operation, as they are (announced by begin() or not)
         void add(size_t fields, size_t bytes);
 
         /// The operation has failed: its aggregate ends with an error status, and these attributes. If called
@@ -367,6 +393,7 @@ public:
         std::chrono::steady_clock::time_point start_;
         size_t fields_{0};
         size_t bytes_{0};
+        size_t begun_{0};
         bool failed_{false};
         std::string failure_;
         Attributes failureAttributes_;
@@ -379,10 +406,70 @@ public:
     SpanAggregator(const SpanAggregator&) = delete;
     SpanAggregator& operator=(const SpanAggregator&) = delete;
 
-    /// End the aggregates of a group. Those with an operation in progress end when it is over.
-    void end(uint64_t group);
+    /// Aggregates taken out of an aggregator, to end once the operation that closes them is over (e.g. a flush): the
+    /// operations which start meanwhile join new aggregates. They end when this is destroyed (those with an operation
+    /// in progress, when it is over). If that operation fails, retainTraces() makes sure their traces are exported:
+    /// the archive spans (which may belong to other traces than the flush) did not fail, but they are part of a failing
+    /// request.
+    class Detached {
+    public:
 
-    /// End all the aggregates
+        Detached();
+        ~Detached();
+        Detached(Detached&&) noexcept;
+        Detached& operator=(Detached&&) noexcept;
+        Detached(const Detached&) = delete;
+        Detached& operator=(const Detached&) = delete;
+
+        /// Export the traces of the aggregates, as if one of their spans had failed (see Tracer::failTrace()). Their
+        /// status is not changed. Includes those of the aggregates which detachIdle() left open because of an operation
+        /// in progress, if fields had been begun since the previous detachIdle(): data that the failing operation was
+        /// to make durable.
+        void retainTraces();
+
+        /// The flush has succeeded: the fields which the aggregates left open by detachIdle() had finished
+        /// archiving by then are covered, and are not the concern of the next flush. Those which were still being
+        /// written may or may not be: they remain so.
+        void flushed();
+
+    private:
+
+        friend class SpanAggregator;
+        std::vector<std::shared_ptr<Aggregate>> aggregates_;
+
+        /// An aggregate left open by detachIdle(), as it was then
+        struct LeftOpen {
+            std::shared_ptr<Aggregate> aggregate;
+            size_t done;    // fields finished (or abandoned), see Aggregate
+            bool pending;   // fields were begun since the previous flush
+        };
+        std::vector<LeftOpen> leftOpen_;
+    };
+
+    /// Take the aggregates of a group, including those with an operation in progress (which ends after them): for a
+    /// peer which has been acknowledged before the operation is over (e.g. an archive on a server, before its flush).
+    Detached detach(uint64_t group);
+
+    /// Take all the aggregates which have no operation in progress: those of an operation which is still running
+    /// (e.g. an archive of another thread, which a flush cannot tell to be part of it) stay open, for the next one.
+    /// @param flushing  the flush which takes them really flushes: the fields begun until now are covered by it. A
+    ///                  flush with nothing to flush covers nothing, and must not tell the fields being written from
+    ///                  the others.
+    Detached detachIdle(bool flushing = true);
+
+    /// A position in the order of the begun fields, for retainTracesOfNewFields()
+    uint64_t mark() const { return beginSequence_; }
+
+    /// Export the traces of the open aggregates in which fields have been begun since the last detachIdle(), and
+    /// before @p until (see mark()): for a flush which fails, for the archives which started after detachIdle() but
+    /// before the data was flushed, and may have been covered by it. Not those which began after the failure.
+    void retainTracesOfNewFields(uint64_t until);
+
+    /// True if an open aggregate has this parent context
+    bool usesParent(const TraceContext& parent) const;
+
+    /// End the aggregates of a group, or all of them. Those with an operation in progress end when it is over.
+    void end(uint64_t group);
     void endAll();
 
 private:
@@ -391,11 +478,15 @@ private:
 
     void detach(const std::shared_ptr<Aggregate>& aggregate);
 
+    /// Take the open aggregates whose key is @p selected (and which have no operation in progress, if @p idleOnly)
+    Detached take(const std::function<bool(const Key&)>& selected, bool idleOnly, bool flushing = true);
+
     const std::string name_;
     const SpanKind kind_;
 
-    std::mutex mutex_;
+    mutable std::mutex mutex_;
     std::map<Key, std::shared_ptr<Aggregate>> open_;
+    std::atomic<uint64_t> beginSequence_{0};  // counts the fields begun, in all the aggregates
 };
 
 //----------------------------------------------------------------------------------------------------------------------

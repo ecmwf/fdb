@@ -65,10 +65,13 @@ constexpr const auto defaultArchiveQueueSize = 320;
 // Largest message accepted before the handshake has completed (the startup message is a few hundred bytes)
 constexpr uint32_t maxStartupPayloadSize = 64 * 1024;
 
-/// The trace context announced by a Message::Trace frame for the next frame received on one channel.
+/// The trace context set by a Message::Trace frame for the frames received on one channel with the same clientID and
+/// requestID, until a frame with other ids (or another Trace frame) is received. A Trace frame without payload means
+/// no context. The client only writes a Trace frame when the context changes (e.g. not for each blob of an archive
+/// call), see Connection::write().
 ///
-/// Tracing must never disrupt data flow: a Trace frame that was not negotiated, cannot be decoded, or does not match
-/// the frame that follows it is reported and ignored, without failing the request.
+/// Tracing must never disrupt data flow: a Trace frame that was not negotiated or cannot be decoded is reported and
+/// ignored, without failing the request.
 class IncomingTrace {
 public:
 
@@ -78,6 +81,9 @@ public:
             eckit::Log::warning() << "Ignoring " << Message::Trace << " frame from clientID=" << hdr.clientID()
                                   << ": trace-context propagation was not negotiated" << std::endl;
             return;
+        }
+        if (hdr.payloadSize == 0) {
+            return;  // no context
         }
         try {
             context_ = tracing::TraceContext::decode(payload.data(), hdr.payloadSize);
@@ -92,17 +98,13 @@ public:
         pending_ = true;
     }
 
-    /// The context of @p hdr (invalid if none was announced). Consumes the pending context.
+    /// The context of @p hdr (invalid if none was set). It stays in force for the next frames with the same ids.
     tracing::TraceContext take(const MessageHeader& hdr) {
         if (!pending_) {
             return {};
         }
-        pending_ = false;
         if (hdr.clientID() != clientID_ || hdr.requestID != requestID_) {
-            eckit::Log::warning() << "Ignoring " << Message::Trace << " frame for [clientID=" << clientID_
-                                  << ",requestID=" << requestID_ << "] followed by " << hdr.message
-                                  << " [clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID << "]"
-                                  << std::endl;
+            pending_ = false;
             return {};
         }
         return context_;

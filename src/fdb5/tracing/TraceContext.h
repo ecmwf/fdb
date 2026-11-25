@@ -74,6 +74,12 @@ public:  // methods
     static constexpr uint8_t binaryVersion = 1;
     static constexpr size_t binaryFixedSize = 1 + 16 + 8 + 1;
 
+    /// W3C recommends supporting tracestate values of at least 512 bytes; longer values are dropped
+    static constexpr size_t maxTraceStateLength = 512;
+
+    /// The largest encoded context
+    static constexpr size_t maxBinarySize = binaryFixedSize + maxTraceStateLength;
+
     std::string encode() const;
 
     /// @throws eckit::BadValue on malformed input

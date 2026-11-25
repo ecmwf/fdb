@@ -16,7 +16,7 @@ Tracing is enabled by default. Trace contexts are always generated and propagate
 written to the FDB log for the requests that fail, and for the requests whose caller passes a
 sampled trace context: the spans with an error status to the error log (``eckit::Log::error()``),
 the others to the info log (``eckit::Log::info()``). Successful requests without such a context
-print nothing (see :ref:`FDB_Tracing_Keep_Errors`). With ``exporter: none``, nothing is recorded.
+print nothing (see :ref:`FDB_Tracing_Failing_Requests`). With ``exporter: none``, nothing is recorded.
 
 Traced operations
 -----------------
@@ -121,6 +121,9 @@ All FDB tools accept ``--traceparent=<W3C traceparent>``. Otherwise they use the
 OpenTelemetry environment-variable propagation convention. A malformed ``--traceparent`` is an
 error; a malformed ``TRACEPARENT`` is ignored.
 
+The tools write the spans they export to the standard error, so that they cannot corrupt their
+results. With ``--porcelain`` or ``--json`` no span is exported at all.
+
 Configuration
 -------------
 
@@ -133,20 +136,19 @@ In an FDB client or ``fdb-server`` configuration:
      sampler: parentbased_always_off   # always_on | always_off | traceidratio | parentbased_*
      ratio: 0.01                       # for traceidratio samplers
      exporter: log                     # log (default) | none
-     keep_errors: true                 # also export the spans of failing requests that are not sampled
 
 All these settings are process-wide: the ``tracing`` block of the first configuration that
 provides one is used (for an ``fdb-server``, its own configuration, which also applies to the
 FDBs it opens). With tracing disabled, no span is recorded and no trace context is sent to the
 FDB servers.
 
-.. _FDB_Tracing_Keep_Errors:
+.. _FDB_Tracing_Failing_Requests:
 
-Keeping failing requests
-~~~~~~~~~~~~~~~~~~~~~~~~
+Failing requests
+~~~~~~~~~~~~~~~~
 
-By default (``sampler: parentbased_always_off``, ``keep_errors: true``) only the failing requests
-are exported, plus those whose caller samples them. To also export a sample of the successful
+Failing requests are always traced. By default (``sampler: parentbased_always_off``) only the
+failing requests are exported, plus those whose caller samples them. To also export a sample of the successful
 requests, change the sampler:
 
 .. code-block:: yaml
@@ -155,8 +157,7 @@ requests, change the sampler:
      sampler: traceidratio   # 1% of the successful requests
      ratio: 0.01
 
-``sampler: parentbased_always_on`` exports every request; ``keep_errors: false`` exports only the
-sampled ones, failing or not.
+``sampler: parentbased_always_on`` exports every request.
 
 Sampled spans are exported as soon as they end. The spans that are not sampled are recorded as well,
 and held until their trace has no open span left in the process, that is until the FDB call
@@ -170,8 +171,10 @@ Notes:
   caller which samples all its traces (the OpenTelemetry SDK default) therefore has all its FDB
   spans exported. Use ``always_off`` or ``traceidratio`` to decide independently of the caller.
 * The spans which are not sampled are still recorded, in memory, until their request is complete.
-  ``keep_errors: false`` avoids this cost when failing requests are not needed.
+  Only ``exporter: none`` or ``enabled: false`` avoid this cost.
 * The spans exported because of a failure keep ``trace_flags`` 0: they were not sampled.
+* If a flush fails, the traces of the archive spans which it closes are exported with it, whichever trace they
+  belong to. The archive spans keep their own status.
 * Each process decides for its own spans: a server exports its part of a request if it fails on
   the server, or if the request is sampled. A request that fails on the client only (e.g. a lost
   connection) is exported by the client, while the server exports its part only if it is sampled.
@@ -193,7 +196,6 @@ Variable                       Meaning
 ``FDB_TRACING_ENABLED``        ``false`` disables tracing in the process, overriding configuration
 ``FDB_TRACING_SAMPLER``        sampler name (falls back to ``OTEL_TRACES_SAMPLER``)
 ``FDB_TRACING_SAMPLER_ARG``    sampler argument (falls back to ``OTEL_TRACES_SAMPLER_ARG``)
-``FDB_TRACING_KEEP_ERRORS``    ``false`` exports only sampled spans, failing or not
 ``FDB_TRACING_EXPORTER``       ``log`` (default) or ``none``
 ``OTEL_SERVICE_NAME``          ``service.name`` resource attribute of the exported spans
 =============================  ================================================================
@@ -203,9 +205,17 @@ Remote protocol
 
 Trace-context propagation is negotiated when a connection starts: client and server advertise
 ``"Tracing": [1]`` in the startup dictionary, and the agreed configuration carries the highest
-common version. Only then does the client precede a request with a ``Trace`` message, which
-carries the binary trace context (trace-id, span-id, flags, tracestate) for the following
-message with the same client and request ids.
+common version. Only then does the client send ``Trace`` messages, which carry the binary trace
+context (trace-id, span-id, flags, tracestate). A ``Trace`` message sets the context of the
+messages that follow it on the same socket with the same client and request ids, until a message
+with other ids, or another ``Trace`` message, is received. A ``Trace`` message without payload means
+no context.
+
+The client only sends a ``Trace`` message when the context differs from the one the server holds:
+the successive blobs of an archive call, which share one, need a single message. The context is
+sent whether it is sampled or not, so that the server records its part of a failing request.
+A ``Trace`` message is accepted whatever the payload size limit of the server (it is at most 538
+bytes), so that it never makes a valid request fail.
 
 If either side predates this feature, or has tracing disabled in its process, the key is absent
 and no ``Trace`` message is ever sent: the wire protocol is unchanged. A ``Trace`` message that the

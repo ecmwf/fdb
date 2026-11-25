@@ -324,7 +324,7 @@ private:  // methods
     class ArchiveOperation;
 
     /// The parent context for an archive call: explicit, current, or the archive-cycle trace
-    /// n.b. called with mutex_ held, while tracing is enabled (see ArchiveOperation)
+    /// n.b. called with cycleMutex_ held, while tracing is enabled (see ArchiveOperation)
     tracing::TraceContext archiveParent(const tracing::TraceContext& trace);
 
     void archiveRequest(ArchiveOperation& op, const metkit::mars::MarsRequest& request, eckit::DataHandle& handle);
@@ -343,6 +343,10 @@ private:  // members
     std::shared_ptr<FDBBase> internal_;
 
     mutable std::mutex mutex_;
+
+    /// Guards archiveCycle_ and the registration of the archive calls in archiveSpans_ (see ArchiveOperation). It is
+    /// held only briefly, so that archive calls do not wait for a flush in progress. Lock order: mutex_, cycleMutex_.
+    std::mutex cycleMutex_;
 
     bool dirty_;
     bool reportStats_;

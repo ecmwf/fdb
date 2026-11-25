@@ -275,10 +275,9 @@ CASE("Purge and wipe are traced") {
     EXPECT(wipes[0].parentSpanId == caller.spanId());
 }
 
-CASE("keep_errors: unsampled archive cycles are exported only if an archive fails") {
+CASE("Failures: unsampled archive cycles are exported only if an archive fails") {
     Fixture fx;
     Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
-    Tracer::instance().keepErrors(true);
     FDB fdb;
 
     archiveSome(fdb, 2);
@@ -310,15 +309,12 @@ CASE("keep_errors: unsampled archive cycles are exported only if an archive fail
         EXPECT(a.parentSpanId == cycle[0].context.spanId());
         EXPECT(!a.context.sampled());
     }
-
-    Tracer::instance().keepErrors(false);
     Tracer::instance().sampler(Sampler{});
 }
 
-CASE("keep_errors: a failing flush exports the archive spans of its trace") {
+CASE("Failures: a failing flush exports the archive spans of its trace") {
     Fixture fx;
     Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
-    Tracer::instance().keepErrors(true);
     TraceContext unsampled = TraceContext::fromTraceparent("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00");
 
     {
@@ -346,15 +342,41 @@ CASE("keep_errors: a failing flush exports the archive spans of its trace") {
         fdb.flush(unsampled);  // succeeds: nothing exported
         EXPECT(fx.exporter->spans().empty());
     }
+    Tracer::instance().sampler(Sampler{});
+}
 
-    Tracer::instance().keepErrors(false);
+CASE("Failures: a failing flush exports the archive spans of other traces") {
+    // The archives have an explicit (unsampled) context, the flush has none: it is in another trace, which must not
+    // be the only one to fail
+    Fixture fx;
+    Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
+    TraceContext unsampled = TraceContext::fromTraceparent("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00");
+
+    {
+        FDB fdb;
+        fdb.registerFlushCallback([] { throw eckit::SeriousBug("flush failed", Here()); });
+
+        archiveSome(fdb, 2, unsampled);
+        EXPECT_THROWS_AS(fdb.flush(), eckit::SeriousBug);
+
+        auto flushes = fx.exporter->named("fdb.flush");
+        auto archives = fx.exporter->named("fdb.archive");
+        EXPECT_EQUAL(flushes.size(), 1);
+        EXPECT(flushes[0].status == StatusCode::Error);
+        EXPECT(flushes[0].context.traceId() != unsampled.traceId());
+        EXPECT_EQUAL(archives.size(), 1);
+        EXPECT(archives[0].status == StatusCode::Unset);  // the archives succeeded: only the flush failed
+        EXPECT(archives[0].context.traceId() == unsampled.traceId());
+        EXPECT_EQUAL(attribute(archives[0], "fdb.fields"), 2);
+    }
+
     Tracer::instance().sampler(Sampler{});
 }
 
 CASE("A concurrent flush never closes the cycle that an archive is joining") {
     // The archive cycle is closed by a flush either before an archive chooses its parent (the archive is in the next
-    // cycle), or after it is registered in its aggregate: an aggregate never starts in a cycle that has ended (with
-    // keep_errors, the trace would be complete, and its spans not exported if the next flush fails)
+    // cycle), or after it is registered in its aggregate: an aggregate never starts in a cycle that has ended (its
+    // trace would be complete, and its spans not exported if the next flush fails)
     Fixture fx;
     constexpr size_t n = 2000;
 
@@ -440,10 +462,9 @@ private:
 
 }  // namespace
 
-CASE("keep_errors: the span of an abandoned iteration ends after its implementation") {
+CASE("Failures: the span of an abandoned iteration ends after its implementation") {
     Fixture fx;
     Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, true});
-    Tracer::instance().keepErrors(true);
 
     // An iteration in an unsampled trace, whose implementation fails when it is destroyed
     auto failingIteration = [] {
@@ -469,8 +490,6 @@ CASE("keep_errors: the span of an abandoned iteration ends after its implementat
         EXPECT_EQUAL(fx.exporter->named("cleanup").size(), 1);
         EXPECT_EQUAL(fx.exporter->named("fdb.list").size(), 1);
     }
-
-    Tracer::instance().keepErrors(false);
     Tracer::instance().sampler(Sampler{});
 }
 

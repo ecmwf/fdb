@@ -6,11 +6,15 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cstdlib>
 #include <cstring>
 #include <exception>
+#include <vector>
 #include <functional>
+#include <iostream>
 #include <limits>
+#include <optional>
 #include <ostream>
 #include <random>
 #include <sstream>
@@ -192,9 +196,23 @@ void LogSpanExporter::toJSON(std::ostream& out, const SpanData& span) {
     j.endObject();
 }
 
+namespace {
+std::atomic<bool> spansToStderr{false};
+}
+
+void LogSpanExporter::toStderr(bool enable) {
+    spansToStderr = enable;
+}
+
 void LogSpanExporter::exportSpan(const SpanData& span) {
     std::ostringstream line;
     toJSON(line, span);
+
+    if (spansToStderr) {
+        line << '\n';
+        std::cerr << line.str() << std::flush;
+        return;
+    }
 
     // n.b. eckit's log channels are per thread
     std::ostream& log = span.status == StatusCode::Error ? eckit::Log::error() : eckit::Log::info();
@@ -291,9 +309,6 @@ Tracer::Tracer() : exporter_(std::make_shared<LogSpanExporter>()) {
             const char* a = env("FDB_TRACING_SAMPLER_ARG", "OTEL_TRACES_SAMPLER_ARG");
             sampler_ = Sampler::fromName(s, a ? a : "");
         }
-        if (const char* k = env("FDB_TRACING_KEEP_ERRORS")) {
-            keepErrors_ = parseBool(k);
-        }
         if (const char* x = env("FDB_TRACING_EXPORTER")) {
             exporter_ = makeExporter(x);
         }
@@ -305,6 +320,10 @@ Tracer::Tracer() : exporter_(std::make_shared<LogSpanExporter>()) {
 }
 
 void Tracer::configureFrom(const eckit::Configuration& fdbConfig) {
+    // Held until the settings are applied, so that concurrent callers (e.g. other FDB objects being constructed, which
+    // negotiate connections and start spans) never see the process half-configured, and wait for the first one to win
+    std::lock_guard configureLock(configureMutex_);
+
     if (!fdbConfig.has("tracing")) {
         return;
     }
@@ -314,44 +333,65 @@ void Tracer::configureFrom(const eckit::Configuration& fdbConfig) {
     }
     else {
         tracing = fdbConfig.getSubConfiguration("tracing");
-        if (!(tracing.has("enabled") || tracing.has("sampler") || tracing.has("exporter") ||
-              tracing.has("keep_errors"))) {
+        if (!(tracing.has("enabled") || tracing.has("sampler") || tracing.has("exporter"))) {
             return;
         }
     }
-    {
-        std::lock_guard lock(mutex_);
-        if (configuredFromConfig_) {
-            return;
-        }
-        configuredFromConfig_ = true;
+    if (configuredFromConfig_) {
+        return;
     }
-    configure(tracing);
+    configuredFromConfig_ = true;
+    try {
+        configure(tracing);
+    }
+    catch (const std::exception& e) {
+        // Never fail the application because of a tracing misconfiguration: keep the settings in force
+        eckit::Log::warning() << "FDB tracing: ignoring invalid configuration: " << e.what() << std::endl;
+    }
 }
 
 void Tracer::configure(const eckit::Configuration& config) {
 
-    std::lock_guard lock(mutex_);
+    // Parse everything first (this may throw), then apply: an invalid configuration changes nothing
+    std::optional<bool> enabled;
+    std::optional<Sampler> sampler;
+    std::optional<std::shared_ptr<SpanExporter>> exporter;
 
     if (config.has("enabled")) {
-        enabled_ = config.getBool("enabled") && !envDisabled_;
+        enabled = config.getBool("enabled");
     }
     if (config.has("sampler")) {
-        std::string arg;
+        std::string name = config.getString("sampler");
         if (config.has("ratio")) {
-            arg = std::to_string(config.getDouble("ratio"));
+            // n.b. not through a string, which would round very small ratios to zero
+            const std::string n = eckit::StringTools::lower(eckit::StringTools::trim(name));
+            if (n == "traceidratio" || n == "parentbased_traceidratio") {
+                sampler = Sampler(Sampler::Kind::TraceIdRatio, n.rfind("parentbased_", 0) == 0,
+                                  config.getDouble("ratio"));
+            }
         }
-        sampler_ = Sampler::fromName(config.getString("sampler"), arg);
+        if (!sampler) {
+            sampler = Sampler::fromName(name);
+        }
     }
     if (config.has("exporter")) {
-        exporter_ = makeExporter(config.getString("exporter"));
+        exporter = makeExporter(config.getString("exporter"));
     }
-    if (config.has("keep_errors")) {
-        keepErrors_ = config.getBool("keep_errors");
+
+    std::lock_guard lock(mutex_);
+
+    if (enabled) {
+        enabled_ = *enabled && !envDisabled_;
+    }
+    if (sampler) {
+        sampler_ = *sampler;
+    }
+    if (exporter) {
+        exporter_ = std::move(*exporter);
     }
 
     LOG_DEBUG_LIB(LibFdb5) << "FDB tracing configured: enabled=" << enabled_ << ", sampler=" << sampler_.name()
-                           << ", keep_errors=" << keepErrors_ << ", exporting=" << static_cast<bool>(exporter_)
+                           << ", exporting=" << static_cast<bool>(exporter_)
                            << std::endl;
 }
 
@@ -362,7 +402,12 @@ bool Tracer::enabled() const {
 
 bool Tracer::exporting() const {
     std::lock_guard lock(mutex_);
-    return static_cast<bool>(exporter_);
+    return static_cast<bool>(exporter_) && !exportSuppressed_;
+}
+
+void Tracer::suppressExport(bool suppress) {
+    std::lock_guard lock(mutex_);
+    exportSuppressed_ = suppress;
 }
 
 void Tracer::exporter(std::shared_ptr<SpanExporter> exporter) {
@@ -385,16 +430,6 @@ Sampler Tracer::sampler() const {
     return sampler_;
 }
 
-void Tracer::keepErrors(bool keep) {
-    std::lock_guard lock(mutex_);
-    keepErrors_ = keep;
-}
-
-bool Tracer::keepErrors() const {
-    std::lock_guard lock(mutex_);
-    return keepErrors_;
-}
-
 TraceContext Tracer::newSpanContext(const TraceContext& parent) const {
     const TraceContext::TraceId traceId = parent.valid() ? parent.traceId() : newTraceId();
     const bool sampled = sampler().shouldSample(parent, traceId);
@@ -406,6 +441,9 @@ TraceContext Tracer::newSpanContext(const TraceContext& parent) const {
 }
 
 void Tracer::exportSpan(const SpanData& span) const {
+    if (!exporting()) {
+        return;
+    }
     if (auto e = exporter()) {
         try {
             e->exportSpan(span);
@@ -420,19 +458,40 @@ void Tracer::exportSpan(const SpanData& span) const {
 bool Tracer::startSpan(const TraceContext& context) {
     {
         std::lock_guard lock(mutex_);
-        if (!exporter_) {
+        if (!exporter_ || exportSuppressed_) {
             return false;
         }
         if (context.sampled()) {
             return true;
         }
-        if (!keepErrors_) {
-            return false;
-        }
     }
     std::lock_guard lock(heldMutex_);
     ++held_[context.traceId()].open;
     return true;
+}
+
+void Tracer::failTrace(const TraceContext::TraceId& traceId) {
+    std::vector<SpanData> toExport;
+    size_t dropped = 0;
+    {
+        std::lock_guard lock(heldMutex_);
+        auto it = held_.find(traceId);
+        if (it == held_.end() || it->second.failed) {
+            return;
+        }
+        it->second.failed = true;
+        toExport = std::move(it->second.spans);
+        dropped = it->second.dropped;
+    }
+
+    if (dropped != 0) {
+        eckit::Log::warning() << "FDB tracing: " << dropped << " spans of failed trace "
+                              << TraceContext{traceId, TraceContext::SpanId{}, 0}.traceIdHex()
+                              << " were not kept (more than " << maxHeldSpansPerTrace << " spans held)" << std::endl;
+    }
+    for (const auto& s : toExport) {
+        exportSpan(s);
+    }
 }
 
 void Tracer::endSpan(SpanData&& span) {
@@ -441,7 +500,7 @@ void Tracer::endSpan(SpanData&& span) {
         return;
     }
 
-    // Unsampled, recorded because of keep_errors
+    // Unsampled, recorded in case it fails
     const bool failed = span.status == StatusCode::Error;
     std::vector<SpanData> toExport;
     size_t dropped = 0;
@@ -449,7 +508,7 @@ void Tracer::endSpan(SpanData&& span) {
         std::lock_guard lock(heldMutex_);
         auto it = held_.find(span.context.traceId());
         if (it == held_.end()) {
-            // Started before keep_errors was set
+            // Started before tracing was configured
             if (failed) {
                 toExport.push_back(std::move(span));
             }
@@ -524,7 +583,8 @@ Span::Span(std::string name, SpanKind kind, const TraceContext& parent) {
 Span::Span(std::string name, SpanKind kind) : Span(std::move(name), kind, current()) {}
 
 Span::~Span() {
-    if (data_ && data_->status == StatusCode::Unset && std::uncaught_exceptions() > uncaughtExceptions_) {
+    if (data_ && detectUnwinding_ && data_->status == StatusCode::Unset &&
+        std::uncaught_exceptions() > uncaughtExceptions_) {
         data_->status = StatusCode::Error;
         data_->statusMessage = "exception";
     }
@@ -532,7 +592,10 @@ Span::~Span() {
 }
 
 Span::Span(Span&& other) noexcept :
-    context_(std::move(other.context_)), data_(std::move(other.data_)), uncaughtExceptions_(other.uncaughtExceptions_) {
+    context_(std::move(other.context_)),
+    data_(std::move(other.data_)),
+    uncaughtExceptions_(other.uncaughtExceptions_),
+    detectUnwinding_(other.detectUnwinding_) {
     other.context_ = TraceContext{};
 }
 
@@ -542,6 +605,7 @@ Span& Span::operator=(Span&& other) noexcept {
         context_ = std::move(other.context_);
         data_ = std::move(other.data_);
         uncaughtExceptions_ = other.uncaughtExceptions_;
+        detectUnwinding_ = other.detectUnwinding_;
         other.context_ = TraceContext{};
     }
     return *this;
@@ -612,6 +676,11 @@ struct SpanAggregator::Aggregate {
 
     const Key key;
     Span span;
+    size_t active{0};  // operations in progress
+    size_t begun{0};   // fields which operations have begun to archive (only increases)
+    size_t done{0};    // those which are finished: archived, or abandoned (failed, or the operation is over)
+    size_t covered{0};  // those which a successful flush covered: at most 'done', see Detached::flushed()
+    uint64_t firstNewSequence{0};  // position (SpanAggregator::mark()) of the first field begun after 'covered'
 
     std::mutex mutex;
     size_t calls{0};
@@ -628,24 +697,99 @@ SpanAggregator::~SpanAggregator() {
     endAll();
 }
 
-void SpanAggregator::end(uint64_t group) {
-    std::vector<std::shared_ptr<Aggregate>> ended;  // n.b. released (and exported) outside the lock
+// n.b. defined here, where Aggregate is complete. The aggregates are released (and exported) when a Detached is
+// destroyed, never under the lock of the aggregator.
+SpanAggregator::Detached::Detached() = default;
+SpanAggregator::Detached::~Detached() = default;
+SpanAggregator::Detached::Detached(Detached&&) noexcept = default;
+SpanAggregator::Detached& SpanAggregator::Detached::operator=(Detached&&) noexcept = default;
+
+void SpanAggregator::Detached::retainTraces() {
+    for (auto& aggregate : aggregates_) {
+        Tracer::instance().failTrace(aggregate->span.context().traceId());
+    }
+    for (const auto& open : leftOpen_) {
+        if (open.pending) {
+            Tracer::instance().failTrace(open.aggregate->span.context().traceId());
+        }
+    }
+}
+
+void SpanAggregator::Detached::flushed() {
+    for (auto& open : leftOpen_) {
+        std::lock_guard lock(open.aggregate->mutex);
+        open.aggregate->covered = std::max(open.aggregate->covered, open.done);
+    }
+}
+
+SpanAggregator::Detached SpanAggregator::take(const std::function<bool(const Key&)>& selected, bool idleOnly,
+                                              bool flushing) {
+    Detached detached;
     std::lock_guard lock(mutex_);
     for (auto it = open_.begin(); it != open_.end();) {
-        if (std::get<0>(it->first) == group) {
-            ended.push_back(std::move(it->second));
+        bool take = selected(it->first);
+        if (take && idleOnly) {
+            std::lock_guard aggregateLock(it->second->mutex);
+            take = it->second->active == 0;
+            // left open, but its trace is of interest to a failing flush if fields have been begun and not covered by a
+            // previous one: it may cover them (also those being written, which add() has not yet recorded). Not if it
+            // has not written anything yet, or only before a previous flush, which covered it.
+            // n.b. the fields which are covered are those finished by now, if the flush succeeds (see
+            // Detached::flushed()): not those being written, which the flush may have missed
+            if (!take && flushing) {
+                detached.leftOpen_.push_back(
+                    {it->second, it->second->done, it->second->begun > it->second->covered});
+            }
+        }
+        if (take) {
+            detached.aggregates_.push_back(std::move(it->second));
             it = open_.erase(it);
         }
         else {
             ++it;
         }
     }
+    return detached;
+}
+
+SpanAggregator::Detached SpanAggregator::detach(uint64_t group) {
+    return take([group](const Key& key) { return std::get<0>(key) == group; }, false);
+}
+
+SpanAggregator::Detached SpanAggregator::detachIdle(bool flushing) {
+    return take([](const Key&) { return true; }, true, flushing);
+}
+
+void SpanAggregator::retainTracesOfNewFields(uint64_t until) {
+    std::vector<TraceContext::TraceId> traces;
+    {
+        std::lock_guard lock(mutex_);
+        for (auto& [key, aggregate] : open_) {
+            std::lock_guard aggregateLock(aggregate->mutex);
+            // n.b. 'covered' is not advanced: the fields were not made durable, the next flush covers them
+            if (aggregate->begun > aggregate->covered && aggregate->firstNewSequence <= until) {
+                traces.push_back(aggregate->span.context().traceId());
+            }
+        }
+    }
+    for (const auto& traceId : traces) {
+        Tracer::instance().failTrace(traceId);
+    }
+}
+
+bool SpanAggregator::usesParent(const TraceContext& parent) const {
+    std::lock_guard lock(mutex_);
+    return std::any_of(open_.begin(), open_.end(), [&](const auto& entry) {
+        return std::get<1>(entry.first) == parent.traceId() && std::get<2>(entry.first) == parent.spanId();
+    });
+}
+
+void SpanAggregator::end(uint64_t group) {
+    take([group](const Key& key) { return std::get<0>(key) == group; }, false);
 }
 
 void SpanAggregator::endAll() {
-    std::map<Key, std::shared_ptr<Aggregate>> ended;
-    std::lock_guard lock(mutex_);
-    std::swap(ended, open_);
+    take([](const Key&) { return true; }, false);
 }
 
 void SpanAggregator::detach(const std::shared_ptr<Aggregate>& aggregate) {
@@ -667,11 +811,18 @@ SpanAggregator::Operation::Operation(SpanAggregator* aggregator, const TraceCont
             parent.valid() ? parent.spanId() : TraceContext::SpanId{}};
     {
         std::lock_guard lock(aggregator_->mutex_);
+        // n.b. an aggregate is never ended early to bound their number: the span of an archive which ended before a
+        // failing flush could then not be exported with it. A caller which uses a different parent context for each
+        // operation should flush regularly.
         auto& aggregate = aggregator_->open_[key];
         if (!aggregate) {
             aggregate = std::make_shared<Aggregate>(key, aggregator_->name_, aggregator_->kind_, parent);
         }
         aggregate_ = aggregate;
+
+        // registered with the aggregator locked: detach() never sees an aggregate that this operation is about to use
+        std::lock_guard aggregateLock(aggregate_->mutex);
+        ++aggregate_->active;
     }
     scope_.emplace(aggregate_->span.context().valid() ? aggregate_->span.context() : current());
 }
@@ -685,6 +836,8 @@ SpanAggregator::Operation::~Operation() {
     const bool failed = failed_ || std::uncaught_exceptions() > uncaughtExceptions_;
     {
         std::lock_guard lock(aggregate_->mutex);
+        --aggregate_->active;
+        aggregate_->done += begun_ - fields_;  // the fields begun and not finished are abandoned
         ++aggregate_->calls;
         aggregate_->fields += fields_;
         aggregate_->bytes += bytes_;
@@ -709,9 +862,29 @@ bool SpanAggregator::Operation::recording() const {
     return aggregate_ && aggregate_->span.recording();
 }
 
+void SpanAggregator::Operation::begin(size_t fields) {
+    if (aggregate_ && fields != 0) {
+        // visible to detachIdle(): the operation may be writing data which a flush covers
+        std::lock_guard lock(aggregate_->mutex);
+        const uint64_t sequence = ++aggregator_->beginSequence_;
+        if (aggregate_->begun == aggregate_->covered) {
+            aggregate_->firstNewSequence = sequence;
+        }
+        aggregate_->begun += fields;
+        begun_ += fields;
+    }
+}
+
 void SpanAggregator::Operation::add(size_t fields, size_t bytes) {
     fields_ += fields;
     bytes_ += bytes;
+    if (fields_ > begun_) {
+        begin(fields_ - begun_);  // not announced by begin()
+    }
+    if (aggregate_ && fields != 0) {
+        std::lock_guard lock(aggregate_->mutex);
+        aggregate_->done += fields;
+    }
 }
 
 void SpanAggregator::Operation::failed(std::string message, Attributes attributes) {

@@ -170,7 +170,13 @@ void Connection::checkHeader(const MessageHeader& hdr, bool control) const {
            << (control ? "control" : "data") << " connection";
         throw RemoteProtocolException(ss.str(), Here());
     }
-    if (hdr.payloadSize > maxPayloadSize_) {
+    // n.b. a trace context is accepted whatever the limit, which applies to the requests: a valid request must not
+    // fail because the (small, bounded) context sent with it does not fit
+    const size_t configuredLimit = maxPayloadSize_;
+    const size_t limit = hdr.message == Message::Trace
+                           ? std::max<size_t>(configuredLimit, tracing::TraceContext::maxBinarySize)
+                           : configuredLimit;
+    if (hdr.payloadSize > limit) {
         isValid_ = false;
         std::ostringstream ss;
         ss << "message " << hdr.message << " with a payload of " << hdr.payloadSize << " bytes exceeds the limit of "
@@ -314,32 +320,64 @@ void Connection::writeFrameUnsafe(const eckit::net::TCPSocket& socket, const Mes
     writeUnsafe(socket, &MessageHeader::EndMarker, MessageHeader::markerBytes);
 }
 
+void Connection::writeTraceFrameUnsafe(const eckit::net::TCPSocket& socket, const bool control,
+                                       const uint32_t clientID, const uint32_t requestID,
+                                       const std::string& encodedTrace) const {
+    SentTrace& sent = sentTrace_[(control || single_) ? 0 : 1];
+
+    // The peer drops the context as soon as it reads a frame for other ids
+    static const std::string none;
+    const bool sameRequest = sent.clientID == clientID && sent.requestID == requestID;
+    const std::string& held = sameRequest ? sent.context : none;
+
+    if (encodedTrace != held) {
+        if (encodedTrace.empty()) {
+            writeFrameUnsafe(socket, Message::Trace, control, clientID, requestID, {});
+        }
+        else {
+            writeFrameUnsafe(socket, Message::Trace, control, clientID, requestID,
+                             {{encodedTrace.size(), encodedTrace.data()}});
+        }
+    }
+    sent.clientID = clientID;
+    sent.requestID = requestID;
+    sent.context = encodedTrace;
+}
+
 void Connection::write(const Message msg, const bool control, const uint32_t clientID, const uint32_t requestID,
                        const PayloadList payloads) const {
+
+    if (tracingVersion_ > 0) {
+        framePayloadLength(msg, payloads);  // fail before a Trace frame is written, see below
+    }
 
     const auto& socket = getSocket(control);
     std::lock_guard<std::mutex> lock(getSocketMutex(control));
 
+    if (tracingVersion_ > 0) {
+        // no context: the peer must not apply the one it holds for these ids
+        writeTraceFrameUnsafe(socket, control, clientID, requestID, {});
+    }
     writeFrameUnsafe(socket, msg, control, clientID, requestID, payloads);
 }
 
 void Connection::write(const Message msg, const bool control, const uint32_t clientID, const uint32_t requestID,
                        const PayloadList& payloads, const tracing::TraceContext& trace) const {
 
-    // Fail before the Trace frame is written: it must never be left without the frame it announces
+    // Fail before the Trace frame is written: it must never be left without the frame it describes
     framePayloadLength(msg, payloads);
 
     // Never emit a Trace frame unless the peer agreed to it at startup: legacy peers would not understand it. Nor
-    // once tracing is disabled (e.g. by a configuration read after the connection was established).
+    // once tracing is disabled (e.g. by a configuration read after the connection was established). Unsampled
+    // contexts are sent too: the peer records its part of a failing request, whatever the sampling.
     const bool sendTrace = tracingVersion_ > 0 && trace.valid() && tracing::Tracer::instance().enabled();
     const std::string encodedTrace = sendTrace ? trace.encode() : std::string{};
 
     const auto& socket = getSocket(control);
     std::lock_guard<std::mutex> lock(getSocketMutex(control));
 
-    if (sendTrace) {
-        writeFrameUnsafe(socket, Message::Trace, control, clientID, requestID,
-                         {{encodedTrace.size(), encodedTrace.data()}});
+    if (tracingVersion_ > 0) {
+        writeTraceFrameUnsafe(socket, control, clientID, requestID, encodedTrace);
     }
     writeFrameUnsafe(socket, msg, control, clientID, requestID, payloads);
 }

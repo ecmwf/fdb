@@ -496,12 +496,18 @@ void CatalogueHandler::exists(uint32_t clientID, uint32_t requestID, eckit::Buff
 
 void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
 
-    // The archive spans of the client end within the flush span (current while handling this message), also if the
-    // flush fails: then they are exported with it (see keep_errors)
+    // The archive spans of the client end with the flush. If it fails, their traces are exported with it: they may be
+    // other traces than the flush, which would otherwise be complete, and not exported
     struct EndArchiveSpans {
         tracing::SpanAggregator& spans;
         uint32_t clientID;
-        ~EndArchiveSpans() { spans.end(clientID); }
+        int uncaughtExceptions{std::uncaught_exceptions()};
+        ~EndArchiveSpans() {
+            auto archives = spans.detach(clientID);
+            if (std::uncaught_exceptions() > uncaughtExceptions) {
+                archives.retainTraces();
+            }
+        }
     } endArchiveSpans{archiveSpans_, clientID};
 
     ASSERT(payload.size() > 0);
