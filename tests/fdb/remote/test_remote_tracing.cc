@@ -7,13 +7,14 @@
 // FDB_TRACING_TEST_VARIANT selects the expectation:
 //   enabled          - server spans join the caller's trace, as children of the client spans
 //   client_disabled  - client has 'tracing: false': no client spans, no propagation (servers trace on their own)
-//   server_disabled  - servers have tracing disabled: client spans only, servers record nothing
+//   server_disabled  - servers have tracing disabled: client spans only, servers record nothing (nor do their FDBs)
 
 #include <chrono>
 #include <cstdlib>
 #include <fstream>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <set>
 #include <sstream>
 #include <string>
@@ -225,10 +226,25 @@ CASE("Remote trace-context propagation") {
     const TraceContext caller{Tracer::newTraceId(), Tracer::newSpanId(), TraceContext::sampledFlag};
     const std::string traceId = caller.traceIdHex();
 
+    // A tracing-disabled FDB, making requests in a caller's trace (e.g. set by fdb_trace_begin()), propagates no
+    // context. It is kept alive, so that the FDB below shares the connections it opened: their tracing capability
+    // is that of the process, not that of the FDB that happened to open them.
+    const TraceContext untraced{Tracer::newTraceId(), Tracer::newSpanId(), TraceContext::sampledFlag};
+    std::optional<FDB> disabled;
+    if (variant == "enabled") {
+        Config config = Config().expandConfig();
+        config.set("tracing", false);
+        disabled.emplace(config);
+        ScopedContext scope(untraced);
+        disabled->archive(makeKey(dates[0], steps[0]), payload.data(), payload.size());
+        disabled->flush();
+    }
+
     {
         FDB fdb;
         exercise(fdb, caller);
     }
+    disabled.reset();
 
     auto client = inTrace(exporter->spans(), traceId);
 
@@ -280,6 +296,11 @@ CASE("Remote trace-context propagation") {
         checkServer("store", storeSkip, {"fdb.server.archive", "fdb.server.flush", "fdb.server.read"});
         checkServer("catalogue", catalogueSkip,
                     {"fdb.server.archive", "fdb.server.flush", "fdb.server.list", "fdb.server.inspect"});
+
+        // The requests of the tracing-disabled FDB (made earlier) reached the servers without its caller's context
+        EXPECT(inTrace(exporter->spans(), untraced.traceIdHex()).empty());
+        EXPECT(inTrace(serverSpans("store", storeSkip), untraced.traceIdHex()).empty());
+        EXPECT(inTrace(serverSpans("catalogue", catalogueSkip), untraced.traceIdHex()).empty());
 
         // and on each server, one aggregated span per client (i.e. per database: one per date), ended by its flush
         for (const auto& [role, skip] : {std::pair{"store", storeSkip}, std::pair{"catalogue", catalogueSkip}}) {

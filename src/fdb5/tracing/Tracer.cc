@@ -311,9 +311,11 @@ Tracer::Tracer() : exporter_(std::make_shared<LogSpanExporter>()) {
         if (const char* k = env("FDB_TRACING_KEEP_ERRORS")) {
             keepErrors_ = parseBool(k);
         }
-        if (const char* x = env("FDB_TRACING_EXPORTER")) {
-            const char* p = env("FDB_TRACING_LOG_PATH");
-            exporter_ = makeExporter(x, p ? p : "");
+        // n.b. a log path alone selects the log exporter (the default one) writing to that file
+        const char* x = env("FDB_TRACING_EXPORTER");
+        const char* p = env("FDB_TRACING_LOG_PATH");
+        if (x || p) {
+            exporter_ = makeExporter(x ? x : "log", p ? p : "");
         }
     }
     catch (const std::exception& e) {
@@ -327,7 +329,7 @@ void Tracer::configureFrom(const eckit::Configuration& fdbConfig) {
         return;
     }
     eckit::LocalConfiguration tracing = fdbConfig.getSubConfiguration("tracing");
-    if (!(tracing.has("sampler") || tracing.has("exporter") || tracing.has("keep_errors"))) {
+    if (!(tracing.has("sampler") || tracing.has("exporter") || tracing.has("path") || tracing.has("keep_errors"))) {
         return;
     }
     {
@@ -355,8 +357,9 @@ void Tracer::configure(const eckit::Configuration& config) {
         }
         sampler_ = Sampler::fromName(config.getString("sampler"), arg);
     }
-    if (config.has("exporter")) {
-        exporter_ = makeExporter(config.getString("exporter"), config.getString("path", ""));
+    // n.b. a path alone selects the log exporter (the default one) writing to that file
+    if (config.has("exporter") || config.has("path")) {
+        exporter_ = makeExporter(config.getString("exporter", "log"), config.getString("path", ""));
     }
     if (config.has("keep_errors")) {
         keepErrors_ = config.getBool("keep_errors");

@@ -57,6 +57,20 @@ public:  // methods
 
     APIIterator(APIIteratorBase<ValueType>* impl) : impl_(impl) {}
 
+    APIIterator(APIIterator&&) noexcept = default;
+
+    /// n.b. as on destruction, the implementation of the iteration replaced is over (e.g. an asynchronous worker
+    /// cancelled and joined) before its span ends
+    APIIterator& operator=(APIIterator&& rhs) noexcept {
+        if (this != &rhs) {
+            impl_ = std::move(rhs.impl_);
+            span_ = std::move(rhs.span_);
+        }
+        return *this;
+    }
+
+    ~APIIterator() = default;
+
     /// Get the next element. Return false if at end
     bool next(ValueType& elem) {
         try {
@@ -79,9 +93,11 @@ public:  // methods
 
 private:  // members
 
-    std::unique_ptr<APIIteratorBase<ValueType>> impl_;
-
+    /// n.b. declared before impl_, so destroyed after it: the span of an abandoned iteration ends once its
+    /// implementation is over (e.g. an asynchronous worker cancelled and joined), and its trace with it
     tracing::Span span_;
+
+    std::unique_ptr<APIIteratorBase<ValueType>> impl_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

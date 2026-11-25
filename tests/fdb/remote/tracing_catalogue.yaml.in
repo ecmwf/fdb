@@ -9,6 +9,14 @@ spaces:
 - handler: Default
   roots:
     - path: @CMAKE_CURRENT_BINARY_DIR@/catalogue_root
+# The FDB of the server's own work (e.g. lists), without tracing settings: those of the server apply
+fdb:
+  type: catalogue
+  schema: @CMAKE_CURRENT_SOURCE_DIR@/schema
+  spaces:
+  - handler: Default
+    roots:
+      - path: @CMAKE_CURRENT_BINARY_DIR@/catalogue_root
 tracing:
   enabled: @TRACING_SERVER@
   sampler: parentbased_always_on

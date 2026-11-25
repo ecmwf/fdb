@@ -84,6 +84,13 @@ RemoteConfiguration::RemoteConfiguration(const eckit::Configuration& config) {
     }
 }
 
+void RemoteConfiguration::offerTracing(bool offer) {
+    tracingVersions_.clear();
+    if (offer) {
+        tracingVersions_ = {tracingProtocolVersion};
+    }
+}
+
 RemoteConfiguration::RemoteConfiguration(eckit::Stream& s) {
     eckit::Value v(s);
     ASSERT(v.isMap());

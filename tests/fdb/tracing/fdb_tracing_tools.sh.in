@@ -28,6 +28,11 @@ list_span() {
 FDB_TRACING_LOG_PATH="$wd/option.jsonl" fdb-list --all --minimum-keys="" --ignore-no-data --traceparent="00-${trace_id}-b7ad6b7169203331-01"
 list_span "$wd/option.jsonl" | grep "\"trace_id\":\"${trace_id}\"" | grep -q '"parent_span_id":"b7ad6b7169203331"'
 
+# --- a log path alone selects the log exporter (the default one), writing to that file
+env -u FDB_TRACING_EXPORTER FDB_TRACING_LOG_PATH="$wd/path_only.jsonl" \
+    fdb-list --all --minimum-keys="" --ignore-no-data --traceparent="00-${trace_id}-b7ad6b7169203331-01"
+list_span "$wd/path_only.jsonl" | grep -q "\"trace_id\":\"${trace_id}\""
+
 # --- environment carrier, with tracestate
 TRACEPARENT="00-${trace_id}-00f067aa0ba902b7-01" TRACESTATE="vendor=abc" FDB_TRACING_LOG_PATH="$wd/env.jsonl" \
     fdb-list --all --minimum-keys="" --ignore-no-data

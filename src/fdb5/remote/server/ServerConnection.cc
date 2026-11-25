@@ -130,6 +130,11 @@ ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& 
 
     innerConfig_ = config_.has("fdb") ? Config{config_.getSubConfiguration("fdb"), config_.appConfig()} : config_;
 
+    // The FDBs of a server whose tracing is disabled are not traced either, unless their configuration says otherwise
+    if (!tracing_ && !innerConfig_.has("tracing")) {
+        innerConfig_.set("tracing", false);
+    }
+
     // Until the client is identified, anybody who can connect is talking: only the startup message is expected
     maxPayloadSize(maxStartupPayloadSize);
 

@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
 // SPDX-License-Identifier: Apache-2.0
 
+#include <cstdio>
+#include <fstream>
 #include <memory>
 #include <mutex>
 #include <sstream>
@@ -507,6 +509,27 @@ CASE("Per-FDB enablement from configuration") {
     tracing.set("enabled", false);
     block.set("tracing", tracing);
     EXPECT(!Tracer::enabledIn(block));
+}
+
+CASE("Log exporter: a path alone selects it, writing to that file") {
+    const std::string path = "test_tracing_path_only.jsonl";  // n.b. in the working directory of the test
+    std::remove(path.c_str());
+    {
+        ExporterFixture fx;
+        eckit::LocalConfiguration tracing;
+        tracing.set("path", path);
+        eckit::LocalConfiguration fdbConfig;
+        fdbConfig.set("tracing", tracing);
+        Tracer::instance().configureFrom(fdbConfig);  // n.b. the first configuration of the process providing one
+
+        EXPECT(std::dynamic_pointer_cast<LogSpanExporter>(Tracer::instance().exporter()));
+        Span("path_only", SpanKind::Internal, TraceContext{}).end();
+    }  // n.b. the exporter is released: the file is closed
+
+    std::ifstream in(path);
+    std::string line;
+    EXPECT(std::getline(in, line));
+    EXPECT(line.find("\"name\":\"path_only\"") != std::string::npos);
 }
 
 CASE("Log exporter writes one JSON object with OTLP field names") {

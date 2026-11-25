@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include <algorithm>
+#include <future>
 #include <memory>
 #include <mutex>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -11,12 +13,14 @@
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/io/DataHandle.h"
+#include "eckit/log/JSON.h"
 #include "eckit/testing/Test.h"
 
 #include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/fdb_c.h"
+#include "fdb5/api/helpers/APIIterator.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/tracing/TraceContext.h"
 #include "fdb5/tracing/Tracer.h"
@@ -365,6 +369,108 @@ CASE("Tracing disabled in the FDB configuration records nothing") {
     archiveSome(fdb, 2, TraceContext::fromTraceparent(callerTraceparent));
     fdb.flush();
     EXPECT(fx.exporter->spans().empty());
+}
+
+CASE("Tracing disabled in the effective configuration (expanded by the factory) records nothing") {
+    Fixture fx;
+    Config config = Config().expandConfig();
+    config.set("tracing", false);
+    std::ostringstream yaml;
+    eckit::JSON json(yaml);
+    json << config;
+    eckit::testing::SetEnv fdbConfig("FDB_CONFIG", yaml.str().c_str());
+
+    FDB fdb(Config{});  // n.b. without a type: replaced by the configuration of FDB_CONFIG
+    EXPECT(!fdb.config().getBool("tracing", true));
+
+    archiveSome(fdb, 2, TraceContext::fromTraceparent(callerTraceparent));
+    fdb.flush();
+    EXPECT(fx.exporter->spans().empty());
+}
+
+CASE("An FDB with tracing disabled propagates no context, not even its caller's") {
+    Fixture fx;
+    Config config = Config().expandConfig();
+    config.set("tracing", false);
+    FDB fdb(config);
+
+    std::vector<TraceContext> seen;
+    fdb.registerArchiveCallback(
+        [&seen](const Key&, const void*, size_t, std::future<std::shared_ptr<const FieldLocation>>) {
+            seen.push_back(current());
+        });
+    fdb.registerFlushCallback([&seen] { seen.push_back(current()); });
+
+    const TraceContext caller = TraceContext::fromTraceparent(callerTraceparent);
+    {
+        ScopedContext scope(caller);
+        archiveSome(fdb, 1);
+        archiveSome(fdb, 1, caller);
+        fdb.flush();
+        EXPECT_EQUAL(current().traceparent(), std::string{callerTraceparent});  // restored
+    }
+
+    EXPECT_EQUAL(seen.size(), 3);
+    for (const auto& ctx : seen) {
+        EXPECT(!ctx.valid());
+    }
+    EXPECT(fx.exporter->spans().empty());
+}
+
+namespace {
+
+/// An iteration whose implementation records a failing span when it is destroyed (e.g. a cancelled worker)
+class FailingOnDestruction : public APIIteratorBase<int> {
+public:
+
+    explicit FailingOnDestruction(TraceContext parent) : parent_(std::move(parent)) {}
+
+    ~FailingOnDestruction() override {
+        Span cleanup("cleanup", SpanKind::Internal, parent_);
+        cleanup.setStatus(StatusCode::Error, "cleanup failed");
+    }
+
+    bool next(int&) override { return true; }
+
+private:
+
+    TraceContext parent_;
+};
+
+}  // namespace
+
+CASE("keep_errors: the span of an abandoned iteration ends after its implementation") {
+    Fixture fx;
+    Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, true});
+    Tracer::instance().keepErrors(true);
+
+    // An iteration in an unsampled trace, whose implementation fails when it is destroyed
+    auto failingIteration = [] {
+        const TraceContext unsampled{Tracer::newTraceId(), Tracer::newSpanId(), 0};
+        Span span("fdb.list", SpanKind::Internal, unsampled);
+        APIIterator<int> it(new FailingOnDestruction(span.context()));
+        it.attachSpan(std::move(span));
+        int i = 0;
+        EXPECT(it.next(i));
+        return it;
+    };
+
+    // the iteration span is still open when its implementation fails: its trace is exported
+    SECTION("destroyed") {
+        { APIIterator<int> it = failingIteration(); }
+        EXPECT_EQUAL(fx.exporter->named("cleanup").size(), 1);
+        EXPECT_EQUAL(fx.exporter->named("fdb.list").size(), 1);
+    }
+
+    SECTION("replaced by move assignment") {
+        APIIterator<int> it = failingIteration();
+        it = APIIterator<int>(nullptr);
+        EXPECT_EQUAL(fx.exporter->named("cleanup").size(), 1);
+        EXPECT_EQUAL(fx.exporter->named("fdb.list").size(), 1);
+    }
+
+    Tracer::instance().keepErrors(false);
+    Tracer::instance().sampler(Sampler{});
 }
 
 CASE("C API: fdb_trace_begin/end scope the calling thread's context") {

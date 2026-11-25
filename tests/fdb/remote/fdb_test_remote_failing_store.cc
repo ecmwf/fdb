@@ -18,7 +18,14 @@
 
 int main(int argc, char** argv) {
 
-    fdb5::LibFdb5::instance().registerConstructorCallback([](fdb5::CallbackRegistry& registry) {
+    fdb5::remote::FdbServer app(argc, argv, "FDB_HOME");
+
+    // n.b. registered once the application is initialised, i.e. once the plugins are loaded: LibFdb5 holds a single
+    // constructor callback, which a plugin may register when it is loaded (e.g. that of GribJump), replacing one
+    // registered earlier. That callback is kept, and called first.
+    fdb5::ConstructorCallback previous = fdb5::LibFdb5::instance().constructorCallback();
+    fdb5::LibFdb5::instance().registerConstructorCallback([previous](fdb5::CallbackRegistry& registry) {
+        previous(registry);
         registry.registerFlushCallback([] {
             // n.b. while a request is handled, its trace context (and trace state) is the current one
             if (fdb5::tracing::current().traceState().find("fdbtest=failflush") != std::string::npos) {
@@ -27,7 +34,6 @@ int main(int argc, char** argv) {
         });
     });
 
-    fdb5::remote::FdbServer app(argc, argv, "FDB_HOME");
     app.start();
     return 0;
 }
