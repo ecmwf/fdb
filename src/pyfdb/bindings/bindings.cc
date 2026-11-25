@@ -9,6 +9,7 @@
 #include <pybind11/stl/filesystem.h>
 
 #include <cstddef>
+#include <ctime>
 #include <exception>
 #include <map>
 #include <memory>
@@ -28,6 +29,7 @@
 #include "eckit/value/Content.h"
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/AccessIterator.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListElement.h"
@@ -91,6 +93,14 @@ metkit::mars::MarsRequest mars_request_from_map(const std::map<std::string, std:
     return expand.expand(mars_request);
 }
 
+// fdb5::ControlElement uses zero for a timestamp that is unknown, rather than never
+std::optional<std::time_t> known_time(const std::time_t time) {
+    if (time == 0) {
+        return std::nullopt;
+    }
+    return time;
+}
+
 PYBIND11_MODULE(_pyfdb_bindings, m) {
     m.def("init_bindings", []() {
         const char* args[] = {"pyfdb", ""};
@@ -130,10 +140,26 @@ PYBIND11_MODULE(_pyfdb_bindings, m) {
         .value("UNIQUEROOT", fdb5::ControlIdentifier::UniqueRoot)
         .finalize();
 
+    py::native_enum<fdb5::AccessIdentifier>(m, "AccessIdentifier", "enum.IntFlag")
+        .value("NONE", fdb5::AccessIdentifier::None)
+        .value("READ", fdb5::AccessIdentifier::Read)
+        .value("WRITE", fdb5::AccessIdentifier::Write)
+        .finalize();
+
 
     //--------------------------------------------------
     // @brief Utility classes
     //--------------------------------------------------
+
+    py::class_<fdb5::AccessTime>(m, "AccessTime")
+        .def(py::init())
+        .def_static("catalogue_time", &fdb5::AccessTime::catalogueTime)
+        .def_static("at", &fdb5::AccessTime::at)
+        .def("__repr__", [](const fdb5::AccessTime& access_time) {
+            std::stringstream buf;
+            buf << access_time;
+            return buf.str();
+        });
 
     py::class_<fdb5::Config>(m, "Config")
         .def(py::init([]() { return fdb5::Config(); }))
@@ -391,6 +417,10 @@ PYBIND11_MODULE(_pyfdb_bindings, m) {
                  }
                  return key_value_map;
              })
+        .def("last_read",
+             [](const fdb5::ControlElement& control_element) { return known_time(control_element.lastRead); })
+        .def("last_write",
+             [](const fdb5::ControlElement& control_element) { return known_time(control_element.lastWrite); })
         .def("__repr__", [](fdb5::ControlElement& control_element) {
             std::stringstream buf{};
             buf << control_element.controlIdentifiers << ", ";
@@ -605,14 +635,28 @@ PYBIND11_MODULE(_pyfdb_bindings, m) {
         .def(
             "wipe",
             [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request, bool doit, bool porcelain,
-               bool unsafe_wipe_all,
-               const TraceContext& trace) { return fdb.wipe(tool_request, doit, porcelain, unsafe_wipe_all, trace); },
+               bool unsafe_wipe_all, const TraceContext& trace) {
+                return fdb.wipe(tool_request, doit, porcelain, unsafe_wipe_all, trace); },
             py::call_guard<py::gil_scoped_release>())
         .def(
             "purge",
             [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request, bool doit, bool porcelain,
                const TraceContext& trace) { return fdb.purge(tool_request, doit, porcelain, trace); },
             py::call_guard<py::gil_scoped_release>())
+        .def(
+            "touch",
+            [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request,
+               const std::vector<fdb5::AccessIdentifier>& access_identifiers, const fdb5::AccessTime& when) {
+                auto internal_access_identifiers = fdb5::AccessIdentifiers();
+
+                for (const auto& access_identifier : access_identifiers) {
+                    internal_access_identifiers |= access_identifier;
+                }
+                return fdb.touch(tool_request, internal_access_identifiers, when);
+            },
+            py::call_guard<py::gil_scoped_release>())
+        .def("wipe", &fdb5::FDB::wipe, py::call_guard<py::gil_scoped_release>())
+        .def("purge", &fdb5::FDB::purge, py::call_guard<py::gil_scoped_release>())
         .def(
             "stats", [](fdb5::FDB& fdb, const fdb5::FDBToolRequest& tool_request) { return fdb.stats(tool_request); },
             py::call_guard<py::gil_scoped_release>())

@@ -1,0 +1,271 @@
+#!/usr/bin/env bash
+
+set -euxo pipefail
+
+yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\\n" "$*" >&2; }
+die() { yell "$*"; exit 1; }
+
+expect_fail() { if "$@"; then die "Expected failure but command succeeded => '$*'"; fi; }
+
+mtime() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1"; }
+
+grep_count() {
+  [[ $# -eq 2 ]] || die "grep_count requires 2; regex and expected count"
+  val=$(grep -cE "$1" out || true)
+  [[ $val -eq $2 ]] || die "Incorrect count [$val != $2] for regex [$1]"
+}
+
+########################################################################################################################
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB5_CONFIG_FILE=config.yaml
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+test_name=last-access
+src_data="../../../od.oper.grib"
+src_dir=@CMAKE_CURRENT_SOURCE_DIR@
+bin_dir=@CMAKE_CURRENT_BINARY_DIR@
+
+cd $bin_dir
+rm -rf $test_name
+mkdir -p $test_name/localroot
+cd $test_name
+cp "$src_dir/config.yaml" ./
+ln -s "$bin_dir/$src_data" ./
+
+db=localroot/od:0001:oper:20240911:0000:g
+readts=$db/read.timestamp
+writets=$db/write.timestamp
+
+export FDB_ACCESS_TIMESTAMP_GRANULARITY=0
+
+########################################################################################################################
+# A database written by a current build carries both records from the start.
+
+fdb-write "$src_data"
+[[ -e $readts ]] || die "Archiving did not create a read timestamp"
+[[ -e $writets ]] || die "Archiving did not create a write timestamp"
+
+# Creating timestamps is fdb-touch's job; the old --backfill mode was folded into it.
+expect_fail fdb-last-access --all --backfill
+
+########################################################################################################################
+# A database predating the feature has no records, is of UNKNOWN age, and must never be reported
+# as cold on that basis.
+
+rm -f localroot/*/read.timestamp localroot/*/write.timestamp
+
+fdb-last-access --all --older-than=1s --simple | tee out
+grep_count "." 0
+
+fdb-last-access --all --unknown --simple | tee out
+grep_count "class=od,expver=0001" 2
+
+# fdb-touch creates the missing records, so the database is no longer unknown - and, having just
+# been touched, is not cold either.
+fdb-touch --all --minimum-keys="" --read --write
+[[ -e $readts ]] || die "fdb-touch did not create a read timestamp"
+[[ -e $writets ]] || die "fdb-touch did not create a write timestamp"
+
+fdb-last-access --all --unknown --simple | tee out
+grep_count "time=0000,domain=g" 0
+
+fdb-last-access --all --newer-than=1h --simple | tee out
+grep_count "time=0000,domain=g" 1
+
+########################################################################################################################
+# Seeding from the toc, which is how an archive predating the feature is brought in without every
+# database appearing freshly accessed.
+
+rm -f localroot/*/read.timestamp localroot/*/write.timestamp
+touch -t 202001010000 localroot/*/toc
+
+fdb-touch --all --minimum-keys="" --read --write --from-toc
+[[ -e $readts ]] || die "--from-toc did not create a read timestamp"
+
+# Seeded in 2020, so cold - rather than fresh, which is what recording "now" would have given.
+fdb-last-access --all --older-than=364d --simple | tee out
+grep_count "time=0000,domain=g" 1
+
+# An explicit instant is recorded exactly.
+fdb-touch --all --minimum-keys="" --read --time=20220303
+[[ $(mtime $readts) -eq $(date -u -j -f "%Y%m%d %H%M%S" "20220303 000000" +%s 2>/dev/null || date -u -d "2022-03-03 00:00:00" +%s) ]] \
+  || die "--time did not record the requested instant"
+
+# The two ways of choosing an instant are mutually exclusive, and a malformed one is rejected.
+expect_fail fdb-touch --all --minimum-keys="" --read --time=20220303 --from-toc
+expect_fail fdb-touch --all --minimum-keys="" --read --time=not-a-date
+
+########################################################################################################################
+# A retrieval refreshes the read timestamp; a listing refreshes neither.
+
+touch -t 202001010000 $readts $writets
+fdb-list --all --minimum-keys="" > /dev/null
+fdb-last-access --all --older-than=364d --simple | tee out
+grep_count "time=0000,domain=g" 1
+
+cat > req.mars <<EOF
+retrieve,class=od,expver=0001,stream=oper,date=20240911,time=0000,domain=g,type=an,levtype=pl,step=0,levelist=1000,param=138
+EOF
+fdb-read req.mars out.grib
+[[ -s out.grib ]] || die "Retrieved nothing; the test request matched no data"
+
+# Recent by read, still ancient by write.
+fdb-last-access --all --read --newer-than=1h --simple | tee out
+grep_count "time=0000,domain=g" 1
+
+fdb-last-access --all --write --older-than=364d --simple | tee out
+grep_count "time=0000,domain=g" 1
+
+# With neither flag the more recent of the two is used, so the database is no longer cold.
+fdb-last-access --all --older-than=364d --simple | tee out
+grep_count "time=0000,domain=g" 0
+
+# --read and --write each select one timestamp, so they are mutually exclusive.
+expect_fail fdb-last-access --all --read --write
+
+# --simple and --json are alternative formats, so they are too.
+expect_fail fdb-last-access --all --simple --json
+
+# An unbounded query would select everything, so some selection is required.
+expect_fail fdb-last-access --all
+expect_fail fdb-last-access --all --simple
+expect_fail fdb-last-access --all --read
+
+########################################################################################################################
+# Output formats.
+
+# The default form reports both timestamps and an age in days, one block per database.
+fdb-last-access --all --newer-than=36500d | tee out
+grep_count "^  database:   \{class=od,expver=0001," 2
+grep_count "^  location:   .*localroot/od:0001:oper:20240911:" 2
+grep_count "^  last read:  [0-9]{4}-[0-9]{2}-[0-9]{2} " 2
+grep_count "^  last write: [0-9]{4}-[0-9]{2}-[0-9]{2} " 2
+grep_count "^  age:        [0-9]+ days$" 2
+
+# --json is a list of objects carrying the age, both timestamps, the location and the key.
+fdb-last-access --all --newer-than=36500d --json | tee out
+python3 -c '
+import json, sys
+elems = json.load(open("out"))
+assert isinstance(elems, list), elems
+assert len(elems) == 2, elems
+for e in elems:
+    assert set(e) == {"age", "lastRead", "lastWrite", "location", "key"}, e
+    assert isinstance(e["age"], int), e
+    assert e["lastRead"] > 0 and e["lastWrite"] > 0, e
+    assert list(e["key"]) == ["class", "expver", "stream", "date", "time", "domain"], e
+    assert e["key"]["class"] == "od"
+' || die "Unexpected --json output"
+
+# A database with no record is UNKNOWN in every format, and never merely old: no age bound selects it.
+rm -f localroot/*/read.timestamp localroot/*/write.timestamp
+
+fdb-last-access --all --unknown | tee out
+grep_count "^  last read:  UNKNOWN$" 2
+grep_count "^  age:        UNKNOWN$" 2
+
+fdb-last-access --all --unknown --simple | tee out
+grep_count "^UNKNOWN \{class=od," 2
+
+fdb-last-access --all --unknown --json | tee out
+python3 -c '
+import json
+elems = json.load(open("out"))
+assert len(elems) == 2, elems
+for e in elems:
+    assert e["age"] == "UNKNOWN", e
+    assert e["lastRead"] == 0 and e["lastWrite"] == 0, e
+' || die "Unexpected --json output for an unknown database"
+
+fdb-last-access --all --newer-than=36500d --simple | tee out
+grep_count "." 0
+
+########################################################################################################################
+# Combining --older-than and --newer-than brackets an age range: older-than <= age <= newer-than.
+
+db0000="class=od,expver=0001,stream=oper,date=20240911,time=0000"
+db1200="class=od,expver=0001,stream=oper,date=20240911,time=1200"
+
+# Two databases of well separated ages, around six and three years old.
+fdb-touch --read --write --time=20200101 $db0000
+fdb-touch --read --write --time=$(( $(date -u +%Y) - 3 ))0101 $db1200
+
+# A range enclosing only the younger one, only the older one, and both.
+fdb-last-access --all --older-than=365d --newer-than=1826d --simple | tee out
+grep_count "time=1200,domain=g" 1
+grep_count "time=0000,domain=g" 0
+
+fdb-last-access --all --older-than=1826d --newer-than=3650d --simple | tee out
+grep_count "time=1200,domain=g" 0
+grep_count "time=0000,domain=g" 1
+
+fdb-last-access --all --older-than=365d --newer-than=3650d --simple | tee out
+grep_count "time=1200,domain=g" 1
+grep_count "time=0000,domain=g" 1
+
+# An empty range is valid but selects nothing; an inverted one is rejected.
+fdb-last-access --all --older-than=1d --newer-than=1d --simple | tee out
+grep_count "." 0
+
+expect_fail fdb-last-access --all --older-than=3650d --newer-than=365d
+
+# Restore the state the next section expects: no records, so both databases are of UNKNOWN age.
+rm -f localroot/*/read.timestamp localroot/*/write.timestamp
+
+########################################################################################################################
+# Wiping cold data.
+#
+# Each deletion names one complete database key, taken from the listing that selected it, so
+# fdb-wipe's minimum key guard holds for every one of them. A sweep reaches the whole estate
+# without ever weakening the guard that protects an individual database.
+
+db2=localroot/od:0001:oper:20240911:1200:g
+
+# A wipe must be bounded by an age; must not be pointed at databases whose age is unknown or at
+# ones that are deliberately recent; and has no machine readable form.
+expect_fail fdb-last-access --all --wipe
+expect_fail fdb-last-access --all --wipe --newer-than=36500d
+expect_fail fdb-last-access --all --wipe --unknown
+expect_fail fdb-last-access --all --wipe --older-than=1s --newer-than=1h
+expect_fail fdb-last-access --all --wipe --older-than=1s --json
+expect_fail fdb-last-access --all --wipe --older-than=1s --simple
+expect_fail fdb-last-access --all --older-than=1s --doit
+
+# The records are still absent from the previous section, so both databases are of UNKNOWN age.
+# Nothing is known about their age, so nothing licenses deleting them - not even with --doit.
+fdb-last-access --all --older-than=1s --wipe --doit | tee out
+grep_count "^0 database wiped$" 1
+[[ -d $db ]] || die "A database of UNKNOWN age was wiped"
+[[ -d $db2 ]] || die "A database of UNKNOWN age was wiped"
+
+# Seed both databases, so the whole estate is cold.
+fdb-touch --all --minimum-keys="" --read --write --time=20200101
+
+# A dry run names both of them and deletes nothing.
+fdb-last-access --all --older-than=364d --wipe | tee out
+grep_count "^  database:   \{class=od,expver=0001," 2
+grep_count "^2 databases would be wiped$" 1
+[[ -d $db ]] || die "A dry run deleted data"
+[[ -d $db2 ]] || die "A dry run deleted data"
+
+# Touch one of them, leaving the estate with one cold and one warm database.
+fdb-touch --read --write class=od,expver=0001,stream=oper,date=20240911,time=1200
+
+# Committed, the cold database goes and the warm one stays.
+fdb-last-access --all --older-than=364d --wipe --doit | tee out
+grep_count "^  database:   \{class=od,expver=0001,stream=oper,date=20240911,time=0000," 1
+grep_count "^1 database wiped$" 1
+[[ ! -d $db ]] || die "The cold database was not wiped"
+[[ -d $db2 ]] || die "A recently accessed database was wiped"
+
+# ... and its data is really gone, while the warm database still lists its fields.
+fdb-list --all --minimum-keys="" --porcelain | tee out
+grep_count "time=0000,domain=g" 0
+[[ $(grep -cE "time=1200,domain=g" out) -gt 0 ]] || die "The warm database's data was deleted"
+
+########################################################################################################################
+
+echo "cleanup"
+cd $bin_dir
+rm -rf $test_name

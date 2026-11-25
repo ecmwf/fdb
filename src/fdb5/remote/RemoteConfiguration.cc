@@ -148,7 +148,8 @@ RemoteConfiguration::RemoteConfiguration(eckit::Stream& s) {
         enabledFeatures_ = v["EnabledFeatures"];
     }
     else {
-        enabledFeatures_ = maskOfDefaultFeatures;
+        // A peer predating feature negotiation.
+        enabledFeatures_ = maskOfLegacyFeatures;
     }
 
     // absent: the peer does not support (or has disabled) trace-context propagation

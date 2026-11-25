@@ -6,6 +6,23 @@ project( fdb5 LANGUAGES C CXX )
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+########################################################################################################################
+
+# To build as a bundle you likely want some combination of
+# -DENABLE_BUNDLE=ON -DENABLE_BUNDLED_DEPENDENCIES=ON -DSTACK_DEP_LIBAEC=ON
+
+option(ENABLE_BUNDLE "Build the top level project as a bundle" OFF)
+if (PROJECT_IS_TOP_LEVEL AND ENABLE_BUNDLE)
+	ecbuild_bundle_initialize()
+	ecbuild_bundle( PROJECT stack_dependencies GIT "git@github.com:ecmwf/stack-dependencies"   BRANCH master UPDATE )
+	ecbuild_bundle( PROJECT eckit              GIT "git@github.com:ecmwf/eckit"                BRANCH develop UPDATE )
+	ecbuild_bundle( PROJECT eccodes            GIT "git@github.com:ecmwf/eccodes"              BRANCH develop UPDATE )
+	ecbuild_bundle( PROJECT metkit             GIT "git@github.com:ecmwf/metkit"               BRANCH develop UPDATE )
+endif() # PROJECT_IS_TOP_LEVEL
+
+########################################################################################################################
+
 # set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 # add_compile_options(-fsanitize=address)
 # add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
