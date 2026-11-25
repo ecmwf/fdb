@@ -21,6 +21,7 @@
 #include <cstdio>
 #include <iomanip>
 #include <ios>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -103,13 +104,24 @@ class ProcessLock final : public TocLock {
         struct stat status{};
         SYSCALL2(::fstat(fd, &status), path);
 
+        const FileIdentity identity{::getpid(), status.st_dev, status.st_ino};
+
         const std::scoped_lock lock{registry.mutex};
-        auto& entry = registry.locks[FileIdentity{::getpid(), status.st_dev, status.st_ino}];
-        auto file_mutex = entry.lock();
-        if (!file_mutex) {
-            file_mutex = std::make_shared<std::mutex>();
-            entry = file_mutex;
+
+        if (const auto found = registry.locks.find(identity); found != registry.locks.end()) {
+            if (auto file_mutex = found->second.lock()) {
+                return file_mutex;
+            }
         }
+
+        // An entry expires once no handler holds its file, so drop those: the registry stays as small as the number
+        // of files locked right now, however many TOCs a long-running process goes through.
+        for (auto entry = registry.locks.begin(); entry != registry.locks.end();) {
+            entry = entry->second.expired() ? registry.locks.erase(entry) : std::next(entry);
+        }
+
+        auto file_mutex = std::make_shared<std::mutex>();
+        registry.locks[identity] = file_mutex;
         return file_mutex;
     }
 
