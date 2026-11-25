@@ -32,7 +32,9 @@
 #include <atomic>
 #include <cctype>
 #include <cerrno>
+#include <chrono>
 #include <cstdlib>
+#include <future>
 #include <optional>
 #include <string>
 #include <thread>
@@ -583,6 +585,48 @@ CASE("NFS mount: concurrent creators and writers preserve complete TOC records")
     fdb5::TocHandler sub_toc_reader(sub_toc_path, key);
     EXPECT_EQUAL(sub_toc_reader.databaseKey(), key);
     EXPECT_EQUAL(sub_toc_reader.numberOfRecords(), 1 + thread_count * records_per_thread);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+CASE("NFS mount: a linked sub toc is read under its lock") {
+    const auto mount = nfsMountDir();
+    if (!mount) {
+        return;
+    }
+
+    const eckit::TmpDir dir{mount->localPath()};
+
+    const fdb5::Config config = fdb5::Config().expandConfig();
+    const fdb5::Key key{{{"class", "od"}, {"expver", "0001"}, {"stream", "oper"}}};
+
+    const eckit::PathName sub_toc_path = dir / "toc.sub";
+    {
+        fdb5::TocHandler toc(dir, config);
+        toc.writeInitRecord(key);
+
+        fdb5::TocHandler sub_toc(sub_toc_path, key);
+        sub_toc.writeInitRecord(key);
+
+        toc.writeSubTocRecord(sub_toc);
+    }
+
+    // Hold the sub toc as one of its writers does. A reader that walks the main TOC has to wait for it: reading
+    // the sub toc without its lock would finish at once.
+    const int fd = ::open(sub_toc_path.localPath(), O_RDWR);
+    EXPECT(fd >= 0);
+    auto lock = TocLocking::forDirectory(eckit::LocalPathName{dir.localPath()}).holdForWrite(fd, sub_toc_path);
+
+    auto records = std::async(std::launch::async, [&] { return fdb5::TocHandler(dir, config).numberOfRecords(); });
+    const auto status = records.wait_for(std::chrono::milliseconds(500));
+
+    ::close(fd);
+    lock.reset();  // after the close, as a TOC handler does
+
+    EXPECT(status == std::future_status::timeout);
+
+    // The init record and the link of the main TOC, then the init record of the sub toc.
+    EXPECT_EQUAL(records.get(), size_t{3});
 }
 
 //----------------------------------------------------------------------------------------------------------------------

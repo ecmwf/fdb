@@ -827,8 +827,7 @@ public:
     SubtocPreloader(const Key& parentKey, const eckit::Configuration* lockPolicyConfig) :
         parentKey_(parentKey), lockPolicyConfig_(lockPolicyConfig) {}
 
-    /// n.b. the subtocs are read without the TOC locks, so on NFS a reader can see a torn last record of a subtoc
-    ///      that is being appended to.
+    /// n.b. the subtocs are read without the TOC locks, so only add those that need none (see preloadSubTocs()).
     decltype(subTocReadCache_)&& cache() {
 
 #if eckit_HAVE_AIO
@@ -971,12 +970,19 @@ void TocHandler::preloadSubTocs(bool readMasked) const {
         //      the toc at all --> TOC_INIT not yet read --> parentKey_ not yet set.
         SubtocPreloader preloader(parentKey_, lockPolicyConfig_);
 
+        // The preload takes no lock. Where writers have to be kept out (NFS), a sub toc is left to selectSubTocRead(),
+        // which reads it under its lock. n.b. sub tocs are next to this TOC, except those of an overlaid database.
+        const auto isReadUnderLock = [this](const LocalPathName& path) {
+            const LocalPathName directory = path.dirName();
+            return (directory == directory_ ? locking() : TocLocking::forDirectory(directory)).excludesWriters();
+        };
+
         while (readNextInternal(*r)) {
 
             switch (r->header_.tag_) {
                 case TocRecord::TOC_SUB_TOC: {
                     LocalPathName absPath = parseSubTocRecord(*r, readMasked);
-                    if (absPath != "") {
+                    if (absPath != "" && !isReadUnderLock(absPath)) {
                         preloader.addPath(absPath);
                     }
                 } break;
