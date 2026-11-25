@@ -1,0 +1,12 @@
+---
+type: store
+serverPort: 10044
+serverThreaded: true
+networks:
+- name: trusted
+  netmask: 10.0.0.0/8
+  wipe: true
+spaces:
+- handler: Default
+  roots:
+  - path: @CMAKE_CURRENT_BINARY_DIR@/store_denied_root

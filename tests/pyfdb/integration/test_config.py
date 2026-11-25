@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2025- European Centre for Medium-Range Weather Forecasts (ECMWF)
 # SPDX-License-Identifier: Apache-2.0
 
+import pytest
 import yaml
 
 from pyfdb import FDB
@@ -27,7 +28,7 @@ def test_initialization_config_equality(read_only_fdb_setup):
 
 
 def test_initialization_config_different(read_only_fdb_setup):
-    fdb_user_config_str_a = """
+    fdb_app_config_str_a = """
     type: local
     engine: toc
     useSubToc: true
@@ -36,9 +37,9 @@ def test_initialization_config_different(read_only_fdb_setup):
       - path: "/a/path/is/something"
     """
 
-    fdb_a = FDB(read_only_fdb_setup, fdb_user_config_str_a)
+    fdb_a = FDB(read_only_fdb_setup, fdb_app_config_str_a)
 
-    fdb_user_config_str_b = """
+    fdb_app_config_str_b = """
     type: local
     engine: toc
     useSubToc: true
@@ -47,13 +48,13 @@ def test_initialization_config_different(read_only_fdb_setup):
       - path: "/b/path/is/something"
     """
 
-    fdb_b = FDB(read_only_fdb_setup, fdb_user_config_str_b)
+    fdb_b = FDB(read_only_fdb_setup, fdb_app_config_str_b)
 
     assert fdb_a.config() != fdb_b.config()
 
 
-def test_initialization_config_system_and_user(read_only_fdb_setup):
-    fdb_user_config_str = """
+def test_initialization_config_system_and_app(read_only_fdb_setup):
+    fdb_app_config_str = """
     type: local
     engine: toc
     useSubToc: true
@@ -62,17 +63,17 @@ def test_initialization_config_system_and_user(read_only_fdb_setup):
       - path: "/a/path/is/something"
     """
 
-    fdb = FDB(read_only_fdb_setup, fdb_user_config_str)
+    fdb = FDB(read_only_fdb_setup, fdb_app_config_str)
     assert fdb
 
-    system_config, user_config = fdb.config()
+    system_config, app_config = fdb.config()
 
     assert system_config
-    assert user_config["useSubToc"] is True
+    assert app_config["useSubToc"] is True
 
 
-def test_initialization_config_system_and_user_printing(read_only_fdb_setup):
-    fdb_user_config_str = """
+def test_initialization_config_system_and_app_printing(read_only_fdb_setup):
+    fdb_app_config_str = """
     type: local
     engine: toc
     useSubToc: true
@@ -81,17 +82,17 @@ def test_initialization_config_system_and_user_printing(read_only_fdb_setup):
       - path: "/a/path/is/something"
     """
 
-    fdb = FDB(read_only_fdb_setup, fdb_user_config_str)
+    fdb = FDB(read_only_fdb_setup, fdb_app_config_str)
     assert fdb
 
-    system_config, user_config = fdb.config()
+    system_config, app_config = fdb.config()
 
     assert "db_store" in repr(system_config)
-    assert "'useSubToc': True" in repr(user_config)
+    assert "'useSubToc': True" in repr(app_config)
 
 
-def test_initialization_config_system_and_user_round_trip(read_only_fdb_setup):
-    fdb_user_config_str = """
+def test_initialization_config_system_and_app_round_trip(read_only_fdb_setup):
+    fdb_app_config_str = """
     type: local
     engine: toc
     useSubToc: true
@@ -100,14 +101,25 @@ def test_initialization_config_system_and_user_round_trip(read_only_fdb_setup):
       - path: "/a/path/is/something"
     """
 
-    fdb = FDB(read_only_fdb_setup, fdb_user_config_str)
+    fdb = FDB(read_only_fdb_setup, fdb_app_config_str)
     assert fdb
 
-    system_config, user_config = fdb.config()
+    system_config, app_config = fdb.config()
 
-    fdb2 = FDB(system_config, user_config)
+    fdb2 = FDB(system_config, app_config)
     assert fdb2
 
-    system_config_2, user_config_2 = fdb2.config()
+    system_config_2, app_config_2 = fdb2.config()
     assert system_config == system_config_2
-    assert user_config == user_config_2
+    assert app_config == app_config_2
+
+
+def test_initialization_user_config_deprecated(read_only_fdb_setup):
+    with pytest.warns(DeprecationWarning, match="user_config"):
+        fdb = FDB(read_only_fdb_setup, user_config={"useSubToc": True})
+
+    _, app_config = fdb.config()
+    assert app_config["useSubToc"] is True
+
+    with pytest.raises(ValueError):
+        FDB(read_only_fdb_setup, app_config={}, user_config={})

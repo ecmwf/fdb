@@ -130,9 +130,9 @@ void FDBList::init(const CmdArgs& args) {
 
 void FDBList::execute(const CmdArgs& args) {
 
-    LocalConfiguration userConfig;
-    userConfig.set("readIndexThreads", threads_);
-    FDB fdb(config(args, userConfig));
+    LocalConfiguration appConfig;
+    appConfig.set("readIndexThreads", threads_);
+    FDB fdb(config(args, appConfig));
 
     std::unique_ptr<JSON> json;
     if (json_) {

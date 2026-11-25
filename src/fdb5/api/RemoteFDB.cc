@@ -245,9 +245,8 @@ RemoteFDB::RemoteFDB(const Configuration& config, const std::string& name) : Loc
 
 RemoteFDB::~RemoteFDB() {
     // 1- stop listening thread dispatching to this client
+    // n.b. it waits for any handle() in progress
     deregister();
-    // 2- wait for any handle() before destroying
-    std::lock_guard lock(messageQueueMutex_);
 }
 
 // -----------------------------------------------------------------------------------------------------
@@ -274,13 +273,8 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
     // will result in return messages
 
     uint32_t id = generateRequestID();
-    std::shared_ptr<MessageQueue> messageQueue;
-    {
-        std::lock_guard lock(messageQueueMutex_);
-        auto entry = messageQueues_.emplace(id, std::make_shared<MessageQueue>(HelperClass::queueSize()));
-        ASSERT(entry.second);
-        messageQueue = entry.first->second;
-    }
+    // unregistered again if the request is not sent (see below)
+    auto registration = requests_.add(id, HelperClass::queueSize());
 
     // Encode the request and send it to the server
 
@@ -291,6 +285,8 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
 
     controlWriteCheckResponse(HelperClass::message(), id, true, encodeBuffer, s.position());
 
+    std::shared_ptr<MessageQueue> messageQueue = registration.release();
+
     // Return an AsyncIterator to allow the messages to be retrieved in the API
 
     RemoteFDB* remoteFDB = this;
@@ -299,7 +295,19 @@ auto RemoteFDB::forwardApiCall(const HelperClass& helper, const FDBToolRequest& 
         // this is handled in the AsyncIterator.
         new AsyncIterator(
             shared_from_this(),
-            [messageQueue, remoteFDB](Queue<ValueType>& queue) {
+            [messageQueue, remoteFDB, endpoint = controlEndpoint()](Queue<ValueType>& queue) {
+                // If the iteration stops early (the iterator is destroyed, or a value cannot be decoded), the rest of
+                // the stream is discarded: otherwise it would fill the queue and block the listener of the connection
+                struct Cancel {
+                    MessageQueue& messageQueue;
+                    const eckit::net::Endpoint& endpoint;
+                    ~Cancel() {
+                        remote::RequestQueues<eckit::Buffer>::cancel(
+                            messageQueue, std::make_exception_ptr(
+                                              RemoteFDBException("API request abandoned by the client", endpoint)));
+                    }
+                } cancel{*messageQueue, endpoint};
+
                 Buffer msg{0};
                 while (true) {
                     if (messageQueue->pop(msg) == -1) {
@@ -344,84 +352,41 @@ const Configuration& RemoteFDB::clientConfig() const {
     return config();
 }
 
-void RemoteFDB::closeConnection() {
-    std::lock_guard lock(messageQueueMutex_);
-    for (auto& kv : messageQueues_) {
-        if (!kv.second->closed()) {
-            kv.second->interrupt(
-                std::make_exception_ptr(RemoteFDBException("Unexpected closure of remote FDB", controlEndpoint())));
-        }
-    }
+void RemoteFDB::closeConnection(const std::exception_ptr& reason) {
+    // nothing more will arrive for the requests: they are failed and unregistered (requestIDs restart on a new
+    // connection)
+    requests_.failAll(closureError("Unexpected closure of remote FDB", reason));
 }
 
 bool RemoteFDB::handle(remote::Message message, uint32_t requestID) {
 
     switch (message) {
         case Message::Complete: {
-            std::shared_ptr<MessageQueue> queue;
-            {
-                std::lock_guard lock(messageQueueMutex_);
-                auto iter = messageQueues_.find(requestID);
-                if (iter == messageQueues_.end()) {
-                    return false;
-                }
-                queue = iter->second;
-                // Remove entry (shared_ptr --> message queue will be destroyed when it
-                // goes out of scope in the worker thread).
-                messageQueues_.erase(iter);
-            }
-            queue->close();
-            return true;
+            // the end of the stream: unregistered once the queue is closed
+            return requests_.complete(requestID, [](MessageQueue& queue) { queue.close(); });
         }
         case Message::Error: {
-
+            // an error without its description fails its request, not the connection
             std::ostringstream ss;
-            ss << "RemoteFDB - client id: " << clientId()
-               << " - received an error without error description for requestID " << requestID << std::endl;
-            throw RemoteFDBException(ss.str(), controlEndpoint());
-
-            return false;
+            ss << "RemoteFDB - client id: " << clientId() << " - received an error without description for requestID "
+               << requestID;
+            return requests_.fail(requestID, std::make_exception_ptr(RemoteFDBException(ss.str(), controlEndpoint())));
         }
         default:
             return false;
     }
 }
+
 bool RemoteFDB::handle(remote::Message message, uint32_t requestID, Buffer&& payload) {
 
     switch (message) {
         case Message::Blob: {
-            std::shared_ptr<MessageQueue> queue;
-            {
-                std::lock_guard lock(messageQueueMutex_);
-                auto iter = messageQueues_.find(requestID);
-                if (iter == messageQueues_.end()) {
-                    return false;
-                }
-                queue = iter->second;
-            }
-            queue->emplace(std::move(payload));
-            return true;
+            // n.b. blocks while the queue is full (the consumer is slower); false for an unknown request
+            return requests_.enqueue(requestID, std::move(payload));
         }
-
         case Message::Error: {
-
-            std::shared_ptr<MessageQueue> queue;
-            {
-                std::lock_guard lock(messageQueueMutex_);
-                auto iter = messageQueues_.find(requestID);
-                if (iter == messageQueues_.end()) {
-                    return false;
-                }
-                queue = iter->second;
-                // Remove entry (shared_ptr --> message queue will be destroyed when it
-                // goes out of scope in the worker thread).
-                messageQueues_.erase(iter);
-            }
-            std::string msg;
-            msg.resize(payload.size(), ' ');
-            payload.copy(&msg[0], payload.size());
-            queue->interrupt(std::make_exception_ptr(RemoteFDBException(msg, controlEndpoint())));
-            return true;
+            const std::string msg(static_cast<const char*>(payload.data()), payload.size());
+            return requests_.fail(requestID, std::make_exception_ptr(RemoteFDBException(msg, controlEndpoint())));
         }
         default:
             return false;

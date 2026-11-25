@@ -7,6 +7,27 @@ ecbuild_add_executable(
     NOINSTALL
 )
 
+# Unit tests: they don't need a running server
+ecbuild_add_test(
+    TARGET         fdb_test_remote_locations
+    SOURCES        test_remote_locations.cc
+    INCLUDES       ${ECKIT_INCLUDE_DIRS}
+    LIBS           fdb5
+    ENVIRONMENT    "${test_environment}"
+    LABELS         remotefdb
+)
+
+ecbuild_add_test(
+    TARGET         fdb_test_remote_connection_abort
+    SOURCES        test_remote_connection_abort.cc
+    INCLUDES       ${ECKIT_INCLUDE_DIRS}
+    LIBS           fdb5
+    ENVIRONMENT    "${test_environment}"
+    TEST_PROPERTIES
+    TIMEOUT 120
+    LABELS         remotefdb
+)
+
 if (HAVE_FDB_BUILD_TOOLS)
     ecbuild_configure_file( fdb_remote_test_helper.sh.in fdb_remote_test_helper.sh @ONLY )
     set(FDB_REMOTE_TEST_HELPER "${CMAKE_CURRENT_BINARY_DIR}/fdb_remote_test_helper.sh" CACHE INTERNAL "")
@@ -56,6 +77,50 @@ if (HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB)
         LABELS remotefdb
     )
 
+    # An error of the server (read-only root) must reach the client, and the server must recover once it is fixed
+    ecbuild_add_executable(
+        TARGET    fdb_test_remote_readonly_root_bin
+        SOURCES   test_remote_readonly_root.cc
+        INCLUDES  ${ECKIT_INCLUDE_DIRS}
+        LIBS      fdb5
+        NOINSTALL
+    )
+
+    ecbuild_add_test(
+        TARGET         fdb_test_remote_readonly_root
+        TYPE           SCRIPT
+        COMMAND        ${FDB_TEST_SERVER_SCRIPT}
+        ARGS           ${CMAKE_CURRENT_BINARY_DIR} client.yaml catalogue.yaml store.yaml "$<TARGET_FILE:fdb_test_remote_readonly_root_bin>"
+        TEST_DEPENDS   fdb_test_remote_readonly_root_bin
+        ENVIRONMENT    "${test_environment}"
+        TEST_PROPERTIES
+        TIMEOUT 120
+        RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
+        LABELS remotefdb
+    )
+
+    # Abandoning a request whose answer is streamed (list, retrieve) must not affect the other requests
+    ecbuild_add_executable(
+        TARGET    fdb_test_remote_requests_bin
+        SOURCES   test_remote_requests.cc
+        INCLUDES  ${ECKIT_INCLUDE_DIRS}
+        LIBS      fdb5
+        NOINSTALL
+    )
+
+    ecbuild_add_test(
+        TARGET         fdb_test_remote_requests
+        TYPE           SCRIPT
+        COMMAND        ${FDB_TEST_SERVER_SCRIPT}
+        ARGS           ${CMAKE_CURRENT_BINARY_DIR} client.yaml catalogue.yaml store.yaml "$<TARGET_FILE:fdb_test_remote_requests_bin>"
+        TEST_DEPENDS   fdb_test_remote_requests_bin
+        ENVIRONMENT    "${test_environment}"
+        TEST_PROPERTIES
+        TIMEOUT 180
+        RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
+        LABELS remotefdb
+    )
+
     # See, https://jira.ecmwf.int/browse/FDB-720
     # Regression test for the control/data connection message-ordering race in RemoteStore::handle()
     # ecbuild_add_executable(
@@ -81,6 +146,7 @@ if (HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB)
 endif()
 
 add_subdirectory( multi_store )
+add_subdirectory( wipe_netmask )
 
 if("${ECKIT_VERSION}" VERSION_GREATER_EQUAL 2.2)
     add_subdirectory( single_conn_stress )

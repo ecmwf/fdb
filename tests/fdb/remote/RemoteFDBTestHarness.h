@@ -19,12 +19,7 @@ public:
 
     static std::shared_ptr<RemoteFDB::MessageQueue> registerQueue(RemoteFDB& fdb) {
         uint32_t requestID = fdb.generateRequestID();
-
-        std::lock_guard<std::mutex> lock(fdb.messageQueueMutex_);
-        auto entry = fdb.messageQueues_.emplace(requestID, std::make_shared<RemoteFDB::MessageQueue>(320));
-        ASSERT(entry.second);
-
-        return entry.first->second;
+        return fdb.requests_.add(requestID, 320).release();
     }
 };
 
