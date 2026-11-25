@@ -266,6 +266,7 @@ void TocHandler::openForAppend() {
         ::close(fd_);
         fd_ = -1;
         writeMode_ = false;
+        tocLock_.reset();  // after ::close, as in close(): otherwise the lock outlives this failed open
         throw;
     }
 }
