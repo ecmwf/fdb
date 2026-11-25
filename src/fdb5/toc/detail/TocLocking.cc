@@ -41,6 +41,11 @@ public:
     bool excludesWriters() const override { return false; }
 
     eckit::PathName uniquePath(const eckit::PathName& path) const override { return eckit::PathName::unique(path); }
+
+    /// n.b. as it always was: the name is made unique for the working directory, then placed in `directory`.
+    eckit::PathName uniqueSubTocPath(const eckit::LocalPathName& directory) const override {
+        return directory / eckit::PathName::unique("toc");
+    }
 };
 
 /// False where the platform cannot tell the filesystem type.

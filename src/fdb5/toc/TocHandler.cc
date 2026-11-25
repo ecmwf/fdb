@@ -1246,10 +1246,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
         if (!subTocWrite_) {
 
-            // Only on NFS: the name gets a random token and is looked for in the directory of the TOC.
-            const eckit::PathName subtoc = locking().excludesWriters()
-                                             ? uniquePath(currentDirectory() / "toc")
-                                             : eckit::PathName{currentDirectory() / eckit::PathName::unique("toc")};
+            const eckit::PathName subtoc = locking().uniqueSubTocPath(currentDirectory());
 
             subTocWrite_.reset(new TocHandler(subtoc, Key{}, nullptr, lockPolicyConfig_));
 

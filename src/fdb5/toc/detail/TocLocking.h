@@ -66,6 +66,9 @@ public:
     /// A name for a new file next to `path` that no other client generates.
     virtual eckit::PathName uniquePath(const eckit::PathName& path) const = 0;
 
+    /// A name for a new sub toc in `directory` that no other client generates.
+    virtual eckit::PathName uniqueSubTocPath(const eckit::LocalPathName& directory) const = 0;
+
 protected:
 
     /// `path` if it exists, else its closest parent that exists.

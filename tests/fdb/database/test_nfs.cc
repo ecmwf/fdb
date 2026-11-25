@@ -375,6 +375,25 @@ CASE("TOC locking: a directory that is not created yet counts as the filesystem 
     EXPECT_NO_THROW(nfs.validate(missing, NFSTocLocking::LocalLockPolicy::Error));
 }
 
+CASE("TOC locking: a sub toc is named in its directory, with a random token only by the NFS locking") {
+    const auto dots = [](const std::string& name) { return std::count(name.begin(), name.end(), '.'); };
+
+    const eckit::TmpDir tmp;
+    const eckit::LocalPathName directory{tmp};
+
+    const NFSTocLocking nfs{[](const std::string&) -> std::optional<std::string> { return std::nullopt; }};
+    const eckit::LocalPathName withToken{nfs.uniqueSubTocPath(directory).localPath()};
+    EXPECT_EQUAL(withToken.dirName(), directory);
+    EXPECT(withToken.baseName().path().rfind("toc.", 0) == 0);
+
+    if (!usesNFSLocking(directory)) {
+        const eckit::LocalPathName plain{TocLocking::forDirectory(directory).uniqueSubTocPath(directory).localPath()};
+        EXPECT_EQUAL(plain.dirName(), directory);
+        EXPECT(plain.baseName().path().rfind("toc.", 0) == 0);
+        EXPECT_EQUAL(dots(withToken.baseName().path()), dots(plain.baseName().path()) + 1);
+    }
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("NFS paths: only unique names on NFS get a random token") {

@@ -83,6 +83,8 @@ public:  // methods
 
     eckit::PathName uniquePath(const eckit::PathName& path) const override;
 
+    eckit::PathName uniqueSubTocPath(const eckit::LocalPathName& directory) const override;
+
 private:  // members
 
     LocalLockLookup localLockLookup_;

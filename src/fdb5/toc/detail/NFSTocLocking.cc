@@ -252,6 +252,10 @@ eckit::PathName NFSTocLocking::uniquePath(const eckit::PathName& path) const {
     return unique + suffix.str();
 }
 
+eckit::PathName NFSTocLocking::uniqueSubTocPath(const eckit::LocalPathName& directory) const {
+    return uniquePath(directory / "toc");
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
