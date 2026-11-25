@@ -828,7 +828,7 @@ public:
         parentKey_(parentKey), lockPolicyConfig_(lockPolicyConfig) {}
 
     /// n.b. the subtocs are read without the TOC locks, so on NFS a reader can see a torn last record of a subtoc
-    ///      that is being appended to (see TODO_NFS.md).
+    ///      that is being appended to.
     decltype(subTocReadCache_)&& cache() {
 
 #if eckit_HAVE_AIO
