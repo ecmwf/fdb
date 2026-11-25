@@ -79,6 +79,8 @@ Dist type:
 
 These types can be composed together in the config file when using FDB.
 
+For databases kept on NFS, see :doc:`nfs`.
+
 .. TODO: Get this reviewed and add more information.
 
 ***************
