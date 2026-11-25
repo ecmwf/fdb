@@ -99,7 +99,10 @@ public:  // methods
     TocHandler(const eckit::PathName& dir, const Config& config);
 
     /// For initialising sub tocs or diagnostic interrogation.
-    TocHandler(const eckit::PathName& path, const Key& parentKey, eckit::MemoryHandle* cachedToc = nullptr);
+    /// `lockPolicyConfig` is the user config of the database a sub toc is reached from: only its NFS lock policy is
+    /// read, the sub toc is otherwise configured as before.
+    TocHandler(const eckit::PathName& path, const Key& parentKey, eckit::MemoryHandle* cachedToc = nullptr,
+               const eckit::Configuration* lockPolicyConfig = nullptr);
 
     TocHandler(const TocHandler&) = delete;
     TocHandler& operator=(const TocHandler&) = delete;
@@ -276,8 +279,9 @@ private:  // members
 
     mutable bool dirty_;
 
+    const eckit::Configuration* lockPolicyConfig_;  ///< n.b. non-owning, where the NFS lock policy is read from
     mutable const TocLocking* locking_{nullptr};    ///< n.b. non-owning, cached as it is expensive
-    mutable std::unique_ptr<TocLock> tocLock_;  ///< held with the lock of the open toc file, if any
+    mutable std::unique_ptr<TocLock> tocLock_;      ///< held with the lock of the open toc file, if any
 };
 
 //-----------------------------------------------------------------------------

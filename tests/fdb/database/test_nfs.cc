@@ -464,6 +464,34 @@ CASE("NFS mount: detection fires and a TOC round-trips on a real NFS export") {
     }
 }
 
+CASE("NFS mount: a sub toc takes the lock policy from the user config it is given") {
+    const auto mount = nfsMountDir();
+    if (!mount) {
+        return;
+    }
+
+    const char* saved = ::getenv("FDB_NFS_LOCAL_LOCK_POLICY");
+    const std::optional<std::string> previous = saved ? std::optional<std::string>{saved} : std::nullopt;
+    ::unsetenv("FDB_NFS_LOCAL_LOCK_POLICY");
+
+    const eckit::TmpDir dir{mount->localPath()};
+    const fdb5::Key key{{{"class", "od"}, {"expver", "0001"}, {"stream", "oper"}}};
+
+    eckit::LocalConfiguration invalid;
+    invalid.set("nfsLocalLockPolicy", "strict");
+
+    // The policy is parsed before the mount is looked at, so an invalid one shows which config was read.
+    fdb5::TocHandler configured(dir / "toc.configured", key, nullptr, &invalid);
+    EXPECT_THROWS_AS(configured.writeInitRecord(key), eckit::UserError);
+
+    fdb5::TocHandler unconfigured(dir / "toc.unconfigured", key);
+    EXPECT_NO_THROW(unconfigured.writeInitRecord(key));
+
+    if (previous) {
+        ::setenv("FDB_NFS_LOCAL_LOCK_POLICY", previous->c_str(), 1);
+    }
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("NFS mount: concurrent creators and writers preserve complete TOC records") {

@@ -147,7 +147,8 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     enumeratedMaskedEntries_(false),
     numSubtocsRaw_(0),
     writeMode_(false),
-    dirty_(false) {
+    dirty_(false),
+    lockPolicyConfig_(&dbConfig_.userConfig()) {
     // An override to enable using sub tocs without configurations being passed in, for ease
     // of debugging
     const char* subTocOverride = ::getenv("FDB_SUB_TOCS");
@@ -159,7 +160,8 @@ TocHandler::TocHandler(const eckit::PathName& directory, const Config& config) :
     }
 }
 
-TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, MemoryHandle* cachedToc) :
+TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, MemoryHandle* cachedToc,
+                       const eckit::Configuration* lockPolicyConfig) :
     TocCommon(path.dirName()),
     parentKey_(parentKey),
     tocPath_(TocCommon::findRealPath(eckit::LocalPathName{path})),
@@ -174,7 +176,8 @@ TocHandler::TocHandler(const eckit::PathName& path, const Key& parentKey, Memory
     enumeratedMaskedEntries_(false),
     numSubtocsRaw_(0),
     writeMode_(false),
-    dirty_(false) {
+    dirty_(false),
+    lockPolicyConfig_(lockPolicyConfig ? lockPolicyConfig : &dbConfig_.userConfig()) {
 
     if (cachedToc_) {
         cachedToc_->openForRead();
@@ -224,7 +227,7 @@ bool TocHandler::exists() const {
 const TocLocking& TocHandler::locking() const {
     if (!locking_) {
         const auto& selected = TocLocking::forDirectory(directory());
-        selected.validate(directory(), dbConfig_.userConfig());
+        selected.validate(directory(), *lockPolicyConfig_);
         locking_ = &selected;
     }
     return *locking_;
@@ -818,13 +821,15 @@ class SubtocPreloader {
         }
     };
     const Key& parentKey_;
+    const eckit::Configuration* lockPolicyConfig_;
 
     mutable std::map<eckit::LocalPathName, std::unique_ptr<TocHandler>> subTocReadCache_;
     std::vector<eckit::LocalPathName> paths_;
 
 public:
 
-    explicit SubtocPreloader(const Key& parentKey) : parentKey_(parentKey) {}
+    SubtocPreloader(const Key& parentKey, const eckit::Configuration* lockPolicyConfig) :
+        parentKey_(parentKey), lockPolicyConfig_(lockPolicyConfig) {}
 
     /// n.b. the subtocs are read without the TOC locks, so on NFS a reader can see a torn last record of a subtoc
     ///      that is being appended to (see TODO_NFS.md).
@@ -932,7 +937,8 @@ public:
                         }
                         ASSERT(subTocReadCache_.find(paths_[n]) == subTocReadCache_.end());
                         subTocReadCache_.emplace(
-                            paths_[n], std::make_unique<TocHandler>(paths_[n], parentKey_, cachedToc.release()));
+                            paths_[n], std::make_unique<TocHandler>(paths_[n], parentKey_, cachedToc.release(),
+                                                                    lockPolicyConfig_));
                     }
                     else {
                         throw FailedSystemCall("aio_error", Here(), e);
@@ -967,7 +973,7 @@ void TocHandler::preloadSubTocs(bool readMasked) const {
 
         // n.b. we call databaseKey() directly, as this preload will normally be called before we have walked
         //      the toc at all --> TOC_INIT not yet read --> parentKey_ not yet set.
-        SubtocPreloader preloader(parentKey_);
+        SubtocPreloader preloader(parentKey_, lockPolicyConfig_);
 
         while (readNextInternal(*r)) {
 
@@ -1243,7 +1249,7 @@ void TocHandler::writeIndexRecord(const Index& index) {
 
             const eckit::PathName subtoc = uniquePath(currentDirectory() / "toc");
 
-            subTocWrite_.reset(new TocHandler(subtoc, Key{}));
+            subTocWrite_.reset(new TocHandler(subtoc, Key{}, nullptr, lockPolicyConfig_));
 
             subTocWrite_->writeInitRecord(databaseKey());
 
@@ -1538,7 +1544,8 @@ void TocHandler::selectSubTocRead(const eckit::LocalPathName& path) const {
 
     auto it = subTocReadCache_.find(path);
     if (it == subTocReadCache_.end()) {
-        auto r = subTocReadCache_.insert(std::make_pair(path, new TocHandler(path, parentKey_)));
+        auto r =
+            subTocReadCache_.insert(std::make_pair(path, new TocHandler(path, parentKey_, nullptr, lockPolicyConfig_)));
         ASSERT(r.second);
         it = r.first;
     }
@@ -1740,7 +1747,7 @@ void TocHandler::enumerateMasked(std::set<std::pair<eckit::URI, Offset>>& metada
 
             // If this is a subtoc, then enumerate its contained indexes and data!
             if (uri.path().baseName().asString().substr(0, 4) == "toc.") {
-                TocHandler h(absPath, remapKey_);
+                TocHandler h(absPath, remapKey_, nullptr, lockPolicyConfig_);
 
                 h.enumerateMasked(metadata, data);
 
