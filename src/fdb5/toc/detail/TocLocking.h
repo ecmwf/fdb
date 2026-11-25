@@ -20,7 +20,7 @@
 
 namespace eckit {
 class Configuration;
-}
+}  // namespace eckit
 
 namespace fdb5 {
 

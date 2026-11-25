@@ -135,6 +135,13 @@ private:
     std::unique_lock<std::mutex> lock_;
 };
 
+/// The process lock first, so that only one handler of this process asks for the file lock.
+std::unique_ptr<TocLock> hold_locks(int fd, short type, const eckit::PathName& path) {
+    auto lock = std::make_unique<ProcessLock>(fd, path);
+    lock_file(fd, type, path);
+    return lock;
+}
+
 std::optional<std::string> system_local_lock_option(const std::string& device) {
     return eckit::filesystem::nfs::local_lock_option(device);
 }
@@ -154,6 +161,9 @@ constexpr std::array<std::pair<LocalLockPolicy, std::string_view>, 2> policyName
     },
 };
 
+/// The random token of a unique name is written as this many hexadecimal digits.
+constexpr int tokenHexDigits = 2 * sizeof(std::uint64_t);
+
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -169,8 +179,10 @@ LocalLockPolicy NFSTocLocking::parsePolicy(const std::string& value, const std::
 
     std::ostringstream message;
     message << "Invalid " << source << "=" << value << " (expected ";
-    for (size_t i = 0; i < policyNames.size(); ++i) {
-        message << (i == 0 ? "" : ", ") << policyNames[i].second;
+    const char* separator = "";
+    for (const auto& [policy, name] : policyNames) {
+        message << separator << name;
+        separator = ", ";
     }
     message << ")";
     throw eckit::UserError(message.str(), Here());
@@ -222,15 +234,11 @@ void NFSTocLocking::validate(const eckit::LocalPathName& directory, LocalLockPol
 }
 
 std::unique_ptr<TocLock> NFSTocLocking::holdForRead(int fd, const eckit::PathName& path) const {
-    auto lock = std::make_unique<ProcessLock>(fd, path);
-    lock_file(fd, F_RDLCK, path);
-    return lock;
+    return hold_locks(fd, F_RDLCK, path);
 }
 
 std::unique_ptr<TocLock> NFSTocLocking::holdForWrite(int fd, const eckit::PathName& path) const {
-    auto lock = std::make_unique<ProcessLock>(fd, path);
-    lock_file(fd, F_WRLCK, path);
-    return lock;
+    return hold_locks(fd, F_WRLCK, path);
 }
 
 void NFSTocLocking::openedForAppend(int fd, const eckit::PathName& path) const {
@@ -247,7 +255,7 @@ eckit::PathName NFSTocLocking::uniquePath(const eckit::PathName& path) const {
     const auto token = std::uniform_int_distribution<std::uint64_t>{}(device);
 
     std::ostringstream suffix;
-    suffix << '.' << std::hex << std::setfill('0') << std::setw(16) << token;
+    suffix << '.' << std::hex << std::setfill('0') << std::setw(tokenHexDigits) << token;
 
     return unique + suffix.str();
 }
