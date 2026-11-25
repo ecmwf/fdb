@@ -1414,6 +1414,26 @@ CASE("an oversized or incompatible message is rejected before anything is alloca
         EXPECT(!connection.valid());
     }
     {
+        // a trace context has its own small bound, whatever the (here default, unlimited) limit of the requests
+        SocketPair control;
+        TestConnection connection(control, nullptr);
+
+        const remote::MessageHeader hdr{remote::Message::Trace, true, 0, 0, 1u << 30};
+        control.client.write(&hdr, sizeof(hdr));
+
+        remote::MessageHeader received{};
+        std::string error;
+        try {
+            connection.readControl(received);
+        }
+        catch (const remote::RemoteProtocolException& e) {
+            error = e.what();
+        }
+        EXPECT(error.find("exceeds the limit of " + std::to_string(tracing::TraceContext::maxBinarySize) +
+                          " bytes") != std::string::npos);
+        EXPECT(!connection.valid());
+    }
+    {
         SocketPair control;
         TestConnection connection(control, nullptr);
 

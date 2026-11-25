@@ -139,7 +139,8 @@ In an FDB client or ``fdb-server`` configuration:
 
 All these settings are process-wide: the ``tracing`` block of the first configuration that
 provides one is used (for an ``fdb-server``, its own configuration, which also applies to the
-FDBs it opens). With tracing disabled, no span is recorded and no trace context is sent to the
+FDBs it opens). The configuration given to an FDB takes precedence over the one it expands to
+(e.g. from ``FDB_HOME``); both are read before the FDB connects to any server. With tracing disabled, no span is recorded and no trace context is sent to the
 FDB servers.
 
 .. _FDB_Tracing_Failing_Requests:
@@ -174,7 +175,9 @@ Notes:
   Only ``exporter: none`` or ``enabled: false`` avoid this cost.
 * The spans exported because of a failure keep ``trace_flags`` 0: they were not sampled.
 * If a flush fails, the traces of the archive spans which it closes are exported with it, whichever trace they
-  belong to. The archive spans keep their own status.
+  belong to. The archive spans keep their own status. So, if an archive fails (the backend may have
+  failed to flush earlier data, e.g. when it evicts a database), are the traces of the archives not
+  yet flushed.
 * Each process decides for its own spans: a server exports its part of a request if it fails on
   the server, or if the request is sampled. A request that fails on the client only (e.g. a lost
   connection) is exported by the client, while the server exports its part only if it is sampled.
@@ -214,8 +217,8 @@ no context.
 The client only sends a ``Trace`` message when the context differs from the one the server holds:
 the successive blobs of an archive call, which share one, need a single message. The context is
 sent whether it is sampled or not, so that the server records its part of a failing request.
-A ``Trace`` message is accepted whatever the payload size limit of the server (it is at most 538
-bytes), so that it never makes a valid request fail.
+A ``Trace`` message has its own payload size limit, 538 bytes, whatever the limit of the requests
+of the server: a valid context never makes a request fail, and a larger one is a protocol error.
 
 If either side predates this feature, or has tracing disabled in its process, the key is absent
 and no ``Trace`` message is ever sent: the wire protocol is unchanged. A ``Trace`` message that the

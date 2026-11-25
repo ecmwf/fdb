@@ -14,6 +14,7 @@
 #include "eckit/thread/Mutex.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/tracing/Tracer.h"
 
 
 namespace fdb5 {
@@ -86,6 +87,11 @@ std::shared_ptr<FDBBase> FDBFactory::build(const Config& config) {
     // configuration file, or to pick up the default configuration from ~fdb/etc/fdb/...
 
     Config actualConfig = config.expandConfig();
+
+    // The (process-wide) tracing settings apply before the FDB is built: a remote FDB connects, and sends requests,
+    // on construction. Those supplied take precedence over those of the configuration they expand to (the first wins).
+    tracing::Tracer::instance().configureFrom(config);
+    tracing::Tracer::instance().configureFrom(actualConfig);
 
     /// We use "local" as a default type if not otherwise configured.
 

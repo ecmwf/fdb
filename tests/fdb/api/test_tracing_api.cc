@@ -373,6 +373,38 @@ CASE("Failures: a failing flush exports the archive spans of other traces") {
     Tracer::instance().sampler(Sampler{});
 }
 
+CASE("Failures: a failing archive exports the traces of the archives not yet flushed") {
+    // The backend may fail to flush earlier data during an archive (e.g. that of a database evicted by the Archiver):
+    // the traces of the archives whose data is not yet durable are part of the failure, whichever trace they belong to
+    Fixture fx;
+    Tracer::instance().sampler(Sampler{Sampler::Kind::AlwaysOff, false});
+    TraceContext unsampled = TraceContext::fromTraceparent("00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00");
+
+    {
+        FDB fdb;
+        archiveSome(fdb, 1, unsampled);
+        fdb.flush(unsampled);  // durable: not part of the failure
+        EXPECT(fx.exporter->spans().empty());
+
+        archiveSome(fdb, 2, unsampled);
+        Key invalid = makeKey("0");
+        invalid.unset("param");  // matches no rule of the schema
+        EXPECT_THROWS(fdb.archive(invalid, payload.data(), payload.size()));  // in the archive-cycle trace
+        fdb.flush();  // succeeds
+
+        size_t retained = 0;
+        for (const auto& a : fx.exporter->named("fdb.archive")) {
+            if (a.context.traceId() == unsampled.traceId()) {
+                ++retained;
+                EXPECT(a.status == StatusCode::Unset);  // the archives themselves succeeded
+                EXPECT_EQUAL(attribute(a, "fdb.fields"), 2);
+            }
+        }
+        EXPECT_EQUAL(retained, 1);
+    }
+    Tracer::instance().sampler(Sampler{});
+}
+
 CASE("A concurrent flush never closes the cycle that an archive is joining") {
     // The archive cycle is closed by a flush either before an archive chooses its parent (the archive is in the next
     // cycle), or after it is registered in its aggregate: an aggregate never starts in a cycle that has ended (its

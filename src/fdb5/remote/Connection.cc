@@ -170,17 +170,15 @@ void Connection::checkHeader(const MessageHeader& hdr, bool control) const {
            << (control ? "control" : "data") << " connection";
         throw RemoteProtocolException(ss.str(), Here());
     }
-    // n.b. a trace context is accepted whatever the limit, which applies to the requests: a valid request must not
-    // fail because the (small, bounded) context sent with it does not fit
-    const size_t configuredLimit = maxPayloadSize_;
-    const size_t limit = hdr.message == Message::Trace
-                           ? std::max<size_t>(configuredLimit, tracing::TraceContext::maxBinarySize)
-                           : configuredLimit;
+    // n.b. a trace context has its own (small) bound, whatever the limit of the requests: checked before the payload
+    // is allocated, and a valid context is accepted even when the request limit is smaller
+    const size_t limit =
+        hdr.message == Message::Trace ? tracing::TraceContext::maxBinarySize : static_cast<size_t>(maxPayloadSize_);
     if (hdr.payloadSize > limit) {
         isValid_ = false;
         std::ostringstream ss;
         ss << "message " << hdr.message << " with a payload of " << hdr.payloadSize << " bytes exceeds the limit of "
-           << maxPayloadSize_ << " bytes";
+           << limit << " bytes";
         throw RemoteProtocolException(ss.str(), Here());
     }
 }
@@ -499,6 +497,8 @@ void Connection::endConnection() noexcept {
 }
 
 void Connection::unauthorised(std::string_view msg, uint32_t clientID, uint32_t requestID) const {
+    // a denied request has failed, as for error()
+    tracing::recordError(msg);
     eckit::Log::warning() << "[clientID=" << clientID << ",requestID=" << requestID << "]  " << msg << std::endl;
     write(Message::Unauthorised, true, clientID, requestID, msg.data(), msg.length());
 }

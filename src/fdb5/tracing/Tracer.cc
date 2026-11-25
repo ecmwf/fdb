@@ -3,6 +3,7 @@
 
 #include "fdb5/tracing/Tracer.h"
 
+#include <pthread.h>
 #include <unistd.h>
 
 #include <algorithm>
@@ -35,8 +36,18 @@ namespace fdb5::tracing {
 
 namespace {
 
+/// Incremented in the child after each fork(): a generator seeded before the fork is reseeded, so that the processes
+/// do not generate the same ids (e.g. the connection handlers of the fdb-server)
+std::atomic<unsigned> forks{0};
+
 std::mt19937_64& rng() {
-    thread_local std::mt19937_64 gen{[] {
+    static const int atfork = ::pthread_atfork(nullptr, nullptr, [] { forks.fetch_add(1, std::memory_order_relaxed); });
+    (void)atfork;
+
+    thread_local std::mt19937_64 gen;
+    thread_local std::optional<unsigned> seededAt;  // the value of 'forks' when gen was seeded
+    const unsigned now = forks.load(std::memory_order_relaxed);
+    if (seededAt != now) {
         std::random_device rd;
         std::seed_seq seq{rd(),
                           rd(),
@@ -45,8 +56,9 @@ std::mt19937_64& rng() {
                           static_cast<unsigned>(::getpid()),
                           static_cast<unsigned>(std::hash<std::thread::id>{}(std::this_thread::get_id())),
                           static_cast<unsigned>(std::chrono::steady_clock::now().time_since_epoch().count())};
-        return std::mt19937_64{seq};
-    }()};
+        gen.seed(seq);
+        seededAt = now;
+    }
     return gen;
 }
 

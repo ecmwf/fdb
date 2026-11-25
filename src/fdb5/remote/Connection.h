@@ -102,7 +102,8 @@ public:  // methods
     int tracingVersion() const { return tracingVersion_; }
 
     /// Sends an error reply. The failure is also recorded in the innermost tracing::ScopedSpan of the calling thread
-    /// (the span of the request being handled), see tracing::recordError(). So do tryError() and tryErrorBounded().
+    /// (the span of the request being handled), see tracing::recordError(). So do tryError(), tryErrorBounded() and
+    /// unauthorised().
     void error(bool control, std::string_view msg, uint32_t clientID, uint32_t requestID) const;
     void unauthorised(std::string_view msg, uint32_t clientID, uint32_t requestID) const;
 

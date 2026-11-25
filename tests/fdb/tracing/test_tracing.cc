@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
 // SPDX-License-Identifier: Apache-2.0
 
+#include <sys/wait.h>
+#include <unistd.h>
+
 #include <memory>
 #include <mutex>
 #include <sstream>
@@ -734,6 +737,30 @@ CASE("SpanAggregator: a null aggregator is a no-op") {
         EXPECT(!current().valid());
     }
     EXPECT_EQUAL(fx.exporter->spans().size(), 0);
+}
+
+CASE("Ids: a forked process does not repeat the ids of its parent") {
+    Tracer::newSpanId();  // the generator of this thread is seeded before the fork
+
+    int fds[2];
+    EXPECT(::pipe(fds) == 0);
+    const pid_t pid = ::fork();
+    EXPECT(pid >= 0);
+    if (pid == 0) {
+        const auto id = Tracer::newSpanId();
+        const bool ok = ::write(fds[1], id.data(), id.size()) == static_cast<ssize_t>(id.size());
+        ::_exit(ok ? 0 : 1);
+    }
+    const auto parent = Tracer::newSpanId();
+    TraceContext::SpanId child{};
+    const bool received = ::read(fds[0], child.data(), child.size()) == static_cast<ssize_t>(child.size());
+    int status = 0;
+    ::waitpid(pid, &status, 0);
+    ::close(fds[0]);
+    ::close(fds[1]);
+
+    EXPECT(received);
+    EXPECT(child != parent);
 }
 
 CASE("Sampler names and ratio") {

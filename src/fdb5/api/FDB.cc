@@ -153,6 +153,11 @@ public:
             if (recording()) {
                 failed(e.what(), {{"fdb.key", toAttributeString(key)}});
             }
+            // The backend may have failed to flush the data of earlier archives too (e.g. the implicit flush of a
+            // database evicted by the Archiver): their traces, possibly other ones, are part of the failure
+            if (spans_) {
+                spans_->retainTracesOfNewFields(spans_->mark());
+            }
             throw;
         }
         add(1, length);
@@ -172,29 +177,19 @@ private:
     /// by a flush for its whole duration): archive calls do not wait for a flush in progress.
     ArchiveOperation(FDB& fdb, const tracing::TraceContext& trace, tracing::SpanAggregator* spans,
                      std::unique_lock<std::mutex>&& /* lock */) :
-        Operation(spans, spans ? fdb.archiveParent(trace) : tracing::TraceContext{}) {}
+        Operation(spans, spans ? fdb.archiveParent(trace) : tracing::TraceContext{}), spans_(spans) {}
+
+    tracing::SpanAggregator* spans_;  // null if tracing is disabled
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-namespace {
-
-/// Build the implementation of an FDB. The tracing settings of the configuration apply first: connecting to a remote
-/// FDB negotiates trace-context propagation, which depends on them.
-std::shared_ptr<FDBBase> buildInternal(const Config& config) {
-    tracing::Tracer::instance().configureFrom(config);
-    return FDBFactory::instance().build(config);
-}
-
-}  // namespace
-
+// n.b. FDBFactory::build() applies the tracing settings of the configuration before building the implementation
 FDB::FDB(const Config& config) :
-    internal_(buildInternal(config)),
+    internal_(FDBFactory::instance().build(config)),
     dirty_(false),
     reportStats_(config.getBool("statistics", false)),
     archiveSpans_(std::make_unique<tracing::SpanAggregator>("fdb.archive", tracing::SpanKind::Internal)) {
-    // n.b. the first tracing settings found in the process apply: those supplied (see buildInternal) take precedence
-    tracing::Tracer::instance().configureFrom(internal_->config());
     LibFdb5::instance().constructorCallback()(*internal_);
 }
 
