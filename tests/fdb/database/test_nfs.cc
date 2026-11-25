@@ -305,6 +305,11 @@ CASE("NFS locks: only the error policy throws, and only for client-local mounts"
         const std::string what = error.what();
         EXPECT(what.find(directory.path()) != std::string::npos);
         EXPECT(what.find("local_lock=posix") != std::string::npos);
+
+        // ... and what can be done about it
+        EXPECT(what.find("remount") != std::string::npos);
+        EXPECT(what.find("nfsLocalLockPolicy") != std::string::npos);
+        EXPECT(what.find("FDB_NFS_LOCAL_LOCK_POLICY=allow") != std::string::npos);
     }
 }
 

@@ -152,6 +152,11 @@ std::string client_local_locks_message(const eckit::LocalPathName& directory, co
     return message.str();
 }
 
+/// What can be done about a mount that was rejected for its client-local locks.
+constexpr const char* clientLocalLocksRemedy =
+    ": remount it with locks served by the NFS server, or set nfsLocalLockPolicy to allow in the FDB config "
+    "(or FDB_NFS_LOCAL_LOCK_POLICY=allow) to use it without locking between clients";
+
 using LocalLockPolicy = NFSTocLocking::LocalLockPolicy;
 
 constexpr std::array<std::pair<LocalLockPolicy, std::string_view>, 2> policyNames{
@@ -225,7 +230,7 @@ void NFSTocLocking::validate(const eckit::LocalPathName& directory, LocalLockPol
     }
 
     if (policy == LocalLockPolicy::Error) {
-        throw eckit::UserError(client_local_locks_message(directory, *option), Here());
+        throw eckit::UserError(client_local_locks_message(directory, *option) + clientLocalLocksRemedy, Here());
     }
 
     if (firstLookup) {
