@@ -195,12 +195,15 @@ error.
 Indexing and archiving metadata
 -------------------------------
 
-Selecting an index creates or reopens the corresponding index KV. Archiving a
+Selecting an index reopens the corresponding index KV if it is registered in
+the catalogue KV. A new index is only written, and then registered, by its
+first flush. Archiving a
 datum queues its serialized field location and any newly observed axis values
 in memory. ``flush()`` writes the queued axis values and then the queued
 entries, so a field becomes visible to readers only once it has been flushed.
 FDB flushes the store before the catalogue; an entry therefore never refers
-to data that is not yet readable. Index enumeration reads the index
+to data that is not yet readable. Entries that are still queued when a
+catalogue writer is destroyed are dropped. Index enumeration reads the index
 references from the catalogue KV and reconstructs the RADOS indexes.
 
 The backend intentionally does not require sorted index enumeration; the
