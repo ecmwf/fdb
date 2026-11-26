@@ -199,9 +199,14 @@ void RadosCatalogueWriter::archive(const Key& /* idxKey */, const Key& datumKey,
 }
 
 void RadosCatalogueWriter::flush(size_t /* archivedFields */) {
-    if (!current_.null()) {
-        current_ = Index();
+
+    for (auto& [key, index] : indexes_) {
+        if (index.dirty()) {
+            index.flush();
+        }
     }
+
+    current_ = Index();
 }
 
 void RadosCatalogueWriter::closeIndexes() {

@@ -97,19 +97,32 @@ eckit::RadosKeyValue RadosIndex::axisKeyValue(const eckit::RadosKeyValue& idx_kv
 }
 
 void RadosIndex::putAxisValue(const std::string& axis, const std::string& value) {
+    pendingAxisValues_[axis].insert(value);
+}
 
-    const std::string axis_marker = "axis." + axis;
+void RadosIndex::flush() {
+
+    // Axis values go first: a reader must never find an entry whose axis values are not yet recorded.
     const char marker = '1';
-    idx_kv_.put(axis_marker, &marker, 1);
+    for (const auto& [axis, values] : pendingAxisValues_) {
 
-    auto axis_kv = axis_kvs_.find(axis);
+        idx_kv_.put("axis." + axis, &marker, 1);
 
-    if (axis_kv == axis_kvs_.end()) {
-        axis_kv = axis_kvs_.emplace(axis, axisKeyValue(idx_kv_, key(), axis)).first;
+        auto axis_kv = axis_kvs_.find(axis);
+        if (axis_kv == axis_kvs_.end()) {
+            axis_kv = axis_kvs_.emplace(axis, axisKeyValue(idx_kv_, key(), axis)).first;
+        }
+
+        for (const auto& value : values) {
+            axis_kv->second.put(value, &marker, 1);
+        }
     }
+    pendingAxisValues_.clear();
 
-    std::string v{"1"};
-    axis_kv->second.put(value, v.data(), v.length());
+    for (const auto& [key, location] : pendingEntries_) {
+        idx_kv_.put(key, location.data(), location.size());
+    }
+    pendingEntries_.clear();
 }
 
 void RadosIndex::updateAxes() {
@@ -157,7 +170,8 @@ void RadosIndex::add(const Key& key, const Field& field) {
         hs << field.location();
     }
 
-    idx_kv_.put(key.valuesToString(), h.data(), hs.bytesWritten());
+    const char* serialised = static_cast<const char*>(h.data());
+    pendingEntries_[key.valuesToString()].assign(serialised, serialised + hs.bytesWritten());
 }
 
 void RadosIndex::entries(EntryVisitor& visitor, EntryVisitor::IndexScope& scope) const {

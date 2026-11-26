@@ -48,7 +48,7 @@ public:  // methods
     void flock() const override { NOTIMP; }
     void funlock() const override { NOTIMP; }
 
-    // Exposed so RadosCatalogueWriter can persist axis metadata into idx_kv_ / axis_kvs_.
+    // Queues an axis value; it is persisted into idx_kv_ / axis_kvs_ by flush().
     void putAxisValue(const std::string& axis, const std::string& value);
 
     // Names of the axes recorded in an index KV. Throws eckit::RadosEntityNotFoundException if the KV is missing.
@@ -65,7 +65,7 @@ private:  // methods
     const IndexLocation& location() const override { return location_; }
     std::vector<eckit::URI> dataURIs() const override;
 
-    bool dirty() const override { NOTIMP; }
+    bool dirty() const override { return !pendingEntries_.empty() || !pendingAxisValues_.empty(); }
 
     void open() override { NOTIMP; };
     // The RADOS KV index holds no open file/handle state, so closing is a no-op.
@@ -77,7 +77,9 @@ private:  // methods
 
     bool get(const Key& key, const Key& remapKey, Field& field) const override;
     void add(const Key& key, const Field& field) override;
-    void flush() override { NOTIMP; }
+    // Persists the queued axis values and then the queued entries. Nothing is visible to readers before
+    // this is called, so entries never refer to data the store has not flushed yet.
+    void flush() override;
     void encode(eckit::Stream& s, const int version) const override { NOTIMP; }
     void entries(EntryVisitor& visitor, EntryVisitor::IndexScope& scope) const override;
 
@@ -97,6 +99,10 @@ private:  // members
 
     eckit::RadosKeyValue idx_kv_;
     std::map<std::string, eckit::RadosKeyValue> axis_kvs_;
+
+    // Serialised entries and axis values archived since the last flush().
+    std::map<std::string, std::vector<char>> pendingEntries_;
+    std::map<std::string, std::set<std::string>> pendingAxisValues_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

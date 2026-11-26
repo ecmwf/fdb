@@ -1088,6 +1088,29 @@ CASE("RadosCatalogue regressions") {
         EXPECT(axes.has("f") && axes.values("f").contains("6"));
     }
 
+    SECTION("Archived fields are not visible before flush") {
+
+        fdb5::Config config{YAMLConfiguration(api_config(pool, test_id, "rados"))};
+        fdb5::Key key({{"a", "32"}, {"b", "32"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+
+        fdb5::FDB writer(config);
+        writer.archive(key, data, sizeof(data));
+
+        {
+            fdb5::FDB reader(config);
+            EXPECT(countListed(reader, tool_request(key)) == 0);
+        }
+
+        writer.flush();
+
+        fdb5::FDB reader(config);
+        EXPECT(countListed(reader, tool_request(key)) == 1);
+        std::unique_ptr<eckit::DataHandle> dh(reader.retrieve(key.request("retrieve")));
+        eckit::MemoryHandle mh;
+        dh->copyTo(mh);
+        EXPECT(mh.size() == eckit::Length(sizeof(data)));
+    }
+
     SECTION("Roots do not need a filesystem path") {
 
         fdb5::Config config{YAMLConfiguration(api_config(pool, test_id, "rados", false))};
