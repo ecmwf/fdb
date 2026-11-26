@@ -1068,7 +1068,7 @@ CASE("RadosCatalogue regressions") {
         // Nothing belonging to the wiped index (index KV, axis KVs, data objects) may be left behind.
         for (const auto& obj : eckit::RadosNamespace{pool, test_id + "_31:31"}.listObjects()) {
             std::cout << "remaining object: " << obj.name() << std::endl;
-            EXPECT(obj.name().rfind("3:4", 0) != 0);
+            EXPECT(obj.name().find("3:4") == std::string::npos);
         }
     }
 
@@ -1129,6 +1129,53 @@ CASE("RadosCatalogue regressions") {
         }
 
         fdb5::FDB fdb(config);
+        for (const auto& key : keys) {
+            std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(key.request("retrieve")));
+            eckit::MemoryHandle mh;
+            dh->copyTo(mh);
+            EXPECT(mh.size() == eckit::Length(sizeof(data)));
+        }
+    }
+
+    SECTION("Keys named like metadata entries do not collide with them") {
+
+        eckit::TmpFile flat_schema;
+        const std::string flat_schema_str{"[ a [ c [ e ]]]"};
+        std::unique_ptr<eckit::DataHandle> hs(flat_schema.fileHandle());
+        hs->openForWrite(flat_schema_str.size());
+        {
+            eckit::AutoClose closer(*hs);
+            hs->write(flat_schema_str.data(), flat_schema_str.size());
+        }
+
+        const std::string config_str{
+            "spaces:\n- roots:\n  - path: " + catalogue_tests_tmp_root().asString() + "\n    pool: " + pool +
+            "\n    root_namespace: " + test_id + "_root\n    namespace_prefix: " + test_id +
+            "\ntype: local\nschema : " + flat_schema.path() + "\nengine: rados\nstore: rados\n"};
+        fdb5::Config config{YAMLConfiguration(config_str)};
+
+        const std::vector<fdb5::Key> keys{
+            fdb5::Key({{"a", "37"}, {"c", "key"}, {"e", "key"}}),
+            fdb5::Key({{"a", "37"}, {"c", "schema"}, {"e", "axes"}}),
+            fdb5::Key({{"a", "37"}, {"c", "control.list"}, {"e", "axis.e"}}),
+        };
+
+        {
+            fdb5::FDB fdb(config);
+            for (const auto& key : keys) {
+                fdb.archive(key, data, sizeof(data));
+            }
+            fdb.flush();
+        }
+
+        // A second writer reloads the database key and schema from the catalogue KV.
+        fdb5::FDB fdb(config);
+        fdb.archive(keys.front(), data, sizeof(data));
+        fdb.flush();
+
+        fdb5::FDBToolRequest db_req{fdb5::Key({{"a", "37"}}).request("retrieve"), false, std::vector<std::string>{"a"}};
+        EXPECT(countListed(fdb, db_req) == keys.size());
+
         for (const auto& key : keys) {
             std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(key.request("retrieve")));
             eckit::MemoryHandle mh;

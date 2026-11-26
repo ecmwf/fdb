@@ -34,6 +34,19 @@ struct RadosSpace {
     std::string databaseNamespace(const Key& key) const;
 };
 
+// Entries and objects named after user keys carry one of these prefixes, so that no index or datum key can
+// collide with the backend's own metadata entries (`key`, `schema`, `control.*`) or with `catalogue_kv`.
+namespace rados_names {
+
+constexpr const char* indexPrefix = "index.";  // catalogue KV entry and index KV object: index.<index key>
+constexpr const char* axisPrefix = "axis.";    // index KV marker axis.<axis>; axis KV object axis.<index key>.<axis>
+constexpr const char* fieldPrefix = "field.";  // index KV entry: field.<datum key>
+constexpr const char* dataPrefix = "data.";    // data object: data.<index key>.<unique digest>
+
+bool has_prefix(const std::string& name, const std::string& prefix);
+
+}  // namespace rados_names
+
 // Reads the persisted `key` entry from a RADOS DB KV and deserialises it into an fdb5::Key.
 // Throws eckit::RadosEntityNotFoundException if the DB KV or the `key` entry is missing.
 fdb5::Key read_db_key(const eckit::RadosKeyValue& db_kv);

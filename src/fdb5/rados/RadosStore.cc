@@ -335,7 +335,8 @@ eckit::RadosObject RadosStore::generateDataObject(const Key& key) const {
 
     eckit::MD5 md5(name);
 
-    return eckit::RadosObject{pool_, db_namespace_, key.valuesToString() + "." + md5.digest() + ".data"};
+    return eckit::RadosObject{pool_, db_namespace_,
+                              rados_names::dataPrefix + key.valuesToString() + "." + md5.digest()};
 }
 
 const eckit::RadosObject& RadosStore::getDataObject(const Key& key) const {

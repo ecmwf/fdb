@@ -46,6 +46,10 @@ RadosSpace space_from_root(const eckit::LocalConfiguration& root) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+bool rados_names::has_prefix(const std::string& name, const std::string& prefix) {
+    return name.compare(0, prefix.size(), prefix) == 0;
+}
+
 fdb5::Key read_db_key(const eckit::RadosKeyValue& db_kv) {
     std::vector<char> data;
     eckit::MemoryStream ms = db_kv.getMemoryStream(data, "key", "DB kv");

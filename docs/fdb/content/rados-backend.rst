@@ -111,23 +111,29 @@ The ``catalogue_kv`` object contains:
 
 * ``key``: serialized FDB database key.
 * ``schema``: serialized schema used by the database.
-* One entry per index key, whose value is the URI of the index RADOS KV.
+* ``index.<index-key>``: one entry per index, whose value is the URI of the
+  index RADOS KV.
 * ``control.*`` entries for persisted control state, such as list and
   retrieve visibility.
 
-Each index is a RADOS key/value object in the database namespace. Its omap
-entries contain:
+Each index is a RADOS key/value object named ``index.<index-key>`` in the
+database namespace. Its omap entries contain:
 
 * ``key``: serialized index key.
-* Datum keys mapped to serialized timestamps and ``FieldLocation`` values.
-* ``axis.<name>`` markers and per-axis key/value objects used for axis
-  enumeration.
+* ``field.<datum-key>``: serialized timestamp and ``FieldLocation`` of a datum.
+* ``axis.<name>``: marker for an axis of the index. The values of the axis are
+  the omap keys of a separate object named ``axis.<index-key>.<name>``.
 
-Field payloads are RADOS objects in the same database namespace. Their names
-are generated from the field key and a unique timestamp/host/process value
-hashed with MD5, for example::
+Field payloads are RADOS objects in the same database namespace. A store
+instance writes one object per index key; its name is built from the index key
+and a unique timestamp/host/process value hashed with MD5::
 
-   <field-key>.<unique-digest>.data
+   data.<index-key>.<unique-digest>
+
+Every entry and object named after a user-provided key carries one of the
+``index.``, ``field.``, ``axis.`` or ``data.`` prefixes. Keys can therefore
+not collide with the backend's own entries (``key``, ``schema``,
+``control.*``) or with the ``catalogue_kv`` object.
 
 Multipart object writes
 ----------------------
@@ -220,8 +226,8 @@ Store operation
 Writing fields
 --------------
 
-``RadosStore::archive()`` obtains one generated RADOS object per FDB key and
-reuses it for subsequent writes for that key during the store lifetime. It
+``RadosStore::archive()`` obtains one generated RADOS object per index key and
+reuses it for subsequent writes for that index key during the store lifetime. It
 obtains an eckit multipart write handle, writes the field bytes, and returns
 an ``RadosFieldLocation`` containing the object URI, byte offset, and length.
 

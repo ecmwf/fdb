@@ -21,6 +21,7 @@
 #include "fdb5/database/Key.h"
 #include "fdb5/rados/RadosCatalogue.h"
 #include "fdb5/rados/RadosCleanup.h"
+#include "fdb5/rados/RadosCommon.h"
 #include "fdb5/rados/RadosIndex.h"
 
 #include "eckit/exception/Exceptions.h"
@@ -115,7 +116,7 @@ bool RadosCatalogueWriter::selectIndex(const Key& key) {
 
         try {
             std::vector<char> data;
-            db_kv_->getMemoryStream(data, key.valuesToString(), "DB kv");
+            db_kv_->getMemoryStream(data, rados_names::indexPrefix + key.valuesToString(), "DB kv");
 
             indexes_[key] = Index(new fdb5::RadosIndex(
                 key, eckit::RadosKeyValue{eckit::URI{std::string{data.begin(), data.end()}}}, false));
@@ -125,7 +126,7 @@ bool RadosCatalogueWriter::selectIndex(const Key& key) {
             indexes_[key] = Index(new fdb5::RadosIndex(key, eckit::RadosNamespace{pool_, db_namespace_}));
 
             std::string nstr{indexes_[key].location().uri().asString()};
-            db_kv_->put(key.valuesToString(), nstr.data(), nstr.length());
+            db_kv_->put(rados_names::indexPrefix + key.valuesToString(), nstr.data(), nstr.length());
         }
     }
 

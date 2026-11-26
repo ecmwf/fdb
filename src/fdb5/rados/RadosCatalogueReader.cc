@@ -18,6 +18,7 @@
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/rados/RadosCatalogue.h"
+#include "fdb5/rados/RadosCommon.h"
 #include "fdb5/rados/RadosIndex.h"
 #include "fdb5/rados/RadosStats.h"
 
@@ -50,7 +51,7 @@ bool RadosCatalogueReader::selectIndex(const Key& key) {
     if (indexes_.find(key) == indexes_.end()) {
         try {
             std::vector<char> data;
-            db_kv_->getMemoryStream(data, key.valuesToString(), "DB kv");
+            db_kv_->getMemoryStream(data, rados_names::indexPrefix + key.valuesToString(), "DB kv");
             eckit::URI uri{std::string{data.begin(), data.end()}};
             eckit::RadosKeyValue index_kv{uri};
             indexes_[key] = Index(new RadosIndex(key, index_kv, true));
@@ -93,10 +94,9 @@ DbStats RadosCatalogueReader::stats() const {
         const auto* radosIndex = dynamic_cast<const RadosIndex*>(indexEntry.content());
         ASSERT(radosIndex);
         for (const auto& key : radosIndex->idx_kv().keys()) {
-            if (key == "axes" || key == "key" || key.rfind("axis.", 0) == 0) {
-                continue;
+            if (rados_names::has_prefix(key, rados_names::fieldPrefix)) {
+                content->fieldCount_++;
             }
-            content->fieldCount_++;
         }
     }
 

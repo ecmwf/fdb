@@ -99,7 +99,7 @@ std::vector<Index> RadosCatalogue::indexes(bool) const {
 
     for (const auto& key : db_kv_->keys()) {
 
-        if (key == "schema" || key == "key" || key.rfind("control.", 0) == 0) {
+        if (!rados_names::has_prefix(key, rados_names::indexPrefix)) {
             continue;
         }
 
@@ -148,7 +148,7 @@ CatalogueWipeState RadosCatalogue::wipeInit() const {
 void RadosCatalogue::maskIndexEntries(const std::set<Index>& indexes) const {
 
     for (const auto& index : indexes) {
-        std::string key = index.key().valuesToString();
+        const std::string key = rados_names::indexPrefix + index.key().valuesToString();
         if (db_kv_->has(key)) {
             db_kv_->remove(key);
         }

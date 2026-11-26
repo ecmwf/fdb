@@ -16,6 +16,7 @@
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/Key.h"
+#include "fdb5/rados/RadosCommon.h"
 #include "fdb5/rados/RadosLazyFieldLocation.h"
 
 #include "eckit/filesystem/URI.h"
@@ -28,7 +29,6 @@
 #include "eckit/serialisation/HandleStream.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/serialisation/Reanimator.h"
-#include "eckit/utils/Tokenizer.h"
 
 #include <climits>  // for PATH_MAX
 #include <cstddef>
@@ -46,7 +46,8 @@ namespace fdb5 {
 
 RadosIndex::RadosIndex(const Key& key, const eckit::RadosNamespace& name) :
     IndexBase(key, "radosKeyValue"),
-    location_(eckit::RadosKeyValue{name.pool().name(), name.name(), key.valuesToString()}, 0),
+    location_(eckit::RadosKeyValue{name.pool().name(), name.name(), rados_names::indexPrefix + key.valuesToString()},
+              0),
     idx_kv_(location_.radosName().uri()) {
 
     // Persist indexKey under "key" so the index KV can later be identified when reopened.
@@ -71,21 +72,13 @@ RadosIndex::RadosIndex(const Key& key, const eckit::RadosKeyValue& name, bool re
 
 std::set<std::string> RadosIndex::axisNames(const eckit::RadosKeyValue& idx_kv) {
 
+    const std::string prefix = rados_names::axisPrefix;
+
     std::set<std::string> axis_names;
     for (const auto& key : idx_kv.keys()) {
-        if (key.rfind("axis.", 0) == 0) {
-            axis_names.insert(key.substr(5));
+        if (rados_names::has_prefix(key, prefix)) {
+            axis_names.insert(key.substr(prefix.size()));
         }
-    }
-
-    // Compatibility with catalogues written before per-axis markers were introduced.
-    if (axis_names.empty() && idx_kv.has("axes")) {
-        std::vector<char> axes_data;
-        idx_kv.getMemoryStream(axes_data, "axes", "index kv");
-        std::vector<std::string> legacy_axis_names;
-        eckit::Tokenizer parse(",");
-        parse(std::string(axes_data.begin(), axes_data.end()), legacy_axis_names);
-        axis_names.insert(legacy_axis_names.begin(), legacy_axis_names.end());
     }
 
     return axis_names;
@@ -93,7 +86,8 @@ std::set<std::string> RadosIndex::axisNames(const eckit::RadosKeyValue& idx_kv) 
 
 eckit::RadosKeyValue RadosIndex::axisKeyValue(const eckit::RadosKeyValue& idx_kv, const Key& key,
                                               const std::string& axis) {
-    return {idx_kv.nspace().pool().name(), idx_kv.nspace().name(), key.valuesToString() + "." + axis};
+    return {idx_kv.nspace().pool().name(), idx_kv.nspace().name(),
+            rados_names::axisPrefix + key.valuesToString() + "." + axis};
 }
 
 void RadosIndex::putAxisValue(const std::string& axis, const std::string& value) {
@@ -106,7 +100,7 @@ void RadosIndex::flush() {
     const char marker = '1';
     for (const auto& [axis, values] : pendingAxisValues_) {
 
-        idx_kv_.put("axis." + axis, &marker, 1);
+        idx_kv_.put(rados_names::axisPrefix + axis, &marker, 1);
 
         auto axis_kv = axis_kvs_.find(axis);
         if (axis_kv == axis_kvs_.end()) {
@@ -136,7 +130,7 @@ void RadosIndex::updateAxes() {
 
 bool RadosIndex::get(const Key& key, const Key& remapKey, Field& field) const {
 
-    std::string query{key.valuesToString()};
+    const std::string query = rados_names::fieldPrefix + key.valuesToString();
 
     try {
         std::vector<char> loc_data;
@@ -171,14 +165,16 @@ void RadosIndex::add(const Key& key, const Field& field) {
     }
 
     const char* serialised = static_cast<const char*>(h.data());
-    pendingEntries_[key.valuesToString()].assign(serialised, serialised + hs.bytesWritten());
+    pendingEntries_[rados_names::fieldPrefix + key.valuesToString()].assign(serialised, serialised + hs.bytesWritten());
 }
 
 void RadosIndex::entries(EntryVisitor& visitor, EntryVisitor::IndexScope& scope) const {
 
+    const std::string prefix = rados_names::fieldPrefix;
+
     for (const auto& key : idx_kv_.keys()) {
 
-        if (key == "axes" || key == "key" || key.rfind("axis.", 0) == 0) {
+        if (!rados_names::has_prefix(key, prefix)) {
             continue;
         }
 
@@ -186,7 +182,7 @@ void RadosIndex::entries(EntryVisitor& visitor, EntryVisitor::IndexScope& scope)
         // The real FieldLocation is retrieved and reanimated only when stableLocation() is called.
         auto loc = std::make_shared<fdb5::RadosLazyFieldLocation>(location_.radosName(), key);
         fdb5::Field field(loc, time_t(), fdb5::FieldDetails());
-        visitor.visitDatum(scope, field, key);
+        visitor.visitDatum(scope, field, key.substr(prefix.size()));
     }
 }
 
@@ -198,7 +194,7 @@ std::vector<eckit::URI> RadosIndex::dataURIs() const {
 
     for (const auto& key : idx_kv_.keys()) {
 
-        if (key == "axes" || key == "key" || key.rfind("axis.", 0) == 0) {
+        if (!rados_names::has_prefix(key, rados_names::fieldPrefix)) {
             continue;
         }
 
