@@ -55,7 +55,10 @@ RadosCatalogueWriter::RadosCatalogueWriter(const Key& key, const fdb5::Config& c
     ASSERT(root_kv_->nspace().pool().exists());
 
     root_kv_->ensureCreated();
-    if (!root_kv_->has(db_name)) {
+
+    // A registry entry alone does not prove the database exists: a wipe interrupted after destroying the
+    // namespace leaves the entry behind, and the database must then be created again.
+    if (!root_kv_->has(db_name) || !db_kv_->has("key")) {
 
         db_kv_->ensureCreated();
 

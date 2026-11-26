@@ -1184,6 +1184,27 @@ CASE("RadosCatalogue regressions") {
         }
     }
 
+    SECTION("A database can be archived to again after an interrupted wipe") {
+
+        fdb5::Config config{YAMLConfiguration(api_config(pool, test_id, "rados"))};
+        fdb5::Key key({{"a", "39"}, {"b", "39"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+
+        {
+            fdb5::FDB fdb(config);
+            fdb.archive(key, data, sizeof(data));
+            fdb.flush();
+        }
+
+        // Namespace destroyed, registry entry in main_kv left behind.
+        eckit::RadosNamespace{pool, test_id + "_39:39"}.destroy();
+
+        fdb5::FDB fdb(config);
+        EXPECT(countListed(fdb, tool_request(key)) == 0);
+        fdb.archive(key, data, sizeof(data));
+        fdb.flush();
+        EXPECT(countListed(fdb, tool_request(key)) == 1);
+    }
+
     SECTION("Roots do not need a filesystem path") {
 
         fdb5::Config config{YAMLConfiguration(api_config(pool, test_id, "rados", false))};
