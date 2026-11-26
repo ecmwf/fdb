@@ -76,13 +76,21 @@ bool rados_names::has_prefix(const std::string& name, const std::string& prefix)
     return name.compare(0, prefix.size(), prefix) == 0;
 }
 
+std::vector<char> read_value(const eckit::RadosKeyValue& kv, const std::string& key) {
+    auto value = kv.get(key);
+    if (!value) {
+        // Not logged as an error: callers handle a missing entry.
+        throw eckit::NotFound("RADOS key '" + key + "' in key-value " + kv.str(), Here(), true);
+    }
+    return std::move(*value);
+}
+
 std::string read_text(const eckit::RadosKeyValue& kv, const std::string& key) {
-    std::vector<char> data;
-    kv.getMemoryStream(data, key, kv.name());
+    const std::vector<char> data = read_value(kv, key);
     return {data.begin(), data.end()};
 }
 
-void write_text(const eckit::RadosKeyValue& kv, const std::string& key, const std::string& text) {
+void write_text(eckit::RadosKeyValue& kv, const std::string& key, const std::string& text) {
     kv.put(key, text.data(), text.size());
 }
 
@@ -99,8 +107,8 @@ std::vector<char> serialise(const std::function<void(eckit::Stream&)>& write) {
 }
 
 fdb5::Key read_key(const eckit::RadosKeyValue& kv) {
-    std::vector<char> data;
-    eckit::MemoryStream ms = kv.getMemoryStream(data, "key", kv.name());
+    const std::vector<char> data = read_value(kv, "key");
+    eckit::MemoryStream ms{data.data(), data.size()};
     return fdb5::Key(ms);
 }
 
@@ -196,12 +204,12 @@ std::set<eckit::URI> RadosCommon::objectURIs() const {
     std::set<eckit::URI> uris;
 
     const eckit::RadosNamespace db = dbNamespace();
-    if (!db.exists()) {
+    if (!db.pool().exists()) {
         return uris;
     }
 
     for (const auto& object : db.listObjects()) {
-        if (object.name().find(";part-") == std::string::npos) {
+        if (!object.isPart()) {
             uris.insert(object.uri());
         }
     }

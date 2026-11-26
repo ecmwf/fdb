@@ -48,15 +48,18 @@ bool has_prefix(const std::string& name, const std::string& prefix);
 
 }  // namespace rados_names
 
-// Reads the value stored under `key` as text. Throws eckit::RadosEntityNotFoundException if it is missing.
+// Reads the value stored under `key`. Throws eckit::NotFound if the KV or the entry is missing.
+std::vector<char> read_value(const eckit::RadosKeyValue& kv, const std::string& key);
+
+// Reads the value stored under `key` as text. Throws eckit::NotFound if it is missing.
 std::string read_text(const eckit::RadosKeyValue& kv, const std::string& key);
-void write_text(const eckit::RadosKeyValue& kv, const std::string& key, const std::string& text);
+void write_text(eckit::RadosKeyValue& kv, const std::string& key, const std::string& text);
 
 // Returns the bytes `write` puts on a stream, for storing serialised objects as KV values.
 std::vector<char> serialise(const std::function<void(eckit::Stream&)>& write);
 
 // Reads the `key` entry of a catalogue or index KV and deserialises it into an fdb5::Key.
-// Throws eckit::RadosEntityNotFoundException if the KV or its `key` entry is missing.
+// Throws eckit::NotFound if the KV or its `key` entry is missing.
 fdb5::Key read_key(const eckit::RadosKeyValue& kv);
 
 // RADOS space is selected from the sole root of the first matching `spaces[]` entry.

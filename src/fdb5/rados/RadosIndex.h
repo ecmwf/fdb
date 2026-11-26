@@ -55,10 +55,10 @@ public:  // methods
     };
 
     // Reads the entry stored under `name` (including its prefix). Throws
-    // eckit::RadosEntityNotFoundException if it is missing.
+    // eckit::NotFound if it is missing.
     static Entry readEntry(const eckit::RadosKeyValue& idx_kv, const std::string& name);
 
-    // Names of the axes recorded in an index KV. Throws eckit::RadosEntityNotFoundException if the KV is missing.
+    // Names of the axes recorded in an index KV; none if the KV is missing.
     static std::set<std::string> axisNames(const eckit::RadosKeyValue& idx_kv);
     // The KV holding the values of `axis` for the index stored in `idx_kv`.
     static eckit::RadosKeyValue axisKeyValue(const eckit::RadosKeyValue& idx_kv, const Key& key,

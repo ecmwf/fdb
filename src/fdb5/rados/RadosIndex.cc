@@ -117,7 +117,7 @@ bool RadosIndex::get(const Key& key, const Key& remapKey, Field& field) const {
         Entry entry = readEntry(idx_kv_, query);
         field = fdb5::Field(std::move(entry.location), entry.timestamp, fdb5::FieldDetails());
     }
-    catch (eckit::RadosEntityNotFoundException& e) {
+    catch (eckit::NotFound& e) {
         return false;
     }
 
@@ -138,8 +138,8 @@ void RadosIndex::add(const Key& key, const Field& field) {
 
 RadosIndex::Entry RadosIndex::readEntry(const eckit::RadosKeyValue& idx_kv, const std::string& name) {
 
-    std::vector<char> data;
-    eckit::MemoryStream ms = idx_kv.getMemoryStream(data, name, "index kv");
+    const std::vector<char> data = read_value(idx_kv, name);
+    eckit::MemoryStream ms{data.data(), data.size()};
 
     Entry entry;
     ms >> entry.timestamp;

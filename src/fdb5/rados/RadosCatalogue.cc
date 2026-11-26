@@ -46,7 +46,7 @@ RadosCatalogue::RadosCatalogue(const eckit::URI& uri, const fdb5::Config& config
     try {
         dbKey_ = read_key(db_kv_);
     }
-    catch (eckit::RadosEntityNotFoundException& e) {
+    catch (eckit::NotFound& e) {
         throw fdb5::DatabaseNotFoundException(std::string("RadosCatalogue database not found ") + "(pool: '" + pool_ +
                                               "', namespace: '" + db_namespace_ + "')");
     }
@@ -88,7 +88,7 @@ std::optional<eckit::RadosKeyValue> RadosCatalogue::registeredIndex(const Key& k
     try {
         return eckit::RadosKeyValue{eckit::URI{read_text(db_kv_, rados_names::indexPrefix + key.valuesToString())}};
     }
-    catch (eckit::RadosEntityNotFoundException& e) {
+    catch (eckit::NotFound& e) {
         return std::nullopt;
     }
 }
@@ -110,7 +110,7 @@ std::vector<Index> RadosCatalogue::indexes(bool) const {
             // Axes are loaded so that visitors relying on Index::axes() (e.g. fdb.axes()) see the datum axes.
             res.push_back(Index(new fdb5::RadosIndex(read_key(index_kv), index_kv, true)));
         }
-        catch (eckit::RadosEntityNotFoundException& e) {
+        catch (eckit::NotFound& e) {
             // The index KV was removed after the catalogue KV was listed.
             continue;
         }
@@ -137,10 +137,13 @@ CatalogueWipeState RadosCatalogue::wipeInit() const {
 
 void RadosCatalogue::maskIndexEntries(const std::set<Index>& indexes) const {
 
+    // A key-value only names what is stored in the cluster, so a copy modifies the same entries.
+    eckit::RadosKeyValue db_kv = db_kv_;
+
     for (const auto& index : indexes) {
         const std::string key = rados_names::indexPrefix + index.key().valuesToString();
-        if (db_kv_.has(key)) {
-            db_kv_.remove(key);
+        if (db_kv.has(key)) {
+            db_kv.remove(key);
         }
     }
 }
@@ -160,7 +163,7 @@ bool RadosCatalogue::markIndexForWipe(const Index& index, bool include, Catalogu
             axis_uris.push_back(RadosIndex::axisKeyValue(index_kv, index.key(), axis).uri());
         }
     }
-    catch (const eckit::RadosEntityNotFoundException& e) {
+    catch (const eckit::NotFound& e) {
         LOG_DEBUG_LIB(LibFdb5) << "RadosCatalogue::markIndexForWipe: axes lookup missing for index " << index.key()
                                << " (assuming stale index kv): " << e.what() << std::endl;
     }
@@ -260,12 +263,14 @@ bool RadosCatalogue::doUnsafeFullWipe() const {
 void RadosCatalogue::destroyDatabase() const {
 
     const eckit::RadosNamespace db = dbNamespace();
-    if (db.exists()) {
+    if (db.pool().exists()) {
         db.destroy();
     }
 
-    if (root_kv_.has(db_namespace_)) {
-        root_kv_.remove(db_namespace_);
+    // A key-value only names what is stored in the cluster, so a copy modifies the same entries.
+    eckit::RadosKeyValue root_kv = root_kv_;
+    if (root_kv.has(db_namespace_)) {
+        root_kv.remove(db_namespace_);
     }
 }
 
@@ -295,6 +300,9 @@ std::string control_kv_key(ControlIdentifier id) {
 
 void RadosCatalogue::control(const ControlAction& action, const ControlIdentifiers& identifiers) const {
 
+    // A key-value only names what is stored in the cluster, so a copy modifies the same entries.
+    eckit::RadosKeyValue db_kv = db_kv_;
+
     for (ControlIdentifier id : identifiers) {
         const std::string key = control_kv_key(id);
         if (key.empty()) {
@@ -303,12 +311,12 @@ void RadosCatalogue::control(const ControlAction& action, const ControlIdentifie
         switch (action) {
             case ControlAction::Disable: {
                 const char flag = '1';
-                db_kv_.put(key, &flag, 1);
+                db_kv.put(key, &flag, 1);
                 break;
             }
             case ControlAction::Enable:
-                if (db_kv_.has(key)) {
-                    db_kv_.remove(key);
+                if (db_kv.has(key)) {
+                    db_kv.remove(key);
                 }
                 break;
             default:

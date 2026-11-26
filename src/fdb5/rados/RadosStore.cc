@@ -67,7 +67,7 @@ bool RadosStore::uriExists(const eckit::URI& uri) const {
     ASSERT(ownsURI(uri));
 
     if (rados_location(uri)->object.empty()) {
-        return eckit::RadosNamespace(uri).exists();
+        return eckit::RadosNamespace(uri).pool().exists();
     }
 
     return eckit::RadosObject(uri).exists();
@@ -82,7 +82,7 @@ std::set<eckit::URI> RadosStore::asCollocatedDataURIs(const std::set<eckit::URI>
 }
 
 bool RadosStore::exists() const {
-    return dbNamespace().exists();
+    return dbNamespace().pool().exists();
 }
 
 eckit::DataHandle* RadosStore::retrieve(Field& field) const {
@@ -136,7 +136,7 @@ void RadosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ost
         logVerbose << "destroy Rados namespace: ";
         logAlways << ns.str() << std::endl;
 
-        if (doit && ns.exists()) {
+        if (doit && ns.pool().exists()) {
             ns.destroy();
         }
     }
