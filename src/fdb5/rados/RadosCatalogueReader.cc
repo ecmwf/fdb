@@ -96,7 +96,7 @@ DbStats RadosCatalogueReader::stats() const {
         }
     }
 
-    return {content};
+    return DbStats(content);
 }
 
 std::optional<Axis> RadosCatalogueReader::computeAxis(const std::string& keyword) const {

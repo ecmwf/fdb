@@ -12,6 +12,7 @@
 
 #include "fdb5/database/DbStats.h"
 
+#include "eckit/log/JSON.h"
 #include "eckit/serialisation/Reanimator.h"
 #include "eckit/serialisation/Stream.h"
 
@@ -52,6 +53,12 @@ void RadosDbStats::report(std::ostream& out, const char* indent) const {
     reportCount(out, "Databases", dbCount_, indent);
     reportCount(out, "Indexes", indexCount_, indent);
     reportCount(out, "Fields", fieldCount_, indent);
+}
+
+void RadosDbStats::json(eckit::JSON& json) const {
+    json << "databases" << dbCount_;
+    json << "indexes" << indexCount_;
+    json << "fields" << fieldCount_;
 }
 
 void RadosDbStats::encode(eckit::Stream& out) const {

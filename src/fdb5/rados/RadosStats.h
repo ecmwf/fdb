@@ -15,6 +15,7 @@
 
 #include "fdb5/database/DbStats.h"
 
+#include "eckit/log/JSON.h"
 #include "eckit/serialisation/Reanimator.h"
 #include "eckit/serialisation/Stream.h"
 
@@ -43,6 +44,7 @@ public:
     void add(const DbStatsContent& rhs) override;
 
     void report(std::ostream& out, const char* indent) const override;
+    void json(eckit::JSON& json) const override;
 
 public:  // For Streamable
 

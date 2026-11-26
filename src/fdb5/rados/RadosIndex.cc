@@ -159,25 +159,19 @@ void RadosIndex::add(const Key& key, const Field& field) {
     idx_kv_.put(key.valuesToString(), h.data(), hs.bytesWritten());
 }
 
-void RadosIndex::entries(EntryVisitor& visitor) const {
+void RadosIndex::entries(EntryVisitor& visitor, EntryVisitor::IndexScope& scope) const {
 
-    Index instantIndex(const_cast<RadosIndex*>(this));
+    for (const auto& key : idx_kv_.keys()) {
 
-    // Allow the visitor to selectively decline to visit the entries in this index
-    if (visitor.visitIndex(instantIndex)) {
-
-        for (const auto& key : idx_kv_.keys()) {
-
-            if (key == "axes" || key == "key" || key.rfind("axis.", 0) == 0) {
-                continue;
-            }
-
-            // Build a lazy location so ListVisitor::visitDatum can filter without triggering a KV read.
-            // The real FieldLocation is retrieved and reanimated only when stableLocation() is called.
-            auto loc = std::make_shared<fdb5::RadosLazyFieldLocation>(location_.radosName(), key);
-            fdb5::Field field(loc, time_t(), fdb5::FieldDetails());
-            visitor.visitDatum(field, key);
+        if (key == "axes" || key == "key" || key.rfind("axis.", 0) == 0) {
+            continue;
         }
+
+        // Build a lazy location so ListVisitor::visitDatum can filter without triggering a KV read.
+        // The real FieldLocation is retrieved and reanimated only when stableLocation() is called.
+        auto loc = std::make_shared<fdb5::RadosLazyFieldLocation>(location_.radosName(), key);
+        fdb5::Field field(loc, time_t(), fdb5::FieldDetails());
+        visitor.visitDatum(scope, field, key);
     }
 }
 
