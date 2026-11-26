@@ -132,8 +132,8 @@ bool RadosIndex::get(const Key& key, const Key& remapKey, Field& field) const {
         time_t ts;
         ms >> ts;
 
-        fdb5::FieldLocation* loc = eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms);
-        field = fdb5::Field(std::move(*loc), ts, fdb5::FieldDetails());
+        std::shared_ptr<const fdb5::FieldLocation> loc(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms));
+        field = fdb5::Field(std::move(loc), ts, fdb5::FieldDetails());
     }
     catch (eckit::RadosEntityNotFoundException& e) {
         return false;
