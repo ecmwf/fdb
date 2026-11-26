@@ -37,6 +37,8 @@
 #include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
 
+#include "rados_test_helpers.h"
+
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
@@ -53,56 +55,11 @@
 #include <vector>
 
 using namespace eckit;
+using namespace fdb::test::rados;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 namespace {
-
-void deldir(eckit::PathName& p) {
-    if (!p.exists()) {
-        return;
-    }
-
-    std::vector<eckit::PathName> files;
-    std::vector<eckit::PathName> dirs;
-    p.children(files, dirs);
-
-    for (auto& f : files) {
-        f.unlink();
-    }
-    for (auto& d : dirs) {
-        deldir(d);
-    }
-
-    p.rmdir();
-};
-
-// Guard against clobbering unrelated namespaces in a shared CI pool.
-void ensureCleanNamespaces(const std::string& pool, const std::string& prefix) {
-    ASSERT(prefix.length() > 3);
-    for (const std::string& name : eckit::RadosCluster::instance().listNamespaces(pool)) {
-        if (name.rfind(prefix, 0) == 0) {
-            eckit::RadosNamespace{pool, name}.destroy();
-        }
-    }
-}
-
-// Count only URIs that would actually be deleted, filtering out safe/info/error records so that
-// too-specific requests yield zero.
-size_t countWipeable(fdb5::WipeIterator& wipeObject, bool print = true) {
-    size_t count = 0;
-    fdb5::WipeElement elem;
-    while (wipeObject.next(elem)) {
-        if (print) {
-            std::cout << elem << std::endl;
-        }
-        if (elem.type() != fdb5::WipeElementType::ERROR && elem.type() != fdb5::WipeElementType::CATALOGUE_INFO &&
-            elem.type() != fdb5::WipeElementType::CATALOGUE_SAFE && elem.type() != fdb5::WipeElementType::STORE_SAFE) {
-            count += elem.uris().size();
-        }
-    }
-    return count;
-}
 
 // temporary schema,spaces,root files common to all RADOS Catalogue tests
 
@@ -119,6 +76,29 @@ eckit::TmpFile& opt_schema_file() {
 eckit::PathName& catalogue_tests_tmp_root() {
     static eckit::PathName cd("./rados_catalogue_tests_fdb_root");
     return cd;
+}
+
+std::string regression_pool() {
+#ifdef fdb5_HAVE_RADOS_TESTS_MANAGE_POOLS
+    return "test-catalogue";
+#else
+    return eckit::Resource<std::string>("fdbRadosTestPool;$FDB_RADOS_TEST_POOL", "");
+#endif
+}
+
+std::string api_config(const std::string& pool, const std::string& test_id, const std::string& store,
+                       bool with_path = true) {
+    ConfigSpec spec;
+    spec.root = with_path ? catalogue_tests_tmp_root().asString() : std::string{};
+    spec.pool = pool;
+    spec.testId = test_id;
+    spec.schema = schema_file().path();
+    spec.store = store;
+    return config(spec);
+}
+
+fdb5::FDBToolRequest tool_request(const fdb5::Key& key) {
+    return {key.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
 }
 
 void cleanupRados() noexcept {
@@ -192,25 +172,7 @@ CASE("RadosCatalogue tests") {
 
     SECTION("RadosCatalogue archive (index) and retrieve without a Store") {
 
-        std::string config_str{
-            "spaces:\n"
-            "- roots:\n"
-            "  - path: " +
-            catalogue_tests_tmp_root().asString() +
-            "\n"
-            "    pool: " +
-            pool +
-            "\n"
-            "    root_namespace: " +
-            test_id +
-            "_root\n"
-            "    namespace_prefix: " +
-            test_id +
-            "\n"
-            "schema : " +
-            schema_file().path() + "\n"};
-
-        fdb5::Config config{YAMLConfiguration(config_str)};
+        fdb5::Config config{YAMLConfiguration(api_config(pool, test_id, "rados"))};
         fdb5::Schema schema{schema_file()};
 
         /// @note: a=11,b=22 instead of a=1,b=2 to avoid collision with potential parallel runs of store tests using
@@ -273,25 +235,7 @@ CASE("RadosCatalogue tests") {
 
         // FDB configuration
 
-        std::string config_str{
-            "spaces:\n"
-            "- roots:\n"
-            "  - path: " +
-            catalogue_tests_tmp_root().asString() +
-            "\n"
-            "    pool: " +
-            pool +
-            "\n"
-            "    root_namespace: " +
-            test_id +
-            "_root\n"
-            "    namespace_prefix: " +
-            test_id +
-            "\n"
-            "schema : " +
-            schema_file().path() + "\n"};
-
-        fdb5::Config config{YAMLConfiguration(config_str)};
+        fdb5::Config config{YAMLConfiguration(api_config(pool, test_id, "rados"))};
 
         // schema
 
@@ -354,25 +298,7 @@ CASE("RadosCatalogue tests") {
 
     SECTION("RadosCatalogue reports missing databases via factory paths") {
 
-        std::string config_str{
-            "spaces:\n"
-            "- roots:\n"
-            "  - path: " +
-            catalogue_tests_tmp_root().asString() +
-            "\n"
-            "    pool: " +
-            pool +
-            "\n"
-            "    root_namespace: " +
-            test_id +
-            "_root\n"
-            "    namespace_prefix: " +
-            test_id +
-            "\n"
-            "schema : " +
-            schema_file().path() + "\n"};
-
-        fdb5::Config config{YAMLConfiguration(config_str)};
+        fdb5::Config config{YAMLConfiguration(api_config(pool, test_id, "rados"))};
 
         // A key-based reader over a DB that was never written must fail to open.
         fdb5::Key missing_db_key({{"a", "99"}, {"b", "99"}});
@@ -395,25 +321,7 @@ CASE("RadosCatalogue tests") {
 
     SECTION("RadosCatalogueReader::stats reports index and field counts") {
 
-        std::string config_str{
-            "spaces:\n"
-            "- roots:\n"
-            "  - path: " +
-            catalogue_tests_tmp_root().asString() +
-            "\n"
-            "    pool: " +
-            pool +
-            "\n"
-            "    root_namespace: " +
-            test_id +
-            "_root\n"
-            "    namespace_prefix: " +
-            test_id +
-            "\n"
-            "schema : " +
-            schema_file().path() + "\n"};
-
-        fdb5::Config config{YAMLConfiguration(config_str)};
+        fdb5::Config config{YAMLConfiguration(api_config(pool, test_id, "rados"))};
 
         fdb5::Key db_key({{"a", "77"}, {"b", "77"}});
         fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
@@ -450,25 +358,7 @@ CASE("RadosCatalogue tests") {
 
     SECTION("RadosCatalogue persists ControlIdentifiers across processes") {
 
-        std::string config_str{
-            "spaces:\n"
-            "- roots:\n"
-            "  - path: " +
-            catalogue_tests_tmp_root().asString() +
-            "\n"
-            "    pool: " +
-            pool +
-            "\n"
-            "    root_namespace: " +
-            test_id +
-            "_root\n"
-            "    namespace_prefix: " +
-            test_id +
-            "\n"
-            "schema : " +
-            schema_file().path() + "\n"};
-
-        fdb5::Config config{YAMLConfiguration(config_str)};
+        fdb5::Config config{YAMLConfiguration(api_config(pool, test_id, "rados"))};
 
         fdb5::Key db_key({{"a", "88"}, {"b", "88"}});
         fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
@@ -526,25 +416,7 @@ CASE("RadosCatalogue tests") {
 
     SECTION("RadosCatalogueWriter supports concurrent writers on the same database") {
 
-        std::string config_str{
-            "spaces:\n"
-            "- roots:\n"
-            "  - path: " +
-            catalogue_tests_tmp_root().asString() +
-            "\n"
-            "    pool: " +
-            pool +
-            "\n"
-            "    root_namespace: " +
-            test_id +
-            "_root\n"
-            "    namespace_prefix: " +
-            test_id +
-            "\n"
-            "schema : " +
-            schema_file().path() + "\n"};
-
-        fdb5::Config config{YAMLConfiguration(config_str)};
+        fdb5::Config config{YAMLConfiguration(api_config(pool, test_id, "rados"))};
 
         fdb5::Key db_key({{"a", "66"}, {"b", "66"}});
         fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
@@ -674,25 +546,7 @@ CASE("RadosCatalogue tests") {
 
     SECTION("RadosCatalogue supports large serialised field locations") {
 
-        std::string config_str{
-            "spaces:\n"
-            "- roots:\n"
-            "  - path: " +
-            catalogue_tests_tmp_root().asString() +
-            "\n"
-            "    pool: " +
-            pool +
-            "\n"
-            "    root_namespace: " +
-            test_id +
-            "_root\n"
-            "    namespace_prefix: " +
-            test_id +
-            "\n"
-            "schema : " +
-            schema_file().path() + "\n"};
-
-        fdb5::Config config{YAMLConfiguration(config_str)};
+        fdb5::Config config{YAMLConfiguration(api_config(pool, test_id, "rados"))};
         fdb5::Key db_key({{"a", "large"}, {"b", "large"}});
         fdb5::Key index_key({{"c", "large"}, {"d", "large"}});
         fdb5::Key field_key({{"e", "5"}, {"f", "6"}});
@@ -730,29 +584,7 @@ CASE("RadosCatalogue tests") {
 
         // FDB configuration
 
-        std::string config_str{
-            "spaces:\n"
-            "- roots:\n"
-            "  - path: " +
-            catalogue_tests_tmp_root().asString() +
-            "\n"
-            "    pool: " +
-            pool +
-            "\n"
-            "    root_namespace: " +
-            test_id +
-            "_root\n"
-            "    namespace_prefix: " +
-            test_id +
-            "\n"
-            "type: local\n"
-            "schema : " +
-            schema_file().path() +
-            "\n"
-            "engine: rados\n"
-            "store: rados\n"};
-
-        fdb5::Config config{YAMLConfiguration(config_str)};
+        fdb5::Config config{YAMLConfiguration(api_config(pool, test_id, "rados"))};
 
         // request
 
@@ -907,43 +739,6 @@ CASE("RadosCatalogue tests") {
     ensureCleanNamespaces(pool, test_id);
 #endif
 }
-
-namespace {
-
-std::string regression_pool() {
-#ifdef fdb5_HAVE_RADOS_TESTS_MANAGE_POOLS
-    return "test-catalogue";
-#else
-    return eckit::Resource<std::string>("fdbRadosTestPool;$FDB_RADOS_TEST_POOL", "");
-#endif
-}
-
-std::string api_config(const std::string& pool, const std::string& test_id, const std::string& store,
-                       bool with_path = true) {
-    std::string config_str{"spaces:\n- roots:\n  - "};
-    if (with_path) {
-        config_str += "path: " + catalogue_tests_tmp_root().asString() + "\n    ";
-    }
-    config_str += "pool: " + pool + "\n    root_namespace: " + test_id + "_root\n    namespace_prefix: " + test_id +
-                  "\ntype: local\nschema : " + schema_file().path() + "\nengine: rados\nstore: " + store + "\n";
-    return config_str;
-}
-
-size_t countListed(fdb5::FDB& fdb, const fdb5::FDBToolRequest& request) {
-    size_t count = 0;
-    fdb5::ListElement info;
-    auto listObject = fdb.list(request);
-    while (listObject.next(info)) {
-        ++count;
-    }
-    return count;
-}
-
-fdb5::FDBToolRequest tool_request(const fdb5::Key& key) {
-    return {key.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
-}
-
-}  // namespace
 
 CASE("RadosCatalogue regressions") {
 

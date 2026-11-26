@@ -36,6 +36,8 @@
 #include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
 
+#include "rados_test_helpers.h"
+
 #include <cstddef>
 #include <cstring>
 #include <ctime>
@@ -47,38 +49,11 @@
 #include <vector>
 
 using namespace eckit;
+using namespace fdb::test::rados;
 
 //----------------------------------------------------------------------------------------------------------------------
 
 namespace {
-
-void deldir(eckit::PathName& p) {
-    if (!p.exists()) {
-        return;
-    }
-
-    std::vector<eckit::PathName> files;
-    std::vector<eckit::PathName> dirs;
-    p.children(files, dirs);
-
-    for (auto& f : files) {
-        f.unlink();
-    }
-    for (auto& d : dirs) {
-        deldir(d);
-    }
-
-    p.rmdir();
-};
-
-void ensureCleanNamespaces(const std::string& pool, const std::string& prefix) {
-    ASSERT(prefix.length() > 3);
-    for (const std::string& name : eckit::RadosCluster::instance().listNamespaces(pool)) {
-        if (name.rfind(prefix, 0) == 0) {
-            eckit::RadosNamespace{pool, name}.destroy();
-        }
-    }
-}
 
 #ifdef fdb5_HAVE_RADOS_TESTS_MANAGE_POOLS
 void ensureCleanPools(const std::string& prefix) {
@@ -122,21 +97,16 @@ void cleanupRados() noexcept {
     }
 }
 
-/// @note: counts only the URIs that would actually be deleted, filtering out purely
-///   informational wipe elements (safe/info/error) so a too-specific request yields 0.
-size_t countWipeable(fdb5::WipeIterator& wipeObject, bool print = true) {
-    size_t count = 0;
-    fdb5::WipeElement elem;
-    while (wipeObject.next(elem)) {
-        if (print) {
-            std::cout << elem << std::endl;
-        }
-        if (elem.type() != fdb5::WipeElementType::ERROR && elem.type() != fdb5::WipeElementType::CATALOGUE_INFO &&
-            elem.type() != fdb5::WipeElementType::CATALOGUE_SAFE && elem.type() != fdb5::WipeElementType::STORE_SAFE) {
-            count += elem.uris().size();
-        }
-    }
-    return count;
+std::string store_config(const std::string& pool, const std::string& test_id, const std::string& engine,
+                         const std::string& extra = {}) {
+    ConfigSpec spec;
+    spec.root = store_tests_tmp_root().asString();
+    spec.pool = pool;
+    spec.testId = test_id;
+    spec.schema = schema_file().path();
+    spec.engine = engine;
+    spec.extra = extra;
+    return config(spec);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -185,25 +155,7 @@ CASE("RadosStore tests") {
         EXPECT(pool.length() > 0);
         ensureCleanNamespaces(pool, test_id);
 #endif
-        std::string config_str{
-            "spaces:\n"
-            "- roots:\n"
-            "  - path: " +
-            store_tests_tmp_root().asString() +
-            "\n"
-            "    pool: " +
-            pool +
-            "\n"
-            "    root_namespace: " +
-            test_id +
-            "_root\n"
-            "    namespace_prefix: " +
-            test_id +
-            "\n"
-            "rados:\n"
-            "  maxPartSize: 16\n"};
-
-        fdb5::Config config{YAMLConfiguration(config_str)};
+        fdb5::Config config{YAMLConfiguration(store_config(pool, test_id, "toc", "rados:\n  maxPartSize: 16\n"))};
 
         fdb5::Schema schema{schema_file()};
 
@@ -301,25 +253,7 @@ CASE("RadosStore tests") {
         EXPECT(pool.length() > 0);
         ensureCleanNamespaces(pool, test_id);
 #endif
-        std::string config_str{
-            "spaces:\n"
-            "- roots:\n"
-            "  - path: " +
-            store_tests_tmp_root().asString() +
-            "\n"
-            "    pool: " +
-            pool +
-            "\n"
-            "    root_namespace: " +
-            test_id +
-            "_root\n"
-            "    namespace_prefix: " +
-            test_id +
-            "\n"
-            "schema : " +
-            schema_file().path() + "\n"};
-
-        fdb5::Config config{YAMLConfiguration(config_str)};
+        fdb5::Config config{YAMLConfiguration(store_config(pool, test_id, "toc"))};
 
         // schema
 
@@ -411,32 +345,7 @@ CASE("RadosStore tests") {
         ensureCleanNamespaces(pool, test_id);
 #endif
 
-        std::string config_str{
-            "spaces:\n"
-            "- roots:\n"
-            "  - path: " +
-            store_tests_tmp_root().asString() +
-            "\n"
-            "    pool: " +
-            pool +
-            "\n"
-            "    root_namespace: " +
-            test_id +
-            "_root\n"
-            "    namespace_prefix: " +
-            test_id +
-            "\n"
-            "type: local\n"
-            "schema : " +
-            schema_file().path() +
-            "\n"
-            "engine: toc\n"
-            "store: rados\n"
-            "rados:\n"};
-
-        config_str += "  maxPartSize: 16\n";
-
-        fdb5::Config config{YAMLConfiguration(config_str)};
+        fdb5::Config config{YAMLConfiguration(store_config(pool, test_id, "toc", "rados:\n  maxPartSize: 16\n"))};
 
         // request
 
@@ -565,32 +474,7 @@ CASE("RadosStore tests") {
         ensureCleanNamespaces(pool, test_id);
 #endif
 
-        std::string config_str{
-            "spaces:\n"
-            "- roots:\n"
-            "  - path: " +
-            store_tests_tmp_root().asString() +
-            "\n"
-            "    pool: " +
-            pool +
-            "\n"
-            "    root_namespace: " +
-            test_id +
-            "_root\n"
-            "    namespace_prefix: " +
-            test_id +
-            "\n"
-            "type: local\n"
-            "schema : " +
-            schema_file().path() +
-            "\n"
-            "engine: toc\n"
-            "store: rados\n"
-            "rados:\n"};
-
-        config_str += "  maxPartSize: 16\n";
-
-        fdb5::Config config{YAMLConfiguration(config_str)};
+        fdb5::Config config{YAMLConfiguration(store_config(pool, test_id, "toc", "rados:\n  maxPartSize: 16\n"))};
 
         // request
 
