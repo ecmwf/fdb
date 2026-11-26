@@ -6,16 +6,11 @@
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/rados/RadosIndex.h"
 
-#include "eckit/filesystem/PathName.h"
 #include "eckit/io/rados/RadosKeyValue.h"
-#include "eckit/serialisation/MemoryStream.h"
-#include "eckit/serialisation/Reanimator.h"
 
-#include <ctime>
 #include <memory>
 #include <ostream>
 #include <string>
-#include <vector>
 
 namespace fdb5 {
 

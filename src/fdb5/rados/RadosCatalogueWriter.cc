@@ -20,22 +20,12 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/io/FileHandle.h"
-#include "eckit/io/Length.h"
-#include "eckit/io/MemoryHandle.h"
-#include "eckit/io/rados/RadosException.h"
-#include "eckit/io/rados/RadosKeyValue.h"
-#include "eckit/io/rados/RadosNamespace.h"
 #include "eckit/log/Log.h"
-#include "eckit/serialisation/HandleStream.h"
 
-#include <climits>
 #include <cstddef>
-#include <exception>
 #include <memory>
 #include <ostream>
-#include <string>
 #include <utility>
-#include <vector>
 
 namespace fdb5 {
 
@@ -88,7 +78,7 @@ void RadosCatalogueWriter::createDatabase() {
 }
 
 RadosCatalogueWriter::RadosCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config) :
-    RadosCatalogue(uri, ControlIdentifiers{}, config) {
+    RadosCatalogue(uri, config) {
     RadosCatalogue::loadSchema();
 }
 

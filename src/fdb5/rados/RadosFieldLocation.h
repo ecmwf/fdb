@@ -8,7 +8,6 @@
 
 #pragma once
 
-#include "eckit/filesystem/PathName.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
 

@@ -26,8 +26,6 @@ public:
     RadosDbStats();
     RadosDbStats(eckit::Stream&);
 
-    static DbStats make() { return DbStats(new RadosDbStats()); }
-
     size_t dbCount_;
     size_t indexCount_;
     size_t fieldCount_;

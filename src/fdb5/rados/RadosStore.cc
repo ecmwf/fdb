@@ -3,7 +3,6 @@
 
 #include "fdb5/rados/RadosStore.h"
 
-#include "fdb5/LibFdb5.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Store.h"
@@ -19,14 +18,11 @@
 #include "eckit/io/Offset.h"
 #include "eckit/io/rados/RadosNamespace.h"
 #include "eckit/io/rados/RadosObject.h"
-#include "eckit/io/rados/RadosPool.h"
-#include "eckit/log/Log.h"
 #include "eckit/log/TimeStamp.h"
 #include "eckit/runtime/Main.h"
 #include "eckit/thread/AutoLock.h"
 #include "eckit/thread/StaticMutex.h"
 #include "eckit/utils/MD5.h"
-#include "eckit/utils/Tokenizer.h"
 
 #include <unistd.h>
 

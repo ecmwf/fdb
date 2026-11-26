@@ -4,7 +4,6 @@
 #include "fdb5/rados/RadosCatalogueReader.h"
 
 #include "fdb5/LibFdb5.h"
-#include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/DbStats.h"
 #include "fdb5/database/Field.h"
@@ -17,14 +16,11 @@
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
-#include "eckit/io/rados/RadosException.h"
-#include "eckit/io/rados/RadosKeyValue.h"
 #include "eckit/log/Log.h"
 
 #include <optional>
 #include <ostream>
 #include <string>
-#include <vector>
 
 namespace fdb5 {
 
@@ -32,8 +28,7 @@ namespace fdb5 {
 
 RadosCatalogueReader::RadosCatalogueReader(const Key& key, const Config& config) : RadosCatalogue(key, config) {}
 
-RadosCatalogueReader::RadosCatalogueReader(const eckit::URI& uri, const Config& config) :
-    RadosCatalogue(uri, ControlIdentifiers{}, config) {}
+RadosCatalogueReader::RadosCatalogueReader(const eckit::URI& uri, const Config& config) : RadosCatalogue(uri, config) {}
 
 bool RadosCatalogueReader::selectIndex(const Key& key) {
 

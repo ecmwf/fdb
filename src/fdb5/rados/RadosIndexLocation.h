@@ -21,7 +21,7 @@ class RadosIndexLocation : public IndexLocation {
 
 public:  // methods
 
-    RadosIndexLocation(const eckit::RadosKeyValue& name, off_t offset);
+    explicit RadosIndexLocation(const eckit::RadosKeyValue& name);
 
     const eckit::RadosKeyValue& radosName() const { return name_; };
 
@@ -40,8 +40,6 @@ private:  // methods
 private:  // members
 
     eckit::RadosKeyValue name_;
-
-    off_t offset_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

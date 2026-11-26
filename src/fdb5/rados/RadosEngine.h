@@ -12,10 +12,8 @@
 #include "metkit/mars/MarsRequest.h"
 
 #include "eckit/filesystem/URI.h"
-#include "eckit/io/rados/RadosKeyValue.h"
 
 #include <functional>
-#include <optional>
 #include <ostream>
 #include <string>
 #include <vector>

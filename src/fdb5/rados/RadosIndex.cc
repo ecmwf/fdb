@@ -13,23 +13,16 @@
 #include "fdb5/rados/RadosLazyFieldLocation.h"
 
 #include "eckit/filesystem/URI.h"
-#include "eckit/io/DataHandle.h"
-#include "eckit/io/Length.h"
-#include "eckit/io/MemoryHandle.h"
 #include "eckit/io/rados/RadosException.h"
 #include "eckit/io/rados/RadosKeyValue.h"
 #include "eckit/io/rados/RadosNamespace.h"
-#include "eckit/serialisation/HandleStream.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/serialisation/Reanimator.h"
 
-#include <climits>  // for PATH_MAX
-#include <cstddef>
 #include <ctime>
 #include <memory>
 #include <set>
 #include <string>
-#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -39,13 +32,12 @@ namespace fdb5 {
 
 RadosIndex::RadosIndex(const Key& key, const eckit::RadosNamespace& name) :
     IndexBase(key, "radosKeyValue"),
-    location_(eckit::RadosKeyValue{name.pool().name(), name.name(), rados_names::indexPrefix + key.valuesToString()},
-              0),
+    location_(eckit::RadosKeyValue{name.pool().name(), name.name(), rados_names::indexPrefix + key.valuesToString()}),
     idx_kv_(location_.radosName().uri()),
     created_(false) {}
 
 RadosIndex::RadosIndex(const Key& key, const eckit::RadosKeyValue& name, bool readAxes) :
-    IndexBase(key, "radosKeyValue"), location_(name, 0), idx_kv_(name.uri()) {
+    IndexBase(key, "radosKeyValue"), location_(name), idx_kv_(name.uri()) {
 
     if (readAxes) {
         updateAxes();

@@ -18,7 +18,6 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 
-#include <map>
 #include <optional>
 #include <ostream>
 #include <string>
@@ -53,15 +52,6 @@ public:  // methods
 private:  // methods
 
     std::optional<Axis> computeAxis(const std::string& keyword) const override;
-
-private:  // types
-
-    using IndexStore = std::map<Key, Index>;
-
-private:  // members
-
-    IndexStore indexes_;
-    Index current_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

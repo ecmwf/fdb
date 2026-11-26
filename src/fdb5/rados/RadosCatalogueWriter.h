@@ -20,7 +20,6 @@
 #include "eckit/io/Offset.h"
 
 #include <cstddef>
-#include <map>
 #include <memory>
 #include <ostream>
 #include <set>
@@ -74,13 +73,7 @@ private:  // methods
     // Writes the catalogue KV (schema, key) and registers the database in the root KV.
     void createDatabase();
 
-private:  // types
-
-    using IndexStore = std::map<Key, Index>;
-
 private:  // members
-
-    IndexStore indexes_;
 
     // False for a new database until the first flush() has written and registered its catalogue KV.
     bool created_{true};
@@ -90,8 +83,6 @@ private:  // members
 
     // Keys of new indexes which are not yet registered in the catalogue KV.
     std::set<Key> unregistered_;
-
-    Index current_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

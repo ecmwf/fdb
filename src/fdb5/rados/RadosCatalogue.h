@@ -25,6 +25,7 @@
 #include "eckit/io/Offset.h"
 #include "eckit/io/rados/RadosKeyValue.h"
 
+#include <map>
 #include <optional>
 #include <ostream>
 #include <set>
@@ -47,7 +48,7 @@ class RadosCatalogue : public CatalogueImpl, public RadosCommon {
 public:  // methods
 
     RadosCatalogue(const Key& key, const fdb5::Config& config);
-    RadosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers, const fdb5::Config& config);
+    RadosCatalogue(const eckit::URI& uri, const fdb5::Config& config);
 
     static const char* catalogueTypeName() { return "rados"; }
 
@@ -112,9 +113,17 @@ private:  // methods
     // Removes every object of the database namespace and its entry in the root KV.
     void destroyDatabase() const;
 
+protected:  // types
+
+    using IndexStore = std::map<Key, Index>;
+
 protected:  // members
 
     Key currentIndexKey_;
+
+    // Indexes selected so far and the one currently selected, maintained by the reader and the writer.
+    IndexStore indexes_;
+    Index current_;
 
 private:  // members
 

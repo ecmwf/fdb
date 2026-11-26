@@ -25,8 +25,6 @@
 #include "eckit/io/rados/RadosObject.h"
 #include "eckit/log/Log.h"
 #include "eckit/log/Timer.h"
-#include "eckit/serialisation/MemoryStream.h"
-#include "eckit/utils/Tokenizer.h"
 
 #include <iostream>
 #include <optional>
@@ -43,9 +41,8 @@ namespace fdb5 {
 RadosCatalogue::RadosCatalogue(const Key& key, const fdb5::Config& config) :
     CatalogueImpl(key, ControlIdentifiers{}, config), RadosCommon(config, key) {}
 
-RadosCatalogue::RadosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers,
-                               const fdb5::Config& config) :
-    CatalogueImpl(Key(), controlIdentifiers, config), RadosCommon(config, uri) {
+RadosCatalogue::RadosCatalogue(const eckit::URI& uri, const fdb5::Config& config) :
+    CatalogueImpl(Key(), ControlIdentifiers{}, config), RadosCommon(config, uri) {
     try {
         dbKey_ = read_key(db_kv_);
     }

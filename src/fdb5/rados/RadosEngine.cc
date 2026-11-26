@@ -15,9 +15,7 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/rados/RadosKeyValue.h"
 #include "eckit/log/Log.h"
-#include "eckit/utils/Tokenizer.h"
 
-#include <cctype>
 #include <functional>
 #include <ostream>
 #include <string>

@@ -7,11 +7,11 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RadosIndexLocation::RadosIndexLocation(const eckit::RadosKeyValue& name, off_t offset) : name_(name), offset_(offset) {}
+RadosIndexLocation::RadosIndexLocation(const eckit::RadosKeyValue& name) : name_(name) {}
 
 void RadosIndexLocation::print(std::ostream& out) const {
 
-    out << "(" << name_.uri().asString() << ":" << offset_ << ")";
+    out << "(" << name_.uri().asString() << ")";
 }
 
 //----------------------------------------------------------------------------------------------------------------------
