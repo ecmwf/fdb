@@ -1,14 +1,8 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #include "eckit/log/Log.h"
+#include "eckit/log/TimeStamp.h"
 #include "eckit/option/CmdArgs.h"
 
 #include "fdb5/api/FDB.h"
@@ -19,8 +13,7 @@ using namespace eckit::option;
 using namespace eckit;
 
 
-namespace fdb5 {
-namespace tools {
+namespace fdb5::tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -65,11 +58,17 @@ void FDBStatus::execute(const CmdArgs& args) {
             if (!elem.controlIdentifiers.enabled(ControlIdentifier::UniqueRoot)) {
                 Log::info() << "  multi-root: PERMITTED" << std::endl;
             }
+            if (elem.lastRead != 0) {
+                Log::info() << "  last-read: " << TimeStamp(elem.lastRead) << std::endl;
+            }
+            if (elem.lastWrite != 0) {
+                Log::info() << "  last-write: " << TimeStamp(elem.lastWrite) << std::endl;
+            }
 
             count++;
         }
 
-        if (count == 0 && fail()) {
+        if (count == 0 && failOnNoData()) {
             std::ostringstream ss;
             ss << "No FDB entries found for: " << request << std::endl;
             throw FDBToolException(ss.str());
@@ -79,8 +78,7 @@ void FDBStatus::execute(const CmdArgs& args) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace tools
-}  // namespace fdb5
+}  // namespace fdb5::tools
 
 
 int main(int argc, char** argv) {

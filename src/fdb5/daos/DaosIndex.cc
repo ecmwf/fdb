@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #include <climits>  // for PATH_MAX
 
@@ -190,38 +183,32 @@ void DaosIndex::add(const Key& key, const Field& field) {
     fdb5::DaosKeyValue{s, location_.daosName()}.put(key.valuesToString(), h.data(), hs.bytesWritten());
 }
 
-void DaosIndex::entries(EntryVisitor& visitor) const {
+void DaosIndex::entries(EntryVisitor& visitor, EntryVisitor::IndexScope& scope) const {
 
-    Index instantIndex(const_cast<DaosIndex*>(this));
+    fdb5::DaosSession s{};
 
-    // Allow the visitor to selectively decline to visit the entries in this index
-    if (visitor.visitIndex(instantIndex)) {
+    /// @note: performed RPCs:
+    /// - index kv open (daos_obj_open)
+    /// - index kv list keys (daos_kv_list)
+    fdb5::DaosKeyValue index_kv{s, location_.daosName()};
 
-        fdb5::DaosSession s{};
+    for (const auto& key : index_kv.keys()) {
 
-        /// @note: performed RPCs:
-        /// - index kv open (daos_obj_open)
-        /// - index kv list keys (daos_kv_list)
-        fdb5::DaosKeyValue index_kv{s, location_.daosName()};
-
-        for (const auto& key : index_kv.keys()) {
-
-            if (key == "axes" || key == "key") {
-                continue;
-            }
-
-            /// @note: the DaosCatalogue is currently indexing a serialised DaosFieldLocation for each
-            ///   archived field key. In the list pathway, DaosLazyFieldLocations are built for all field
-            ///   keys present in an index -- without retrieving the actual location --, and
-            ///   ListVisitor::visitDatum is called for each (see note at the top of DaosLazyFieldLocation.h).
-            ///   When a field key is matched in visitDatum, DaosLazyFieldLocation::stableLocation is called,
-            ///   which in turn calls this method here and triggers retrieval and deserialisation of the
-            ///   indexed DaosFieldLocation, and returns it. Since the deserialised instance is of a
-            ///   polymorphic class, it needs to be reanimated.
-            auto loc = std::make_shared<fdb5::DaosLazyFieldLocation>(location_.daosName(), key);
-            fdb5::Field field(loc, time_t(), fdb5::FieldDetails());
-            visitor.visitDatum(field, key);
+        if (key == "axes" || key == "key") {
+            continue;
         }
+
+        /// @note: the DaosCatalogue is currently indexing a serialised DaosFieldLocation for each
+        ///   archived field key. In the list pathway, DaosLazyFieldLocations are built for all field
+        ///   keys present in an index -- without retrieving the actual location --, and
+        ///   ListVisitor::visitDatum is called for each (see note at the top of DaosLazyFieldLocation.h).
+        ///   When a field key is matched in visitDatum, DaosLazyFieldLocation::stableLocation is called,
+        ///   which in turn calls this method here and triggers retrieval and deserialisation of the
+        ///   indexed DaosFieldLocation, and returns it. Since the deserialised instance is of a
+        ///   polymorphic class, it needs to be reanimated.
+        auto loc = std::make_shared<fdb5::DaosLazyFieldLocation>(location_.daosName(), key);
+        fdb5::Field field(loc, time_t(), fdb5::FieldDetails());
+        visitor.visitDatum(scope, field, key);
     }
 }
 

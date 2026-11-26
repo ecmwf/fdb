@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/exception/Exceptions.h"
@@ -397,9 +390,9 @@ int fdb_new_handle(fdb_handle_t** fdb) {
     return wrapApiFunction([fdb] { *fdb = new fdb_handle_t(); });
 }
 
-int fdb_new_handle_from_yaml(fdb_handle_t** fdb, const char* system_config, const char* user_config) {
-    return wrapApiFunction([fdb, system_config, user_config] {
-        Config cfg{YAMLConfiguration(std::string(system_config)), YAMLConfiguration(std::string(user_config))};
+int fdb_new_handle_from_yaml(fdb_handle_t** fdb, const char* system_config, const char* app_config) {
+    return wrapApiFunction([fdb, system_config, app_config] {
+        Config cfg{YAMLConfiguration(std::string(system_config)), YAMLConfiguration(std::string(app_config))};
         cfg.set("configSource", "yaml");
         cfg.expandConfig();
         *fdb = new fdb_handle_t(cfg);

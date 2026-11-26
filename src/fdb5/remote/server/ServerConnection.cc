@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the EC H2020 funded project NextGenIO
@@ -28,6 +21,8 @@
 #include "eckit/log/CodeLocation.h"
 #include "eckit/log/Log.h"
 #include "eckit/net/Endpoint.h"
+#include "eckit/net/IPAddress.h"
+#include "eckit/net/NetMask.h"
 #include "eckit/net/TCPServer.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/runtime/SessionID.h"
@@ -35,13 +30,17 @@
 #include "eckit/utils/Literals.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <exception>
 #include <future>
 #include <iterator>
+#include <limits>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <ostream>
 #include <sstream>
 #include <string>
@@ -61,6 +60,9 @@ namespace {
 constexpr const auto defaultRetrieveQueueSize = 10000;
 constexpr const auto defaultArchiveQueueSize = 320;
 
+// Largest message accepted before the handshake has completed (the startup message is a few hundred bytes)
+constexpr uint32_t maxStartupPayloadSize = 64 * 1024;
+
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -72,20 +74,80 @@ ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& 
     archiveQueue_(eckit::Resource<size_t>("fdbServerMaxQueueSize", defaultArchiveQueueSize)),
     controlSocket_(socket) {
 
-    innerConfig_ = config_.has("fdb") ? Config{config_.getSubConfiguration("fdb"), config_.userConfig()} : config_;
+    innerConfig_ = config_.has("fdb") ? Config{config_.getSubConfiguration("fdb"), config_.appConfig()} : config_;
+
+    // Until the client is identified, anybody who can connect is talking: only the startup message is expected
+    maxPayloadSize(maxStartupPayloadSize);
+
+    if (config_.has("networks")) {
+        const eckit::net::IPAddress clientAddress{controlSocket_.remoteAddr()};
+        const auto networks = config_.getSubConfigurations("networks");
+
+        // The first network containing the address of the client is its network
+        std::optional<eckit::LocalConfiguration> clientNetwork;
+        for (const auto& net : networks) {
+            if (net.has("name") && net.has("netmask") &&
+                eckit::net::NetMask{net.getString("netmask")}.contains(clientAddress)) {
+                clientNetwork_ = net.getString("name");
+                clientNetwork = net;
+                break;
+            }
+        }
+
+        // A feature that some network sets (e.g. "wipe: true") is restricted: it is granted only to the clients of the
+        // networks setting it to true. Clients of other networks, or of no network, don't get it.
+        for (const auto& [name, message] : networkRestrictableFeatures()) {
+            const bool restricted = std::any_of(networks.begin(), networks.end(),
+                                                [&name = name](const auto& net) { return net.has(name); });
+            const bool granted = clientNetwork && clientNetwork->has(name) && clientNetwork->getBool(name);
+            if (restricted && !granted) {
+                disabledFeatures_ |= toMask(message);
+            }
+        }
+
+        LOG_DEBUG_LIB(LibFdb5) << "Client " << clientAddress << " from network '" << clientNetwork_
+                               << "', disabled features: " << messageMask2String(disabledFeatures_) << std::endl;
+    }
 
     LOG_DEBUG_LIB(LibFdb5) << "ServerConnection::ServerConnection initialized" << std::endl;
 }
 
 ServerConnection::~ServerConnection() {
-    // We don't want to die before the worker threads are cleaned up
-    waitForWorkers();
-
-    if (archiveFuture_.valid()) {
-        archiveFuture_.wait();
+    // The derived handler has already been destroyed: a worker still running would use its state, or call its
+    // methods (e.g. archiveBlob()) as pure virtual. Stopping the workers here would not make that safe: they must have
+    // been stopped by handle(), or by the destructor of the derived handler (see stopWorkers()). A worker still
+    // running is a bug of the derived handler: fail loudly rather than with a use-after-free.
+    if (workersRunning()) {
+        eckit::Log::error() << "ServerConnection destroyed with worker threads still running: the derived handler must "
+                               "call stopWorkers() in its destructor"
+                            << std::endl;
+        std::terminate();
     }
 
     eckit::Log::info() << "Done" << std::endl;
+}
+
+bool ServerConnection::workersRunning() noexcept {
+    const auto running = [](const auto& future) {
+        return future.valid() && future.wait_for(std::chrono::seconds(0)) != std::future_status::ready;
+    };
+
+    if (running(archiveFuture_)) {
+        return true;
+    }
+    for (const auto& [requestID, worker] : workerThreads_) {
+        if (running(worker)) {
+            return true;
+        }
+    }
+    try {
+        std::lock_guard<std::mutex> lock(readLocationMutex_);
+        // n.b. even once finished, a thread that has not been joined would terminate the process when destroyed
+        return readLocationWorker_.joinable();
+    }
+    catch (...) {
+        return true;
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -93,8 +155,11 @@ ServerConnection::~ServerConnection() {
 Handled ServerConnection::handleData(Message message, uint32_t clientID, uint32_t requestID) {
     try {
         switch (message) {
-            case Message::Flush:  // notification that the client has sent all data for archival
-                return Handled::YesRemoveArchiveListener;  // ????
+            case Message::Flush: {
+                // Flush is a control message: on the data connection it would stop the data listener, which is only
+                // stopped by the end of the connection
+                throw RemoteProtocolException("Flush received on the data connection", Here());
+            }
 
             default: {
                 std::ostringstream ss;
@@ -133,31 +198,66 @@ Handled ServerConnection::handleData(Message message, uint32_t clientID, uint32_
         }
     }
     catch (std::exception& e) {
+        // An interrupted queue means that the archive worker has failed: it owns the report of that failure, this
+        // is only a consequence of it. Let the listener stop instead.
+        if (connectionFailed()) {
+            throw;
+        }
         // n.b. more general than eckit::Exception
         error(false, e.what(), clientID, requestID);
     }
     catch (...) {
+        if (connectionFailed()) {
+            throw;
+        }
         error(false, "Caught unexpected and unknown error", clientID, requestID);
     }
     return Handled::Replied;
 }
 
-RemoteConfiguration ServerConnection::availableFunctionality() const {
-    return RemoteConfiguration{config_};
+const std::vector<std::pair<std::string, Message>>& ServerConnection::networkRestrictableFeatures() {
+    // the name of the setting (also in the configuration of the server, to disable the feature for all) and the feature
+    static const std::vector<std::pair<std::string, Message>> features{{"wipe", Message::Wipe}};
+    return features;
 }
 
-void ServerConnection::initialiseConnections() {
+RemoteConfiguration ServerConnection::availableFunctionality() const {
+    RemoteConfiguration conf{config_};
+    // n.b. not part of the configuration: it depends on the network of the client (see the constructor)
+    conf.disableFeatures(disabledFeatures_);
+    return conf;
+}
+
+bool ServerConnection::initialiseConnections() {
     // Read the startup message from the client. Check that it all checks out.
 
     MessageHeader hdr;
     eckit::Buffer payload1 = readControl(hdr);
 
-    ASSERT(hdr.message == Message::Startup);
-    ASSERT(hdr.requestID == 0);
+    // n.b. read from the network: never trusted with an ASSERT
+    if (hdr.message != Message::Startup || hdr.requestID != 0) {
+        std::ostringstream ss;
+        ss << "expected the Startup message, received " << hdr.message << " [requestID=" << hdr.requestID << "]";
+        throw RemoteProtocolException(ss.str(), Here());
+    }
+
+    // A payload that cannot be decoded is reported as such, rather than by the error of the stream
+    const auto invalidStartup = [](const std::exception& e) {
+        return RemoteProtocolException(std::string("invalid Startup message: ") + e.what(), Here());
+    };
 
     eckit::MemoryStream s1(payload1);
-    eckit::SessionID clientSession(s1);
-    eckit::net::Endpoint endpointFromClient(s1);
+    std::optional<eckit::SessionID> clientSessionRead;
+    std::optional<eckit::net::Endpoint> endpointRead;
+    try {
+        clientSessionRead.emplace(s1);
+        endpointRead.emplace(s1);
+    }
+    catch (const std::exception& e) {
+        throw invalidStartup(e);
+    }
+    eckit::SessionID& clientSession = *clientSessionRead;  // n.b. its comparison is not const
+    const eckit::net::Endpoint& endpointFromClient = *endpointRead;
     unsigned int remoteProtocolVersion = 0;
 
     try {
@@ -165,7 +265,7 @@ void ServerConnection::initialiseConnections() {
     }
     catch (...) {
         error(true, "Error retrieving client protocol version", hdr.clientID(), hdr.requestID);
-        return;
+        return false;
     }
 
     if (!LibFdb5::instance().remoteProtocolVersion().check(remoteProtocolVersion, false)) {
@@ -175,10 +275,17 @@ void ServerConnection::initialiseConnections() {
            << std::endl;
         ss << "    version requested by client: " << remoteProtocolVersion << std::endl;
         error(true, ss.str(), hdr.clientID(), hdr.requestID);
-        return;
+        return false;
     }
 
-    RemoteConfiguration clientConf{s1};
+    std::optional<RemoteConfiguration> clientConfRead;
+    try {
+        clientConfRead.emplace(s1);
+    }
+    catch (const std::exception& e) {
+        throw invalidStartup(e);
+    }
+    RemoteConfiguration& clientConf = *clientConfRead;
     RemoteConfiguration serverConf = availableFunctionality();
     try {
         agreedConf_ = RemoteConfiguration::common(clientConf, serverConf);
@@ -186,7 +293,7 @@ void ServerConnection::initialiseConnections() {
     }
     catch (const eckit::Exception& e) {
         error(true, e.what(), hdr.clientID(), hdr.requestID);
-        return;
+        return false;
     }
 
     // We want a data connection too. Send info to RemoteFDB, and wait for connection
@@ -207,8 +314,10 @@ void ServerConnection::initialiseConnections() {
 
         dataEndpoint = eckit::net::Endpoint{endpointFromClient.hostname(), dataSocket_->localPort()};
 
-        dataSocketFuture = std::async(std::launch::async, [this] {
-            dataSocket_->accept();
+        // A client that never connects must not hold this connection (and its data port) forever
+        const int timeoutSeconds = eckit::Resource<int>("fdbDataConnectionTimeout;$FDB_DATA_CONNECTION_TIMEOUT", 60);
+        dataSocketFuture = std::async(std::launch::async, [this, timeoutSeconds] {
+            dataSocket_->accept("Waiting for the data connection of the client", timeoutSeconds);
             return true;
         });
     }
@@ -225,7 +334,7 @@ void ServerConnection::initialiseConnections() {
 
     if (!single_) {
         ASSERT(dataSocketFuture.valid());
-        dataSocketFuture.wait();
+        static_cast<void>(dataSocketFuture.get());  // n.b. rethrows a timeout: the connection fails
 
         // Check the response from the client.
         // Ensure that the hostname matches the original hostname, and that
@@ -255,6 +364,8 @@ void ServerConnection::initialiseConnections() {
             throw eckit::BadValue(ss.str(), Here());
         }
     }
+
+    return true;
 }
 
 int ServerConnection::selectDataPort() {
@@ -276,39 +387,109 @@ size_t ServerConnection::archiveThreadLoop() {
 
     try {
         while (archiveQueue_.pop(elem) != -1) {
-            if (elem.multiblob_) {
-                // Handle MultiBlob
+            // n.b. only once it is processed: a flush waiting for locations relies on it (see archivePending())
+            struct Processed {
+                std::atomic<size_t>& pending;
+                ~Processed() { --pending; }
+            } processed{archivePending_};
 
-                const char* firstData = reinterpret_cast<const char*>(elem.payload_.data());  // For pointer arithmetic
-                const char* charData = firstData;
-                while (size_t(charData - firstData) < elem.payload_.size()) {
-                    const MessageHeader* hdr = reinterpret_cast<const MessageHeader*>(charData);
-                    ASSERT(hdr->message == Message::Blob);
-                    ASSERT(hdr->clientID() == elem.clientID_);
-                    ASSERT(hdr->requestID == elem.requestID_);
-                    charData += sizeof(MessageHeader);
+            if (discardArchive_) {
+                continue;
+            }
 
-                    const void* payloadData = charData;
-                    charData += hdr->payloadSize;
+            try {
+                if (elem.multiblob_) {
+                    // Handle MultiBlob
 
-                    const auto* e = reinterpret_cast<const MessageHeader::MarkerType*>(charData);
-                    ASSERT(*e == MessageHeader::EndMarker);
-                    charData += MessageHeader::markerBytes;
+                    // A sequence of complete Blob frames. The content comes from the client: every size is checked
+                    // against what is left in the buffer before it is used (a failure aborts the connection, see below)
+                    const char* data = static_cast<const char*>(elem.payload_.data());
+                    const size_t size = elem.payload_.size();
+                    size_t offset = 0;
+                    while (offset < size) {
+                        if (size - offset < sizeof(MessageHeader)) {
+                            throw RemoteProtocolException("truncated message header in MultiBlob", Here());
+                        }
+                        MessageHeader hdr;
+                        // n.b. may not be aligned; copied raw, as read() does
+                        std::memcpy(static_cast<void*>(&hdr), data + offset, sizeof(hdr));
+                        offset += sizeof(MessageHeader);
 
-                    archiveBlob(elem.clientID_, elem.requestID_, payloadData, hdr->payloadSize);
+                        if (!(hdr.marker == MessageHeader::StartMarker) || hdr.message != Message::Blob ||
+                            hdr.clientID() != elem.clientID_ || hdr.requestID != elem.requestID_) {
+                            std::ostringstream ss;
+                            ss << "invalid frame in MultiBlob [message=" << hdr.message
+                               << ",clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID
+                               << "], expected Blob for [clientID=" << elem.clientID_
+                               << ",requestID=" << elem.requestID_ << "]";
+                            throw RemoteProtocolException(ss.str(), Here());
+                        }
+                        if (size - offset < MessageHeader::markerBytes ||
+                            hdr.payloadSize > size - offset - MessageHeader::markerBytes) {
+                            std::ostringstream ss;
+                            ss << "payload of " << hdr.payloadSize << " bytes overruns the MultiBlob of " << size
+                               << " bytes";
+                            throw RemoteProtocolException(ss.str(), Here());
+                        }
+
+                        const void* payloadData = data + offset;
+                        offset += hdr.payloadSize;
+
+                        if (std::memcmp(data + offset, MessageHeader::EndMarker.data(), MessageHeader::markerBytes) !=
+                            0) {
+                            throw RemoteProtocolException("invalid end of frame in MultiBlob", Here());
+                        }
+                        offset += MessageHeader::markerBytes;
+
+                        archiveBlob(elem.clientID_, elem.requestID_, payloadData, hdr.payloadSize);
+                        totalArchived += 1;
+                    }
+                }
+                else {
+                    // Handle single blob
+                    archiveBlob(elem.clientID_, elem.requestID_, elem.payload_.data(), elem.payload_.size());
                     totalArchived += 1;
                 }
             }
-            else {
-                // Handle single blob
-                archiveBlob(elem.clientID_, elem.requestID_, elem.payload_.data(), elem.payload_.size());
-                totalArchived += 1;
+            catch (...) {
+                // Published before this element is counted as processed (when the guard above is destroyed): a flush
+                // that sees no pending work must also see the failure, not report missing locations
+                recordArchiveFailure(std::current_exception());
+                throw;
             }
         }
     }
     catch (...) {
+        const auto eptr = std::current_exception();
+
+        std::string what = "Caught unexpected, unknown exception in archive worker";
+        try {
+            std::rethrow_exception(eptr);
+        }
+        catch (const std::exception& e) {
+            what = e.what();
+        }
+        catch (...) {
+        }
+
+        // Record the failure before anybody is told about it, so that a flush can never miss it (n.b. already done
+        // for a failure while processing an element)
+        recordArchiveFailure(eptr);
+
+        // The worker is shared, so all pending requests must be failed without waiting for a socket writer.
+        eckit::Log::error() << "Archive worker failed [clientID=" << elem.clientID_ << ",requestID=" << elem.requestID_
+                            << "], terminating the connection: " << what << std::endl;
+
+        // This worker detected the failure, so it owns the error-send-and-abort sequence. It must complete it before
+        // interrupting the queue: the interruption wakes up the data listener (and, on a single connection, the
+        // control listener) blocked on a full queue, which would otherwise race to report the interruption as their
+        // own connection-level failure and shut down the sockets before the specific error is sent.
+        // The failing request gets the actual reason; the others only see the connection being lost.
+        failConnection(what, elem.clientID_, elem.requestID_);
+
         // Ensure exception propagates across the queue back to the parent thread.
-        archiveQueue_.interrupt(std::current_exception());
+        archiveQueue_.interrupt(eptr);
+
         throw;
     }
 
@@ -317,7 +498,13 @@ size_t ServerConnection::archiveThreadLoop() {
 
 void ServerConnection::listeningThreadLoopData() {
 
-    MessageHeader hdr;
+    // however it ends, no more archive data can arrive (see archiveDataEnded())
+    struct Ended {
+        std::atomic<bool>& ended;
+        ~Ended() { ended = true; }
+    } ended{dataEnded_};
+
+    MessageHeader hdr{};
 
     try {
 
@@ -345,16 +532,8 @@ void ServerConnection::listeningThreadLoopData() {
                     handled = handleData(hdr.message, hdr.clientID(), hdr.requestID, std::move(payload));
                 }
 
+                // n.b. the data listener runs until the end of the connection: once started, it is never restarted
                 switch (handled) {
-                    case Handled::YesRemoveArchiveListener:
-                    case Handled::YesRemoveReadListener: {
-                        std::lock_guard<std::mutex> lock(handlerMutex_);
-                        numDataListener_--;
-                        if (numDataListener_ == 0) {
-                            return;
-                        }
-                        break;
-                    }
                     case Handled::Replied:  // nothing to do
                     case Handled::Yes:
                         break;
@@ -367,23 +546,39 @@ void ServerConnection::listeningThreadLoopData() {
             }
         }
     }
+    // Rethrowing from a std::thread would std::terminate the whole server, so report and exit the loop instead.
+    // A failure to read the data connection means that the stream is out of sync (or gone): nothing more can be
+    // received on it, so the whole connection is terminated to wake up whoever is waiting for it.
+    // If another thread already owns a failure (e.g. the archive worker interrupted the queue), this is only a
+    // consequence of it: failConnection() then leaves the reporting to that thread.
     catch (std::exception& e) {
         // n.b. more general than eckit::Exception
-        error(false, e.what(), hdr.clientID(), hdr.requestID);
-        throw;
+        if (failConnection(std::string("Data listener failed: ") + e.what(), 0, 0)) {
+            eckit::Log::error() << "Data listener failed, terminated the connection: " << e.what() << std::endl;
+        }
     }
     catch (...) {
-        error(false, "Caught unexpected, unknown exception in retrieve worker", hdr.clientID(), hdr.requestID);
-        throw;
+        if (failConnection("Data listener failed with an unknown exception", 0, 0)) {
+            eckit::Log::error() << "Data listener failed, terminated the connection" << std::endl;
+        }
     }
 }
 
-void ServerConnection::handle() {
-    initialiseConnections();
+void ServerConnection::listenControl(std::thread& listeningThreadData) {
+    if (!initialiseConnections()) {
+        // the client has been told why it was rejected, and will disconnect
+        eckit::Log::warning() << "Client rejected during the startup handshake" << std::endl;
+        return;
+    }
 
-    std::thread listeningThreadData;
+    // n.b. archived fields are sent as a single message
+    static const auto maxPayload = static_cast<uint32_t>(
+        std::min<size_t>(eckit::Resource<size_t>("fdbServerMaxPayloadSize;$FDB_SERVER_MAX_PAYLOAD_SIZE",
+                                                 std::numeric_limits<uint32_t>::max()),
+                         std::numeric_limits<uint32_t>::max()));
+    maxPayloadSize(maxPayload);
 
-    MessageHeader hdr;
+    MessageHeader hdr{};
 
     // listen loop
     while (true) {
@@ -394,7 +589,7 @@ void ServerConnection::handle() {
 
         if (hdr.message == Message::Stop) {
             ASSERT(hdr.clientID());
-            remove(true, hdr.clientID());
+            remove(hdr.clientID());
         }
         else {
             if (hdr.message == Message::Exit) {
@@ -454,19 +649,70 @@ void ServerConnection::handle() {
             }
         }
     }
+}
 
-    if (listeningThreadData.joinable()) {
-        listeningThreadData.join();
+void ServerConnection::handle() {
+    std::thread listeningThreadData;
+    std::string failure;
+
+    // Nothing may escape from here: an exception unwinding with a joinable listeningThreadData would terminate the
+    // process, and the workers must be stopped while the derived handler is still alive.
+    try {
+        listenControl(listeningThreadData);
+
+        if (listeningThreadData.joinable()) {
+            listeningThreadData.join();
+        }
+
+        // if the connection was aborted by a worker, whatever is still queued is discarded
+        if (!connectionFailed()) {
+            ASSERT(archiveQueue_.empty());
+        }
     }
-    ASSERT(archiveQueue_.empty());
-    archiveQueue_.close();
+    catch (const std::exception& e) {
+        failure = e.what();
+    }
+    catch (...) {
+        failure = "Caught unexpected, unknown exception in connection handler";
+    }
 
-    teardown();
+    if (!failure.empty()) {
+        eckit::Log::error() << "Terminating connection: " << failure << std::endl;
+
+        // Shut down without waiting for a socket writer so the data listener can be joined.
+        // The error is not addressed to a request or a client: the client reports it as a connection failure.
+        // n.b. if a worker owns the failure that caused this one, it is the worker that reports it.
+        failConnection(failure, 0, 0);
+        try {
+            if (listeningThreadData.joinable()) {
+                listeningThreadData.join();
+            }
+        }
+        catch (...) {
+        }
+    }
+
+    // The connection is also aborted by the data listener and by the archive worker, on their own failures.
+    // n.b. a worker may own a failure without having aborted the connection yet: stopWorkers() waits for it.
+    const bool failed = connectionFailed();
+
+    stopWorkers(failed);
+
+    if (!failed) {
+        teardown();
+    }
 }
 
 void ServerConnection::queue(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
 
-    archiveQueue_.emplace(ArchiveElem{clientID, requestID, std::move(payload), message == Message::MultiBlob});
+    ++archivePending_;  // before it can be processed
+    try {
+        archiveQueue_.emplace(ArchiveElem{clientID, requestID, std::move(payload), message == Message::MultiBlob});
+    }
+    catch (...) {
+        --archivePending_;
+        throw;
+    }
 }
 
 void ServerConnection::tidyWorkers() {
@@ -502,13 +748,68 @@ void ServerConnection::waitForWorkers() {
     for (auto& it : workerThreads_) {
         eckit::Log::error() << "Worker thread still alive for request ID: " << it.first << std::endl;
         eckit::Log::error() << "Joining ..." << std::endl;
-        it.second.get();
+        // Called from the destructor: an exception escaping here would terminate the process
+        try {
+            it.second.get();
+        }
+        catch (const std::exception& e) {
+            eckit::Log::error() << "Worker thread for request ID " << it.first << " failed: " << e.what() << std::endl;
+        }
+        catch (...) {
+            eckit::Log::error() << "Worker thread for request ID " << it.first << " failed with an unknown exception"
+                                << std::endl;
+        }
         eckit::Log::error() << "Thread complete" << std::endl;
     }
+
+    workerThreads_.clear();
 
     std::lock_guard<std::mutex> lock(readLocationMutex_);
     if (readLocationWorker_.joinable()) {
         readLocationWorker_.join();
+    }
+}
+
+void ServerConnection::stopWorkers(bool discardPending) noexcept {
+    try {
+        discardArchive_ = discardPending;
+        archiveQueue_.close();  // the archive worker still empties the queue, discarding the elements if requested
+
+        if (archiveFuture_.valid()) {
+            archiveFuture_.wait();  // wait() rather than get(): the failure has already been reported
+        }
+
+        waitForWorkers();
+    }
+    catch (...) {
+        eckit::Log::error() << "Unexpected error while stopping the workers" << std::endl;
+    }
+}
+
+bool ServerConnection::failConnection(std::string_view what, uint32_t clientID, uint32_t requestID) noexcept {
+    if (failureOwned_.exchange(true)) {
+        return false;
+    }
+    tryErrorBounded(true, what, clientID, requestID);
+    abortConnection();
+    return true;
+}
+
+void ServerConnection::recordArchiveFailure(const std::exception_ptr& failure) noexcept {
+    try {
+        std::lock_guard<std::mutex> lock(archiveFailureMutex_);
+        if (!archiveFailure_) {
+            archiveFailure_ = failure;
+        }
+    }
+    catch (...) {
+    }
+}
+
+void ServerConnection::rethrowArchiveFailure() const {
+    std::lock_guard<std::mutex> lock(archiveFailureMutex_);
+    if (archiveFailure_) {
+        std::rethrow_exception(archiveFailure_);
     }
 }
 

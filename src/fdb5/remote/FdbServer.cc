@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the EC H2020 funded project NextGenIO
@@ -131,7 +124,7 @@ void FdbServerBase::doRun() {
     int port = config.getInt("serverPort", 7654);
     bool threaded = config.getBool("serverThreaded", false);
 
-    net::TCPServer server(net::Port("fdb", port), net::SocketOptions::server().reusePort(true));
+    net::TCPServer server(net::Port("fdb", port));
     server.closeExec(false);
 
     port_ = server.localPort();
@@ -168,11 +161,26 @@ void FdbServerBase::startPortReaperThread(const Config& config) {
         portList.initialise();
 
         reaperThread_ = std::thread([startPort, count]() {
-            AvailablePortList portList(startPort, count);
+            // Nothing may escape from this thread: it would terminate the whole server
+            try {
+                AvailablePortList portList(startPort, count);
 
-            while (true) {
-                portList.reap(120);
-                std::this_thread::sleep_for(std::chrono::seconds(10));
+                while (true) {
+                    try {
+                        portList.reap(120);
+                    }
+                    catch (const std::exception& e) {
+                        eckit::Log::error() << "Port reaper failed, will retry: " << e.what() << std::endl;
+                    }
+                    std::this_thread::sleep_for(std::chrono::seconds(10));
+                }
+            }
+            catch (const std::exception& e) {
+                eckit::Log::error() << "Port reaper stopped, data ports will not be recycled: " << e.what()
+                                    << std::endl;
+            }
+            catch (...) {
+                eckit::Log::error() << "Port reaper stopped, data ports will not be recycled" << std::endl;
             }
         });
     }

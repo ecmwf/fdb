@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2025 European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
+pytest>=9.0
+pytest-asyncio
+pytest-xdist
+Sybil[pytest]
+PyYAML
+findlibs
+eccodes
+numpy
+zarr~=3.1.6

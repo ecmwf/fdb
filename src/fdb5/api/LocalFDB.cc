@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the EC H2020 funded project NextGenIO
@@ -35,6 +28,7 @@
 #include "fdb5/api/local/PurgeVisitor.h"
 #include "fdb5/api/local/StatsVisitor.h"
 #include "fdb5/api/local/StatusVisitor.h"
+#include "fdb5/api/local/TouchVisitor.h"
 #include "fdb5/api/local/WipeVisitor.h"
 #include "fdb5/database/Archiver.h"
 #include "fdb5/database/EntryVisitMechanism.h"
@@ -67,7 +61,7 @@ void LocalFDB::archive(const Key& key, const void* data, size_t length) {
         std::lock_guard lock(mutex_);
         if (!archiver_) {
             LOG_DEBUG_LIB(LibFdb5) << *this << ": Constructing new archiver" << std::endl;
-            archiver_ = std::make_unique<Archiver>(config_, archiveCallback_);
+            archiver_ = std::make_unique<Archiver>(config_, callbacks_->archiveCallback_);
         }
         archiver = archiver_.get();
     }
@@ -104,16 +98,17 @@ template <typename VisitorType, typename... Ts>
 APIIterator<typename VisitorType::ValueType> LocalFDB::queryInternal(const FDBToolRequest& request, Ts... args) {
 
     using ValueType = typename VisitorType::ValueType;
+    using QueueType = typename VisitorType::QueueType;
     using QueryIterator = APIIterator<ValueType>;
-    using AsyncIterator = APIAsyncIterator<ValueType>;
+    using AsyncIterator = APIAsyncIterator<ValueType, QueueType>;
 
-    auto async_worker = [this, request, args...](Queue<ValueType>& queue) {
+    auto async_worker = [this, request, args...](QueueType& queue) {
         EntryVisitMechanism mechanism(config_);
         VisitorType visitor(queue, request.request(), args...);
         mechanism.visit(request, visitor);
     };
 
-    return QueryIterator(new AsyncIterator(shared_from_this(), async_worker));
+    return QueryIterator(new AsyncIterator(shared_from_this(), async_worker, config_));
 }
 
 ListIterator LocalFDB::list(const FDBToolRequest& request, const int level) {
@@ -124,6 +119,10 @@ ListIterator LocalFDB::list(const FDBToolRequest& request, const int level) {
 DumpIterator LocalFDB::dump(const FDBToolRequest& request, bool simple) {
     LOG_DEBUG_LIB(LibFdb5) << "LocalFDB::dump() : " << request << std::endl;
     return queryInternal<DumpVisitor>(request, simple);
+}
+
+StatusIterator LocalFDB::touch(const FDBToolRequest& request, AccessIdentifiers identifiers, AccessTime when) {
+    return queryInternal<TouchVisitor>(request, identifiers, when);
 }
 
 StatusIterator LocalFDB::status(const FDBToolRequest& request) {
@@ -172,11 +171,11 @@ void LocalFDB::flush() {
     }
     if (archiver) {
         archiver->flush();
-        flushCallback_();
+        callbacks_->flushCallback_();
     }
     else if (reindexer) {
         reindexer->flush();
-        flushCallback_();
+        callbacks_->flushCallback_();
     }
 }
 

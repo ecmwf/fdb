@@ -1,13 +1,6 @@
 
-/*
- * (C) Copyright 2018- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 2018- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the EC H2020 funded project NextGenIO
@@ -86,9 +79,9 @@ bool WipeCatalogueVisitor::visitDatabase(const Catalogue& catalogue) {
     return true;  // Explore contained indexes
 }
 
-bool WipeCatalogueVisitor::visitIndex(const Index& index) {
+EntryVisitor::IndexScopePtr WipeCatalogueVisitor::visitIndex(const Index& index, const Rule& /*rule*/,
+                                                             Queue<CatalogueWipeState>& /*queue*/) {
 
-    EntryVisitor::visitIndex(index);
     ASSERT(catalogueWipeState_);
 
     // Is this index matched by the supplied request?
@@ -106,7 +99,8 @@ bool WipeCatalogueVisitor::visitIndex(const Index& index) {
             catalogueWipeState_->excludeData(dataURI);
         }
     }
-    return true;
+
+    return nullptr;  // visitEntries() is false, so the contents are never explored anyway
 }
 
 void WipeCatalogueVisitor::catalogueComplete(const Catalogue& catalogue) {

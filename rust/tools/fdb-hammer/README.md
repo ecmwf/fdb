@@ -24,9 +24,7 @@ cargo build -p fdb-hammer --release --no-default-features --features system
 ## Running
 
 Binaries work out of the box on both macOS and Linux — no
-`LD_LIBRARY_PATH` / `DYLD_LIBRARY_PATH` setup needed. The build script
-stamps a binary-relative RPATH so the dynamic linker finds the
-vendored libraries automatically:
+`LD_LIBRARY_PATH` / `DYLD_LIBRARY_PATH` setup needed:
 
 ```bash
 cd target/release
@@ -45,7 +43,7 @@ cd fdb/tools/fdb-hammer/test_config
 
 ```bash
 cargo run -p fdb-hammer --release -- \
-  ../../../crates/fdb/tests/fixtures/template.grib \
+  ../../../crates/ecmwf-fdb/tests/fixtures/template.grib \
   --config ./config.yaml \
   --expver test --class od \
   --nsteps 10 --nlevels 5 --nparams 3
@@ -55,7 +53,7 @@ cargo run -p fdb-hammer --release -- \
 
 ```bash
 cargo run -p fdb-hammer --release -- \
-  ../../../crates/fdb/tests/fixtures/template.grib \
+  ../../../crates/ecmwf-fdb/tests/fixtures/template.grib \
   --config ./config.yaml \
   --expver test --class od \
   --nsteps 10 --nlevels 5 --nparams 3 \
@@ -66,7 +64,7 @@ cargo run -p fdb-hammer --release -- \
 
 ```bash
 cargo run -p fdb-hammer --release -- \
-  ../../../crates/fdb/tests/fixtures/template.grib \
+  ../../../crates/ecmwf-fdb/tests/fixtures/template.grib \
   --config ./config.yaml \
   --expver test --class od \
   --nsteps 10 --nlevels 5 --nparams 3 \
@@ -77,7 +75,7 @@ cargo run -p fdb-hammer --release -- \
 
 ```bash
 cargo run -p fdb-hammer --release -- \
-  ../../../crates/fdb/tests/fixtures/template.grib \
+  ../../../crates/ecmwf-fdb/tests/fixtures/template.grib \
   --config ./config.yaml \
   --expver test --class od \
   --nsteps 3 --nlevels 2 --nparams 2 \

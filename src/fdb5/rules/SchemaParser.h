@@ -1,23 +1,18 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /// @author Baudouin Raoult
 /// @date Jun 2012
 
-#ifndef fdb5_SchemaParser_h
-#define fdb5_SchemaParser_h
+#pragma once
 
+#include <cstddef>
+#include <fstream>
 #include <iosfwd>
 #include <memory>
 #include <string>
 
+#include "eckit/filesystem/PathName.h"
 #include "eckit/parser/StreamParser.h"
 #include "eckit/types/Types.h"
 
@@ -27,15 +22,21 @@ namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class SchemaParser : public eckit::StreamParser {
+class SchemaParser {
 
 public:  // methods
 
-    SchemaParser(std::istream& in) : StreamParser(in, true) {}
+    explicit SchemaParser(const eckit::PathName& path);
+
+    explicit SchemaParser(std::istream& in);
 
     void parse(RuleList& result, TypesRegistry& registry);
 
 private:  // methods
+
+    bool isAscii(char c);
+
+    char peek(bool spaces = false);
 
     std::string parseIdent(bool value, bool emptyOK);
 
@@ -48,10 +49,17 @@ private:  // methods
     std::unique_ptr<Predicate> parsePredicate(eckit::StringDict& types);
 
     void parseTypes(eckit::StringDict& types);
+
+private:  // members
+
+    std::string getSchemaPath() const noexcept {
+        return path_.has_value() ? std::get<0>(*path_).localPath() : "Created from std::istream";
+    }
+
+    std::optional<std::tuple<eckit::PathName, std::ifstream>> path_;
+    std::unique_ptr<eckit::StreamParser> parser_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

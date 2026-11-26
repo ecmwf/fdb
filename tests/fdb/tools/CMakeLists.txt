@@ -14,7 +14,11 @@ foreach( _t ${fdb_tools_tests} )
 endforeach()
 
 list( APPEND fdb_tools_grib_tests
-    axes )
+    axes
+    stats
+    stats_concurrent
+    stats_counts
+    purge_concurrent )
 
 foreach( _t ${fdb_tools_grib_tests} )
 
@@ -37,6 +41,8 @@ if ( HAVE_GRIB AND ( metkit_VERSION VERSION_GREATER_EQUAL 1.16 ))
 endif()
 add_subdirectory( inspect )
 add_subdirectory( wipe )
+add_subdirectory( last-access )
+add_subdirectory( touch )
 add_subdirectory( reindex )
 add_subdirectory( dump-toc )
 add_subdirectory( copy )

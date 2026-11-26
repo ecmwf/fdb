@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #include <dirent.h>
 #include <fcntl.h>
@@ -120,6 +113,17 @@ void TocMoveVisitor::move() {
                 dest_db.mkdir();
             }
 
+            // Unlike the lock files, which are managed separately for source and destination and
+            // are deliberately not carried across, the access timestamps describe the data and so
+            // travel with it. They are the only elements copied with their attributes preserved:
+            // their mtime is the entire content of the file, and their mode is what lets a
+            // non-owner record a read. Everything else below is content, and is written at the
+            // destination under the prevailing umask like any other new file.
+            for (const auto& timestamp : catalogue_.timestampPaths()) {
+                FileCopy fileCopy(catalogue_.basePath(), dest_db, timestamp.baseName(), false, true);
+                queue_.emplace(fileCopy);
+            }
+
             DIR* dirp = ::opendir(catalogue_.basePath().c_str());
             struct dirent* dp;
             while ((dp = readdir(dirp)) != NULL) {
@@ -143,6 +147,7 @@ void TocMoveVisitor::move() {
                 }
             }
             closedir(dirp);
+
             FileCopy folder(catalogue_.basePath(), "", "");
             queue_.emplace(folder);
         }

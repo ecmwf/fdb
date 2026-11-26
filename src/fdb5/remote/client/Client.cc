@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #include "fdb5/remote/client/Client.h"
 
@@ -21,6 +14,7 @@
 #include "eckit/net/Endpoint.h"
 
 #include <cstdint>
+#include <exception>
 #include <future>
 #include <mutex>
 #include <sstream>
@@ -48,7 +42,9 @@ Client::Client(const eckit::Configuration& config, const eckit::net::Endpoint& e
     connection_(ClientConnectionRouter::instance().connection(config, endpoint, defaultEndpoint)) {
 
     setClientID();
-    connection_->add(*this);
+    while (!connection_->add(*this)) {
+        connection_ = ClientConnectionRouter::instance().connection(config, endpoint, defaultEndpoint);
+    }
 }
 
 Client::Client(const eckit::Configuration& config,
@@ -56,7 +52,9 @@ Client::Client(const eckit::Configuration& config,
     connection_(ClientConnectionRouter::instance().connection(config, endpoints)) {
 
     setClientID();
-    connection_->add(*this);
+    while (!connection_->add(*this)) {
+        connection_ = ClientConnectionRouter::instance().connection(config, endpoints);
+    }
 }
 
 void Client::refreshConnection() {
@@ -66,8 +64,9 @@ void Client::refreshConnection() {
     eckit::Log::warning() << "Connection to " << connection_->controlEndpoint()
                           << " is invalid, attempting to reconnect" << std::endl;
     connection_->remove(id_);
-    connection_ = ClientConnectionRouter::instance().refresh(clientConfig(), connection_);
-    connection_->add(*this);
+    do {
+        connection_ = ClientConnectionRouter::instance().refresh(clientConfig(), connection_);
+    } while (!connection_->add(*this));
 }
 
 void Client::deregister() {
@@ -78,6 +77,24 @@ void Client::deregister() {
 
 Client::~Client() {
     deregister();
+}
+
+std::exception_ptr Client::closureError(const std::string& context, const std::exception_ptr& reason) const {
+    std::string what;
+    try {
+        if (reason) {
+            std::rethrow_exception(reason);
+        }
+    }
+    catch (const std::exception& e) {
+        what = e.what();
+    }
+    catch (...) {
+        what = "unknown exception";
+    }
+
+    return std::make_exception_ptr(
+        RemoteFDBException(what.empty() ? context : context + ": " + what, controlEndpoint()));
 }
 
 eckit::Buffer Client::waitControlResponse(std::future<eckit::Buffer>& response, const Message msg,

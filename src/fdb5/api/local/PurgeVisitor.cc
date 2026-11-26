@@ -1,13 +1,6 @@
 
-/*
- * (C) Copyright 2018- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 2018- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the EC H2020 funded project NextGenIO
@@ -23,9 +16,9 @@
 #include "fdb5/database/Catalogue.h"
 #include "fdb5/database/PurgeVisitor.h"
 
-namespace fdb5 {
-namespace api {
-namespace local {
+#include <memory>
+
+namespace fdb5::api::local {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -64,14 +57,19 @@ bool PurgeVisitor::visitDatabase(const Catalogue& catalogue) {
     return true;  // Explore contained indexes
 }
 
-bool PurgeVisitor::visitIndex(const Index& index) {
-    internalVisitor_->visitIndex(index);
+EntryVisitor::IndexScopePtr PurgeVisitor::visitIndex(const Index& index, OrderedParallelFor::Order& order) {
+    auto inner = internalVisitor_->visitIndex(index, order);
+    if (!inner) {
+        return nullptr;  // Skip contained entries
+    }
 
-    return true;  // Explore contained entries
+    auto scope = std::make_unique<Scope>(*currentCatalogue_, index, inner->rule());
+    scope->inner = std::move(inner);
+    return scope;  // Explore contained entries
 }
 
-void PurgeVisitor::visitDatum(const Field& field, const std::string& keyFingerprint) {
-    internalVisitor_->visitDatum(field, keyFingerprint);
+void PurgeVisitor::visitDatum(IndexScope& indexScope, const Field& field, const std::string& keyFingerprint) {
+    internalVisitor_->visitDatum(*static_cast<Scope&>(indexScope).inner, field, keyFingerprint);
 }
 
 void PurgeVisitor::catalogueComplete(const Catalogue& catalogue) {
@@ -92,8 +90,11 @@ void PurgeVisitor::catalogueComplete(const Catalogue& catalogue) {
     internalVisitor_.reset();
 }
 
+bool PurgeVisitor::supportsConcurrentIndexVisitation() const {
+    ASSERT(internalVisitor_);
+    return internalVisitor_->supportsConcurrentIndexVisitation();
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace local
-}  // namespace api
-}  // namespace fdb5
+}  // namespace fdb5::api::local

@@ -152,7 +152,7 @@ run both suites from there:
 
 .. code-block:: bash
 
-   pip install -r ../fdb/requirements.txt
+   pip install -r ../fdb/python/requirements-test.txt
    cd ../fdb/tests
    pytest z3fdb pychunked_data_view -v
 

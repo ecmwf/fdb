@@ -1,20 +1,13 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
 #include "eckit/io/Buffer.h"
 #include "eckit/serialisation/MemoryStream.h"
 
+#include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Key.h"
-#include "fdb5/remote/RemoteFieldLocation.h"
 
 #include <cstdint>
 #include <deque>
@@ -29,8 +22,8 @@ class RemoteStore;
 //----------------------------------------------------------------------------------------------------------------------
 
 struct RequestInfo {
-    const RemoteStore* client;  // Non-owning
-    uint32_t id;                // note request ids are only unique per connection. Client id is unique within a process
+    RemoteStore* client;  // Non-owning
+    uint32_t id;          // note request ids are only unique per connection. Client id is unique within a process
     eckit::Buffer requestBuffer;  // Payload to send to the server
     size_t requestSize;
     size_t resultSize;  // Size of the field obtained from the store
@@ -52,10 +45,15 @@ public:
     ReadLimiter& operator=(ReadLimiter&&) = delete;
 
     // Add a new request to the queue of requests to be sent. Will not be sent until we know we have buffer space.
+    /// @throws if the field is larger than the memory limit, i.e. it could never be sent. A failure to send the
+    ///         request is not thrown: it is delivered to the request (see RemoteStore::failRequest()).
     void add(RemoteStore* client, uint32_t id, const FieldLocation& fieldLocation,
              const Key& remapKey);  // use const *?
 
-    void finishRequest(uint32_t clientID, uint32_t requestID);
+    /// The request is complete, or abandoned (e.g. its DataHandle is destroyed early): releases its budget if it was
+    /// sent, removes it if it is still queued, and sends the next requests that fit.
+    /// Never throws: it is called from destructors, and the failure to send another request belongs to that request.
+    void finishRequest(uint32_t clientID, uint32_t requestID) noexcept;
 
     // When a RemoteStore is destroyed, it must evict any unconsumed requests.
     // If all went well, there will be no requests to evict, but we must check (consumer may have abandoned the
@@ -73,12 +71,15 @@ private:
 
     static size_t defaultReadLimit();
 
-    // Attempt to send the next request in the queue. Returns true if a request was sent.
-    // If not enough memory is available, or there is no next request, returns false.
-    bool tryNextRequest();
+    // Sends the queued requests, in order, as long as they fit in the memory limit. Never throws: a request that
+    // cannot be sent releases its budget and is failed, so that its reader gets the error, not the caller.
+    void tryNextRequests() noexcept;
 
     // Send the request to the server
     void sendRequest(const RequestInfo& request) const;
+
+    // Releases the budget of a sent request. Caller holds mutex_. @returns false if the request was not active
+    bool releaseActive(uint32_t clientID, uint32_t requestID);
 
 private:
 

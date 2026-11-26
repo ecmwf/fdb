@@ -19,7 +19,7 @@ expect_output() {
   local pattern="$1"; shift
   local out
   out=$("$@") || die "Command failed => '$*'"
-  echo "$out" | grep -qF "$pattern" || die "Expected '$pattern' in output of '$*', got: $out"
+  grep -qF -- "$pattern" <<< "$out" || die "Expected '$pattern' in output of '$*', got: $out"
   echo "$out"
 }
 
@@ -27,7 +27,7 @@ expect_match() {
   local pattern="$1"; shift
   local out
   out=$("$@") || die "Command failed => '$*'"
-  echo "$out" | grep -qE "$pattern" || die "Expected regex '$pattern' in output of '$*', got: $out"
+  grep -qE -- "$pattern" <<< "$out" || die "Expected regex '$pattern' in output of '$*', got: $out"
   echo "$out"
 }
 
@@ -122,8 +122,8 @@ echo "--- TEST: fdb-dump --simple ---"
 out=$(fdb-dump --simple class=rd,expver=xxxx)
 echo "$out"
 
-echo "$out" | grep -qF "FamCatalogue"    || die "Expected 'FamCatalogue' in simple dump"
-echo "$out" | grep -qF "Key:"            || die "Expected 'Key:' in simple dump"
+grep -qF -- "FamCatalogue" <<< "$out"    || die "Expected 'FamCatalogue' in simple dump"
+grep -qF -- "Key:" <<< "$out"            || die "Expected 'Key:' in simple dump"
 
 ########################################################################################################################
 # Test: fdb-dump (verbose)
@@ -134,11 +134,11 @@ echo "--- TEST: fdb-dump (verbose) ---"
 out=$(fdb-dump class=rd,expver=xxxx)
 echo "$out"
 
-echo "$out" | grep -qF "FamCatalogue"        || die "Expected 'FamCatalogue' in verbose dump"
-echo "$out" | grep -qF "Key:"                || die "Expected 'Key:' in verbose dump"
-echo "$out" | grep -qF "Axes:"               || die "Expected 'Axes:' in verbose dump"
-echo "$out" | grep -qF "Contents of index:"  || die "Expected 'Contents of index:' in verbose dump"
-echo "$out" | grep -qF "FamFieldLocation"    || die "Expected 'FamFieldLocation' in verbose dump"
+grep -qF -- "FamCatalogue" <<< "$out"        || die "Expected 'FamCatalogue' in verbose dump"
+grep -qF -- "Key:" <<< "$out"                || die "Expected 'Key:' in verbose dump"
+grep -qF -- "Axes:" <<< "$out"               || die "Expected 'Axes:' in verbose dump"
+grep -qF -- "Contents of index:" <<< "$out"  || die "Expected 'Contents of index:' in verbose dump"
+grep -qF -- "FamFieldLocation" <<< "$out"    || die "Expected 'FamFieldLocation' in verbose dump"
 
 ########################################################################################################################
 

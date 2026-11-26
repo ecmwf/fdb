@@ -1,15 +1,9 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
@@ -56,8 +50,13 @@ public:
     static RemoteConfiguration common(RemoteConfiguration& clientConf, RemoteConfiguration& serverConf);
 
     bool singleConnection() const;
+    uint64_t enabledFeatures() const { return enabledFeatures_; }
+
+    /// Withdraws features (a mask of Message, see toMask()), e.g. those the server grants to some networks only
+    void disableFeatures(uint64_t mask) { enabledFeatures_ &= ~mask; }
 
     friend eckit::Stream& operator<<(eckit::Stream& s, const RemoteConfiguration& r);
+    friend std::ostream& operator<<(std::ostream& s, const RemoteConfiguration& r);
 
 private:
 
@@ -65,6 +64,8 @@ private:
     std::vector<int> numberOfConnections_;
 
     std::optional<bool> preferSingleConnection_;
+
+    uint64_t enabledFeatures_{0};
 
     bool singleConnection_{false};
 };

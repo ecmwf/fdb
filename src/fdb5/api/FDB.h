@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the EC H2020 funded project NextGenIO
@@ -19,6 +12,7 @@
 #pragma once
 
 #include "fdb5/api/FDBStats.h"
+#include "fdb5/api/helpers/AccessIterator.h"
 #include "fdb5/api/helpers/AxesIterator.h"
 #include "fdb5/api/helpers/Callback.h"
 #include "fdb5/api/helpers/ControlIterator.h"
@@ -186,6 +180,11 @@ public:  // methods
 
     // TODO(kkratz): Provide doc!
     StatusIterator status(const FDBToolRequest& request);
+
+    /// Explicitly record the identified kinds of access against each matching database. For data
+    /// accessed by means FDB cannot observe, and for seeding timestamps on an existing archive.
+    StatusIterator touch(const FDBToolRequest& request, AccessIdentifiers identifiers,
+                         AccessTime when = AccessTime());
 
     /// Wipe data from the database.
     ///

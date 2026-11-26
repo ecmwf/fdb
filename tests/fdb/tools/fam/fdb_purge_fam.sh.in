@@ -95,7 +95,7 @@ request="class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g"
 # Dry-run: reports unreferenced data and prompts to rerun with --doit; deletes nothing.
 out=$(fdb-purge "$request")
 echo "$out"
-echo "$out" | grep -qE "Unreferenced data objects" || die "Expected purge report to list unreferenced data objects"
+grep -qE -- "Unreferenced data objects" <<< "$out" || die "Expected purge report to list unreferenced data objects"
 
 # Commit the purge: removes the unreferenced (superseded) data object.
 fdb-purge --doit "$request"
@@ -103,5 +103,5 @@ fdb-purge --doit "$request"
 # A second dry-run should now find nothing to purge.
 out2=$(fdb-purge "$request")
 echo "$out2"
-echo "$out2" | grep -qE "Unreferenced data objects:\s*\n?\s*- NONE -|- NONE -" \
+grep -qE -- "Unreferenced data objects:\s*\n?\s*- NONE -|- NONE -" <<< "$out2" \
     || echo "note: no unreferenced objects remain (expected after purge)"

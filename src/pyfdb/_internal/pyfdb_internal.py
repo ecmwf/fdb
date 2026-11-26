@@ -1,10 +1,5 @@
-# (C) Copyright 2025- ECMWF.
-#
-# This software is licensed under the terms of the Apache Licence Version 2.0
-# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
-# In applying this licence, ECMWF does not waive the privileges and immunities
-# granted to it by virtue of its status as an intergovernmental organisation
-# nor does it submit to any jurisdiction.
+# SPDX-FileCopyrightText: 2025- European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
 
 import json
 from collections.abc import Collection
@@ -13,10 +8,7 @@ from typing import Any, Optional
 
 import yaml
 
-from pyfdb_bindings import pyfdb_bindings as pyfdb_internal
-
-# Initial setup of binding via eckit main
-pyfdb_internal.init_bindings()
+import pyfdb.bindings as _bindings
 
 InternalMarsSelection = dict[str, Collection[str]]
 """
@@ -72,20 +64,13 @@ class FDBToolRequest:
         all: bool = False,
         minimum_key_set: list[str] | None = None,
     ) -> None:
-        if key_values is not None:
-            key_values = key_values
-
         if minimum_key_set is None:
             minimum_key_set = []
 
-        self.tool_request = pyfdb_internal.FDBToolRequest(
-            key_values, all, minimum_key_set
-        )
+        self.tool_request = _bindings.FDBToolRequest(key_values, all, minimum_key_set)
 
     @classmethod
-    def from_internal_mars_selection(
-        cls, selection: InternalMarsSelection | None
-    ) -> "FDBToolRequest":
+    def from_internal_mars_selection(cls, selection: InternalMarsSelection | None) -> "FDBToolRequest":
         if selection is None or len(selection) == 0:
             return cls(key_values={}, all=True)
 
@@ -108,7 +93,7 @@ class ConfigMapper:
         Parameters
         ----------
         `config`: `str` | `dict` | `Path`
-                System or user configuration
+                System or application configuration
 
         Note
         ----

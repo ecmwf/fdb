@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+
+set -euxo pipefail
+
+export PATH=@CMAKE_BINARY_DIR@/bin:${ECCODES_BINARY_PATH}:$PATH
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+cd $bindir
+
+mkdir -p stats_test
+cd stats_test
+
+rm -rf localroot || true
+mkdir localroot
+
+for f in local.yaml x.grib
+do
+  cp $srcdir/$f ./
+done
+
+export FDB5_CONFIG_FILE=local.yaml
+
+grib_set -s step=6 x.grib 6.grib
+grib_set -s step=9 x.grib 9.grib
+grib_set -s expver=yyyy 9.grib y9.grib
+
+fdb-write 6.grib
+fdb-write 9.grib
+fdb-write y9.grib
+
+request1=class=rd,expver=xxxx,stream=oper,date=20201102,time=0000,domain=g
+request2=class=rd,expver=yyyy,stream=oper,date=20201102,time=0000,domain=g
+
+####### Human readable output
+
+fdb-stats $request1 > stats.out
+cat stats.out
+grep -qE "Number of databases[[:space:]]*:[[:space:]]*1" stats.out
+grep -qE "Fields[[:space:]]*:[[:space:]]*2" stats.out
+
+####### JSON output -- a single object with the summary statistics
+
+fdb-stats --json $request1 > stats.json
+cat stats.json
+grep -qE '^\{.*\}$' stats.json
+grep -q '"databases":1' stats.json
+grep -q '"fields":2' stats.json
+grep -q '"details"' stats.json && exit 1 || true
+
+####### JSON output over two databases
+
+fdb-stats --json $request1 $request2 > stats.json
+cat stats.json
+grep -q '"databases":2' stats.json
+grep -q '"fields":3' stats.json
+
+####### JSON output with --details -- the per-database statistics are listed in "details"
+
+fdb-stats --json --details $request1 $request2 > stats_details.json
+cat stats_details.json
+grep -q '"details":\[{' stats_details.json
+# the two databases hold 2 and 1 fields respectively, totalling 3
+grep -q '"details":\[{"fields":2,.*},{"fields":1,.*}\],"fields":3,' stats_details.json
+grep -q '"details":\[{.*"databases":1,.*},{.*"databases":1,.*}\],.*"databases":2,' stats_details.json

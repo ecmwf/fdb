@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 
 #include "fdb5/database/Archiver.h"
@@ -20,8 +13,10 @@
 #include "fdb5/rules/Schema.h"
 
 #include "eckit/config/Resource.h"
+#include "eckit/log/Log.h"
 
 #include <ctime>
+#include <exception>
 #include <mutex>
 
 namespace fdb5 {
@@ -32,7 +27,20 @@ Archiver::Archiver(const Config& dbConfig, const ArchiveCallback& callback) :
     dbConfig_(dbConfig), db_(nullptr), callback_(callback) {}
 
 Archiver::~Archiver() {
-    flush();  // certify that all sessions are flushed before closing them
+    std::lock_guard<std::recursive_mutex> lock(flushMutex_);
+    for (auto& [key, db] : databases_) {
+        try {
+            flushDatabase(db);
+        }
+        catch (const std::exception& e) {
+            eckit::Log::error() << "Archiver flush failed during destruction for " << key << ": " << e.what()
+                                << std::endl;
+        }
+        catch (...) {
+            eckit::Log::error() << "Archiver flush failed during destruction for " << key
+                                << " with an unknown exception" << std::endl;
+        }
+    }
 }
 
 void Archiver::archive(const Key& key, const void* data, size_t len) {
@@ -61,7 +69,8 @@ void Archiver::archive(const Key& key, BaseArchiveVisitor& visitor) {
 
 void Archiver::flushDatabase(Database& db) {
     // flush the store, pass the number of flushed fields to the catalogue
-    db.catalogue_->flush(db.store_->flush());
+    const auto archived = db.store_->flush();
+    db.catalogue_->flush(archived);
 }
 
 void Archiver::flush() {

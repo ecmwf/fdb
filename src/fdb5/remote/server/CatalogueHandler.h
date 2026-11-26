@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
@@ -17,21 +10,17 @@
 #include "fdb5/remote/server/ServerConnection.h"
 
 #include <memory>
+#include <mutex>
 
 namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 struct CatalogueArchiver {
-    CatalogueArchiver(bool dataConnection, const Key& dbKey, const Config& config) :
-        controlConnection(true),
-        dataConnection(dataConnection),
+    CatalogueArchiver(const Key& dbKey, const Config& config) :
         catalogue(CatalogueWriterFactory::instance().build(dbKey, config)),
         locationsExpected(0),
         locationsArchived(0) {}
-
-    bool controlConnection;
-    bool dataConnection;
 
     std::unique_ptr<CatalogueWriter> catalogue;
     size_t locationsExpected;
@@ -69,15 +58,21 @@ private:  // methods
     void inspect(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void wipe(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void stats(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    void status(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
+    void touch(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void schema(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void stores(uint32_t clientID, uint32_t requestID);
     void exists(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) const;
 
     void archiveBlob(const uint32_t clientID, const uint32_t requestID, const void* data, size_t length) override;
 
-    bool remove(bool control, uint32_t clientID) override;
+    void remove(uint32_t clientID) override;
 
     CatalogueWriter& catalogue(uint32_t catalogueID, const Key& dbKey);
+    // the archiver of a client, pinned. @returns null if there is none
+    std::shared_ptr<CatalogueArchiver> catalogueArchiver(uint32_t clientID);
+    // the FDB of a client (for the API calls), pinned
+    std::shared_ptr<FDB> fdb(uint32_t clientID);
 
     void doMaskIndexEntries(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
     void doWipeURIs(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
@@ -91,15 +86,13 @@ private:  // methods
 
 private:  // member
 
-    // clientID --> <catalogue, locationsExpected, locationsArchived>
-    std::map<uint32_t, CatalogueArchiver> catalogues_;
-    std::map<uint32_t, FDB> fdbs_;
+    // clientID --> <catalogue, locationsExpected, locationsArchived>. Guarded by handlerMutex_; the users of an entry
+    // pin it (shared_ptr), so that a Stop can remove it while a worker is still using it.
+    std::map<uint32_t, std::shared_ptr<CatalogueArchiver>> catalogues_;
+    std::map<uint32_t, std::shared_ptr<FDB>> fdbs_;
 
-    std::mutex fdbMutex_;
     std::mutex fieldLocationsMutex_;
 
-    bool fdbControlConnection_;
-    bool fdbDataConnection_;
 
     struct WipeInProgress {
         bool unsafeWipeAll = false;
@@ -108,6 +101,7 @@ private:  // member
     };
 
     std::map<Key, WipeInProgress> wipesInProgress_;
+    mutable std::mutex wipesMutex_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

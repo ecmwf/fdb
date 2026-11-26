@@ -1,20 +1,12 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /** @author Emanuele Danovaro */
 /** @author Simon Smart */
 /** @author Tiago Quintino */
 /** @date   Apr 2020 */
 
-#ifndef fdb5_api_fdb_c_H
-#define fdb5_api_fdb_c_H
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -296,7 +288,7 @@ int fdb_datareader_size(fdb_datareader_t* dr, long* size);
 int fdb_datareader_read(fdb_datareader_t* dr, void* buf, long count, long* read);
 
 /** Deallocates DataReader object and associated resources.
- * \param key DataReader instance
+ * \param dr DataReader instance
  * \returns Return code (#FdbErrorValues)
  */
 int fdb_delete_datareader(fdb_datareader_t* dr);
@@ -320,10 +312,10 @@ int fdb_new_handle(fdb_handle_t** fdb);
 /** Creates a FDB instance from a YAML configuration.
  * \param fdb FDB instance. Returned instance must be deleted using #fdb_delete_handle.
  * \param system_config Override the system config with this YAML string
- * \param user_config Supply user level config with this YAML string
+ * \param app_config Supply application specific config with this YAML string
  * \returns Return code (#FdbErrorValues)
  */
-int fdb_new_handle_from_yaml(fdb_handle_t** fdb, const char* system_config, const char* user_config);
+int fdb_new_handle_from_yaml(fdb_handle_t** fdb, const char* system_config, const char* app_config);
 
 /** Archives binary data to a FDB instance.
  * \warning this is a low-level API. The provided key and the corresponding data are not checked for consistency
@@ -481,5 +473,4 @@ int fdb_purge_element_string(fdb_purge_element_t* element, const char** str);
 } /* extern "C" */
 #endif
 
-#endif
 // fdb5_api_fdb_H

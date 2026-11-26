@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the Horizon Europe programme funded project OpenCUBE
@@ -126,13 +119,7 @@ bool FamIndex::get(const Key& key, const Key& /*remapKey*/, Field& field) const 
     return true;
 }
 
-void FamIndex::entries(EntryVisitor& visitor) const {
-    Index instant_index(const_cast<FamIndex*>(this));
-    // Allow the visitor to decline visiting this index's entries.
-    if (!visitor.visitIndex(instant_index)) {
-        LOG_DEBUG_LIB(LibFdb5) << "FamIndex::entries visitor declined index=" << instant_index << std::endl;
-        return;
-    }
+void FamIndex::entries(EntryVisitor& visitor, EntryVisitor::IndexScope& scope) const {
     for (const auto& [key, value] : data_) {
         // Skip the reserved axes metadata entry.
         if (key.asString() == FamCommon::axes_keyword) {
@@ -141,7 +128,7 @@ void FamIndex::entries(EntryVisitor& visitor) const {
         eckit::MemoryStream stream{value};
         auto [timestamp, location] = decodePrefix(stream);
         auto datum = Key(stream).valuesToString();
-        visitor.visitDatum(Field(std::move(location), timestamp), datum);
+        visitor.visitDatum(scope, Field(std::move(location), timestamp), datum);
     }
 }
 

@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /// @author Simon Smart
 /// @date   June 2019
@@ -14,6 +7,7 @@
 #pragma once
 
 #include <cstdint>
+#include <ctime>
 
 #include "eckit/filesystem/URI.h"
 
@@ -141,6 +135,11 @@ struct ControlElement {
     eckit::URI location;
 
     ControlIdentifiers controlIdentifiers;
+
+    // Last recorded read and write access.
+    // A time of zero records "unknown" rather than "never"
+    time_t lastRead{0};
+    time_t lastWrite{0};
 
 protected:  // methods
 

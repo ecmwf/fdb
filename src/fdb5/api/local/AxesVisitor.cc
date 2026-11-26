@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 2018- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 2018- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #include "fdb5/api/local/AxesVisitor.h"
 
@@ -43,7 +36,7 @@ bool AxesVisitor::preVisitDatabase(const eckit::URI& uri, const Schema& schema) 
 
 bool AxesVisitor::visitDatabase(const Catalogue& catalogue) {
     if (level_ > 1) {
-        EntryVisitor::visitDatabase(catalogue);
+        QueryVisitor::visitDatabase(catalogue);
     }
 
     dbKey_ = catalogue.key();
@@ -53,20 +46,22 @@ bool AxesVisitor::visitDatabase(const Catalogue& catalogue) {
     return (level_ > 1);
 }
 
-bool AxesVisitor::visitIndex(const Index& index) {
-    EntryVisitor::visitIndex(index);
+EntryVisitor::IndexScopePtr AxesVisitor::visitIndex(const Index& index, const Rule& rule,
+                                                    eckit::Queue<AxesElement>& /*queue*/) {
 
-    if (index.partialMatch(canonicalise(rule_->parent()), canonicalise(*rule_))) {
+    if (index.partialMatch(canonicalise(rule.parent()), canonicalise(rule))) {
         IndexAxis tmpAxis;
         tmpAxis.insert(index.key());
         tmpAxis.sort();
+
         axes_.merge(tmpAxis);  // avoid sorts on the (growing) main Axes object
 
         if (level_ > 2) {
             axes_.merge(index.axes());
         }
     }
-    return false;
+
+    return nullptr;  // visitEntries() is false, so the contents are never explored
 }
 
 void AxesVisitor::catalogueComplete(const fdb5::Catalogue& catalogue) {

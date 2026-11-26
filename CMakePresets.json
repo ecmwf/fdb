@@ -1,0 +1,17 @@
+{
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "cacheVariables": {
+        "ENABLE_GRIB": "ON",
+        "ENABLE_TESTS": "ON"
+      },
+      "name": "ci"
+    }
+  ],
+  "version": 3
+}

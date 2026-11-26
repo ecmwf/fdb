@@ -28,7 +28,7 @@ export FDB5_HOME=/path/to/fdb/install
 ```sh
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r ../../python/requirements-test.txt
 ```
 
 ## Running the Tests

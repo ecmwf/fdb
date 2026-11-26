@@ -1,98 +1,240 @@
-name: ci
+# SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
+
+# GENERATED FILE - DO NOT EDIT.
+# Regenerate via the ci-infrastructure-generate CLI.
+# Source of truth: each repo's .ci/manifest.toml.
+name: CI
 
 on:
-  # Trigger the workflow on push to master or develop, except tag creation
   push:
-    branches:
-      - 'master'
-      - 'develop'
-    tags-ignore:
-      - '**'
-
-  # Trigger the workflow on pull request (skips draft PRs)
+    branches: [develop, master, main]
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
+  schedule:
+    - cron: "7 1 * * *"
 
-  # Trigger the workflow manually
-  workflow_dispatch: ~
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
-  # Trigger after public PR approved for CI
-  pull_request_target:
-    types: [labeled]
+permissions:
+  contents: read
+
+env:
+  ARTIFACT_POLL_INTERVAL: ${{ vars.ARTIFACT_POLL_INTERVAL || '60' }}
+  ARTIFACT_WAIT_TIMEOUT: ${{ vars.ARTIFACT_WAIT_TIMEOUT || '1800' }}
+  ARTIFACT_S3_ENDPOINT: ${{ secrets.ARTIFACT_S3_ENDPOINT }}
+  ARTIFACT_S3_BUCKET: ${{ secrets.ARTIFACT_S3_BUCKET }}
+  SCCACHE_BUCKET: ${{ secrets.SCCACHE_BUCKET }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
 jobs:
-  # Run CI including downstream packages on self-hosted runners
-  downstream-ci:
-    name: downstream-ci
-    if: ${{ !github.event.pull_request.draft && (!github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci') }}
-    uses: ecmwf/downstream-ci/.github/workflows/downstream-ci.yml@main
-    with:
-      fdb: ecmwf/fdb@${{ github.event.pull_request.head.sha || github.sha }}
-      codecov_upload: true
-      clang_format: true
-      clang_format_ignore: |
-        third_party
-    secrets: inherit
-
-  # Run CI of private downstream packages on self-hosted runners
-  private-downstream-ci:
-    name: private-downstream-ci
-    needs: [downstream-ci]
-    if: ${{ !github.event.pull_request.draft && (success() || failure()) && (!github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci') }}
+  ci-approval:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
     steps:
-      - name: Dispatch private downstream CI
-        uses: ecmwf/dispatch-private-downstream-ci@v1
+      - uses: ecmwf/ci-infrastructure/actions/require-ci-approval@main
+
+  pre-commit:
+    needs: ci-approval
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+    steps:
+      - uses: actions/checkout@v6
         with:
-          token: ${{ secrets.GH_REPO_READ_TOKEN }}
-          owner: ecmwf
-          repository: private-downstream-ci
-          event_type: downstream-ci
-          payload: '{"fdb": "ecmwf/fdb@${{ github.event.pull_request.head.sha || github.sha }}"}'
+          persist-credentials: false
+      - uses: ecmwf/ci-infrastructure/actions/pre-commit@main
 
-  # Build downstream packages on HPC
-  downstream-ci-hpc:
-    name: downstream-ci-hpc
-    if: ${{ !github.event.pull_request.draft && (!github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci') }}
-    uses: ecmwf/downstream-ci/.github/workflows/downstream-ci-hpc.yml@main
-    with:
-      fdb: ecmwf/fdb@${{ github.event.pull_request.head.sha || github.sha }}
-    secrets: inherit
+  resolve:
+    needs: ci-approval
+    runs-on: ubuntu-latest
+    outputs:
+      matrices: ${{ steps.r.outputs.json }}
+      dispatch-plans: ${{ steps.r.outputs.dispatch-plans }}
+    steps:
+      - id: mint
+        uses: ecmwf/ci-infrastructure/actions/mint-token@main
+        with:
+          client-id: ${{ vars.CI_READER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.CI_READER_APP_PRIVATE_KEY }}
+          repositories: ecbuild,eccodes,eckit,fdb,metkit,stack-dependencies
+          permissions: contents:read actions:read
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - id: r
+        uses: ecmwf/ci-infrastructure/actions/resolve-deps@main
+        with:
+          matrix: build,python,rust
+          token: ${{ steps.mint.outputs.token }}
+          rebuild-missing: 'true'
+      - name: Wait for the deps of build
+        if: steps.r.outputs.dispatch-plans == '[]'
+        uses: ecmwf/ci-infrastructure/actions/wait-for-deps@main
+        with:
+          matrix: ${{ steps.r.outputs.json }}
+          kinds: build
+          token: ${{ steps.mint.outputs.token }}
+    name: resolve + wait-build
 
-  # Run CI of private downstream packages on HPC
-  private-downstream-ci-hpc:
-    name: private-downstream-ci-hpc
-    needs: [downstream-ci-hpc]
-    if: ${{ !github.event.pull_request.draft && (success() || failure()) && (!github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci') }}
+  rebuild-producers:
+    needs: [ci-approval, resolve]
+    runs-on: ubuntu-latest
+    steps:
+      - if: needs.resolve.outputs.dispatch-plans != '' && needs.resolve.outputs.dispatch-plans != '[]'
+        uses: ecmwf/ci-infrastructure/actions/dispatch-producers@main
+        with:
+          dispatch-plans: ${{ needs.resolve.outputs.dispatch-plans }}
+          repositories: ecbuild,eccodes,eckit,fdb,metkit,stack-dependencies
+          client-id: ${{ vars.CI_DISPATCHER_APP_CLIENT_ID }}
+          app-private-key: ${{ secrets.CI_DISPATCHER_APP_PRIVATE_KEY }}
+
+  build:
+    needs: [ci-approval, resolve, rebuild-producers, pre-commit]
+    name: build+test (${{ matrix._resolved['job-name'] }})
+    runs-on: ${{ matrix['runs-on'] }}
+    container:
+      image: ${{ matrix.container || '' }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.resolve.outputs.matrices).build }}
+    steps:
+      - name: Announce image
+        uses: ecmwf/ci-infrastructure/actions/announce-image@main
+      - id: mint
+        uses: ecmwf/ci-infrastructure/actions/mint-token@main
+        with:
+          client-id: ${{ vars.CI_READER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.CI_READER_APP_PRIVATE_KEY }}
+          repositories: ecbuild,eccodes,eckit,fdb,metkit,stack-dependencies
+          permissions: contents:read actions:read
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Fetch resolved deps
+        id: deps
+        uses: ecmwf/ci-infrastructure/actions/fetch-deps@main
+        with:
+          deps-json: ${{ toJSON(matrix._resolved.deps) }}
+          token: ${{ steps.mint.outputs.token }}
+      - name: Print dependency table
+        uses: ecmwf/ci-infrastructure/actions/print-dep-table@main
+        with:
+          resolved: ${{ toJSON(matrix._resolved) }}
+      - name: Build
+        id: build
+        uses: ecmwf/ci-infrastructure/actions/run-job-script@main
+        with:
+          job-script: ${{ matrix.job-script }}
+          matrix-leg: ${{ toJSON(matrix) }}
+          package: fdb
+          cmake-prefix-path: ${{ steps.deps.outputs.cmake-prefix-path }}
+      - name: Publish
+        uses: ecmwf/ci-infrastructure/actions/publish-artifact@main
+        with:
+          install-path: ${{ steps.build.outputs.install-path }}
+          artifact-name: ${{ matrix._resolved['own-artifact-name'] }}
+
+  python:
+    needs: [ci-approval, resolve, rebuild-producers, build]
+    name: python (${{ matrix._resolved['job-name'] }})
+    runs-on: ${{ matrix['runs-on'] }}
+    container:
+      image: ${{ matrix.container || '' }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.resolve.outputs.matrices).python }}
+    steps:
+      - name: Announce image
+        uses: ecmwf/ci-infrastructure/actions/announce-image@main
+      - id: mint
+        uses: ecmwf/ci-infrastructure/actions/mint-token@main
+        with:
+          client-id: ${{ vars.CI_READER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.CI_READER_APP_PRIVATE_KEY }}
+          repositories: ecbuild,eccodes,eckit,fdb,metkit,stack-dependencies
+          permissions: contents:read actions:read
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Fetch resolved deps
+        id: deps
+        uses: ecmwf/ci-infrastructure/actions/fetch-deps@main
+        with:
+          deps-json: ${{ toJSON(matrix._resolved.deps) }}
+          token: ${{ steps.mint.outputs.token }}
+      - name: Print dependency table
+        uses: ecmwf/ci-infrastructure/actions/print-dep-table@main
+        with:
+          resolved: ${{ toJSON(matrix._resolved) }}
+      - name: Build
+        id: build
+        uses: ecmwf/ci-infrastructure/actions/run-job-script@main
+        with:
+          job-script: ${{ matrix.job-script }}
+          matrix-leg: ${{ toJSON(matrix) }}
+          package: fdb
+          cmake-prefix-path: ${{ steps.deps.outputs.cmake-prefix-path }}
+      - name: Publish
+        uses: ecmwf/ci-infrastructure/actions/publish-artifact@main
+        with:
+          install-path: ${{ steps.build.outputs.install-path }}
+          artifact-name: ${{ matrix._resolved['own-artifact-name'] }}
+
+  rust:
+    needs: [ci-approval, resolve, rebuild-producers, build]
+    name: rust (${{ matrix._resolved['job-name'] }})
+    runs-on: ${{ matrix['runs-on'] }}
+    container:
+      image: ${{ matrix.container || '' }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.resolve.outputs.matrices).rust }}
+    steps:
+      - name: Announce image
+        uses: ecmwf/ci-infrastructure/actions/announce-image@main
+      - id: mint
+        uses: ecmwf/ci-infrastructure/actions/mint-token@main
+        with:
+          client-id: ${{ vars.CI_READER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.CI_READER_APP_PRIVATE_KEY }}
+          repositories: ecbuild,eccodes,eckit,fdb,metkit,stack-dependencies
+          permissions: contents:read actions:read
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Fetch resolved deps
+        id: deps
+        uses: ecmwf/ci-infrastructure/actions/fetch-deps@main
+        with:
+          deps-json: ${{ toJSON(matrix._resolved.deps) }}
+          token: ${{ steps.mint.outputs.token }}
+      - name: Print dependency table
+        uses: ecmwf/ci-infrastructure/actions/print-dep-table@main
+        with:
+          resolved: ${{ toJSON(matrix._resolved) }}
+      - name: Run
+        id: build
+        uses: ecmwf/ci-infrastructure/actions/run-job-script@main
+        with:
+          job-script: ${{ matrix.job-script }}
+          matrix-leg: ${{ toJSON(matrix) }}
+          package: fdb
+          cmake-prefix-path: ${{ steps.deps.outputs.cmake-prefix-path }}
+
+  ci-result:
+    name: collect results
+    if: always()
+    needs: [ci-approval, pre-commit, resolve, build, python, rust]
     runs-on: ubuntu-latest
     permissions:
-      pull-requests: write
+      statuses: write
     steps:
-      - name: Dispatch private downstream CI
-        uses: ecmwf/dispatch-private-downstream-ci@v1
+      - uses: ecmwf/ci-infrastructure/actions/ci-result@main
         with:
-          token: ${{ secrets.GH_REPO_READ_TOKEN }}
-          owner: ecmwf
-          repository: private-downstream-ci
-          event_type: downstream-ci-hpc
-          payload: '{"fdb": "ecmwf/fdb@${{ github.event.pull_request.head.sha || github.sha }}"}'
-
-  notify:
-    runs-on: ubuntu-latest
-    needs:
-      - downstream-ci
-      - private-downstream-ci
-      - downstream-ci-hpc
-      - private-downstream-ci-hpc
-    if: ${{ !github.event.pull_request.draft && always() && !github.event.pull_request.head.repo.fork && (github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci') }}
-    steps:
-      - name: Trigger Teams notification
-        if: failure() && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
-        uses: ecmwf/notify-teams@v1
-        with:
-          incoming_webhook: ${{ secrets.MS_TEAMS_INCOMING_WEBHOOK }}
-          needs_context: ${{ toJSON(needs) }}
-          notify_on: |
-            failure
+          needs: ${{ toJSON(needs) }}

@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 2018- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 2018- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /// @author Simon Smart
 /// @date   January 2024
@@ -19,6 +12,7 @@
 #include "fdb5/api/local/QueryVisitor.h"
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/Key.h"
+
 
 namespace fdb5 {
 
@@ -49,10 +43,10 @@ public:
 
     bool visitDatabase(const Catalogue& catalogue) override;
 
-    bool visitIndex(const Index& index) override;
+    IndexScopePtr visitIndex(const Index& index, const Rule& rule, eckit::Queue<AxesElement>& queue) override;
 
     using QueryVisitor<AxesElement>::visitDatum;
-    void visitDatum(const Field& /*field*/, const Key& /*key*/) override { NOTIMP; }
+    void visitDatum(IndexScope& /*scope*/, const Field& /*field*/, const Key& /*key*/) override { NOTIMP; }
 
 private:  // members
 

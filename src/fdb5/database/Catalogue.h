@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /// @file   Catalogue.h
 /// @author Emanuele Danovaro
@@ -14,6 +7,7 @@
 
 #pragma once
 
+#include <ctime>
 #include <iosfwd>
 #include <map>
 #include <memory>
@@ -27,6 +21,7 @@
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/thread/Mutex.h"
 
+#include "fdb5/api/helpers/AccessIterator.h"
 #include "fdb5/api/helpers/ControlIterator.h"
 #include "fdb5/api/helpers/MoveIterator.h"
 #include "fdb5/config/Config.h"
@@ -65,6 +60,8 @@ public:
 
     virtual void visitEntries(EntryVisitor& visitor, bool sorted = false);
 
+    virtual bool supportsConcurrentIndexReads() const { return false; }
+
     virtual void hideContents() = 0;
 
     virtual void dump(std::ostream& out, bool simple = false,
@@ -94,6 +91,16 @@ public:
     virtual void checkUID() const = 0;
 
     virtual eckit::URI uri() const = 0;
+
+    /// Record data actually read or written to the database
+    /// Backends that do not track access do nothing.
+    /// Best-effort: implementations MUST not throw.
+    virtual void markRead() const {}
+    virtual void markWritten() const {}
+
+    virtual bool touch(const AccessIdentifiers&, const AccessTime&) const { return true; }
+    virtual time_t lastRead() const { return 0; }
+    virtual time_t lastWrite() const { return 0; }
 
     /// Wipe-related methods
     virtual bool uriBelongs(const eckit::URI& uri) const = 0;

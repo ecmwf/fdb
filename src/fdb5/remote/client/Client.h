@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
@@ -18,6 +11,7 @@
 #include "eckit/utils/Literals.h"
 
 #include <atomic>
+#include <exception>
 #include <future>
 #include <memory>
 #include <mutex>
@@ -42,6 +36,25 @@ public:
 
     RemoteFDBUnauthorised(const std::string& msg, const eckit::net::Endpoint& endpoint) :
         eckit::RemoteException(msg, endpoint) {}
+};
+
+/// The server explicitly rejected the connection during the handshake (e.g. protocol or configuration mismatch, not
+/// authorised): retrying will not help
+class RemoteFDBRejected : public RemoteFDBException {
+public:
+
+    RemoteFDBRejected(const std::string& msg, const eckit::net::Endpoint& endpoint) :
+        RemoteFDBException(msg, endpoint) {}
+};
+
+/// The server did not answer in time (e.g. overloaded): it may later
+class RemoteFDBTimeout : public RemoteFDBException {
+public:
+
+    RemoteFDBTimeout(const std::string& msg, const eckit::net::Endpoint& endpoint) :
+        RemoteFDBException(msg, endpoint) {}
+
+    bool retryOnClient() const override { return true; }
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -94,10 +107,18 @@ public:  // methods
     // handlers for incoming messages - to be defined in the client class
     virtual bool handle(Message message, uint32_t requestID) = 0;
     virtual bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) = 0;
-    virtual void closeConnection() {}
+    /// Called when the connection is lost: wake up whoever is waiting on it.
+    /// @param reason why the connection was lost (e.g. the error reported by the server). Never null.
+    virtual void closeConnection(const std::exception_ptr& /*reason*/) {}
 
     // Create a new connection if the current one is invalid
     void refreshConnection();
+
+    /// False once the connection is lost (or torn down): requests would fail
+    bool connectionUsable() const { return connection_->usable(); }
+
+    /// Joins the threads of a connection that is over (see ClientConnection::reclaimThreads())
+    bool reclaimConnectionThreads() { return connection_->reclaimThreads(); }
 
 protected:
 
@@ -105,6 +126,10 @@ protected:
     // Derived classes accessed by handle() should call this
     // in their destructor, before that state is destroyed.
     void deregister();
+
+    /// Wraps the reason of a connection loss with some context, keeping the original message (e.g. the error
+    /// reported by the server), so that callers woken by closeConnection() still see why the connection was lost.
+    std::exception_ptr closureError(const std::string& context, const std::exception_ptr& reason) const;
 
     std::shared_ptr<ClientConnection> connection_;
 

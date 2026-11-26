@@ -31,6 +31,8 @@ Options
 | ``--minimum-keys=string,string``       | | Default is class,expver,stream,date,time                                                                          |
 |                                        | | Define the minimum set of keys that must be specified. This is a safety precaution against accidental data removal|
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
+| ``--threads``                          | Number of threads to use for index reading (default 8)                                                              |
++----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--all``                              | (Debug and testing only) Visit all FDB databases                                                                    |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--config=string``                    | FDB configuration filename                                                                                          |

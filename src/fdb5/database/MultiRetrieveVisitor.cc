@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #include "fdb5/database/MultiRetrieveVisitor.h"
 
@@ -46,6 +39,9 @@ bool MultiRetrieveVisitor::selectDatabase(const Key& dbKey, const Key& /* fullKe
             return true;
         }
     }
+
+    // If the catalogue is being changed, we need to make sure any access has been recorded
+    markAccessed();
 
     /* is the DB already open ? */
 
@@ -103,15 +99,23 @@ bool MultiRetrieveVisitor::selectDatum(const Key& datumKey, const Key& fullKey) 
 
         iterator_.emplace(
             {catalogue_->key(), catalogue_->indexKey(), simplifiedKey, field.stableLocation(), field.timestamp()});
+        accessed_ = true;
         return true;
     }
 
     return false;
 }
 
+void MultiRetrieveVisitor::markAccessed() {
+    if (accessed_ && catalogue_) {
+        catalogue_->markRead();
+    }
+    accessed_ = false;
+}
+
 void MultiRetrieveVisitor::deselectDatabase() {
+    markAccessed();
     catalogue_ = nullptr;
-    return;
 }
 
 void MultiRetrieveVisitor::print(std::ostream& out) const {

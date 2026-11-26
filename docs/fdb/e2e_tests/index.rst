@@ -33,7 +33,7 @@ Quick Start
 
    # 2. Set up the Python environment
    uv venv && source .venv/bin/activate
-   uv pip install -r tests/fdb_e2e/requirements.txt
+   uv pip install -r python/requirements-test.txt
    uv pip install -e /path/to/stack/build/pyfdb-python-package-staging
 
    # 3. Run all tests
@@ -83,8 +83,8 @@ is loaded directly from the build tree:
    python -m venv .venv
    source .venv/bin/activate
 
-   # Install test dependencies (eccodes, findlibs, GitPython, pytest, PyYAML)
-   pip install -r tests/fdb_e2e/requirements.txt
+   # Install test dependencies
+   pip install -r python/requirements-test.txt
 
    # Install pyfdb from the build-generated staging directory
    uv pip install -e /path/to/stack/build/pyfdb-python-package-staging
@@ -384,7 +384,6 @@ Directory Structure
 
    tests/fdb_e2e/
    +-- conftest.py            # FdbEnvSpec, FdbEnvironment, ALL_LOCAL_SPECS, fixtures
-   +-- requirements.txt
    `-- tool_tests/
        +-- conftest.py        # pytest_generate_tests -- paired (spec, script) params
        +-- test_fdb_tools.py  # one test function per FDB operation

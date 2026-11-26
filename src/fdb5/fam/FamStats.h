@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the Horizon Europe programme funded project OpenCUBE
@@ -32,6 +25,7 @@
 #include <cstddef>
 #include <iosfwd>
 #include <map>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -61,6 +55,7 @@ public:
     void add(const DbStatsContent& rhs) override;
 
     void report(std::ostream& out, const char* indent) const override;
+    void json(eckit::JSON& json) const override;
 
 public:  // For Streamable
 
@@ -104,6 +99,8 @@ public:
 
     void report(std::ostream& out, const char* indent) const override;
 
+    void json(eckit::JSON& json) const override;
+
 public:  // For Streamable
 
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
@@ -138,6 +135,8 @@ public:
 
 protected:  // members
 
+    mutable std::mutex statsMutex_;
+
     std::map<Index, IndexStats> indexStats_;
 
     std::unordered_set<std::string> seen_;
@@ -156,10 +155,10 @@ private:  // methods
 
     bool visitDatabase(const Catalogue& catalogue) override;
 
-    bool visitIndex(const Index& index) override;
+    IndexScopePtr visitIndex(const Index& index, const Rule& rule) override;
 
-    void visitDatum(const Field& field, const Key& datum_key) override;
-    void visitDatum(const Field& field, const std::string& key_fingerprint) override;
+    void visitDatum(IndexScope& scope, const Field& field, const Key& datum_key) override;
+    void visitDatum(IndexScope& scope, const Field& field, const std::string& key_fingerprint) override;
 
     void catalogueComplete(const Catalogue& catalogue) override;
 };

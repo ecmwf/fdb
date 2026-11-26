@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #include "fdb5/api/helpers/ControlIterator.h"
 
@@ -140,7 +133,11 @@ using value_type = typename std::underlying_type<ControlIdentifier>::type;
 
 ControlElement::ControlElement() : location() {}
 
-ControlElement::ControlElement(const Catalogue& catalogue) : key(catalogue.key()), location(catalogue.uri()) {
+ControlElement::ControlElement(const Catalogue& catalogue) :
+    key(catalogue.key()),
+    location(catalogue.uri()),
+    lastRead(catalogue.lastRead()),
+    lastWrite(catalogue.lastWrite()) {
 
     controlIdentifiers = ControlIdentifier::None;
     for (auto id : ControlIdentifierList) {
@@ -150,12 +147,21 @@ ControlElement::ControlElement(const Catalogue& catalogue) : key(catalogue.key()
     }
 }
 
-ControlElement::ControlElement(eckit::Stream& s) : key(s), location(s), controlIdentifiers(s) {}
+ControlElement::ControlElement(eckit::Stream& s) : key(s), location(s), controlIdentifiers(s) {
+    int64_t read;
+    int64_t write;
+    s >> read;
+    s >> write;
+    lastRead = static_cast<time_t>(read);
+    lastWrite = static_cast<time_t>(write);
+}
 
 void ControlElement::encode(eckit::Stream& s) const {
     s << key;
     s << location;
     s << controlIdentifiers;
+    s << static_cast<int64_t>(lastRead);
+    s << static_cast<int64_t>(lastWrite);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

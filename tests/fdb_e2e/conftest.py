@@ -1,10 +1,5 @@
-# (C) Copyright 2011- ECMWF.
-#
-# This software is licensed under the terms of the Apache Licence Version 2.0
-# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
-# In applying this licence, ECMWF does not waive the privileges and immunities
-# granted to it by virtue of its status as an intergovernmental organisation
-# nor does it submit to any jurisdiction.
+# SPDX-FileCopyrightText: 2011- European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
 
 import json
 import logging
@@ -14,10 +9,8 @@ import shutil
 from collections.abc import Generator
 from dataclasses import dataclass
 
-import git
 import pytest
 import yaml
-from findlibs import Path
 
 from pyfdb.pyfdb import FDB
 
@@ -33,6 +26,14 @@ def pytest_addoption(parser):
         default=[],
         metavar="KEY=VALUE",
         help="Extra environment variable forwarded to shell scripts (repeatable).",
+    )
+
+    # Stated to silence pytest-asyncio.
+    parser.addini(
+        "asyncio_default_fixture_loop_scope",
+        help="default scope of the asyncio event loop used to execute async fixtures",
+        type="string",
+        default="function",
     )
 
 
@@ -124,19 +125,10 @@ def data_path() -> pathlib.Path:
 
 @pytest.fixture(scope="function")
 def test_data_path() -> pathlib.Path:
-    """Provides path to test data (resolved via git root)."""
-    git_repo = git.Repo(__file__, search_parent_directories=True)
-    git_root = pathlib.Path(git_repo.git.rev_parse("--show-toplevel"))
-    path = git_root / "tests" / "fdb_e2e" / "data"
+    """Provides path to test data."""
+    path = pathlib.Path(__file__).resolve().parent / "data"
     assert path.exists()
     return path
-
-
-@pytest.fixture(scope="function")
-def get_git_root() -> Path:
-    git_repo = git.Repo(__file__, search_parent_directories=True)
-    git_root = git_repo.git.rev_parse("--show-toplevel")
-    return Path(git_root)
 
 
 @pytest.fixture(scope="session")
@@ -155,9 +147,7 @@ def function_tmp(tmp_path_factory) -> Generator[pathlib.Path, None, None]:
 #
 # Each builder writes config files into function_tmp.
 # Uniform signature: (data_path, function_tmp, subtocs, expver_handler) -> None
-def simple_fdb_setup(
-    data_path, function_tmp, subtocs: bool, expver_handler: bool
-) -> None:
+def simple_fdb_setup(data_path, function_tmp, subtocs: bool, expver_handler: bool) -> None:
     """config.yaml at FDB_HOME root; caller must set FDB5_CONFIG_FILE."""
     fdb_home_dir = function_tmp
 
@@ -185,12 +175,10 @@ def simple_fdb_setup(
         ],
     }
     (fdb_home_dir / "config.yaml").write_text(yaml.dump(fdb_config))
-    (fdb_home_dir / "user_config.yaml").write_text(yaml.dump({"useSubToc": subtocs}))
+    (fdb_home_dir / "app_config.yaml").write_text(yaml.dump({"useSubToc": subtocs}))
 
 
-def files_fdb_setup(
-    data_path, function_tmp, subtocs: bool, expver_handler: bool
-) -> None:
+def files_fdb_setup(data_path, function_tmp, subtocs: bool, expver_handler: bool) -> None:
     """Old-style flat config in etc/fdb/{spaces,roots}; no YAML config."""
     fdb_home_dir = function_tmp
     fdb_config_dir = fdb_home_dir / "etc" / "fdb"
@@ -201,11 +189,7 @@ def files_fdb_setup(
     root_path = fdb_home_dir / "root"
     root_path.mkdir()
 
-    spaces_text = (
-        "rd:?.*               rd      expver"
-        if expver_handler
-        else "rd:?.*               rd      Default"
-    )
+    spaces_text = "rd:?.*               rd      expver" if expver_handler else "rd:?.*               rd      Default"
     (fdb_config_dir / "spaces").write_text(spaces_text)
 
     fdb_roots_path = fdb_config_dir / "roots"
@@ -216,9 +200,7 @@ def files_fdb_setup(
     )
 
 
-def config_yaml_fdb_setup(
-    data_path, function_tmp, subtocs: bool, expver_handler: bool
-) -> None:
+def config_yaml_fdb_setup(data_path, function_tmp, subtocs: bool, expver_handler: bool) -> None:
     """config.yaml in etc/fdb/; only FDB_HOME needed."""
     fdb_home_dir = function_tmp
     fdb_config_dir = fdb_home_dir / "etc" / "fdb"
@@ -248,9 +230,7 @@ def config_yaml_fdb_setup(
     (fdb_config_dir / "config.yaml").write_text(yaml.dump(fdb_config))
 
 
-def config_json_fdb_setup(
-    data_path, function_tmp, subtocs: bool, expver_handler: bool
-) -> None:
+def config_json_fdb_setup(data_path, function_tmp, subtocs: bool, expver_handler: bool) -> None:
     """config.json in etc/fdb/; only FDB_HOME needed."""
     fdb_home_dir = function_tmp
     fdb_config_dir = fdb_home_dir / "etc" / "fdb"
@@ -280,9 +260,7 @@ def config_json_fdb_setup(
     (fdb_config_dir / "config.json").write_text(json.dumps(fdb_config))
 
 
-def config_mars_disks_fdb_setup(
-    data_path, function_tmp, subtocs: bool, expver_handler: bool
-) -> None:
+def config_mars_disks_fdb_setup(data_path, function_tmp, subtocs: bool, expver_handler: bool) -> None:
     """WeightedRandom space backed by an etc/disks/fdb disk-list file."""
     fdb_home_dir = function_tmp
     fdb_config_dir = fdb_home_dir / "etc" / "fdb"
@@ -399,24 +377,22 @@ def _create_and_validate_fdb(spec: FdbEnvSpec, function_tmp: pathlib.Path) -> FD
             else:
                 os.environ[k] = old
 
-    config, user_config = fdb.config()
+    config, app_config = fdb.config()
 
     if spec.config_style == "simple":
         assert str(function_tmp) in config["schema"]
         all(str(function_tmp) in root["path"] for root in config["spaces"][0]["roots"])
     elif spec.config_style in ("files", "yaml_tools", "json_tools"):
         assert config == {}
-        assert user_config == {}
+        assert app_config == {}
     else:  # yaml, json, mars_disks
         assert config != {}
-        assert user_config == {}
+        assert app_config == {}
 
     return fdb
 
 
-def _build_subprocess_env(
-    spec: FdbEnvSpec, function_tmp: pathlib.Path, cli_env: dict[str, str]
-) -> dict[str, str]:
+def _build_subprocess_env(spec: FdbEnvSpec, function_tmp: pathlib.Path, cli_env: dict[str, str]) -> dict[str, str]:
     """Build the env dict forwarded to shell-script subprocesses."""
     env: dict[str, str] = {
         "PATH": os.environ["PATH"],

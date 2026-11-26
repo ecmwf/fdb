@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /// @author Tiago Quintino
 /// @date Sep 2012
@@ -28,8 +21,8 @@
 #include "eckit/utils/Translator.h"
 
 #include "metkit/mars/MarsExpansion.h"
+#include "metkit/mars/MarsLanguage.h"
 #include "metkit/mars/MarsRequest.h"
-#include "metkit/mars/TypeAny.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -71,7 +64,7 @@ struct FixtureService {
         modelParams_.push_back("138");
     }
 
-    void write_cycle(fdb5::Archiver& fdb, StringDict& p) {
+    void write_cycle(fdb5::FDB& fdb, StringDict& p) {
         Translator<size_t, std::string> str;
         for (const auto& param : modelParams_) {
             p["param"] = param;
@@ -90,9 +83,7 @@ struct FixtureService {
                     std::string data_str = data.str();
 
                     fdb5::Key k{p};
-                    auto visitor =
-                        ArchiveVisitor::create(fdb, k, static_cast<const void*>(data_str.c_str()), data_str.size());
-                    fdb.archive(k, *visitor);
+                    fdb.archive(k, static_cast<const void*>(data_str.c_str()), data_str.size());
                 }
             }
         }
@@ -153,7 +144,7 @@ CASE("test_fdb_stepunit_archive") {
         EXPECT(!iter.next(el));
     }
 
-    req.setValuesTyped(new metkit::mars::TypeAny("step"), std::vector<std::string>{"2", "60"});
+    req.setValuesTyped(metkit::mars::MarsLanguage{req.verb()}.type("step"), std::vector<std::string>{"2", "60"});
     {
         fdb5::FDBToolRequest r(req);
         fdb5::ListIterator iter = fdb.list(r, true);
@@ -210,7 +201,7 @@ CASE("test_fdb_service") {
         FixtureService f;
 
         SECTION("test_fdb_service_write") {
-            fdb5::Archiver fdb;
+            fdb5::FDB fdb;
 
             f.p["class"] = "rd";
             f.p["stream"] = "oper";
@@ -354,10 +345,11 @@ CASE("test_fdb_service") {
             r.setValue("domain", "g");
             r.setValue("levtype", "pl");
 
-            r.setValuesTyped(new metkit::mars::TypeAny("param"), params);
-            r.setValuesTyped(new metkit::mars::TypeAny("step"), steps);
-            r.setValuesTyped(new metkit::mars::TypeAny("levelist"), levels);
-            r.setValuesTyped(new metkit::mars::TypeAny("date"), dates);
+            metkit::mars::MarsLanguage lang{r.verb()};
+            r.setValuesTyped(lang.type("param"), params);
+            r.setValuesTyped(lang.type("step"), steps);
+            r.setValuesTyped(lang.type("levelist"), levels);
+            r.setValuesTyped(lang.type("date"), dates);
 
             Log::info() << r << std::endl;
 
@@ -387,7 +379,7 @@ CASE("test_fdb_service_subtoc") {
         fdb5::Config config(expanded, userConf);
 
         SECTION("test_fdb_service_subtoc_write") {
-            fdb5::Archiver fdb(config);
+            fdb5::FDB fdb(config);
 
             f.p["class"] = "rd";
             f.p["stream"] = "oper";
@@ -530,10 +522,11 @@ CASE("test_fdb_service_subtoc") {
             r.setValue("domain", "g");
             r.setValue("levtype", "pl");
 
-            r.setValuesTyped(new metkit::mars::TypeAny("param"), params);
-            r.setValuesTyped(new metkit::mars::TypeAny("step"), steps);
-            r.setValuesTyped(new metkit::mars::TypeAny("levelist"), levels);
-            r.setValuesTyped(new metkit::mars::TypeAny("date"), dates);
+            metkit::mars::MarsLanguage lang{r.verb()};
+            r.setValuesTyped(lang.type("param"), params);
+            r.setValuesTyped(lang.type("step"), steps);
+            r.setValuesTyped(lang.type("levelist"), levels);
+            r.setValuesTyped(lang.type("date"), dates);
 
             Log::info() << r << std::endl;
 

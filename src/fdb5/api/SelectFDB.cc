@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the EC H2020 funded project NextGenIO
@@ -43,7 +36,9 @@ static FDBBuilder<SelectFDB> selectFdbBuilder("select");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-SelectFDB::FDBLane::FDBLane(const eckit::LocalConfiguration& config) : config_(config), fdb_(nullptr) {
+SelectFDB::FDBLane::FDBLane(const eckit::LocalConfiguration& config, const eckit::Configuration& appConfig,
+                            std::shared_ptr<Callbacks> callbacks) :
+    config_(config, appConfig), fdb_(nullptr), callbacks_(callbacks) {
     config_.setMatcher(std::make_unique<SelectMatcher>(config));
 }
 
@@ -56,6 +51,7 @@ bool SelectFDB::FDBLane::matches(const T& vals, Matcher::MatchMissingPolicy matc
 FDBBase& SelectFDB::FDBLane::get() {
     if (!fdb_) {
         fdb_ = FDBFactory::instance().build(config_);
+        fdb_->setCallbacks(callbacks_);
     }
     return *fdb_;
 }
@@ -63,6 +59,13 @@ FDBBase& SelectFDB::FDBLane::get() {
 void SelectFDB::FDBLane::flush() {
     if (fdb_) {
         fdb_->flush();
+    }
+}
+
+void SelectFDB::FDBLane::setCallbacks(std::shared_ptr<Callbacks> callbacks) {
+    callbacks_ = std::move(callbacks);
+    if (fdb_) {
+        fdb_->setCallbacks(callbacks_);
     }
 }
 
@@ -77,14 +80,25 @@ SelectFDB::SelectFDB(const Config& config, const std::string& name) : FDBBase(co
     }
 
     std::string schema = config.getString("schema", "");
+    const bool hasSchemaVersion = config.has("schemaVersion");
+    const long schemaVersion = config.getLong("schemaVersion", 0);
+    std::string fdb_home = config.getString("fdb_home", "");
+
     for (auto& c : config.getSubConfigs("fdbs")) {
         /// inject parent schema into the SelectFDB sub-fdbs
         /// note: a sub-fdb can be a remote or select FDB, se we do not worry if neither parent nor children are
         /// defining a schema: it could be defined in the grand-children
+        /// the schemaVersion is inherited together with the schema, unless the sub-fdb defines its own
+        if (hasSchemaVersion && !c.has("schemaVersion") && !c.has("schema")) {
+            c.set("schemaVersion", schemaVersion);
+        }
         if (!schema.empty() && !c.has("schema")) {
             c.set("schema", schema);
         }
-        subFdbs_.emplace_back(FDBLane{c});
+        if (!fdb_home.empty() && !c.has("fdb_home")) {
+            c.set("fdb_home", fdb_home);
+        }
+        subFdbs_.emplace_back(FDBLane{c, config.appConfig(), callbacks_});
     }
 }
 
@@ -172,6 +186,13 @@ StatsIterator SelectFDB::stats(const FDBToolRequest& request) {
     return queryInternal(request, [](FDBBase& fdb, const FDBToolRequest& request) { return fdb.stats(request); });
 }
 
+StatusIterator SelectFDB::touch(const FDBToolRequest& request, AccessIdentifiers identifiers, AccessTime when) {
+    LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::touch() >> " << request << std::endl;
+    return queryInternal(request, [identifiers, when](FDBBase& fdb, const FDBToolRequest& request) {
+        return fdb.touch(request, identifiers, when);
+    });
+}
+
 ControlIterator SelectFDB::control(const FDBToolRequest& request, ControlAction action,
                                    ControlIdentifiers identifiers) {
     LOG_DEBUG_LIB(LibFdb5) << "SelectFDB::control >> " << request << std::endl;
@@ -192,6 +213,12 @@ void SelectFDB::flush() {
     }
 }
 
+void SelectFDB::setCallbacks(std::shared_ptr<Callbacks> callbacks) {
+    FDBBase::setCallbacks(callbacks);
+    for (auto& lane : subFdbs_) {
+        lane.setCallbacks(callbacks_);
+    }
+}
 
 void SelectFDB::print(std::ostream& s) const {
     s << "SelectFDB()";

@@ -12,8 +12,9 @@ function(add_pyfdb_test scenario test)
     )
     set(_env
         "PYTHONPATH=${CMAKE_BINARY_DIR}/pyfdb-python-package-staging:${PYTHONPATH}"
+        "PATH=$<TARGET_FILE_DIR:fdb5>/../bin:$ENV{PATH}"
         #prevent findlibs in pyfdb to pickup any globally installed fdb
-        "FDB5_DIR=${CMAKE_BINARY_DIR}"
+        "FDB5_DIR=$<TARGET_FILE_DIR:fdb5>/.."
         #prevent findlibs in eccodes-python to pickup any globally installed eccodes
         "ECCODES_PYTHON_USE_FINDLIBS=1"
         "ECCODES_DIR=$<TARGET_FILE_DIR:eccodes>/.."
@@ -44,6 +45,7 @@ set(test_files
     integration/test_selection_mapper.py
     integration/test_stats.py
     integration/test_status.py
+    integration/test_touch.py
     integration/test_types.py
     integration/test_uri.py
     integration/test_version_compat.py
@@ -53,6 +55,16 @@ set(test_files
 
 foreach(test_file ${test_files})
     add_pyfdb_test("pyfdb" ${test_file})
+endforeach()
+
+set(test_files_threading
+    concurrency/test_threading_per_thread_fdb.py
+    concurrency/test_threading_shared_fdb.py
+    e2e/remote_threading/test_pyfdb_remote_fdb_threading.py
+)
+
+foreach(test_file_threading ${test_files_threading})
+    add_pyfdb_test("pyfdb_threading" ${test_file_threading})
 endforeach()
 
 set(doc_test_files

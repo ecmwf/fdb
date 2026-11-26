@@ -1,20 +1,12 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @author Simon Smart
 /// @date   November 2018
 
-#ifndef fdb5_TocPurgeVisitor_H
-#define fdb5_TocPurgeVisitor_H
+#pragma once
 
 
 #include "fdb5/database/PurgeVisitor.h"
@@ -38,6 +30,10 @@ public:
 
     void gatherAuxiliaryURIs() override;
 
+    /// @note Inherits concurrent visitor behaviour from TocStatsReportVisitor. All index visitation and ordering
+    ///       is done in TocStatsReportVisitor.
+    // bool supportsConcurrentIndexVisitation() const override { return true; }
+
 private:  // members
 
     const Store& store_;
@@ -48,5 +44,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

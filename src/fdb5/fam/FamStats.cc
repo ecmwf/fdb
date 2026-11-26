@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the Horizon Europe programme funded project OpenCUBE
@@ -26,6 +19,7 @@
 #include "fdb5/fam/FamCatalogue.h"
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/log/JSON.h"
 #include "eckit/serialisation/Reanimator.h"
 #include "eckit/serialisation/Stream.h"
 
@@ -70,6 +64,14 @@ void FamDbStats::report(std::ostream& out, const char* indent) const {
     reportBytes(out, "Reachable data size", dataReachableSize_, indent);
 }
 
+void FamDbStats::json(eckit::JSON& json) const {
+    json << "databases" << dbCount_;
+    json << "indexes" << indexCount_;
+    json << "dataObjects" << dataObjectCount_;
+    json << "dataSize" << dataObjectSize_;
+    json << "reachableDataSize" << dataReachableSize_;
+}
+
 void FamDbStats::encode(eckit::Stream& stream) const {
     stream << dbCount_;
     stream << indexCount_;
@@ -111,6 +113,15 @@ void FamIndexStats::report(std::ostream& out, const char* indent) const {
     reportBytes(out, "Reachable size", fieldsSize_ - duplicatesSize_, indent);
 }
 
+void FamIndexStats::json(eckit::JSON& json) const {
+    json << "fields" << fieldsCount_;
+    json << "fieldsSize" << fieldsSize_;
+    json << "duplicates" << duplicatesCount_;
+    json << "duplicatesSize" << duplicatesSize_;
+    json << "reachable" << fieldsCount_ - duplicatesCount_;
+    json << "reachableSize" << fieldsSize_ - duplicatesSize_;
+}
+
 void FamIndexStats::encode(eckit::Stream& stream) const {
     stream << fieldsCount_;
     stream << duplicatesCount_;
@@ -131,19 +142,23 @@ bool FamStatsReportVisitor::visitDatabase(const Catalogue& catalogue) {
     return true;
 }
 
-bool FamStatsReportVisitor::visitIndex(const Index& index) {
+EntryVisitor::IndexScopePtr FamStatsReportVisitor::visitIndex(const Index& index, const Rule& rule) {
     // Count every visited index (including those with no fields), then explore its entries.
-    const bool explore = EntryVisitor::visitIndex(index);
-    indexObjects_.insert(index.location().uri().asRawString());
-    return explore;
+    {
+        std::lock_guard<std::mutex> lock(statsMutex_);
+        indexObjects_.insert(index.location().uri().asRawString());
+    }
+    return EntryVisitor::visitIndex(index, rule);
 }
 
-void FamStatsReportVisitor::visitDatum(const Field& field, const std::string& key_fingerprint) {
-    ASSERT(currentIndex_);
+void FamStatsReportVisitor::visitDatum(IndexScope& scope, const Field& field, const std::string& key_fingerprint) {
+    // Everything below touches state shared across indexes (indexStats_, dataUsage_, ...), which
+    // may be visited concurrently - one thread per index.
+    std::lock_guard<std::mutex> lock(statsMutex_);
 
-    auto stats_it = indexStats_.find(*currentIndex_);
+    auto stats_it = indexStats_.find(scope.index());
     if (stats_it == indexStats_.end()) {
-        stats_it = indexStats_.emplace(*currentIndex_, IndexStats(new FamIndexStats())).first;
+        stats_it = indexStats_.emplace(scope.index(), IndexStats(new FamIndexStats())).first;
     }
     IndexStats& stats = stats_it->second;
 
@@ -155,7 +170,7 @@ void FamStatsReportVisitor::visitDatum(const Field& field, const std::string& ke
 
     dataSize_ += length;
 
-    const auto unique = currentIndex_->key().valuesToString() + "+" + key_fingerprint;
+    const auto unique = scope.index().key().valuesToString() + "+" + key_fingerprint;
     if (seen_.insert(unique).second) {
         dataUsage_[data_uri] += 1;
         reachableSize_ += length;
@@ -167,7 +182,7 @@ void FamStatsReportVisitor::visitDatum(const Field& field, const std::string& ke
     }
 }
 
-void FamStatsReportVisitor::visitDatum(const Field& /*field*/, const Key& /*datumKey*/) {
+void FamStatsReportVisitor::visitDatum(IndexScope& /*scope*/, const Field& /*field*/, const Key& /*datumKey*/) {
     NOTIMP;
 }
 

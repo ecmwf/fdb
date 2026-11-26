@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the EC H2020 funded project NextGenIO
@@ -14,13 +7,14 @@
  */
 
 #include <cstdlib>
+#include <future>
+#include <memory>
 
 #include "eckit/testing/Test.h"
 
 #include "metkit/mars/MarsLanguage.h"
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
-#include "metkit/mars/TypeAny.h"
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/WipeIterator.h"
@@ -32,8 +26,7 @@ using namespace eckit::testing;
 using namespace eckit;
 
 
-namespace fdb {
-namespace test {
+namespace fdb::test {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -179,15 +172,16 @@ CASE("retrieves_distributed_according_to_select") {
     // Do some archiving
 
     metkit::mars::MarsRequest req{"retrieve"};
-    req.setValuesTyped(new metkit::mars::TypeAny("class"), std::vector<std::string>{"od"});
-    req.setValuesTyped(new metkit::mars::TypeAny("expver"), std::vector<std::string>{"xxxx"});
+    metkit::mars::MarsLanguage lang{req.verb()};
+    req.setValuesTyped(lang.type("class"), std::vector<std::string>{"od"});
+    req.setValuesTyped(lang.type("expver"), std::vector<std::string>{"xxxx"});
     fdb.inspect(req);
 
     EXPECT_EQUAL(spy_od.counts().inspect, 1);
     EXPECT_EQUAL(spy_rd1.counts().inspect, 0);
     EXPECT_EQUAL(spy_rd2.counts().inspect, 0);
 
-    req.setValuesTyped(new metkit::mars::TypeAny("class"), std::vector<std::string>{std::string("rd")});
+    req.setValuesTyped(lang.type("class"), std::vector<std::string>{std::string("rd")});
     fdb.inspect(req);
 
     EXPECT_EQUAL(spy_od.counts().inspect, 1);
@@ -206,14 +200,14 @@ CASE("retrieves_distributed_according_to_select") {
 
     // Now match all the rd lanes
 
-    req.setValuesTyped(new metkit::mars::TypeAny("expver"), std::vector<std::string>{"xx12", "yy21"});
+    req.setValuesTyped(lang.type("expver"), std::vector<std::string>{"xx12", "yy21"});
     fdb.inspect(req);
 
     EXPECT_EQUAL(spy_od.counts().inspect, 1);
     EXPECT_EQUAL(spy_rd1.counts().inspect, 2);
     EXPECT_EQUAL(spy_rd2.counts().inspect, 1);
 
-    req.setValuesTyped(new metkit::mars::TypeAny("class"), std::vector<std::string>{"od", "rd"});
+    req.setValuesTyped(lang.type("class"), std::vector<std::string>{"od", "rd"});
     fdb.inspect(req);
 
     EXPECT_EQUAL(spy_od.counts().inspect, 2);
@@ -744,8 +738,88 @@ CASE("control_distributed_according_to_select") {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace test
-}  // namespace fdb
+fdb5::Config nestedConfig() {
+
+    // A selectFDB whose 'rd' lane is itself a selectFDB
+
+    LocalConfiguration cfg_od;
+    cfg_od.set("type", "spy");
+    cfg_od.set("select", "class=od");
+
+    LocalConfiguration cfg_rd1;
+    cfg_rd1.set("type", "spy");
+    cfg_rd1.set("select", "class=rd,expver=xx.?.?");
+
+    LocalConfiguration cfg_rd2;
+    cfg_rd2.set("type", "spy");
+    cfg_rd2.set("select", "class=rd,expver=yy.?.?");
+
+    LocalConfiguration cfg_rd;
+    cfg_rd.set("type", "select");
+    cfg_rd.set("select", "class=rd");
+    cfg_rd.set("fdbs", {cfg_rd1, cfg_rd2});
+
+    fdb5::Config cfg;
+    cfg.set("type", "select");
+    cfg.set("fdbs", {cfg_od, cfg_rd});
+
+    return cfg;
+}
+
+
+CASE("app_config_reaches_sub_fdbs") {
+
+    ApiSpy::knownSpies().clear();
+
+    LocalConfiguration appConfig;
+    appConfig.set("useSubToc", true);
+
+    fdb5::FDB fdb(fdb5::Config(nestedConfig(), appConfig));
+
+    fdb5::Key k;
+    k.set("class", "rd");
+    k.set("expver", "yyyy");
+    fdb.archive(k, (const void*)0x4321, 4321);
+
+    EXPECT_EQUAL(ApiSpy::knownSpies().size(), 1);
+    EXPECT(ApiSpy::knownSpies()[0]->config().appConfig().getBool("useSubToc", false));
+}
+
+
+CASE("callbacks_reach_nested_sub_fdbs") {
+
+    ApiSpy::knownSpies().clear();
+
+    fdb5::FDB fdb(nestedConfig());
+
+    size_t archiveCalls = 0;
+    size_t flushCalls = 0;
+
+    fdb.registerArchiveCallback(
+        [&archiveCalls](const fdb5::Key&, const void*, size_t,
+                        std::future<std::shared_ptr<const fdb5::FieldLocation>>) { archiveCalls += 1; });
+    fdb.registerFlushCallback([&flushCalls] { flushCalls += 1; });
+
+    fdb5::Key k;
+    k.set("class", "od");
+    k.set("expver", "xxxx");
+    fdb.archive(k, (const void*)0x1234, 1234);
+
+    // second level of nesting
+    k.set("class", "rd");
+    k.set("expver", "yyyy");
+    fdb.archive(k, (const void*)0x4321, 4321);
+
+    EXPECT_EQUAL(ApiSpy::knownSpies().size(), 2);
+    EXPECT_EQUAL(archiveCalls, 2);
+
+    fdb.flush();
+    EXPECT_EQUAL(flushCalls, 2);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+}  // namespace fdb::test
 
 int main(int argc, char** argv) {
     return run_tests(argc, argv);

@@ -23,6 +23,8 @@ At least one of class or expver is required.
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--ignore-errors``                    | Ignore errors (report them as warnings) and continue processing wherever possible                                   |
 +----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
+| ``--ignore-no-data``                   | Not finding any data is not an error                                                                                |
++----------------------------------------+---------------------------------------------------------------------------------------------------------------------+
 | ``--raw``                              | | Don't apply (contextual) expansion and checking on requests. This prevents the use of named parameters            |
 |                                        | | (such as t rather than param=130), dates (such as date=-1), or similar. Keys and values passed must match those   |
 |                                        | | used internally to the FDB exactly.                                                                               |

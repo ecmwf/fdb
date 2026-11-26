@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 
 #include "eckit/config/Resource.h"
@@ -24,14 +17,13 @@
 using namespace eckit;
 using namespace eckit::option;
 
-namespace fdb5 {
-namespace tools {
+namespace fdb5::tools {
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
 FDBVisitTool::FDBVisitTool(int argc, char** argv, std::string minimumKeys) :
-    FDBTool(argc, argv), fail_(true), all_(false), raw_(false) {
+    FDBTool(argc, argv), fail_(true), ignoreNoData_(false), all_(false), raw_(false) {
 
     minimumKeys_ = Resource<std::vector<std::string>>("FDBInspectMinimumKeys", minimumKeys, true);
 
@@ -47,6 +39,9 @@ FDBVisitTool::FDBVisitTool(int argc, char** argv, std::string minimumKeys) :
     // Be able to turn ignore-errors off
     options_.push_back(new SimpleOption<bool>(
         "ignore-errors", "Ignore errors (report them as warnings) and continue processing wherever possible"));
+
+    // Narrower than ignore-errors: only the absence of matching data is tolerated
+    options_.push_back(new SimpleOption<bool>("ignore-no-data", "No matching data found in FDB is not an error"));
 }
 
 FDBVisitTool::~FDBVisitTool() {}
@@ -68,6 +63,7 @@ void FDBVisitTool::init(const option::CmdArgs& args) {
 
     bool ignore = args.getBool("ignore-errors", false);
     fail_ = !ignore;
+    ignoreNoData_ = args.getBool("ignore-no-data", false);
 
     all_ = args.getBool("all", false);
 
@@ -93,6 +89,10 @@ void FDBVisitTool::init(const option::CmdArgs& args) {
 
 bool FDBVisitTool::fail() const {
     return fail_;
+}
+
+bool FDBVisitTool::failOnNoData() const {
+    return fail_ && !ignoreNoData_;
 }
 
 std::vector<FDBToolRequest> FDBVisitTool::requests(const std::string& verb) const {
@@ -131,5 +131,4 @@ void FDBVisitTool::usage(const std::string& tool) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace tools
-}  // namespace fdb5
+}  // namespace fdb5::tools

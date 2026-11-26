@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the EC H2020 funded project NextGenIO
@@ -58,6 +51,7 @@
 
 #include <cctype>
 #include <cstddef>
+#include <exception>
 #include <memory>
 #include <mutex>
 #include <ostream>
@@ -77,7 +71,15 @@ FDB::FDB(const Config& config) :
 
 
 FDB::~FDB() {
-    flush();
+    try {
+        flush();
+    }
+    catch (const std::exception& e) {
+        eckit::Log::error() << "FDB flush failed during destruction: " << e.what() << std::endl;
+    }
+    catch (...) {
+        eckit::Log::error() << "FDB flush failed during destruction with an unknown exception" << std::endl;
+    }
     if (reportStats_ && internal_) {
         stats_.report(eckit::Log::info(), (internal_->name() + " ").c_str());
     }
@@ -293,6 +295,10 @@ DumpIterator FDB::dump(const FDBToolRequest& request, bool simple) {
     return internal_->dump(request, simple);
 }
 
+StatusIterator FDB::touch(const FDBToolRequest& request, AccessIdentifiers identifiers, AccessTime when) {
+    return internal_->touch(request, identifiers, when);
+}
+
 StatusIterator FDB::status(const FDBToolRequest& request) {
     return internal_->status(request);
 }
@@ -317,7 +323,7 @@ WipeIterator FDB::wipe(const FDBToolRequest& request, bool doit, bool porcelain,
         }
     };
 
-    return WipeIterator(new APIAsyncIterator<WipeElement>(internal_->shared(), async));
+    return WipeIterator(new APIAsyncIterator<WipeElement>(internal_->shared(), async, internal_->config()));
 }
 
 PurgeIterator FDB::purge(const FDBToolRequest& request, bool doit, bool porcelain) {

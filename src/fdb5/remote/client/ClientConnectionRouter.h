@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #pragma once
 
@@ -14,9 +7,11 @@
 
 #include "eckit/net/Endpoint.h"
 
+#include <map>
 #include <memory>
 #include <mutex>
-#include <unordered_map>
+#include <string>
+#include <utility>
 
 
 namespace eckit {
@@ -55,15 +50,28 @@ private:
 
     ClientConnectionRouter();  ///< private constructor only used by singleton
 
-    /// Drop entries whose connection has been destroyed (expired) or invalidated.
+    // A connection is identified by its endpoint and its default endpoint (used to build the field locations)
+    using Key = std::pair<std::string, std::string>;
+    static Key key(const eckit::net::Endpoint& endpoint, const std::string& defaultEndpoint);
+
+    /// The cached connection, if it is usable. Caller must hold connectionMutex_.
+    std::shared_ptr<ClientConnection> cached(const Key& key);
+
+    /// A usable connection, cached or new (connected without holding connectionMutex_)
+    /// @returns null if the server cannot be reached; @throws if it rejects the connection
+    std::shared_ptr<ClientConnection> obtain(const eckit::Configuration& config, const eckit::net::Endpoint& endpoint,
+                                             const std::string& defaultEndpoint, bool singleAttempt);
+
+    /// Drop entries whose connection has been destroyed (expired), invalidated or retired.
     /// Caller must hold connectionMutex_.
     void reap();
 
+    /// Guards connections_ only: never held while connecting (or doing any other I/O)
     std::mutex connectionMutex_;
 
     /// @note ClientConnections are owned by the Client objects.
     /// dead slots are never handed out and purged lazily by reap().
-    std::unordered_map<eckit::net::Endpoint, std::weak_ptr<ClientConnection>> connections_;
+    std::map<Key, std::weak_ptr<ClientConnection>> connections_;
 };
 
 }  // namespace fdb5::remote

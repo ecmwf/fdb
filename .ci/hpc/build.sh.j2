@@ -1,0 +1,16 @@
+{# SPDX-FileCopyrightText: 2005- European Centre for Medium-Range Weather Forecasts (ECMWF)
+   SPDX-License-Identifier: Apache-2.0 #}
+{% extends "ci-infrastructure/cmake-atos.sh.j2" %}
+{% block set_environment %}
+# Workaround: eccodes looks for its data under the prefix it was built in, not
+# the staged copy; drop once eccodes finds them relative to the library.
+for prefix in ${CMAKE_PREFIX_PATH//;/ }; do
+  for p in ${prefix//:/ }; do
+    if [ -d "$p/share/eccodes/samples" ]; then
+      export ECCODES_SAMPLES_PATH="$p/share/eccodes/samples"
+      export ECCODES_DEFINITION_PATH="$p/share/eccodes/definitions"
+    fi
+  done
+done
+echo "eccodes data: ${ECCODES_SAMPLES_PATH:-(not found)}"
+{% endblock %}

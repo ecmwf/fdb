@@ -1,10 +1,5 @@
-# (C) Copyright 2025- ECMWF.
-#
-# This software is licensed under the terms of the Apache Licence Version 2.0
-# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
-# In applying this licence, ECMWF does not waive the privileges and immunities
-# granted to it by virtue of its status as an intergovernmental organisation nor
-# does it submit to any jurisdiction.
+# SPDX-FileCopyrightText: 2025- European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
 
 import logging
 from collections.abc import Collection, ItemsView, Iterator, KeysView, ValuesView
@@ -321,8 +316,33 @@ class StatusElement:
     def key(self) -> MarsSelection:
         return self.element.key()
 
+    def last_read(self) -> Optional[int]:
+        """
+        Last recorded read access for the database.
+
+        Returns
+        -------
+        `Optional[int]`
+            Unix epoch time. `None` signifies unknown (not recorded).
+        """
+        return self.element.last_read()
+
+    def last_write(self) -> Optional[int]:
+        """
+        Last recorded write access for the database.
+
+        Returns
+        -------
+        `Optional[int]`
+            Unix epoch time. `None` signifies unknown (not recorded).
+        """
+        return self.element.last_write()
+
     def __repr__(self) -> str:
-        return f"StatusElement(control_identifiers={self.controlIdentifiers()}, key={self.key()}, location={self.location()})"
+        return (
+            f"StatusElement(control_identifiers={self.controlIdentifiers()}, key={self.key()}, "
+            f"location={self.location()}, last_read={self.last_read()}, last_write={self.last_write()})"
+        )
 
 
 class PurgeElement:

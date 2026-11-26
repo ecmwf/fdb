@@ -1,25 +1,25 @@
-/*
- * (C) Copyright 2024- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation
- * nor does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 2024- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/AccessIterator.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/api/helpers/ListElement.h"
 #include "fdb5/api/helpers/WipeIterator.h"
+#include "fdb5/remote/Messages.h"
+#include "fdb5/remote/RemoteConfiguration.h"
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/io/DataHandle.h"
+#include "eckit/config/LocalConfiguration.h"
 #include "eckit/io/FileHandle.h"
+#include "eckit/serialisation/MemoryStream.h"
+#include "eckit/value/Value.h"
 #include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
 #include "eckit/types/Date.h"
@@ -27,6 +27,7 @@
 #include <chrono>
 #include <cstddef>
 #include <exception>
+#include <fstream>
 #include <map>
 #include <memory>
 #include <ostream>
@@ -345,6 +346,38 @@ CASE("Remote protocol: the basics") {
     }
 }
 
+CASE("Remote protocol: unsafe wipe removes unknown store files") {
+    const std::string request = "class=od,expver=xxxx,date=20000104";
+    {
+        FDB fdb{};
+        write_data(fdb, "store unknowns", {"20000104"}, {"fc"}, {"1"});
+    }
+
+    std::vector<eckit::URI> data_uris;
+    wipe_dry_run_stable(request, &data_uris);
+    EXPECT(!data_uris.empty());
+    const eckit::PathName store_dir = data_uris.front().path().dirName();
+    const eckit::PathName unknown = store_dir / "unexpected_store_file";
+    {
+        eckit::FileHandle file(unknown);
+        file.openForWrite(0);
+        file.write("unknown", 7);
+        file.close();
+    }
+    EXPECT(unknown.exists());
+
+    auto wipe = FDB{}.wipe(FDBToolRequest::requestsFromString(request)[0], true, false, true);
+    WipeElement element;
+    size_t unknown_count = 0;
+    while (wipe.next(element)) {
+        if (element.type() == WipeElementType::UNKNOWN) {
+            unknown_count += element.uris().size();
+        }
+    }
+    EXPECT_EQUAL(unknown_count, 1);
+    EXPECT(!unknown.exists());
+}
+
 CASE("Remote protocol: more wipe testing") {
 
     // Before starting this test, ensure there is no data current in the FDB (e.g. from the previous test...)
@@ -440,8 +473,8 @@ CASE("Remote protocol: more wipe testing") {
         EXPECT_EQUAL(element_counts[WipeElementType::STORE_AUX], 2);  // the .gribjump files
         EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 4);
         EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);  // no DBs are fully wiped
-        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE],
-                     8);  // the 4 un-cleared indexes, and the two toc/schemas
+        // the 4 un-cleared indexes, the two toc/schemas, and the two access timestamps per database
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_SAFE], 12);
         EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 0);
     }
 
@@ -516,6 +549,101 @@ CASE("Remote protocol: more wipe testing") {
     }
 }
 
+// Unexpected files in a catalogue database can only be wiped with unsafeWipeAll. The client then sends all of them to
+// the catalogue server in a single DoWipeUnknowns message, so use more than one to cover the encoding of the URI set.
+CASE("Remote protocol: unsafe wipe all removes several unexpected URIs") {
+
+    const std::string data_string = "Unexpected files need unsafe wipe all.";
+    {
+        FDB fdb{};  // Expects the config to be set in the environment
+        write_data(fdb, data_string, {"20000103"}, {"fc"}, {"1", "2"});
+    }
+
+    // The request covers everything in the database, so the whole database (including unexpected files) is a candidate.
+    const std::string request = "class=od,expver=xxxx,date=20000103";
+
+    // Wait for the server to consolidate the indexes, and use them to locate the catalogue directory.
+    std::vector<eckit::URI> index_uris;
+    wipe_dry_run_stable(request, nullptr, &index_uris);
+    EXPECT(!index_uris.empty());
+    const eckit::PathName db_dir = index_uris.front().path().dirName();
+
+    // The servers run on this host, so the catalogue directory can be modified directly.
+    std::vector<eckit::PathName> unexpected;
+    for (const std::string name : {"unexpected_file_1", "unexpected_file_2", "unexpected_file_3"}) {
+        unexpected.push_back(db_dir / name);
+        std::ofstream{unexpected.back().asString()} << "Not an FDB file";
+        EXPECT(unexpected.back().exists());
+    }
+
+    auto wipe = [&](bool doit, bool unsafe_wipe_all) {
+        std::map<WipeElementType, size_t> element_counts;
+        auto wipeit = FDB{}.wipe(FDBToolRequest::requestsFromString(request)[0], doit, false, unsafe_wipe_all);
+        WipeElement wipe_elem;
+        while (wipeit.next(wipe_elem)) {
+            eckit::Log::info() << "[CLIENT]" << wipe_elem;
+            element_counts[wipe_elem.type()] += wipe_elem.uris().size();
+        }
+        return element_counts;
+    };
+
+    // Dry-run: the unexpected files are reported.
+    eckit::Log::info() << "[CLIENT]" << "Dry-run wipe with unexpected files in the catalogue." << std::endl;
+    {
+        auto element_counts = wipe(false, false);
+        EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], unexpected.size());
+    }
+
+    // --doit without unsafeWipeAll must fail, and leave everything in place.
+    eckit::Log::info() << "[CLIENT]" << "Wiping without unsafeWipeAll. Expecting an error." << std::endl;
+    bool error_was_thrown = false;
+    try {
+        wipe(true, false);
+    }
+    catch (const eckit::Exception&) {
+        error_was_thrown = true;
+    }
+    EXPECT(error_was_thrown);
+    for (const auto& path : unexpected) {
+        EXPECT(path.exists());
+    }
+    for (const auto& index_uri : index_uris) {
+        EXPECT(index_uri.path().exists());
+    }
+
+    // A dry-run releases the wipe that the server kept for the failed attempt, which is required before retrying.
+    {
+        auto element_counts = wipe(false, false);
+        EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], unexpected.size());
+    }
+
+    // With unsafeWipeAll, the unexpected files and everything else are removed.
+    eckit::Log::info() << "[CLIENT]" << "Wiping with unsafeWipeAll. --doit" << std::endl;
+    {
+        auto element_counts = wipe(true, true);
+        EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], unexpected.size());
+        EXPECT(element_counts[WipeElementType::STORE] > 0);
+        EXPECT(element_counts[WipeElementType::CATALOGUE_INDEX] > 0);
+    }
+
+    for (const auto& path : unexpected) {
+        EXPECT(!path.exists());
+    }
+    for (const auto& index_uri : index_uris) {
+        EXPECT(!index_uri.path().exists());
+    }
+    EXPECT(!db_dir.exists());
+
+    // There should be nothing left.
+    {
+        auto element_counts = wipe(false, false);
+        EXPECT_EQUAL(element_counts[WipeElementType::STORE], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE_INDEX], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::CATALOGUE], 0);
+        EXPECT_EQUAL(element_counts[WipeElementType::UNKNOWN], 0);
+    }
+}
+
 // This test drives many blocking control RPCs (list) concurrently through a single shared ClientConnection and
 // asserts they all complete correctly, without deadlock, interleaved socket writes, or corrupted responses.
 CASE("Remote protocol: concurrent blocking control RPCs are not serialised") {
@@ -573,6 +701,158 @@ CASE("Remote protocol: concurrent blocking control RPCs are not serialised") {
     }
 
     // This is the final case; no wipe.
+}
+
+CASE("Remote protocol: status and touch") {
+
+    const std::string data_string = "It's gonna be a bright, sunshiny day!";
+    std::vector<Key> keys;
+    {
+        FDB fdb{};
+        keys = write_data(fdb, data_string, {"20000101"}, {"fc"}, {"1"});
+    }
+    EXPECT(!keys.empty());
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
+    const FDBToolRequest request{{}, true, {}};
+
+    // status is forwarded to the server and carries the access timestamps back.
+    time_t readBefore = 0;
+    {
+        auto it = FDB{}.status(request);
+        StatusElement elem;
+        size_t count = 0;
+        while (it.next(elem)) {
+            eckit::Log::info() << "[CLIENT] status " << elem.key << " read=" << elem.lastRead
+                               << " write=" << elem.lastWrite << std::endl;
+            readBefore = elem.lastRead;
+            count++;
+        }
+        EXPECT(count > 0);
+    }
+
+    // touch is forwarded, mutates server side, and reports the resulting state.
+    {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        auto it = FDB{}.touch(request, AccessIdentifier::Read);
+        StatusElement elem;
+        size_t count = 0;
+        while (it.next(elem)) {
+            count++;
+        }
+        EXPECT(count > 0);
+    }
+
+    // ... and the new read time is visible on a subsequent status.
+    {
+        auto it = FDB{}.status(request);
+        StatusElement elem;
+        while (it.next(elem)) {
+            // Only meaningful where the server has access timestamps enabled; where it does not,
+            // both are 0 and this degrades to a no-op rather than a failure.
+            if (readBefore != 0) {
+                EXPECT(elem.lastRead >= readBefore);
+            }
+        }
+    }
+}
+
+CASE("Remote protocol: check enabled features") {
+    uint64_t defaultMask = fdb5::remote::maskOfDefaultFeatures;
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Flush));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Archive));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Retrieve));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::List));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Stats));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Inspect));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Read));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Store));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Axes));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Exists));
+
+    EXPECT(!enabled(defaultMask, fdb5::remote::Message::Wipe));
+    EXPECT(!enabled(defaultMask, fdb5::remote::Message::DoWipeURIs));
+    EXPECT(!enabled(defaultMask, fdb5::remote::Message::DoWipeUnknowns));
+    EXPECT(!enabled(defaultMask, fdb5::remote::Message::DoWipeFinish));
+    EXPECT(!enabled(defaultMask, fdb5::remote::Message::DoMaskIndexEntries));
+    EXPECT(!enabled(defaultMask, fdb5::remote::Message::DoUnsafeFullWipe));
+
+    uint64_t wipeMask = toMask(fdb5::remote::Message::Wipe) | defaultMask;
+    EXPECT(enabled(wipeMask, fdb5::remote::Message::Wipe));
+    EXPECT(enabled(wipeMask, fdb5::remote::Message::DoWipeURIs));
+    EXPECT(enabled(wipeMask, fdb5::remote::Message::DoWipeUnknowns));
+    EXPECT(enabled(wipeMask, fdb5::remote::Message::DoWipeFinish));
+    EXPECT(enabled(wipeMask, fdb5::remote::Message::DoMaskIndexEntries));
+    EXPECT(enabled(wipeMask, fdb5::remote::Message::DoUnsafeFullWipe));
+
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Schema));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Received));
+    EXPECT(enabled(wipeMask, fdb5::remote::Message::Schema));
+    EXPECT(enabled(wipeMask, fdb5::remote::Message::Received));
+
+    // status() and touch() are enabled by default in this build. They are kept out of the *legacy*
+    // mask instead, which is what a peer predating negotiation is credited with.
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Status));
+    EXPECT(enabled(defaultMask, fdb5::remote::Message::Touch));
+
+    uint64_t legacyMask = fdb5::remote::maskOfLegacyFeatures;
+    EXPECT(!enabled(legacyMask, fdb5::remote::Message::Status));
+    EXPECT(!enabled(legacyMask, fdb5::remote::Message::Touch));
+    EXPECT(!enabled(legacyMask, fdb5::remote::Message::Wipe));
+    const uint64_t legacyWithinDefault = legacyMask & fdb5::remote::maskOfDefaultFeatures;
+    EXPECT_EQUAL(legacyWithinDefault, legacyMask);
+}
+
+CASE("Remote protocol: a peer that does not advertise features gets only the legacy set") {
+    eckit::Value val = eckit::Value::makeOrderedMap();
+    val["NumberOfConnections"] = eckit::toValue(std::vector<int>{1, 2});
+
+    eckit::Buffer buf(4096);
+    eckit::MemoryStream out(buf);
+    out << val;
+
+    eckit::MemoryStream in(buf);
+    fdb5::remote::RemoteConfiguration legacy(in);
+
+    EXPECT_EQUAL(legacy.enabledFeatures(), fdb5::remote::maskOfLegacyFeatures);
+    EXPECT(!enabled(legacy.enabledFeatures(), fdb5::remote::Message::Status));
+    EXPECT(!enabled(legacy.enabledFeatures(), fdb5::remote::Message::Touch));
+}
+
+CASE("Remote protocol: negotiation intersects, so one old peer disables the feature") {
+
+    eckit::LocalConfiguration config;
+    fdb5::remote::RemoteConfiguration current{config};
+
+    // A current build offers both.
+    EXPECT(enabled(current.enabledFeatures(), fdb5::remote::Message::Status));
+    EXPECT(enabled(current.enabledFeatures(), fdb5::remote::Message::Touch));
+
+    // Against a peer that advertises nothing beyond the defaults, the intersection drops them, so
+    // a new client never sends a message an old server cannot parse.
+    eckit::Value val = eckit::Value::makeOrderedMap();
+    eckit::Buffer buf(4096);
+    eckit::MemoryStream out(buf);
+    out << val;
+
+    {
+        eckit::MemoryStream in(buf);
+        fdb5::remote::RemoteConfiguration oldPeer(in);
+        fdb5::remote::RemoteConfiguration clientSide{config};
+        fdb5::remote::RemoteConfiguration agreed =
+            fdb5::remote::RemoteConfiguration::common(clientSide, oldPeer);
+        EXPECT(!enabled(agreed.enabledFeatures(), fdb5::remote::Message::Status));
+        EXPECT(!enabled(agreed.enabledFeatures(), fdb5::remote::Message::Touch));
+    }
+
+    // Two current builds agree on both.
+    {
+        fdb5::remote::RemoteConfiguration a{config};
+        fdb5::remote::RemoteConfiguration b{config};
+        fdb5::remote::RemoteConfiguration agreed = fdb5::remote::RemoteConfiguration::common(a, b);
+        EXPECT(enabled(agreed.enabledFeatures(), fdb5::remote::Message::Status));
+        EXPECT(enabled(agreed.enabledFeatures(), fdb5::remote::Message::Touch));
+    }
 }
 
 }  // namespace fdb5::test

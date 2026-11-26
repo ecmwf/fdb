@@ -1,14 +1,10 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
+#include <cstddef>
 #include <map>
+#include <optional>
+#include <vector>
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/AutoCloser.h"
@@ -18,7 +14,10 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/database/Catalogue.h"
+#include "fdb5/database/EntryVisitMechanism.h"
+#include "fdb5/database/Index.h"
 #include "fdb5/database/Manager.h"
+#include "fdb5/database/OrderedParallelFor.h"
 #include "fdb5/database/Store.h"
 
 namespace fdb5 {
@@ -38,22 +37,29 @@ void Catalogue::visitEntries(EntryVisitor& visitor, bool sorted) {
 
     // It is likely that many indexes in the same database share resources/files/etc.
     // To prevent repeated opening/closing (especially where a PooledFile would facilitate things)
-    // pre-open the indexes, and keep them open
-    std::vector<eckit::AutoCloser<Index>> closers;
-    closers.reserve(all.size());
+    // we leave the indexes open in the main loop, and close them at the end of the scope
+    std::vector<std::optional<eckit::AutoCloser<Index>>> closers(all.size());
 
     // Allow the visitor to selectively reject this DB.
     if (visitor.visitDatabase(*this)) {
         if (visitor.visitIndexes()) {
-            for (Index& idx : all) {
-                if (visitor.visitEntries()) {
-                    closers.emplace_back(idx);
-                    idx.entries(visitor);  // contains visitIndex
+
+            const bool concurrent = visitor.supportsConcurrentIndexVisitation() && supportsConcurrentIndexReads();
+            const size_t nthreads = concurrent ? config().readIndexThreads() : 1;
+
+            LOG_DEBUG_LIB(LibFdb5) << "Visiting " << all.size() << " indexes of " << key() << " with " << nthreads
+                                   << " thread(s)" << std::endl;
+
+            OrderedParallelFor(nthreads).run(all.size(), [&](size_t i, OrderedParallelFor::Order& order) {
+                Index& idx = all[i];
+
+                EntryVisitor::IndexScopePtr scope = visitor.visitIndex(idx, order);
+
+                if (scope && visitor.visitEntries()) {
+                    closers[i].emplace(idx);
+                    idx.entries(visitor, *scope);
                 }
-                else {
-                    visitor.visitIndex(idx);
-                }
-            }
+            });
         }
     }
 

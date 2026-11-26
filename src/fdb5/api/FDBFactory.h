@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the EC H2020 funded project NextGenIO
@@ -16,11 +9,11 @@
 /// @author Simon Smart
 /// @date   Mar 2018
 
-#ifndef fdb5_api_FDBFactory_H
-#define fdb5_api_FDBFactory_H
+#pragma once
 
 #include <memory>
 
+#include "fdb5/api/helpers/AccessIterator.h"
 #include "fdb5/api/helpers/AxesIterator.h"
 #include "fdb5/api/helpers/Callback.h"
 #include "fdb5/api/helpers/ControlIterator.h"
@@ -76,6 +69,8 @@ public:  // methods
 
     virtual void reindex(const Key& key, const FieldLocation& location) { NOTIMP; }
 
+    virtual StatusIterator touch(const FDBToolRequest& request, AccessIdentifiers identifiers, AccessTime when) { NOTIMP; }
+
     virtual void flush() = 0;
 
     virtual ListIterator inspect(const metkit::mars::MarsRequest& request) = 0;
@@ -107,6 +102,12 @@ public:  // methods
 
     bool enabled(const ControlIdentifier& controlIdentifier) const;
 
+    void registerFlushCallback(FlushCallback callback) override;
+    void registerArchiveCallback(ArchiveCallback callback) override;
+
+    /// Share a callback registry with this FDB, so that callbacks registered on an owning FDB are seen here.
+    virtual void setCallbacks(std::shared_ptr<Callbacks> callbacks);
+
 private:  // methods
 
     virtual void print(std::ostream& s) const = 0;
@@ -123,6 +124,9 @@ protected:  // members
     Config config_;
 
     ControlIdentifiers controlIdentifiers_;
+
+    /// Never null. Shared with the owning FDB, if any.
+    std::shared_ptr<Callbacks> callbacks_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -183,5 +187,3 @@ private:  // methods
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif  // fdb5_api_FDBFactory_H

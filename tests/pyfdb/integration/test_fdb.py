@@ -1,10 +1,5 @@
-# (C) Copyright 2025- ECMWF.
-#
-# This software is licensed under the terms of the Apache Licence Version 2.0
-# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
-# In applying this licence, ECMWF does not waive the privileges and immunities
-# granted to it by virtue of its status as an intergovernmental organisation
-# nor does it submit to any jurisdiction.
+# SPDX-FileCopyrightText: 2025- European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
 
 import pytest
 import yaml
@@ -69,8 +64,8 @@ def test_fdb_config_equality(read_only_fdb_setup):
     )
 
 
-def test_fdb_user_config(read_only_fdb_setup):
-    user_config_str = r"""---
+def test_fdb_app_config(read_only_fdb_setup):
+    app_config_str = r"""---
         type: local
         engine: toc
         useSubToc: true
@@ -79,26 +74,24 @@ def test_fdb_user_config(read_only_fdb_setup):
           - path: "/a/path/is/something"
     """
 
-    fdb = FDB(read_only_fdb_setup, user_config_str)
+    fdb = FDB(read_only_fdb_setup, app_config_str)
     assert fdb
 
-    print("Check for user config propagation:")
+    print("Check for app config propagation:")
     print(fdb.config())
 
-    system_config, user_config = fdb.config()
-    assert "useSubToc" in user_config
-    assert user_config["useSubToc"] is True
+    system_config, app_config = fdb.config()
+    assert "useSubToc" in app_config
+    assert app_config["useSubToc"] is True
 
-    fdb_no_user_config = FDB(read_only_fdb_setup)
-    print(fdb_no_user_config.config())
-    print("Check for empty user config:")
-    system_config_no_user_config, user_config_no_user_config = (
-        fdb_no_user_config.config()
-    )
+    fdb_no_app_config = FDB(read_only_fdb_setup)
+    print(fdb_no_app_config.config())
+    print("Check for empty app config:")
+    system_config_no_app_config, app_config_no_app_config = fdb_no_app_config.config()
 
-    assert system_config == system_config_no_user_config
-    assert user_config
-    assert len(user_config_no_user_config) == 0
+    assert system_config == system_config_no_app_config
+    assert app_config
+    assert len(app_config_no_app_config) == 0
 
 
 def test_fdb_print():

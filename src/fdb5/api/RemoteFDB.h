@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the EC H2020 funded project NextGenIO
@@ -22,6 +15,7 @@
 
 #include "fdb5/api/LocalFDB.h"
 #include "fdb5/remote/client/Client.h"
+#include "fdb5/remote/client/RequestQueues.h"
 
 #include <mutex>
 #include <unordered_map>
@@ -37,7 +31,7 @@ class RemoteFDB : public LocalFDB, public Client {
 
 public:  // types
 
-    using MessageQueue = eckit::Queue<eckit::Buffer>;
+    using MessageQueue = remote::RequestQueues<eckit::Buffer>::Queue;
 
 public:  // method
 
@@ -52,7 +46,9 @@ public:  // method
 
     DumpIterator dump(const FDBToolRequest& request, bool simple) override { NOTIMP; }
 
-    StatusIterator status(const FDBToolRequest& request) override { NOTIMP; }
+    StatusIterator status(const FDBToolRequest& request) override;
+
+    StatusIterator touch(const FDBToolRequest& request, AccessIdentifiers identifiers, AccessTime when) override;
 
     WipeStateIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
 
@@ -80,8 +76,12 @@ private:  // methods
 
     // Client
     const eckit::Configuration& clientConfig() const override;
+    void closeConnection(const std::exception_ptr& reason) override;
     bool handle(Message message, uint32_t requestID) override;
     bool handle(Message message, uint32_t requestID, eckit::Buffer&& payload) override;
+
+    // used by tests for direct access to requests_
+    friend class RemoteFDBTestHarness;
 
 private:  // members
 
@@ -89,14 +89,8 @@ private:  // members
     std::vector<std::pair<eckit::net::Endpoint, eckit::net::Endpoint>> storesArchiveMapping_;
     std::vector<eckit::net::Endpoint> storesLocalFields_;
 
-    // Where do we put received messages
-    // @note This is a map of requestID:MessageQueue. At the point that a request is
-    // complete, errored or otherwise killed, it needs to be removed from the map.
-    // The shared_ptr allows this removal to be asynchronous with the actual task
-    // cleaning up and returning to the client.
-    std::unordered_map<uint32_t, std::shared_ptr<MessageQueue>> messageQueues_;
-
-    mutable std::mutex messageQueueMutex_;
+    // The queues of the API requests (see RequestQueues for their lifetime)
+    remote::RequestQueues<eckit::Buffer> requests_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

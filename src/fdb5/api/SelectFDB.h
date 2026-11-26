@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the EC H2020 funded project NextGenIO
@@ -31,6 +24,7 @@
 namespace fdb5 {
 
 //----------------------------------------------------------------------------------------------------------------------
+
 class SelectFDB : public FDBBase {
 
 private:  // types
@@ -38,19 +32,22 @@ private:  // types
     class FDBLane {
         Config config_;
         std::shared_ptr<FDBBase> fdb_;
+        std::shared_ptr<Callbacks> callbacks_;
 
     public:
 
-        FDBLane(const eckit::LocalConfiguration& config);
+        FDBLane(const eckit::LocalConfiguration& config, const eckit::Configuration& appConfig,
+                std::shared_ptr<Callbacks> callbacks);
 
         FDBBase& get();
 
         void flush();
 
+        void setCallbacks(std::shared_ptr<Callbacks> callbacks);
+
         template <typename T>  // T is either a mars request or a Key
         bool matches(const T& vals, metkit::mars::Matcher::MatchMissingPolicy matchOnMissing) const;
     };
-
 
 public:  // methods
 
@@ -68,6 +65,8 @@ public:  // methods
 
     StatusIterator status(const FDBToolRequest& request) override;
 
+    StatusIterator touch(const FDBToolRequest& request, AccessIdentifiers identifiers, AccessTime when) override;
+
     WipeStateIterator wipe(const FDBToolRequest& request, bool doit, bool porcelain, bool unsafeWipeAll) override;
 
     PurgeIterator purge(const FDBToolRequest& request, bool doit, bool porcelain) override;
@@ -82,6 +81,8 @@ public:  // methods
     AxesIterator axesIterator(const FDBToolRequest& request, int level) override;
 
     void flush() override;
+
+    void setCallbacks(std::shared_ptr<Callbacks> callbacks) override;
 
 private:  // methods
 

@@ -1,0 +1,11 @@
+param:      Param;
+step:       Step;
+date:       Date;
+levelist:   Double;
+expver:     Expver;
+time:       Time;
+
+[ class=ce, expver, stream=efas/wfas, date, time, model, domain
+   [ type, levtype, origin, anoffset?
+     [ step, number?, levelist?, param ]]
+]

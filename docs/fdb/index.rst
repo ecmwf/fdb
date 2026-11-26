@@ -21,6 +21,8 @@ the MARS Archive.
    content/introduction
    content/mars
    content/config-schema
+   content/app-config
+   content/remote
    content/environment-variables
    content/rados-backend
    cli_tools/index

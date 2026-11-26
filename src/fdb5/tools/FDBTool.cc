@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
@@ -44,7 +37,7 @@ void FDBTool::run() {
     finish(args);
 }
 
-Config FDBTool::config(const eckit::option::CmdArgs& args, const eckit::Configuration& userConfig) {
+Config FDBTool::config(const eckit::option::CmdArgs& args, const eckit::Configuration& appConfig) {
 
     if (args.has("config")) {
         std::string config = args.getString("config", "");
@@ -62,10 +55,10 @@ Config FDBTool::config(const eckit::option::CmdArgs& args, const eckit::Configur
             ss << "Path " << config << " is a directory. Expecting a file";
             throw eckit::UserError(ss.str(), Here());
         }
-        return Config::make(configPath, userConfig);
+        return Config::make(configPath, appConfig);
     }
 
-    return LibFdb5::instance().defaultConfig(userConfig);
+    return LibFdb5::instance().defaultConfig(appConfig);
 }
 
 std::vector<Key> FDBTool::parse(const std::string& request, const fdb5::Config& config) {

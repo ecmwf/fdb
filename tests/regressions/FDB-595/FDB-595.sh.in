@@ -2,6 +2,8 @@
 
 set -euxo pipefail
 
+source "@FDB_REMOTE_TEST_HELPER@"
+
 fdbwrite="$<TARGET_FILE:fdb-write>"
 fdblist="$<TARGET_FILE:fdb-list>"
 fdbserver="$<TARGET_FILE:fdb-server>"
@@ -34,20 +36,20 @@ EOF
 
 cleanup() {
     local exit_code=$?
-    [[ -n ${catal_pid-} ]] && kill -9 "$catal_pid" 2>/dev/null || true
-    [[ -n ${store_pid-} ]] && kill -9 "$store_pid" 2>/dev/null || true
-    exit $exit_code
+
+    fdb_remote_cleanup "$exit_code"
+    return "$exit_code"
 }
-trap cleanup SIGINT SIGTERM EXIT
+trap cleanup EXIT
+trap 'exit 1' INT TERM
 
-FDB5_CONFIG_FILE=$bindir/catalogue.yaml $fdbserver &
-catal_pid=$!
+fdb_remote_init "$bindir/remote_servers"
+fdb_remote_start_server catalogue "$bindir/catalogue.yaml" "$(fdb_remote_config_port "$bindir/catalogue.yaml")" -- "$fdbserver"
+fdb_remote_start_server store "$bindir/store.yaml" "$(fdb_remote_config_port "$bindir/store.yaml")" -- "$fdbserver"
+fdb_remote_wait_for_servers
 
-FDB5_CONFIG_FILE=$bindir/store.yaml $fdbserver &
-store_pid=$!
+FDB5_CONFIG_FILE="$bindir/client.yaml" "$fdbwrite" levtypes.grib
 
-FDB5_CONFIG_FILE=$bindir/client.yaml $fdbwrite levtypes.grib
-
-FDB5_CONFIG_FILE=$bindir/client.yaml $fdblist --all --minimum-keys="" --porcelain | tee out
+FDB5_CONFIG_FILE="$bindir/client.yaml" "$fdblist" --all --minimum-keys="" --porcelain | tee out
 
 cmp out list

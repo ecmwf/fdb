@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 2025- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 2025- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /// @author Chris Bradley
 /// @date   Sep 2025
@@ -16,7 +9,11 @@
 #include <algorithm>
 #include <functional>
 #include <optional>
+#include <sstream>
 #include <string>
+
+#include "eckit/config/LocalConfiguration.h"
+#include "eckit/exception/Exceptions.h"
 
 #include "metkit/mars/Parameter.h"
 
@@ -48,13 +45,22 @@ private:
 
 // ------------------------------------------------------------------------------------------------------
 
-SelectMatcher::SelectMatcher(const eckit::LocalConfiguration& config) :
-    select_{Matcher(config.getString("select", ""), Matcher::Policy::Any)} {
-
+SelectMatcher::SelectMatcher(const eckit::LocalConfiguration& config) {
+    bool found = false;
+    if (config.has("select")) {
+        select_ = Matcher(config.getString("select"), Matcher::Policy::Any);
+        found = true;
+    }
     if (config.has("excludes")) {
         for (const auto& ex : config.getStringVector("excludes")) {
             excludes_.push_back(Matcher(ex, Matcher::Policy::All));
         }
+        found = true;
+    }
+    if (!found) {
+        std::ostringstream ss;
+        ss << "SelectMatcher: no select or excludes rule found in config: " << config;
+        throw eckit::BadValue(ss.str(), Here());
     }
 }
 
@@ -71,7 +77,7 @@ bool SelectMatcher::match(const metkit::mars::MarsRequest& request, Matcher::Mat
 
 template <typename T>  // T is either a MarsRequest or KeyAccessor
 bool SelectMatcher::matchInner(const T& vals, Matcher::MatchMissingPolicy matchOnMissing) const {
-    if (!select_.match(vals, matchOnMissing)) {
+    if (select_ && !select_->match(vals, matchOnMissing)) {
         return false;
     }
 

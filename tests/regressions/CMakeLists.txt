@@ -25,12 +25,14 @@ if (HAVE_FDB_BUILD_TOOLS) # test scripts use the fdb tools
         add_subdirectory(FDB-533)
         add_subdirectory(FDB-535)
         add_subdirectory(FDB-541)
+        add_subdirectory(FDB-618)
         add_subdirectory(FDB-691)
         add_subdirectory(FDB-709)
         add_subdirectory(FDB-714)
     endif()
 
     add_subdirectory(FDB-241)
+    add_subdirectory(FDB-735)
 
     if (HAVE_FDB_REMOTE)
         add_subdirectory(FDB-419)
@@ -39,6 +41,7 @@ if (HAVE_FDB_BUILD_TOOLS) # test scripts use the fdb tools
             add_subdirectory(FDB-610)
             add_subdirectory(FDB-491)
             add_subdirectory(FDB-595)
+            add_subdirectory(FDB-730)
         endif()
 
     endif()

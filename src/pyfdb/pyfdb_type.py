@@ -1,17 +1,19 @@
-# (C) Copyright 2025- ECMWF.
-#
-# This software is licensed under the terms of the Apache Licence Version 2.0
-# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
-# In applying this licence, ECMWF does not waive the privileges and immunities
-# granted to it by virtue of its status as an intergovernmental organisation nor
-# does it submit to any jurisdiction.
+# SPDX-FileCopyrightText: 2025- European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
 
 from collections.abc import Collection, Mapping
 from enum import IntEnum, IntFlag, auto
 from pathlib import Path
 from urllib import parse
 
-from pyfdb._internal import _URI, _ControlAction, _ControlIdentifier, _DataHandle
+from pyfdb._internal import (
+    _URI,
+    _AccessIdentifier,
+    _AccessTime,
+    _ControlAction,
+    _ControlIdentifier,
+    _DataHandle,
+)
 from pyfdb._internal.pyfdb_internal import InternalMarsIdentifier, InternalMarsSelection
 
 MarsSelection = Mapping[str, str | int | float | Collection[str | int | float]]
@@ -436,6 +438,106 @@ class ControlAction(IntEnum):
 
     def __str__(self) -> str:
         return self.__repr__()
+
+
+class AccessIdentifier(IntFlag):
+    """
+    Specify which access timestamp of a database should be addressed, e.g. `READ` or `WRITE`.
+
+    Values
+    ------
+    - NONE
+    - READ
+    - WRITE
+    """
+
+    NONE = 0
+    READ = auto()
+    WRITE = auto()
+
+    @classmethod
+    def _from_raw(cls, en: _AccessIdentifier):
+        return AccessIdentifier[en.name]
+
+    def _to_raw(self):
+        return _AccessIdentifier[self.name]
+
+    def __repr__(self) -> str:
+        active_identifier = "|".join([val.name for val in AccessIdentifier if self.value & val])
+        if len(active_identifier) == 0:
+            return "NONE"
+
+        return active_identifier
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+
+class AccessTime:
+    """
+    The instant to be recorded by `FDB.touch`.
+
+    Note
+    ----
+    *This class can't be instantiated directly*. Use `AccessTime.now`, `AccessTime.catalogue` or `AccessTime.at`.
+
+    Examples
+    --------
+    >>> AccessTime.now()
+    >>> AccessTime.catalogue()
+    >>> AccessTime.at(1700000000)
+    """
+
+    def __init__(self, access_time: _AccessTime, *, _internal=False) -> None:
+        if not _internal:
+            raise TypeError("Creating an AccessTime directly is not supported. Use now(), catalogue() or at().")
+        self._access_time: _AccessTime = access_time
+
+    @classmethod
+    def now(cls) -> "AccessTime":
+        """
+        The current time.
+
+        Returns
+        -------
+        `AccessTime` for the current time
+        """
+        return cls(_AccessTime(), _internal=True)
+
+    @classmethod
+    def catalogue(cls) -> "AccessTime":
+        """
+        The best approximation available from the database's catalogue, normally the modification
+        time of its toc. Use this to seed an archive that predates access timestamps, so that it
+        does not all appear freshly accessed.
+
+        Returns
+        -------
+        `AccessTime` for the time taken from the catalogue
+        """
+        return cls(_AccessTime.catalogue_time(), _internal=True)
+
+    @classmethod
+    def at(cls, time: int) -> "AccessTime":
+        """
+        The given instant.
+
+        Parameters
+        ----------
+        `time` : `int`
+            The instant to record, in seconds since the Unix epoch
+
+        Returns
+        -------
+        `AccessTime` for the given instant
+        """
+        return cls(_AccessTime.at(time), _internal=True)
+
+    def _to_raw(self) -> _AccessTime:
+        return self._access_time
+
+    def __repr__(self) -> str:
+        return repr(self._access_time)
 
 
 class URI:

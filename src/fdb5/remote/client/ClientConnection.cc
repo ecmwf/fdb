@@ -23,16 +23,20 @@
 
 #include <unistd.h>
 
+#include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
 #include <future>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
 #include <utility>
+#include <vector>
 
 using namespace eckit;
 using namespace eckit::literals;
@@ -46,6 +50,10 @@ std::string msgHeader(MessageHeader& hdr, net::Endpoint& endpoint) {
        << ",clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID << ",payload=" << hdr.payloadSize << "]";
     return ss.str();
 }
+
+std::string errorText(const Buffer& payload) {
+    return std::string(static_cast<const char*>(payload.data()), payload.size());
+}
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -54,67 +62,152 @@ class DataWriteRequest {
 
 public:
 
-    DataWriteRequest() : client_(nullptr), msg_(Message::None), id_(0), data_(Buffer(0)) {}
+    DataWriteRequest() = default;
 
-    DataWriteRequest(Client* client, Message msg, uint32_t id, Buffer&& data) :
-        client_(client), msg_(msg), id_(id), data_(std::move(data)) {}
+    DataWriteRequest(uint32_t clientID, Message msg, uint32_t id, Buffer&& data) :
+        clientID_(clientID), msg_(msg), id_(id), data_(std::move(data)) {}
 
-    Client* client_;
-    Message msg_;
-    uint32_t id_;
-    Buffer data_;
+    /// @param barrier: no payload, signals when all queued writes before this barrier have been processed
+    explicit DataWriteRequest(std::shared_ptr<std::promise<void>> barrier) : barrier_{std::move(barrier)} {}
+
+    uint32_t clientID_{0};
+    Message msg_{Message::None};
+    uint32_t id_{0};
+    Buffer data_{Buffer(0)};
+    std::shared_ptr<std::promise<void>> barrier_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 ClientConnection::ClientConnection(const net::Endpoint& controlEndpoint, const std::string& defaultEndpoint) :
-    controlEndpoint_(controlEndpoint),
-    defaultEndpoint_(defaultEndpoint),
-    id_(1),
-    connected_(false),
-    dataWriteQueue_(nullptr) {
+    controlEndpoint_(controlEndpoint), defaultEndpoint_(defaultEndpoint), id_(1), connected_(false), dataWriteQueue_{} {
 
     LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::ClientConnection() controlEndpoint: " << controlEndpoint << std::endl;
 }
 
-void ClientConnection::add(Client& client) {
+template <typename F>
+bool ClientConnection::withClient(uint32_t clientID, F&& f, bool includeRetiring) {
+    std::shared_ptr<ClientEntry> entry;
+    {
+        std::lock_guard lock(clientsMutex_);
+        auto it = clients_.find(clientID);
+        if (it == clients_.end() || (it->second->retiring && !includeRetiring)) {
+            return false;
+        }
+        entry = it->second;
+        ++entry->pins;
+    }
+
+    struct Unpin {
+        ClientConnection& connection;
+        ClientEntry& entry;
+        ~Unpin() { connection.unpin(entry); }
+    } unpin{*this, *entry};
+
+    f(entry->client);
+    return true;
+}
+
+bool ClientConnection::wasRemoved(uint32_t clientID) {
     std::lock_guard lock(clientsMutex_);
-    clients_[client.id()] = &client;
+    if (removedClients_.count(clientID) != 0) {
+        return true;
+    }
+    auto it = clients_.find(clientID);
+    return it != clients_.end() && it->second->retiring;
+}
+
+void ClientConnection::unpin(ClientEntry& entry) {
+    {
+        std::lock_guard lock(clientsMutex_);
+        ASSERT(entry.pins > 0);
+        --entry.pins;
+    }
+    clientsCondition_.notify_all();
+}
+
+bool ClientConnection::add(Client& client) {
+    std::lock_guard lock(clientsMutex_);
+    // once its last client is gone the connection is retired (under this lock), and torn down: never reused
+    if (!valid() || retired_) {
+        return false;
+    }
+    clients_[client.id()] = std::make_shared<ClientEntry>(client);
+    return true;
 }
 
 bool ClientConnection::remove(uint32_t clientID) {
-    std::lock_guard lock(clientsMutex_);
+    std::unique_lock lock(clientsMutex_);
+    bool stop = false;
 
     if (clientID > 0) {
 
         auto it = clients_.find(clientID);
 
-        if (it != clients_.end()) {
-            if (valid()) {
+        if (it != clients_.end() && !it->second->retiring) {
+            // No new message is dispatched to the client, but it stays registered, so that it is still told if the
+            // connection is lost, until the calls in progress have completed: it can only be destroyed afterwards.
+            const auto entry = it->second;
+            entry->retiring = true;
+
+            if (entry->pins > 0) {
+                // A call in progress may be blocked, e.g. on the full queue of a read nobody consumes any more: cancel
+                // the pending requests of the client, which is going away, so that the call completes.
+                ++entry->pins;
+                lock.unlock();
                 try {
-                    Connection::write(Message::Stop, true, clientID, 0);
+                    std::ostringstream ss;
+                    ss << "Client " << clientID << " removed from the connection to " << controlEndpoint_;
+                    entry->client.closeConnection(
+                        std::make_exception_ptr(RemoteFDBException(ss.str(), controlEndpoint_)));
                 }
                 catch (...) {
-                    Log::error() << "ClientConnection::remove() - failed to send STOP message to server for clientID "
-                                 << clientID << std::endl;
+                    Log::error() << "ClientConnection::remove() - failed to cancel the requests of client " << clientID
+                                 << std::endl;
                 }
+                lock.lock();
+                --entry->pins;
             }
 
-            clients_.erase(it);
+            clientsCondition_.wait(lock, [&entry] { return entry->pins == 0; });
+            clients_.erase(clientID);
+            removedClients_.insert(clientID);  // client IDs are unique in the process: 4 bytes per removed client
+            stop = true;
         }
     }
 
-    if (clients_.empty()) {
+    // The last client gone, the connection is retired: no client may be added any more (see add()), and it is torn
+    // down below, without the lock
+    const bool empty = clients_.empty();
+    const bool last = empty && !retired_.exchange(true);
+    lock.unlock();
+
+    // No socket I/O with clientsMutex_ held: the listeners need it to dispatch, and a write may block while the
+    // server is busy writing to us (e.g. on a single connection)
+    if (stop && valid()) {
+        try {
+            Connection::write(Message::Stop, true, clientID, 0);
+        }
+        catch (...) {
+            Log::error() << "ClientConnection::remove() - failed to send STOP message to server for clientID "
+                         << clientID << std::endl;
+        }
+    }
+
+    if (last) {
         teardown();
         ClientConnectionRouter::instance().deregister(*this);
     }
 
-    return clients_.empty();
+    return empty;
 }
 
 ClientConnection::~ClientConnection() {
-    if (dataWriteQueue_) {
-        dataWriteQueue_->close();
+    {
+        std::lock_guard lock(dataWriteMutex_);
+        if (dataWriteQueue_) {
+            dataWriteQueue_->close();
+        }
     }
 
     disconnect();
@@ -151,7 +244,11 @@ bool ClientConnection::connect(const Configuration& config, bool singleAttempt) 
             dataClient_.connect(dataEndpoint_, fdbMaxConnectRetries, fdbConnectTimeout);
             writeDataStartupMessage(serverSession);
 
+            runningListeners_ = 2;
             listeningDataThread_ = std::thread([this] { listeningDataThreadLoop(); });
+        }
+        else {
+            runningListeners_ = 1;
         }
 
         listeningControlThread_ = std::thread([this] { listeningControlThreadLoop(); });
@@ -166,6 +263,44 @@ bool ClientConnection::connect(const Configuration& config, bool singleAttempt) 
     return connected_;
 }
 
+bool ClientConnection::reclaimThreads() noexcept {
+    if (threadsReclaimed_) {
+        return true;
+    }
+    // only once the connection is over: both listeners have stopped (and released the sockets, see listenerStopped())
+    if (!connected_ || runningListeners_ != 0) {
+        return false;
+    }
+    try {
+        std::lock_guard lock(threadsMutex_);
+        {
+            // nothing more can be written: the writer ends (n.b. new writes are refused, see dataWrite())
+            std::lock_guard writeLock(dataWriteMutex_);
+            if (dataWriteQueue_) {
+                dataWriteQueue_->close();
+            }
+        }
+        joinThreads();
+        threadsReclaimed_ = true;
+        return true;
+    }
+    catch (...) {
+        return false;
+    }
+}
+
+void ClientConnection::joinThreads() {
+    if (dataWriteThread_.joinable()) {
+        dataWriteThread_.join();
+    }
+    if (listeningDataThread_.joinable()) {
+        listeningDataThread_.join();
+    }
+    if (listeningControlThread_.joinable()) {
+        listeningControlThread_.join();
+    }
+}
+
 void ClientConnection::disconnect() {
 
     {
@@ -174,14 +309,9 @@ void ClientConnection::disconnect() {
     }
 
     if (connected_) {
-        if (dataWriteThread_.joinable()) {
-            dataWriteThread_.join();
-        }
-        if (listeningDataThread_.joinable()) {
-            listeningDataThread_.join();
-        }
-        if (listeningControlThread_.joinable()) {
-            listeningControlThread_.join();
+        {
+            std::lock_guard lock(threadsMutex_);
+            joinThreads();
         }
 
         // Close both the control and data connections
@@ -201,6 +331,25 @@ RemoteConfiguration ClientConnection::availableFunctionality(const Configuration
 
 //----------------------------------------------------------------------------------------------------------------------
 
+void ClientConnection::checkEnabled(Message msg) const {
+    if (!enabled(agreedFeatures_, msg)) {
+        LOG_DEBUG_LIB(LibFdb5) << "Message " << msg << " not enabled - requested: " << messageMask2String(toMask(msg))
+                               << ", enabled: " << messageMask2String(agreedFeatures_) << std::endl;
+
+        // n.b. a permission error, not a failure: say which side does not allow it
+        std::ostringstream ss;
+        if (!enabled(offeredFeatures_, msg)) {
+            ss << "'" << msg << "' is disabled in the client configuration (FDB server " << controlEndpoint_ << ")";
+        }
+        else {
+            // e.g. disabled in the configuration of the server, or not granted to the network of this client
+            ss << "'" << msg << "' is not permitted on FDB server " << controlEndpoint_
+               << ": the server does not allow it for this client";
+        }
+        throw UserError(ss.str(), Here());
+    }
+}
+
 std::future<Buffer> ClientConnection::controlWrite(const Client& client, const Message msg, const uint32_t requestID,
                                                    const bool /*dataListener*/, const PayloadList payloads) const {
     if (!valid()) {
@@ -208,20 +357,48 @@ std::future<Buffer> ClientConnection::controlWrite(const Client& client, const M
                                  controlEndpoint_);
     }
 
+    checkEnabled(msg);
+
     std::future<Buffer> f;
+    bool failed = false;
     {
         std::lock_guard lock(promisesMutex_);
-        auto pp = promises_.emplace(requestID, std::promise<Buffer>{}).first;
-        f = pp->second.get_future();
+        if (promisesFailed_) {
+            failed = true;
+        }
+        else {
+            auto pp = promises_.emplace(requestID, std::promise<Buffer>{}).first;
+            f = pp->second.get_future();
+        }
     }
-    Connection::write(msg, true, client.clientId(), requestID, payloads);
+    if (failed) {
+        // The connection is failing, but may not be marked invalid yet (see handleConnectionError()): the request
+        // would never be answered. n.b. the reason is recorded before the requests are failed.
+        if (auto reason = connectionError()) {
+            std::rethrow_exception(reason);
+        }
+        throw RemoteFDBException("Connection to " + std::string(controlEndpoint_) + " is no longer valid",
+                                 controlEndpoint_);
+    }
+
+    try {
+        Connection::write(msg, true, client.clientId(), requestID, payloads);
+    }
+    catch (...) {
+        // not sent: nobody will answer it
+        std::lock_guard lock(promisesMutex_);
+        promises_.erase(requestID);
+        throw;
+    }
 
     return f;
 }
 
 void ClientConnection::dataWrite(DataWriteRequest& request) const {
-    Connection::write(request.msg_, false, request.client_->clientId(), request.id_, request.data_.data(),
-                      request.data_.size());
+
+    checkEnabled(request.msg_);
+
+    Connection::write(request.msg_, false, request.clientID_, request.id_, request.data_.data(), request.data_.size());
 }
 
 void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t requestID, PayloadList payloads) {
@@ -234,15 +411,27 @@ void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t r
         ASSERT(clients_.find(client.clientId()) != clients_.end());
     }
 
+    std::shared_ptr<Queue<DataWriteRequest>> queue;
     {
         std::lock_guard lock(dataWriteMutex_);
+        // n.b. checked under the lock: a connection that is over never restarts its writer (see reclaimThreads())
+        if (!valid()) {
+            throw RemoteFDBException("Connection to " + std::string(controlEndpoint_) + " is no longer valid",
+                                     controlEndpoint_);
+        }
         if (!dataWriteThread_.joinable()) {
             // Reset the queue after previous done/errors
             ASSERT(!dataWriteQueue_);
 
-            dataWriteQueue_ = std::make_unique<Queue<DataWriteRequest>>(maxQueueLength);
-            dataWriteThread_ = std::thread([this] { dataWriteThreadLoop(); });
+            dataWriteQueue_ = std::make_shared<Queue<DataWriteRequest>>(maxQueueLength);
+            dataWriteThread_ = std::thread([this, queue = dataWriteQueue_] { dataWriteThreadLoop(queue); });
         }
+        // n.b. kept until the request is queued: the connection may end meanwhile, and the queue be released
+        queue = dataWriteQueue_;
+    }
+
+    if (const auto hook = dataWriteHook_.load()) {
+        hook();
     }
 
     uint32_t payloadLength = 0;
@@ -258,31 +447,104 @@ void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t r
         offset += payload.length;
     }
 
-    dataWriteQueue_->emplace(&client, msg, requestID, std::move(buffer));
+    // n.b. without the lock: this blocks while the queue is full
+    enqueueDataWrite(*queue, DataWriteRequest{client.clientId(), msg, requestID, std::move(buffer)});
 }
 
-void ClientConnection::dataWriteThreadLoop() {
+void ClientConnection::enqueueDataWrite(Queue<DataWriteRequest>& queue, DataWriteRequest&& request) const {
+    const auto noLongerValid = [this] {
+        return RemoteFDBException("Connection to " + std::string(controlEndpoint_) + " is no longer valid",
+                                  controlEndpoint_);
+    };
+    // n.b. a queue interrupted by a failure of the writer rethrows that failure; a queue closed because the connection
+    // is over (see reclaimThreads()) refuses the request: the caller gets a connection error
+    try {
+        queue.emplace(std::move(request));
+    }
+    catch (const eckit::AssertionFailed&) {
+        if (queue.closed()) {
+            throw noLongerValid();
+        }
+        throw;
+    }
+}
+
+void ClientConnection::dataWriteThreadLoop(const std::shared_ptr<Queue<DataWriteRequest>>& queue) {
 
     Timer timer;
     DataWriteRequest element;
 
+    ASSERT(queue);
+
     try {
 
-        ASSERT(dataWriteQueue_);
-        while (dataWriteQueue_->pop(element) != -1) {
-
+        while (queue->pop(element) != -1) {
+            if (element.barrier_) {
+                std::lock_guard lock(dataWriteMutex_);
+                element.barrier_->set_value();
+                dataBarriers_.erase(std::remove(dataBarriers_.begin(), dataBarriers_.end(), element.barrier_),
+                                    dataBarriers_.end());
+                continue;
+            }
             dataWrite(element);
         }
 
-        dataWriteQueue_.reset();
+        // the queue is closed: release it, unless a new one has replaced it meanwhile (n.b. a producer may still hold
+        // a reference: it finds it closed)
+        std::lock_guard lock(dataWriteMutex_);
+        if (dataWriteQueue_ == queue) {
+            dataWriteQueue_.reset();
+        }
     }
     catch (...) {
-        dataWriteQueue_->interrupt(std::current_exception());
+        // we must not rethrow in thread (that would std::terminate)
+        // propagate and unblock any waiting flushDataWrites()
+        queue->interrupt(std::current_exception());
+        failDataBarriers(std::current_exception());
+    }
+}
+
+void ClientConnection::flushDataWrites() {
+    std::future<void> written;
+    std::shared_ptr<std::promise<void>> barrier;
+    std::shared_ptr<Queue<DataWriteRequest>> queue;
+    {
+        std::lock_guard lock(dataWriteMutex_);
+        if (!dataWriteQueue_) {
+            return;
+        }
+        queue = dataWriteQueue_;  // n.b. kept until the barrier is queued
+        barrier = std::make_shared<std::promise<void>>();
+        written = barrier->get_future();
+        dataBarriers_.push_back(barrier);
+    }
+
+    // n.b. without the lock: this blocks while the queue is full
+    try {
+        enqueueDataWrite(*queue, DataWriteRequest{barrier});
+    }
+    catch (...) {
+        LOG_DEBUG_LIB(LibFdb5) << "flushDataWrites - failed to enqueue barrier!" << std::endl;
+        std::lock_guard lock(dataWriteMutex_);
+        dataBarriers_.erase(std::remove(dataBarriers_.begin(), dataBarriers_.end(), barrier), dataBarriers_.end());
         throw;
     }
 
-    // We are inside an async, so don't need to worry about exceptions escaping.
-    // They will be released when flush() is called.
+    // block until the writer reaches the barrier (or the connection fails)
+    written.get();
+}
+
+void ClientConnection::failDataBarriers(const std::exception_ptr& eptr) {
+    std::lock_guard lock(dataWriteMutex_);
+    for (auto& barrier : dataBarriers_) {
+        try {
+            barrier->set_exception(eptr);
+        }
+        catch (...) {
+            Log::warning() << "failDataBarriers - barrier already satisfied." << std::endl;
+        }
+    }
+    dataBarriers_.clear();
 }
 
 void ClientConnection::writeControlStartupMessage(const Configuration& config) {
@@ -292,7 +554,11 @@ void ClientConnection::writeControlStartupMessage(const Configuration& config) {
     s << sessionID_;
     s << net::Endpoint(controlEndpoint_.hostname(), controlEndpoint_.port());
     s << LibFdb5::instance().remoteProtocolVersion().used();
-    s << availableFunctionality(config);
+
+    // what this client allows: what the agreed features lack beyond it is refused by the server (see checkEnabled())
+    const RemoteConfiguration offered = availableFunctionality(config);
+    offeredFeatures_ = offered.enabledFeatures();
+    s << offered;
 
     LOG_DEBUG_LIB(LibFdb5) << "writeControlStartupMessage - Sending session " << sessionID_ << " to control "
                            << controlEndpoint_ << std::endl;
@@ -312,10 +578,58 @@ void ClientConnection::writeDataStartupMessage(const SessionID& serverSession) {
     Connection::write(Message::Startup, false, 0, 0, payload, s.position());
 }
 
+Buffer ClientConnection::readStartupResponse(MessageHeader& hdr) {
+    // A server that accepts the connection but never answers, or stops in the middle of its answer (overloaded,
+    // wedged), must not block the caller forever: the whole answer is bounded, not only its first byte
+    const int timeoutSeconds = Resource<int>("fdbStartupTimeout;$FDB_STARTUP_TIMEOUT", 60);
+    const auto deadline = timeoutSeconds > 0 ? std::chrono::steady_clock::now() + std::chrono::seconds(timeoutSeconds)
+                                             : std::chrono::steady_clock::time_point::max();
+
+    // the answer is a few hundred bytes: until the server is identified, nothing larger is accepted
+    constexpr uint32_t maxStartupPayloadSize = 64 * 1024;
+    maxPayloadSize(maxStartupPayloadSize);
+    struct Restore {
+        ClientConnection& connection;
+        ~Restore() { connection.maxPayloadSize(std::numeric_limits<uint32_t>::max()); }
+    } restore{*this};
+
+    try {
+        return Connection::readControlBefore(hdr, deadline);
+    }
+    catch (const ConnectionTimeout&) {
+        std::ostringstream ss;
+        ss << "FDB server " << controlEndpoint_ << " did not answer the startup message within " << timeoutSeconds
+           << " s (fdbStartupTimeout)";
+        throw RemoteFDBTimeout(ss.str(), controlEndpoint_);
+    }
+}
+
 SessionID ClientConnection::verifyServerStartupResponse() {
 
     MessageHeader hdr;
-    Buffer payload = Connection::readControl(hdr);
+    Buffer payload = readStartupResponse(hdr);
+
+    // The server rejects a client (e.g. unsupported protocol version) by sending the reason instead of the Startup
+    // reply: report it, rather than failing to deserialize it as a Startup reply
+    if (hdr.message == Message::Error || hdr.message == Message::Unauthorised) {
+        std::ostringstream ss;
+        ss << "FDB server " << controlEndpoint_ << " rejected the connection";
+        if (payload.size() > 0) {
+            ss << ": " << errorText(payload);
+        }
+        if (hdr.message == Message::Unauthorised) {
+            ss << " (not authorised)";
+        }
+        throw RemoteFDBRejected(ss.str(), controlEndpoint_);
+    }
+    if (hdr.message != Message::Startup) {
+        std::ostringstream ss;
+        ss << "Unexpected reply to the startup message from FDB server " << controlEndpoint_ << ": " << hdr.message;
+        if (hdr.message == Message::Exit) {
+            ss << " (connection closed by the server)";
+        }
+        throw RemoteFDBException(ss.str(), controlEndpoint_);
+    }
 
     ASSERT(hdr.requestID == 0);
 
@@ -323,12 +637,12 @@ SessionID ClientConnection::verifyServerStartupResponse() {
     SessionID clientSession(s);
     SessionID serverSession(s);
     net::Endpoint dataEndpoint(s);
-    LocalConfiguration serverFunctionality(s);
+    RemoteConfiguration agreedConf{s};
 
     dataEndpoint_ = dataEndpoint;
 
     LOG_DEBUG_LIB(LibFdb5) << "verifyServerStartupResponse - Received from server " << clientSession << " "
-                           << serverSession << " " << dataEndpoint << std::endl;
+                           << serverSession << " " << agreedConf << " " << dataEndpoint << std::endl;
     if (dataEndpoint_.hostname() != controlEndpoint_.hostname()) {
         Log::warning() << "Data and control interface hostnames do not match. " << dataEndpoint_.hostname()
                        << " /= " << controlEndpoint_.hostname() << std::endl;
@@ -339,9 +653,8 @@ SessionID ClientConnection::verifyServerStartupResponse() {
         ss << "Session ID does not match session received from server: " << sessionID_ << " != " << clientSession;
         throw BadValue(ss.str(), Here());
     }
-    if (serverFunctionality.has("NumberOfConnections") && serverFunctionality.getInt("NumberOfConnections") == 1) {
-        single_ = true;
-    }
+    single_ = agreedConf.singleConnection();
+    agreedFeatures_ = agreedConf.enabledFeatures();
 
     if (single_ && !(dataEndpoint_ == controlEndpoint_)) {
         Log::warning() << "Returned control interface does not match. " << dataEndpoint_ << " /= " << controlEndpoint_
@@ -353,6 +666,7 @@ SessionID ClientConnection::verifyServerStartupResponse() {
 
 void ClientConnection::failPendingRequests(const std::exception_ptr& eptr) {
     std::lock_guard lock(promisesMutex_);
+    promisesFailed_ = true;  // nobody will answer a request registered from now on
     for (auto& [requestID, promise] : promises_) {
         promise.set_exception(eptr);
     }
@@ -378,12 +692,78 @@ void ClientConnection::handleConnectionError(const std::exception_ptr& eptr) {
     // nothing else will ever fulfil a promise once the listening thread has stopped
     std::ostringstream ss;
     ss << "Connection to " << controlEndpoint_ << " lost: " << reason;
-    failPendingRequests(std::make_exception_ptr(RemoteFDBException(ss.str(), controlEndpoint_)));
+    const auto error = std::make_exception_ptr(RemoteFDBException(ss.str(), controlEndpoint_));
 
-    teardown();
+    {
+        // the first failure is the most specific: the other listener only sees its consequences
+        std::lock_guard lock(controlListenerMutex_);
+        if (!connectionError_) {
+            connectionError_ = error;
+        }
+    }
+
+    failPendingRequests(error);
+
+    // wake up anyone waiting on a request (reads, archive locations), nothing else will. They get the same reason as
+    // the pending control requests, rather than a generic closure.
+    closeConnection(closureReason());
+
+    // Tell the server, if the connection is still valid (a failed read or write has already invalidated it), without
+    // waiting for long: another writer may hold the socket, blocked because the server stopped reading, and only the
+    // abort releases it. Then end the connection on both channels: a failure may concern only one of them, and the
+    // listener of the other one would otherwise wait on a healthy socket forever, keeping the sockets open (they are
+    // released when both listeners have stopped) and blocking the destruction of the connection. Its read now
+    // returns as an Exit.
+    // n.b. the data listener calls this only after waiting (bounded) for the error the server may have sent on the
+    // control socket.
+    endConnection();
+}
+
+void ClientConnection::dataListenerEnded() {
+    {
+        std::lock_guard lock(controlListenerMutex_);
+        dataListenerEnded_ = true;
+    }
+    controlListenerCondition_.notify_all();
+}
+
+bool ClientConnection::awaitDataListener(std::chrono::milliseconds timeout) {
+    std::unique_lock lock(controlListenerMutex_);
+    return controlListenerCondition_.wait_for(lock, timeout, [this] { return dataListenerEnded_; });
+}
+
+bool ClientConnection::awaitControlListener(std::chrono::milliseconds timeout) {
+    std::unique_lock lock(controlListenerMutex_);
+    return controlListenerCondition_.wait_for(lock, timeout, [this] { return controlListenerDone_; });
+}
+
+void ClientConnection::listenerStopped() noexcept {
+    if (--runningListeners_ == 0) {
+        // nothing reads the sockets any more: the connection is over
+        invalidate();
+        closeSockets();
+    }
 }
 
 void ClientConnection::listeningControlThreadLoop() {
+
+    // Declared first: runs last, once the connection error (if any) has been handled
+    struct Stopped {
+        ClientConnection& connection;
+        ~Stopped() { connection.listenerStopped(); }
+    } stopped{*this};
+
+    // Signals that nothing is left to be read from the control socket, once the connection error is handled too
+    struct Done {
+        ClientConnection& connection;
+        ~Done() {
+            {
+                std::lock_guard lock(connection.controlListenerMutex_);
+                connection.controlListenerDone_ = true;
+            }
+            connection.controlListenerCondition_.notify_all();
+        }
+    } done{*this};
 
     try {
 
@@ -399,6 +779,21 @@ void ClientConnection::listeningControlThreadLoop() {
             if (hdr.message == Message::Exit) {
                 LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::listeningControlThreadLoop() -- Control thread stopping"
                                        << std::endl;
+                // The server ended the connection (or we did): it is over on both channels, it must not be handed out
+                // again, and no pending request will ever be answered
+                invalidate();
+                failPendingRequests(closureReason());
+                if (single_) {
+                    // there is no data listener to end the streamed requests (reads, lists): their messages would
+                    // have come on this socket
+                    closeConnection(closureReason());
+                }
+                else if (!awaitDataListener()) {
+                    // The server ends the data channel first: the messages it sent before are left to the data
+                    // listener (bounded). It did not: end the streamed requests, and wake the data listener up.
+                    closeConnection(closureReason());
+                    abortConnection();
+                }
                 return;
             }
             if (hdr.clientID()) {
@@ -429,8 +824,7 @@ void ClientConnection::listeningControlThreadLoop() {
                                     std::make_exception_ptr(RemoteFDBException(ss.str(), controlEndpoint_)));
                             }
                             else {
-                                std::string msg(hdr.payloadSize, ' ');
-                                payload.copy(msg.data(), payload.size());
+                                const std::string msg = errorText(payload);
 
                                 if (hdr.message == Message::Error) {
                                     pp->second.set_exception(
@@ -453,24 +847,27 @@ void ClientConnection::listeningControlThreadLoop() {
                     }
                 }
                 if (!handled) {  // not the answer to a blocking request (a promise), so dispatch to the client
-                    // Hold clientsMutex_ across the virtual dispatch too (not just the lookup)
-                    std::lock_guard lock(clientsMutex_);
-
-                    auto it = clients_.find(hdr.clientID());
-                    if (it == clients_.end()) {
+                    // The client cannot be removed while it handles the message (see withClient())
+                    const bool found = withClient(hdr.clientID(), [&](Client& client) {
+                        if (hdr.payloadSize == 0) {
+                            handled = client.handle(hdr.message, hdr.requestID);
+                        }
+                        else {
+                            handled = client.handle(hdr.message, hdr.requestID, std::move(payload));
+                        }
+                    });
+                    if (!found && wasRemoved(hdr.clientID())) {
+                        // the client went away while the server was still sending: nobody will read it
+                        LOG_DEBUG_LIB(LibFdb5) << "Discarding " << msgHeader(hdr, controlEndpoint_)
+                                               << " for a removed client" << std::endl;
+                        continue;
+                    }
+                    if (!found) {
                         std::ostringstream ss;
                         ss << "ERROR: " << msgHeader(hdr, controlEndpoint_) << " - ClientID not found. ABORTING";
                         Log::status() << ss.str() << std::endl;
                         Log::error() << "Retrieving... " << ss.str() << std::endl;
                         throw SeriousBug(ss.str(), Here());
-                    }
-                    Client* client = it->second;
-
-                    if (hdr.payloadSize == 0) {
-                        handled = client->handle(hdr.message, hdr.requestID);
-                    }
-                    else {
-                        handled = client->handle(hdr.message, hdr.requestID, std::move(payload));
                     }
                 }
 
@@ -480,10 +877,7 @@ void ClientConnection::listeningControlThreadLoop() {
                     if (hdr.message == Message::Error) {
                         ss << " - received an unhandled error";
                         if (hdr.payloadSize) {
-                            std::string msg;
-                            msg.resize(payload.size(), ' ');
-                            payload.copy(msg.data(), payload.size());
-                            ss << ": " << msg;
+                            ss << ": " << errorText(payload);
                         }
                         throw RemoteFDBException(ss.str(), controlEndpoint_);
                     }
@@ -492,6 +886,10 @@ void ClientConnection::listeningControlThreadLoop() {
                     Log::error() << "Client Retrieving... " << ss.str() << std::endl;
                     throw SeriousBug(ss.str(), Here());
                 }
+            }
+            else if (hdr.message == Message::Error) {
+                // not addressed to any client, so it cannot be delivered to a request
+                throw RemoteFDBException("Received an error from server: " + errorText(payload), controlEndpoint_);
             }
         }
 
@@ -502,15 +900,53 @@ void ClientConnection::listeningControlThreadLoop() {
     }
 }
 
-void ClientConnection::closeConnection() {
+std::exception_ptr ClientConnection::connectionError() const {
+    std::lock_guard lock(controlListenerMutex_);
+    return connectionError_;
+}
+
+std::exception_ptr ClientConnection::closureReason() {
+    {
+        std::lock_guard lock(controlListenerMutex_);
+        if (connectionError_) {
+            return connectionError_;
+        }
+    }
+    return std::make_exception_ptr(
+        RemoteFDBException("Connection to " + std::string(controlEndpoint_) + " closed", controlEndpoint_));
+}
+
+void ClientConnection::closeConnection(const std::exception_ptr& reason) {
     LOG_DEBUG_LIB(LibFdb5) << "ClientConnection::closeConnection() -- Data thread stopping" << std::endl;
-    std::lock_guard lock(clientsMutex_);
-    for (auto& [id, client] : clients_) {
-        client->closeConnection();
+
+    // The clients are not called with clientsMutex_ held: a listener may be blocked in a client (e.g. on the full
+    // queue of a read), and only closeConnection() can wake it up
+    std::vector<uint32_t> ids;
+    {
+        std::lock_guard lock(clientsMutex_);
+        ids.reserve(clients_.size());
+        for (const auto& [id, entry] : clients_) {
+            ids.push_back(id);
+        }
+    }
+
+    for (const auto id : ids) {
+        try {
+            // retiring clients too: one of their calls may be blocked until their requests are interrupted
+            withClient(id, [&reason](Client& client) { client.closeConnection(reason); }, true);
+        }
+        catch (...) {
+            Log::error() << "ClientConnection::closeConnection() - failed to notify client " << id << std::endl;
+        }
     }
 }
 
 void ClientConnection::listeningDataThreadLoop() {
+
+    struct Stopped {
+        ClientConnection& connection;
+        ~Stopped() { connection.listenerStopped(); }
+    } stopped{*this};
 
     try {
 
@@ -526,31 +962,39 @@ void ClientConnection::listeningDataThreadLoop() {
                                    << std::endl;
 
             if (hdr.message == Message::Exit) {
-                closeConnection();
+                invalidate();
+                dataListenerEnded();
+                awaitControlListener();
+                // if the control listener has seen the server's error, the clients get that rather than a closure
+                closeConnection(closureReason());
                 return;
             }
             if (hdr.clientID()) {
                 bool handled = false;
-                // Hold clientsMutex_ across the virtual dispatch too (not just the lookup)
-                std::lock_guard lock(clientsMutex_);
+                ASSERT(!hdr.control());
 
-                auto it = clients_.find(hdr.clientID());
-                if (it == clients_.end()) {
+                // The client cannot be removed while it handles the message (see withClient()). n.b. it may block
+                // here on the full queue of a read: closeConnection() can still interrupt it.
+                const bool found = withClient(hdr.clientID(), [&](Client& client) {
+                    if (hdr.payloadSize == 0) {
+                        handled = client.handle(hdr.message, hdr.requestID);
+                    }
+                    else {
+                        handled = client.handle(hdr.message, hdr.requestID, std::move(payload));
+                    }
+                });
+                if (!found && wasRemoved(hdr.clientID())) {
+                    // the client went away while the server was still sending: nobody will read it
+                    LOG_DEBUG_LIB(LibFdb5)
+                        << "Discarding " << msgHeader(hdr, dataEndpoint_) << " for a removed client" << std::endl;
+                    continue;
+                }
+                if (!found) {
                     std::ostringstream ss;
                     ss << "ERROR: " << msgHeader(hdr, dataEndpoint_) << " - ClientID not found. ABORTING";
                     Log::status() << ss.str() << std::endl;
                     Log::error() << "Retrieving... " << ss.str() << std::endl;
                     throw SeriousBug(ss.str(), Here());
-                }
-                Client* client = it->second;
-
-                ASSERT(client);
-                ASSERT(!hdr.control());
-                if (hdr.payloadSize == 0) {
-                    handled = client->handle(hdr.message, hdr.requestID);
-                }
-                else {
-                    handled = client->handle(hdr.message, hdr.requestID, std::move(payload));
                 }
 
                 if (!handled) {
@@ -559,10 +1003,7 @@ void ClientConnection::listeningDataThreadLoop() {
                     if (hdr.message == Message::Error) {
                         ss << " - received an unhandled error";
                         if (hdr.payloadSize) {
-                            std::string msg;
-                            msg.resize(payload.size(), ' ');
-                            payload.copy(msg.data(), payload.size());
-                            ss << ": " << msg;
+                            ss << ": " << errorText(payload);
                         }
                         throw RemoteFDBException(ss.str(), dataEndpoint_);
                     }
@@ -572,11 +1013,17 @@ void ClientConnection::listeningDataThreadLoop() {
                     throw SeriousBug(ss.str(), Here());
                 }
             }
+            else if (hdr.message == Message::Error) {
+                // not addressed to any client, so it cannot be delivered to a request
+                throw RemoteFDBException("Received an error from server: " + errorText(payload), dataEndpoint_);
+            }
         }
 
         // We don't want to let exceptions escape inside a worker thread.
     }
     catch (...) {
+        dataListenerEnded();
+        awaitControlListener();
         handleConnectionError(std::current_exception());
     }
 }

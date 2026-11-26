@@ -1,0 +1,2 @@
+# eckit tears down the global atfork mutex while the test process exits.
+mutex:eckit::StaticMutex::~StaticMutex

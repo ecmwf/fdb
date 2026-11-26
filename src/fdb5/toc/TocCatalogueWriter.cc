@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #include "fdb5/toc/TocCatalogueWriter.h"
 
@@ -52,16 +45,22 @@ namespace fdb5 {
 
 TocCatalogueWriter::TocCatalogueWriter(const Key& dbKey, const fdb5::Config& config) :
     TocCatalogue(dbKey, config), umask_(config.umask()), archivedLocations_(0) {
-    writeInitRecord(dbKey);
+    const bool databaseCreated = writeInitRecord(dbKey);
     TocCatalogue::loadSchema();
     TocCatalogue::checkUID();
+    if (databaseCreated) {
+        createAccessTimestamps();
+    }
 }
 
 TocCatalogueWriter::TocCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config) :
     TocCatalogue(uri.path(), ControlIdentifiers{}, config), umask_(config.umask()), archivedLocations_(0) {
-    writeInitRecord(TocCatalogue::key());
+    const bool databaseCreated = writeInitRecord(TocCatalogue::key());
     TocCatalogue::loadSchema();
     TocCatalogue::checkUID();
+    if (databaseCreated) {
+        createAccessTimestamps();
+    }
 }
 
 TocCatalogueWriter::~TocCatalogueWriter() {
@@ -205,7 +204,7 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
     private:
 
         using EntryVisitor::visitDatum;
-        void visitDatum(const Field& field, const Key& datumKey) override {
+        void visitDatum(IndexScope& /*scope*/, const Field& field, const Key& datumKey) override {
             /// @todo Do a sneaky schema.expand() here, prepopulated with the current DB/index/Rule,
             //       to extract the full key, including optional values.
             const TocFieldLocation& location(static_cast<const TocFieldLocation&>(field.location()));
@@ -226,10 +225,18 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
 
     ASSERT(readIndexes.size() == indexInSubtoc.size());
 
+    // Brackets the visitation as Catalogue::visitEntries() would: without it currentCatalogue_ is
+    // never set, and claiming a scope - which needs the schema to resolve each index's datum rule -
+    // asserts.
+    visitor.visitDatabase(*this);
+
     for (size_t i = 0; i < readIndexes.size(); i++) {
         Index& idx(readIndexes[i]);
         selectIndex(idx.key());
-        idx.entries(visitor);
+        OrderedParallelFor::Order order;  // sequential reindex, so the ordering is inherent
+        if (auto scope = visitor.visitIndex(idx, order)) {
+            idx.entries(visitor, *scope);
+        }
 
         Log::info() << "Visiting index: " << idx.location().uri() << std::endl;
 
@@ -238,6 +245,8 @@ void TocCatalogueWriter::reconsolidateIndexesAndTocs() {
             maskable_indexes += 1;
         }
     }
+
+    visitor.catalogueComplete(*this);
 
     // Flush the new indexes and add relevant entries!
     clean();
@@ -384,6 +393,15 @@ void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
     }
 }
 
+// The records belong to the writer, not to the base: a reader may be a different user and could
+// not create them. They are made exactly once, when the database is - not on every writer that
+// opens it, which would put a create and a chmod in front of every archival session to establish
+// something already true. A database that predates the records, or has lost them, gets them back
+// from markWritten() when an update fails, which is the only time it is worth looking.
+void TocCatalogueWriter::createAccessTimestamps() const {
+    createTimestamps(timestampMode(config_.umask()));
+}
+
 void TocCatalogueWriter::flush(size_t archivedFields) {
     std::lock_guard lock(mutex_);
     ASSERT(archivedFields == archivedLocations_);
@@ -393,6 +411,11 @@ void TocCatalogueWriter::flush(size_t archivedFields) {
     }
 
     flushIndexes();
+
+    // Archiving is a meaningful access. markWritten() also restores the records if it finds them
+    // missing, so a database that predates them acquires them here rather than from a check made
+    // before every update.
+    markWritten();
 
     archivedLocations_ = 0;
     current_ = Index();

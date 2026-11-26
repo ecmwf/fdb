@@ -1,15 +1,8 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #include "fdb5/remote/server/CatalogueHandler.h"
-#include "eckit/serialisation/ResizableMemoryStream.h"
+
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/FDBFactory.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -21,11 +14,12 @@
 #include "fdb5/remote/server/ServerConnection.h"
 
 #include "eckit/config/Resource.h"
-#include "eckit/net/NetMask.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/serialisation/ResizableMemoryStream.h"
 #include "eckit/utils/Literals.h"
 
+#include <chrono>
 #include <future>
 #include <mutex>
 #include <utility>
@@ -44,9 +38,12 @@ namespace fdb5::remote {
 // ***************************************************************************************
 
 CatalogueHandler::CatalogueHandler(eckit::net::TCPSocket& socket, const Config& config) :
-    ServerConnection(socket, config), fdbControlConnection_(false), fdbDataConnection_(false) {}
+    ServerConnection(socket, config) {}
 
-CatalogueHandler::~CatalogueHandler() {}
+CatalogueHandler::~CatalogueHandler() {
+    // the workers use the members of this class
+    stopWorkers(true);
+}
 
 Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint32_t requestID) {
 
@@ -57,13 +54,7 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 std::lock_guard<std::mutex> lock(handlerMutex_);
                 auto it = fdbs_.find(clientID);
                 if (it == fdbs_.end()) {
-                    fdbs_.emplace(clientID, innerConfig_);
-                    fdbControlConnection_ = true;
-                    fdbDataConnection_ = !single_;
-                    numControlConnection_++;
-                    if (fdbDataConnection_) {
-                        numDataConnection_++;
-                    }
+                    fdbs_.emplace(clientID, std::make_shared<FDB>(innerConfig_));
                 }
             }
                 schema(clientID, requestID, eckit::Buffer(0));
@@ -100,9 +91,15 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
 Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint32_t requestID,
                                         eckit::Buffer&& payload) {
 
-    static bool wipeEnabled = Resource<bool>("fdbWipeEnabled;$FDB_WIPE_ENABLED", false);
-
     try {
+        if (!enabled(agreedConf_.enabledFeatures(), message)) {
+            std::ostringstream ss;
+            // not agreed for this connection: disabled by either side, or not granted to the network of the client
+            ss << "'" << message << "' is not permitted for this client on FDB server " << host() << ":" << port();
+            unauthorised(ss.str(), clientID, requestID);
+            return Handled::Replied;
+        }
+
         switch (message) {
 
             case Message::Schema:  // request catalogue schema
@@ -125,6 +122,14 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 stats(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
+            case Message::Status:  // database-level status, including access timestamps
+                status(clientID, requestID, std::move(payload));
+                return Handled::Yes;
+
+            case Message::Touch:  // explicitly record a read and/or a write
+                touch(clientID, requestID, std::move(payload));
+                return Handled::Yes;
+
             case Message::Flush:  // flush catalogue
                 flush(clientID, requestID, std::move(payload));
                 return Handled::Yes;
@@ -134,51 +139,27 @@ Handled CatalogueHandler::handleControl(Message message, uint32_t clientID, uint
                 return Handled::Replied;
 
             case Message::Wipe:  // Initial wipe request
-                if (!wipeEnabled) {
-                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::Replied;
-                }
                 wipe(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoMaskIndexEntries:
-                if (!wipeEnabled) {
-                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::Replied;
-                }
                 // doit! We expect DoMaskIndexEntries, doWipeURIs, DoWipeUnknowns and doWipeEmptyDatabase in succession
                 doMaskIndexEntries(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoWipeURIs:  // Do the wipe on our currentWipeState
-                if (!wipeEnabled) {
-                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::Replied;
-                }
                 doWipeURIs(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoWipeFinish:  // Finish wipe by deleting empty DBs
-                if (!wipeEnabled) {
-                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::Replied;
-                }
                 doWipeEmptyDatabase(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoWipeUnknowns:  // Wipe a set of unknown URIs
-                if (!wipeEnabled) {
-                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::Replied;
-                }
                 doWipeUnknowns(clientID, requestID, std::move(payload));
                 return Handled::Yes;
 
             case Message::DoUnsafeFullWipe:  // wipe a full database including its content
-                if (!wipeEnabled) {
-                    unauthorised("Wipe functionality is not enabled", clientID, requestID);
-                    return Handled::Replied;
-                }
                 doUnsafeFullWipe(clientID, requestID, std::move(payload));
                 return Handled::Replied;
 
@@ -269,6 +250,7 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
         s << state;
 
         const Key& dbKey = state.dbKey();
+        std::lock_guard lock(handler.wipesMutex_);
 
         if (doit_) {
             // Keep a local copy of the catalogue wipe state, awaiting an explicit doWipeURIs command from the client
@@ -277,10 +259,10 @@ struct WipeHelper : public BaseHelper<CatalogueWipeState> {
             ASSERT(handler.wipesInProgress_.find(dbKey) == handler.wipesInProgress_.end());
 
             handler.wipesInProgress_.emplace(
-                dbKey, CatalogueHandler::WipeInProgress{unsafeWipeAll_,
-                                                        CatalogueReaderFactory::instance().build(dbKey, state.config()),
-                                                        CatalogueWipeState(dbKey, state.safeURIs(), state.deleteMap(),
-                                                                           state.indexesToMask(), state.config())});
+                dbKey, CatalogueHandler::WipeInProgress{
+                           unsafeWipeAll_, CatalogueReaderFactory::instance().build(dbKey, state.config()),
+                           CatalogueWipeState(dbKey, state.safeURIs(), state.deleteMap(), state.indexesToMask(),
+                                              state.config(), state.unrecognisedURIs())});
         }
         else {
             handler.wipesInProgress_.erase(dbKey);
@@ -315,6 +297,27 @@ struct StatsHelper : public BaseHelper<StatsElement> {
     StatsIterator apiCall(FDB& fdb, const FDBToolRequest& request) const { return fdb.stats(request); }
 };
 
+struct StatusHelper : public BaseHelper<StatusElement> {
+    StatusIterator apiCall(FDB& fdb, const FDBToolRequest& request) const { return fdb.status(request); }
+};
+
+struct TouchHelper : public BaseHelper<StatusElement> {
+
+    void extraDecode(eckit::Stream& s) {
+        identifiers_ = AccessIdentifiers(s);
+        when_ = AccessTime(s);
+    }
+
+    StatusIterator apiCall(FDB& fdb, const FDBToolRequest& request) const {
+        return fdb.touch(request, identifiers_, when_);
+    }
+
+private:
+
+    AccessIdentifiers identifiers_;
+    AccessTime when_;
+};
+
 template <typename HelperClass>
 void CatalogueHandler::handleApiCall(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
     HelperClass helper;
@@ -327,42 +330,30 @@ void CatalogueHandler::handleApiCall(uint32_t clientID, uint32_t requestID, ecki
     // Construct worker thread to feed responses back to client
     ASSERT(workerThreads_.find(requestID) == workerThreads_.end());
 
-    {
-        std::lock_guard<std::mutex> lock(fdbMutex_);
-        auto it = fdbs_.find(clientID);
-        if (it == fdbs_.end()) {
-            fdbs_.emplace(clientID, innerConfig_);
-        }
-    }
+    // pinned by the worker: it stays alive even if the client is removed meanwhile
+    std::shared_ptr<FDB> clientFDB = fdb(clientID);
 
-    workerThreads_.emplace(requestID, std::async(std::launch::async, [request, clientID, requestID, helper, this]() {
-                               try {
-                                   FDB* fdb = nullptr;
-                                   {
-                                       std::lock_guard<std::mutex> lock(handlerMutex_);
-                                       auto it = fdbs_.find(clientID);
-                                       ASSERT(it != fdbs_.end());
-                                       fdb = &it->second;
-                                       ASSERT(fdb);
-                                   }
-                                   auto iterator = helper.apiCall(*fdb, request);
+    workerThreads_.emplace(
+        requestID, std::async(std::launch::async, [request, clientID, requestID, helper, clientFDB, this]() {
+            try {
+                auto iterator = helper.apiCall(*clientFDB, request);
 
-                                   typename decltype(iterator)::value_type elem = helper.makeValue(*this);
-                                   while (iterator.next(elem)) {
-                                       auto encoded(helper.encode(elem, *this));
-                                       write(Message::Blob, false, clientID, requestID, encoded.buf, encoded.position);
-                                   }
-                                   write(Message::Complete, false, clientID, requestID);
-                               }
-                               catch (std::exception& e) {
-                                   // n.b. more general than eckit::Exception
-                                   error(false, e.what(), clientID, requestID);
-                               }
-                               catch (...) {
-                                   // We really don't want to std::terminate the thread
-                                   error(false, "Caught unexpected, unknown exception in worker", clientID, requestID);
-                               }
-                           }));
+                typename decltype(iterator)::value_type elem = helper.makeValue(*this);
+                while (iterator.next(elem)) {
+                    auto encoded(helper.encode(elem, *this));
+                    write(Message::Blob, false, clientID, requestID, encoded.buf, encoded.position);
+                }
+                write(Message::Complete, false, clientID, requestID);
+            }
+            catch (std::exception& e) {
+                // n.b. more general than eckit::Exception
+                tryError(false, e.what(), clientID, requestID);
+            }
+            catch (...) {
+                // We really don't want to std::terminate the thread
+                tryError(false, "Caught unexpected, unknown exception in worker", clientID, requestID);
+            }
+        }));
 }
 
 void CatalogueHandler::list(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
@@ -383,6 +374,14 @@ void CatalogueHandler::inspect(uint32_t clientID, uint32_t requestID, eckit::Buf
 
 void CatalogueHandler::stats(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
     handleApiCall<StatsHelper>(clientID, requestID, std::move(payload));
+}
+
+void CatalogueHandler::status(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    handleApiCall<StatusHelper>(clientID, requestID, std::move(payload));
+}
+
+void CatalogueHandler::touch(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
+    handleApiCall<TouchHelper>(clientID, requestID, std::move(payload));
 }
 
 void CatalogueHandler::schema(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload) {
@@ -409,32 +408,15 @@ void CatalogueHandler::schema(uint32_t clientID, uint32_t requestID, eckit::Buff
 
 void CatalogueHandler::stores(uint32_t clientID, uint32_t requestID) {
 
-    eckit::net::IPAddress clientIPaddress{controlSocket_.remoteAddr()};
-
-    std::string clientNetwork = "";
-    if (config_.has("networks")) {
-        for (const auto& net : config_.getSubConfigurations("networks")) {
-            if (net.has("name") && net.has("netmask")) {
-                eckit::net::NetMask netmask{net.getString("netmask")};
-                if (netmask.contains(clientIPaddress)) {
-                    clientNetwork = net.getString("name");
-                    break;
-                }
-            }
-        }
-    }
-
-    LOG_DEBUG_LIB(LibFdb5) << "Client " << clientIPaddress << " from network '" << clientNetwork << "'" << std::endl;
-
     ASSERT(config_.has("stores"));
     std::map<std::string, std::vector<eckit::net::Endpoint>> stores;
     for (const auto& configStore : config_.getSubConfigurations("stores")) {
         ASSERT(configStore.has("default"));
         eckit::net::Endpoint fieldLocationEndpoint{configStore.getString("default")};
         eckit::net::Endpoint storeEndpoint{fieldLocationEndpoint};
-        if (!clientNetwork.empty()) {
-            if (configStore.has(clientNetwork)) {
-                storeEndpoint = eckit::net::Endpoint{configStore.getString(clientNetwork)};
+        if (!clientNetwork_.empty()) {
+            if (configStore.has(clientNetwork_)) {
+                storeEndpoint = eckit::net::Endpoint{configStore.getString(clientNetwork_)};
             }
         }
 
@@ -503,28 +485,64 @@ void CatalogueHandler::flush(uint32_t clientID, uint32_t requestID, eckit::Buffe
         return;
     }
 
-    auto it = catalogues_.find(clientID);
-    ASSERT(it != catalogues_.end());
+    rethrowArchiveFailure();
+
+    auto archiver = catalogueArchiver(clientID);
+    if (!archiver) {
+        throw SeriousBug("Flush requested for unknown catalogue id: " + std::to_string(clientID), Here());
+    }
+    // n.b. pinned while the flush waits
 
     {
         std::lock_guard<std::mutex> lock(fieldLocationsMutex_);
-        it->second.locationsExpected =
+        archiver->locationsExpected =
             numArchived;  // setting locationsExpected also means that a flush has been requested
-        it->second.archivalCompleted = it->second.fieldLocationsReceived.get_future();
-        if (it->second.locationsArchived == numArchived) {
-            it->second.fieldLocationsReceived.set_value(numArchived);
+        archiver->archivalCompleted = archiver->fieldLocationsReceived.get_future();
+        if (archiver->locationsArchived == numArchived) {
+            archiver->fieldLocationsReceived.set_value(numArchived);
         }
     }
 
-    it->second.archivalCompleted.wait();
+    while (archiver->archivalCompleted.wait_for(std::chrono::milliseconds(100)) != std::future_status::ready) {
+        rethrowArchiveFailure();
+
+        if (aborted()) {
+            throw SeriousBug("Connection terminated before all field locations were archived", Here());
+        }
+
+        // The archive worker only finishes before teardown if it failed; don't wait for locations that will never come
+        if (archiveFuture_.valid() && archiveFuture_.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            static_cast<void>(archiveFuture_.get());  // rethrows the failure of the worker, if any
+            throw SeriousBug("Archive worker terminated before all field locations were archived", Here());
+        }
+
+        // No more locations can arrive (single connection, or the data connection has ended), and those already
+        // queued have been archived: a count still short will never complete
+        if (archiveDataEnded() && archivePending() == 0 &&
+            archiver->archivalCompleted.wait_for(std::chrono::seconds(0)) != std::future_status::ready) {
+            // the failure of the last element processed, if any, is published before it was counted as processed:
+            // it is the reason of the short count
+            rethrowArchiveFailure();
+
+            size_t archived = 0;
+            {
+                std::lock_guard<std::mutex> lock(fieldLocationsMutex_);
+                archived = archiver->locationsArchived;
+            }
+            std::ostringstream ss;
+            ss << "Flush of " << numArchived << " field locations, but only " << archived
+               << " were received: no more can arrive";
+            throw SeriousBug(ss.str(), Here());
+        }
+    }
     {
         std::lock_guard<std::mutex> lock(fieldLocationsMutex_);
-        it->second.fieldLocationsReceived = std::promise<size_t>{};
-        it->second.locationsExpected = 0;
-        it->second.locationsArchived = 0;
+        archiver->fieldLocationsReceived = std::promise<size_t>{};
+        archiver->locationsExpected = 0;
+        archiver->locationsArchived = 0;
     }
 
-    it->second.catalogue->flush(numArchived);
+    archiver->catalogue->flush(numArchived);
 
     Log::info() << "Flush complete" << std::endl;
     Log::status() << "Flush complete" << std::endl;
@@ -543,74 +561,70 @@ void CatalogueHandler::archiveBlob(const uint32_t clientID, const uint32_t reque
     LOG_DEBUG_LIB(LibFdb5) << "CatalogueHandler::archiveBlob key: " << idxKey << datumKey
                            << "  location: " << location->uri() << std::endl;
 
-    std::map<uint32_t, CatalogueArchiver>::iterator it;
+    // pinned: a Stop may remove the client meanwhile
+    std::shared_ptr<CatalogueArchiver> archiver;
     {
         std::lock_guard<std::mutex> lock(handlerMutex_);
-        it = catalogues_.find(clientID);
+        auto it = catalogues_.find(clientID);
         if (it == catalogues_.end()) {
-            std::string what("Requested unknown catalogue id: " + std::to_string(clientID));
-            error(false, what, 0, 0);
-            throw SeriousBug(what, Here());
+            if (removedClient(clientID)) {
+                // the client went away without flushing: nobody is waiting for this location any more
+                Log::warning() << "Discarding a field location for the removed client " << clientID << std::endl;
+                return;
+            }
+            throw SeriousBug("Requested unknown catalogue id: " + std::to_string(clientID), Here());
         }
+        archiver = it->second;
     }
 
-    if (!it->second.catalogue->selectIndex(idxKey)) {
-        it->second.catalogue->createIndex(idxKey, datumKey.keys().size());
+    if (!archiver->catalogue->selectIndex(idxKey)) {
+        archiver->catalogue->createIndex(idxKey, datumKey.keys().size());
     }
-    it->second.catalogue->archive(idxKey, datumKey, std::move(location));
+    archiver->catalogue->archive(idxKey, datumKey, std::move(location));
     {
         std::lock_guard<std::mutex> lock(fieldLocationsMutex_);
-        it->second.locationsArchived++;
-        if (it->second.locationsExpected != 0 && it->second.archivalCompleted.valid() &&
-            it->second.locationsExpected == it->second.locationsArchived) {
-            it->second.fieldLocationsReceived.set_value(it->second.locationsExpected);
+        archiver->locationsArchived++;
+        if (archiver->locationsExpected != 0 && archiver->archivalCompleted.valid() &&
+            archiver->locationsExpected == archiver->locationsArchived) {
+            archiver->fieldLocationsReceived.set_value(archiver->locationsExpected);
         }
     }
 }
 
-bool CatalogueHandler::remove(bool control, uint32_t clientID) {
+void CatalogueHandler::remove(uint32_t clientID) {
 
     std::lock_guard<std::mutex> lock(handlerMutex_);
 
-    // is the client an FDB
-    auto it = fdbs_.find(clientID);
-    if (it != fdbs_.end()) {
-        if (control) {
-            fdbControlConnection_ = false;
-            numControlConnection_--;
-        }
-        else {
-            fdbDataConnection_ = false;
-            numDataConnection_--;
-        }
-    }
-    else {
-
-        auto it = catalogues_.find(clientID);
-        if (it != catalogues_.end()) {
-            if (control) {
-                it->second.controlConnection = false;
-                numControlConnection_--;
-            }
-            else {
-                it->second.dataConnection = false;
-                numDataConnection_--;
-            }
-            if (!it->second.controlConnection && !it->second.dataConnection) {
-                catalogues_.erase(it);
-            }
-        }
-    }
-    return ((control ? numControlConnection_ : numDataConnection_) == 0);
+    // The client is gone (Stop): its state is released as soon as nobody uses it any more (see catalogueArchiver(),
+    // fdb()). It is marked as removed whether or not it has a state yet: what is still queued for it is discarded.
+    removedClients_.insert(clientID);
+    fdbs_.erase(clientID);
+    catalogues_.erase(clientID);
 }
 
 CatalogueWriter& CatalogueHandler::catalogue(uint32_t id, const Key& dbKey) {
     std::lock_guard<std::mutex> lock(handlerMutex_);
-    numControlConnection_++;
-    if (!single_) {
-        numDataConnection_++;
+    auto it = catalogues_.find(id);
+    if (it == catalogues_.end()) {
+        // n.b. building a catalogue writer creates the database: only once per client
+        it = catalogues_.emplace(id, std::make_shared<CatalogueArchiver>(dbKey, innerConfig_)).first;
     }
-    return *((catalogues_.emplace(id, CatalogueArchiver(!single_, dbKey, innerConfig_)).first)->second.catalogue);
+    return *(it->second->catalogue);
+}
+
+std::shared_ptr<CatalogueArchiver> CatalogueHandler::catalogueArchiver(uint32_t clientID) {
+    std::lock_guard<std::mutex> lock(handlerMutex_);
+    auto it = catalogues_.find(clientID);
+    return it == catalogues_.end() ? nullptr : it->second;
+}
+
+std::shared_ptr<FDB> CatalogueHandler::fdb(uint32_t clientID) {
+    std::lock_guard<std::mutex> lock(handlerMutex_);
+    auto it = fdbs_.find(clientID);
+    if (it == fdbs_.end()) {
+        it = fdbs_.emplace(clientID, std::make_shared<FDB>(innerConfig_)).first;
+    }
+    return it->second;
 }
 
 const CatalogueHandler::WipeInProgress& CatalogueHandler::cachedWipeState(Key dbKey) const {
@@ -623,6 +637,7 @@ void CatalogueHandler::doMaskIndexEntries(uint32_t clientID, uint32_t requestID,
     ASSERT(payload.size() > 0);
     MemoryStream s(payload);
     Key dbKey(s);
+    std::lock_guard lock(wipesMutex_);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
     currentWipe.catalogue->maskIndexEntries(currentWipe.state.indexesToMask());
 }
@@ -631,6 +646,7 @@ void CatalogueHandler::doWipeURIs(uint32_t clientID, uint32_t requestID, eckit::
     ASSERT(payload.size() > 0);
     MemoryStream s(payload);
     Key dbKey(s);
+    std::lock_guard lock(wipesMutex_);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
     currentWipe.catalogue->doWipeURIs(currentWipe.state);
 }
@@ -639,9 +655,11 @@ void CatalogueHandler::doWipeUnknowns(uint32_t clientID, uint32_t requestID, eck
     ASSERT(payload.size() > 0);
     MemoryStream s(payload);
     Key dbKey(s);
+    std::lock_guard lock(wipesMutex_);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
 
-    std::set<eckit::URI> rec_unknownURIs{s};
+    std::set<eckit::URI> rec_unknownURIs;
+    s >> rec_unknownURIs;
 
     // The client should not talk to us unless there are unknown URIs to wipe.
     ASSERT(!rec_unknownURIs.empty());
@@ -669,6 +687,7 @@ void CatalogueHandler::doWipeEmptyDatabase(uint32_t clientID, uint32_t requestID
     ASSERT(payload.size() > 0);
     MemoryStream s(payload);
     Key dbKey(s);
+    std::lock_guard lock(wipesMutex_);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
 
     // Cleanup empty DBs and reset wipe state
@@ -680,6 +699,7 @@ void CatalogueHandler::doUnsafeFullWipe(uint32_t clientID, uint32_t requestID, e
     ASSERT(payload.size() > 0);
     MemoryStream s(payload);
     Key dbKey(s);
+    std::lock_guard lock(wipesMutex_);
     const WipeInProgress& currentWipe = cachedWipeState(dbKey);
 
     bool fullWipeSupported = currentWipe.catalogue->doUnsafeFullWipe();

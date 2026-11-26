@@ -6,6 +6,23 @@ project( fdb5 LANGUAGES C CXX )
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+########################################################################################################################
+
+# To build as a bundle you likely want some combination of
+# -DENABLE_BUNDLE=ON -DENABLE_BUNDLED_DEPENDENCIES=ON -DSTACK_DEP_LIBAEC=ON
+
+option(ENABLE_BUNDLE "Build the top level project as a bundle" OFF)
+if (PROJECT_IS_TOP_LEVEL AND ENABLE_BUNDLE)
+	ecbuild_bundle_initialize()
+	ecbuild_bundle( PROJECT stack_dependencies GIT "git@github.com:ecmwf/stack-dependencies"   BRANCH master UPDATE )
+	ecbuild_bundle( PROJECT eckit              GIT "git@github.com:ecmwf/eckit"                BRANCH develop UPDATE )
+	ecbuild_bundle( PROJECT eccodes            GIT "git@github.com:ecmwf/eccodes"              BRANCH develop UPDATE )
+	ecbuild_bundle( PROJECT metkit             GIT "git@github.com:ecmwf/metkit"               BRANCH develop UPDATE )
+endif() # PROJECT_IS_TOP_LEVEL
+
+########################################################################################################################
+
 # set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 # add_compile_options(-fsanitize=address)
 # add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
@@ -135,6 +152,10 @@ ecbuild_add_option( FEATURE FAMFDB
                     DEFAULT ON
                     DESCRIPTION "Enables the FAM support for FDB via OpenFAM API" )
 
+if(ENABLE_PYTHON_ZARR_INTERFACE OR ENABLE_PYTHON_FDB_INTERFACE)
+    find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
+endif()
+
 ecbuild_add_option( FEATURE PYTHON_ZARR_INTERFACE
                     DESCRIPTION "Build python Zarr interface layer"
                     DEFAULT OFF
@@ -151,9 +172,6 @@ ecbuild_add_option( FEATURE PYTHON_FDB_INTERFACE
                     DEFAULT OFF
                     REQUIRED_PACKAGES "NAME pybind11 VERSION 3.0.1" )
 
-if(HAVE_PYTHON_ZARR_INTERFACE OR HAVE_PYTHON_FDB_INTERFACE)
-    find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
-endif()
 
 ecbuild_add_option( FEATURE PYTHON_EXTENDED_FDB_TOOL_TESTS
                     DESCRIPTION "Build extended fdb tool tests"

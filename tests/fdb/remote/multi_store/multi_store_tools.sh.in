@@ -10,15 +10,16 @@ fi
 
 set -euxo pipefail
 
+source "@FDB_REMOTE_TEST_HELPER@"
+
 testdir=$1
 client_config="$testdir/$2"
 store1_config="$testdir/$3"
 store2_config="$testdir/$4"
 src_data=$5
-catalogue_rootdir=$testdir/catalogue_root
-store1_rootdir=$testdir/store1_root
-store2_rootdir=$testdir/store2_root
-server_pidfile=$testdir/servers.pid
+catalogue_rootdir=$testdir/catalogue_tools_root
+store1_rootdir=$testdir/store1_tools_root
+store2_rootdir=$testdir/store2_tools_root
 workdir=$testdir/tools_work
 
 export PATH="@CMAKE_BINARY_DIR@/bin:$PATH"
@@ -28,7 +29,6 @@ fdbwrite="$<TARGET_FILE:fdb-write>"
 fdblist="$<TARGET_FILE:fdb-list>"
 fdbread="$<TARGET_FILE:fdb-read>"
 
-SERVER_LIFETIME=300
 n_dates=8
 
 yell() { printf "$(basename "$0"): \033[0;31m!!! %s !!!\033[0m\n" "$*" >&2; }
@@ -41,56 +41,27 @@ line_count() {
 }
 
 cleanup() {
-    if [[ -f $server_pidfile ]]; then
-        while read -r SERVER_PID; do
-            kill -TERM "$SERVER_PID" || true
-            sleep 0.2
-            kill -KILL "$SERVER_PID" || true
-        done < "$server_pidfile"
-        rm "$server_pidfile"
-    fi
+    local exit_code=$?
 
+    fdb_remote_cleanup "$exit_code"
     rm -rf "$catalogue_rootdir" "$store1_rootdir" "$store2_rootdir" "$workdir"
+    return "$exit_code"
 }
 
-run_server() {
-  local label="$1"; shift
-  local config="$1"; shift
-  (
-    FDB5_CONFIG_FILE="$config" \
-    FDB_DEBUG=1 \
-    timeout "$SERVER_LIFETIME" "$@" 2>&1 \
-    | awk -v label="$label" -v pidfile="$server_pidfile" '
-        BEGIN { found=0 }
-        {
-          print "[" label "] " $0
-          fflush()
-          if (!found && $0 ~ /pid is [0-9]+/) {
-            pid = $0
-            sub(/.*pid is /, "", pid)
-            sub(/\..*/, "", pid)
-            print pid >> pidfile
-            close(pidfile)
-            found=1
-          }
-        }
-      '
-  ) &
-}
-
-# calls cleanup at exit
 trap cleanup EXIT
+trap 'exit 1' INT TERM
 
-cleanup
+rm -rf "$catalogue_rootdir" "$store1_rootdir" "$store2_rootdir" "$workdir"
 mkdir -p "$catalogue_rootdir" "$store1_rootdir" "$store2_rootdir" "$workdir"
 cd "$workdir"
+fdb_remote_init "$testdir/remote_tools_servers"
 
-run_server "STORE1" "$store1_config" "$server"
-run_server "STORE2" "$store2_config" "$server"
+fdb_remote_start_server STORE1 "$store1_config" "$(fdb_remote_config_port "$store1_config")" FDB_DEBUG=1 -- "$server"
+fdb_remote_start_server STORE2 "$store2_config" "$(fdb_remote_config_port "$store2_config")" FDB_DEBUG=1 -- "$server"
 
-sleep 0.5
+fdb_remote_wait_for_servers
 
-export FDB5_CONFIG_FILE=$client_config
+export FDB5_CONFIG_FILE="$client_config"
 
 ########################################################################################################################
 # Build one archivable message per date; only the "date" key differs between databases, so

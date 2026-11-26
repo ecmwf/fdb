@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #include "fdb5/remote/client/RemoteCatalogue.h"
 
@@ -22,8 +15,10 @@
 #include "eckit/serialisation/ResizableMemoryStream.h"
 
 #include <cstddef>
+#include <exception>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <vector>
 
 using namespace eckit;
@@ -74,6 +69,9 @@ void RemoteCatalogue::archive(const Key& idxKey, const Key& datumKey,
 
     ASSERT(!datumKey.empty());
     ASSERT(fieldLocation);
+
+    // fail fast: the cycle has failed, its locations are lost
+    rethrowFailure();
 
     uint32_t id = generateRequestID();
     {
@@ -138,6 +136,11 @@ const Rule& RemoteCatalogue::rule() const {
 void RemoteCatalogue::flush(size_t archivedFields) {
 
     std::lock_guard<std::mutex> lock(archiveMutex_);
+
+    // A failed cycle is not retried: its locations are lost. Report the original failure rather than the count
+    // mismatch of a retry (the store has already reset its own count, see Archiver::flushDatabase)
+    rethrowFailure();
+
     ASSERT(archivedFields == numLocations_);
 
     // Flush only does anything if there is an ongoing archive();
@@ -149,8 +152,35 @@ void RemoteCatalogue::flush(size_t archivedFields) {
 
         LOG_DEBUG_LIB(LibFdb5) << " RemoteCatalogue::flush - flushing " << numLocations_ << " fields" << std::endl;
 
-        // The flush call is blocking
-        controlWriteCheckResponse(Message::Flush, generateRequestID(), false, sendBuf, s.position());
+        try {
+            // Ensure the (field-location) "Blob"s arrive before the blocking "Flush"!
+            // (may deadlock server on a single connection)
+            connection_->flushDataWrites();
+
+            // The flush call is blocking
+            controlWriteCheckResponse(Message::Flush, generateRequestID(), false, sendBuf, s.position());
+        }
+        catch (...) {
+            // After an archive failure the server sends the error on the control socket and then aborts the
+            // connection, so the flush fails with a lost (or no longer valid) connection: report the original error
+            // instead. A failure of the data socket (e.g. the barrier of flushDataWrites(), failed by the data writer)
+            // can be seen before the control listener has processed the error: wait for it, bounded, if the
+            // connection is broken. The control listener processes the error before it notices the closure.
+            if (!connection_->valid()) {
+                connection_->awaitControlListener();
+            }
+
+            // Report, in order of specificity: the failure of an archive request, the reason the connection was lost
+            // (e.g. an Error with clientID == 0 from the server), the failure seen here. It is recorded, so that any
+            // retry of this cycle reports it too.
+            auto failure = connection_->connectionError();
+            if (!failure) {
+                failure = std::current_exception();
+            }
+            recordFailure(failure);
+            rethrowFailure();
+            throw;  // not reached
+        }
 
         numLocations_ = 0;
     }
@@ -198,7 +228,24 @@ const eckit::Configuration& RemoteCatalogue::clientConfig() const {
     return config();
 }
 
+void RemoteCatalogue::rethrowFailure() const {
+    std::lock_guard<std::mutex> lock(failureMutex_);
+    if (failure_) {
+        std::rethrow_exception(failure_);
+    }
+}
+
+void RemoteCatalogue::recordFailure(const std::exception_ptr& failure) {
+    std::lock_guard<std::mutex> lock(failureMutex_);
+    if (!failure_) {
+        failure_ = failure;
+    }
+}
+
 bool RemoteCatalogue::handle(Message message, uint32_t requestID) {
+    if (message == Message::Error) {
+        return handle(message, requestID, eckit::Buffer{0});
+    }
     Log::warning() << *this << " - Received [message=" << ((uint)message) << ",requestID=" << requestID << "]"
                    << std::endl;
     return false;
@@ -207,6 +254,22 @@ bool RemoteCatalogue::handle(Message message, uint32_t requestID) {
 bool RemoteCatalogue::handle(Message message, uint32_t requestID, eckit::Buffer&& payload) {
     LOG_DEBUG_LIB(LibFdb5) << *this << " - Received [message=" << ((uint)message) << ",requestID=" << requestID
                            << ",payloadSize=" << payload.size() << "]" << std::endl;
+
+    if (message == Message::Error) {
+        // The blocking requests are answered through their promise, so this can only be the failure of an archive
+        // request (see CatalogueHandler::archiveBlob). n.b. archiveMutex_ cannot be taken here: flush() holds it
+        // while it waits for the listener that is running this.
+        std::string msg(static_cast<const char*>(payload.data()), payload.size());
+        if (msg.empty()) {
+            msg = "Server reported an error with no message";
+        }
+        Log::error() << *this << " - archive request " << requestID << " failed: " << msg << std::endl;
+
+        recordFailure(std::make_exception_ptr(
+            RemoteFDBException("Archival of field location failed: " + msg, controlEndpoint())));
+        return true;
+    }
+
     return false;
 }
 
@@ -273,6 +336,9 @@ bool RemoteCatalogue::doWipeURIs(const CatalogueWipeState& wipeState) const {
 }
 
 bool RemoteCatalogue::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) const {
+    if (unknownURIs.empty()) {
+        return true;
+    }
     // Send unknown uris to server
     eckit::Buffer sendBuf(unknownURIs.size() * 256);
     eckit::ResizableMemoryStream s(sendBuf);

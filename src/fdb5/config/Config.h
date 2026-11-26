@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /// @author Simon Smart
 /// @author Tiago Quintino
@@ -34,14 +27,13 @@ class SelectMatcher;
 class Config : public eckit::LocalConfiguration {
 public:  // static methods
 
-    static Config make(const eckit::PathName& path,
-                       const eckit::Configuration& userConfig = eckit::LocalConfiguration(),
+    static Config make(const eckit::PathName& path, const eckit::Configuration& appConfig = eckit::LocalConfiguration(),
                        const std::string& fdb_home = "");
 
 public:  // methods
 
     Config();
-    Config(const eckit::Configuration& config, const eckit::Configuration& userConfig = eckit::LocalConfiguration());
+    Config(const eckit::Configuration& config, const eckit::Configuration& appConfig = eckit::LocalConfiguration());
 
     Config(const Config& other);
     Config& operator=(const Config& other);
@@ -64,7 +56,21 @@ public:  // methods
 
     mode_t umask() const;
 
-    const eckit::Configuration& userConfig() const { return *userConfig_; }
+    [[deprecated("Use appConfig() instead")]]
+    const eckit::Configuration& userConfig() const { return *appConfig_; }
+    const eckit::Configuration& appConfig() const { return *appConfig_; }
+
+    size_t readIndexThreads() const;
+    size_t apiQueueSize() const;
+    size_t apiMaxQueues() const;
+
+    /// Minimum interval, in seconds, between successive timestamp updates by this process.
+    size_t accessTimestampGranularity() const;
+
+    /// Listing is metadata-only and normally must NOT count as a meaningful access.
+    /// But some very active users (PGen, GribJump) make use of list() --> dataHandle --> read(). This usage would
+    /// thus be untracked in the access timestamps. These clients can mark such use to be recorded in the userConfig
+    bool markListAsAccess() const;
 
     std::vector<Config> getSubConfigs(const std::string& name) const;
     std::vector<Config> getSubConfigs() const;
@@ -82,7 +88,7 @@ private:  // members
     mutable eckit::PathName schemaPath_;
     mutable bool schemaPathInitialised_;
     mutable std::mutex schemaMutex_;
-    std::shared_ptr<eckit::LocalConfiguration> userConfig_;
+    std::shared_ptr<eckit::LocalConfiguration> appConfig_;
     std::shared_ptr<SelectMatcher> matcher_;
 };
 

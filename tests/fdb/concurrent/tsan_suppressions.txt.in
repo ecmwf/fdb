@@ -1,0 +1,2 @@
+# eckit's atfork lock handler reverses the LocalPathName mutex ordering.
+deadlock:eckit::get_locks

@@ -10,6 +10,9 @@ if (HAVE_FDB_BUILD_TOOLS)
     ecbuild_configure_file( client.yaml.in client.yaml @ONLY )
     ecbuild_configure_file( store1.yaml.in store1.yaml @ONLY )
     ecbuild_configure_file( store2.yaml.in store2.yaml @ONLY )
+    ecbuild_configure_file( tools_client.yaml.in tools_client.yaml @ONLY )
+    ecbuild_configure_file( tools_store1.yaml.in tools_store1.yaml @ONLY )
+    ecbuild_configure_file( tools_store2.yaml.in tools_store2.yaml @ONLY )
     ecbuild_configure_file( multi_store.sh.in multi_store.sh @ONLY )
 
     ecbuild_add_test(
@@ -20,8 +23,8 @@ if (HAVE_FDB_BUILD_TOOLS)
         TEST_DEPENDS   fdb_test_remote_multi_store
         ENVIRONMENT    "${test_environment}"
         TEST_PROPERTIES
-        TIMEOUT 300
-        RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
+        TIMEOUT 600
+        RESOURCE_LOCK fdb_remote_multi_store_api
         LABELS remotefdb
     )
 
@@ -32,12 +35,12 @@ if (HAVE_FDB_BUILD_TOOLS)
         TYPE           SCRIPT
         CONDITION      HAVE_GRIB
         COMMAND        ${CMAKE_CURRENT_BINARY_DIR}/multi_store_tools.sh
-        ARGS           ${CMAKE_CURRENT_BINARY_DIR} client.yaml store1.yaml store2.yaml ${PROJECT_BINARY_DIR}/tests/fdb/od.oper.grib
+        ARGS           ${CMAKE_CURRENT_BINARY_DIR} tools_client.yaml tools_store1.yaml tools_store2.yaml ${PROJECT_BINARY_DIR}/tests/fdb/od.oper.grib
         TEST_DEPENDS   fdb_test_remote_multi_store fdb_test_get_data
         ENVIRONMENT    "${test_environment}"
         TEST_PROPERTIES
-        TIMEOUT 300
-        RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
+        TIMEOUT 600
+        RESOURCE_LOCK fdb_remote_multi_store_tools
         LABELS remotefdb
     )
 endif()

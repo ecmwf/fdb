@@ -1,19 +1,23 @@
 #include "fdb5/remote/RemoteConfiguration.h"
 
 #include <algorithm>
+#include <array>
 
 #include "eckit/config/Configuration.h"
+#include "eckit/config/Resource.h"
 #include "eckit/log/Log.h"
 #include "eckit/serialisation/Stream.h"
 #include "eckit/value/Value.h"
 
 #include "fdb5/LibFdb5.h"
+#include "fdb5/remote/Messages.h"
 
 namespace {
 
-std::vector<int> intersection(std::vector<int>& v1, std::vector<int>& v2) {
+template <class T>
+std::vector<T> intersection(std::vector<T>& v1, std::vector<T>& v2) {
 
-    std::vector<int> v3;
+    std::vector<T> v3;
 
     std::sort(v1.begin(), v1.end());
     std::sort(v2.begin(), v2.end());
@@ -48,6 +52,12 @@ RemoteConfiguration::RemoteConfiguration(const eckit::Configuration& config) {
     else {
         preferSingleConnection_ = std::nullopt;
     }
+
+    enabledFeatures_ = maskOfDefaultFeatures;
+
+    if (config.getBool("wipe", true)) {
+        enabledFeatures_ |= toMask(Message::Wipe);
+    }
 }
 
 RemoteConfiguration::RemoteConfiguration(eckit::Stream& s) {
@@ -56,10 +66,21 @@ RemoteConfiguration::RemoteConfiguration(eckit::Stream& s) {
 
     if (v.contains("RemoteFieldLocation")) {
         eckit::Value rfl = v["RemoteFieldLocation"];
-        ASSERT(rfl.isList());
-        remoteFieldLocationVersions_.reserve(rfl.size());
-        for (size_t i = 0; i < rfl.size(); ++i) {
-            remoteFieldLocationVersions_.push_back(rfl[i]);
+        if (rfl.isList()) {
+            remoteFieldLocationVersions_.reserve(rfl.size());
+            for (size_t i = 0; i < rfl.size(); ++i) {
+                remoteFieldLocationVersions_.push_back(rfl[i]);
+            }
+        }
+        else {
+            if (rfl.isNumber()) {
+                remoteFieldLocationVersions_.push_back(rfl);
+            }
+            else {
+                std::ostringstream ss;
+                ss << "Invalid RemoteFieldLocation value: " << rfl;
+                throw eckit::SeriousBug(ss.str(), Here());
+            }
         }
     }
     else {
@@ -75,8 +96,14 @@ RemoteConfiguration::RemoteConfiguration(eckit::Stream& s) {
             }
         }
         else {
-            ASSERT(nc.isNumber());
-            numberOfConnections_ = std::vector<int>{nc};
+            if (nc.isNumber()) {
+                numberOfConnections_.push_back(nc);
+            }
+            else {
+                std::ostringstream ss;
+                ss << "Invalid NumberOfConnections value: " << nc;
+                throw eckit::SeriousBug(ss.str(), Here());
+            }
         }
     }
     else {
@@ -91,6 +118,15 @@ RemoteConfiguration::RemoteConfiguration(eckit::Stream& s) {
     else {
         preferSingleConnection_ = std::nullopt;
     }
+    singleConnection_ = numberOfConnections_.size() == 1 && numberOfConnections_[0] == 1;
+
+    if (v.contains("EnabledFeatures")) {
+        enabledFeatures_ = v["EnabledFeatures"];
+    }
+    else {
+        // A peer predating feature negotiation.
+        enabledFeatures_ = maskOfLegacyFeatures;
+    }
 }
 
 bool RemoteConfiguration::singleConnection() const {
@@ -104,7 +140,16 @@ eckit::Stream& operator<<(eckit::Stream& s, const RemoteConfiguration& r) {
     if (r.preferSingleConnection_) {
         val["PreferSingleConnection"] = eckit::toValue(r.preferSingleConnection_.value());
     }
+    val["EnabledFeatures"] = eckit::toValue(r.enabledFeatures_);
     s << val;
+    return s;
+}
+
+std::ostream& operator<<(std::ostream& s, const RemoteConfiguration& r) {
+    s << "RemoteConfiguration[remoteFieldLocationVersions=" << r.remoteFieldLocationVersions_
+      << ", numberOfConnections=" << r.numberOfConnections_ << ", preferSingleConnection="
+      << (r.preferSingleConnection_ ? std::to_string(*r.preferSingleConnection_) : "nullopt")
+      << ", singleConnection=" << r.singleConnection_ << ", enabledFeatures=" << r.enabledFeatures_ << "]";
     return s;
 }
 
@@ -159,7 +204,11 @@ RemoteConfiguration RemoteConfiguration::common(RemoteConfiguration& clientConf,
         }
     }
 
-    LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation - NumberOfConnections " << ncSelected << std::endl;
+    agreedConf.enabledFeatures_ = clientConf.enabledFeatures_ & serverConf.enabledFeatures_;
+
+    LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation" << std::endl
+                           << "  EnabledFeatures     " << messageMask2String(agreedConf.enabledFeatures_) << std::endl
+                           << "  NumberOfConnections " << ncSelected << std::endl;
     agreedConf.numberOfConnections_ = {ncSelected};
     agreedConf.singleConnection_ = (ncSelected == 1);
 

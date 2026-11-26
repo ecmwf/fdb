@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the EC H2020 funded project NextGenIO
@@ -16,20 +9,21 @@
 #include <cstdlib>
 
 #include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/filesystem/TmpFile.h"
 #include "eckit/io/DataHandle.h"
 #include "eckit/testing/Test.h"
 
+#include "fdb5/LibFdb5.h"
 #include "fdb5/config/Config.h"
 
 using namespace eckit::testing;
 using namespace eckit;
 
 
-namespace fdb {
-namespace test {
+namespace fdb::test {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -155,7 +149,7 @@ CASE("config_expands_override_fdb_home") {
                  "/a/path/is/second");
 }
 
-CASE("userConfig") {
+CASE("appConfig") {
 
     const std::string config_str(R"XX(
         ---
@@ -170,23 +164,23 @@ CASE("userConfig") {
     eckit::testing::SetEnv env("FDB5_CONFIG", config_str.c_str());
 
     fdb5::Config expanded = fdb5::Config().expandConfig();
-    EXPECT_EQUAL(expanded.userConfig().getBool("useSubToc", false), false);
+    EXPECT_EQUAL(expanded.appConfig().getBool("useSubToc", false), false);
 
-    eckit::LocalConfiguration userConf;
-    userConf.set("useSubToc", true);
+    eckit::LocalConfiguration appConf;
+    appConf.set("useSubToc", true);
 
     fdb5::Config empty;
     EXPECT(!empty.has("type"));
-    EXPECT_EQUAL(empty.userConfig().getBool("useSubToc", false), false);
-    fdb5::Config user(empty, userConf);
+    EXPECT_EQUAL(empty.appConfig().getBool("useSubToc", false), false);
+    fdb5::Config user(empty, appConf);
     EXPECT(!user.has("type"));
-    EXPECT_EQUAL(user.userConfig().getBool("useSubToc", false), true);
+    EXPECT_EQUAL(user.appConfig().getBool("useSubToc", false), true);
     fdb5::Config userExpanded = user.expandConfig();
     EXPECT(userExpanded.has("type"));
-    EXPECT_EQUAL(userExpanded.userConfig().getBool("useSubToc", false), false);
+    EXPECT_EQUAL(userExpanded.appConfig().getBool("useSubToc", false), true);
 
-    fdb5::Config config(expanded, userConf);
-    EXPECT_EQUAL(config.userConfig().getBool("useSubToc", false), true);
+    fdb5::Config config(expanded, appConf);
+    EXPECT_EQUAL(config.appConfig().getBool("useSubToc", false), true);
 }
 
 CASE("FDB_CONFIG takes precendence over FDB5_CONFIG") {
@@ -248,8 +242,138 @@ CASE("FDB_CONFIG_FILE takes precendence over FDB5_CONFIG_FILE") {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace test
-}  // namespace fdb
+namespace {
+
+fdb5::Config schemaConfig(const eckit::PathName& schema, const std::string& version = "") {
+    fdb5::Config cfg;
+    cfg.set("schema", schema.asString());
+    if (!version.empty()) {
+        cfg.set("schemaVersion", std::stol(version));
+    }
+    return cfg;
+}
+
+}  // namespace
+
+CASE("schemaVersion: no version uses the plain schema") {
+    eckit::TmpDir td;
+    eckit::PathName schema = td / "schema";
+    schema.touch();
+    (td / "schema.1").touch();
+
+    EXPECT_EQUAL(schemaConfig(schema).schemaPath().asString(), schema.asString());
+}
+
+CASE("schemaVersion: existing version 1 selects schema.1") {
+    ASSERT(fdb5::LibFdb5::maxSchemaVersion() >= 1);
+
+    eckit::TmpDir td;
+    eckit::PathName schema = td / "schema";
+    schema.touch();
+    (td / "schema.1").touch();
+
+    EXPECT_EQUAL(schemaConfig(schema, "1").schemaPath().asString(), schema.asString() + ".1");
+}
+
+CASE("schemaVersion: version beyond maxSchemaVersion falls back to the plain schema") {
+    eckit::TmpDir td;
+    eckit::PathName schema = td / "schema";
+    schema.touch();
+
+    const std::string tooNew = std::to_string(fdb5::LibFdb5::maxSchemaVersion() + 1);
+    EXPECT_EQUAL(schemaConfig(schema, tooNew).schemaPath().asString(), schema.asString());
+}
+
+CASE("schemaVersion: version beyond maxSchemaVersion falls back to the most recent versioned schema") {
+    eckit::TmpDir td;
+    eckit::PathName schema = td / "schema";
+    schema.touch();
+    (td / "schema.1").touch();
+    (td / ("schema." + std::to_string(fdb5::LibFdb5::maxSchemaVersion() + 2))).touch();
+
+    const std::string tooNew = std::to_string(fdb5::LibFdb5::maxSchemaVersion() + 2);
+    EXPECT_EQUAL(schemaConfig(schema, tooNew).schemaPath().asString(), schema.asString() + ".1");
+}
+
+CASE("schemaVersion: version beyond maxSchemaVersion without any schema file fails") {
+    eckit::TmpDir td;
+    const std::string tooNew = std::to_string(fdb5::LibFdb5::maxSchemaVersion() + 1);
+    EXPECT_THROWS_AS(schemaConfig(td / "schema", tooNew).schemaPath(), eckit::UserError);
+}
+
+CASE("schemaVersion: without a schema, the version is appended to the default schema path") {
+    eckit::TmpDir td;
+    (td / "etc/fdb").mkdir();
+    eckit::PathName schema = td / "etc/fdb/schema";
+    schema.touch();
+    (td / "etc/fdb/schema.1").touch();
+
+    // the default schema path is ~fdb/etc/fdb/schema, with ~fdb expanded from fdb_home
+    fdb5::Config cfg;
+    cfg.set("fdb_home", td.asString());
+    cfg.set("schemaVersion", 1L);
+
+    EXPECT_EQUAL(cfg.schemaPath().asString(), schema.asString() + ".1");
+}
+
+CASE("schemaVersion: FDB_SCHEMA_VERSION=0 overrides the config and selects the plain schema") {
+    eckit::TmpDir td;
+    eckit::PathName schema = td / "schema";
+    schema.touch();
+    (td / "schema.1").touch();
+
+    eckit::testing::SetEnv env("FDB_SCHEMA_VERSION", "0");
+
+    EXPECT_EQUAL(schemaConfig(schema, "1").schemaPath().asString(), schema.asString());
+}
+
+CASE("schemaVersion: FDB_SCHEMA_VERSION selects the version when the config defines none") {
+    eckit::TmpDir td;
+    eckit::PathName schema = td / "schema";
+    schema.touch();
+    (td / "schema.1").touch();
+
+    eckit::testing::SetEnv env("FDB_SCHEMA_VERSION", "1");
+
+    EXPECT_EQUAL(schemaConfig(schema).schemaPath().asString(), schema.asString() + ".1");
+}
+
+CASE("schemaVersion: FDB_SCHEMA_VERSION takes precedence over the config version") {
+    eckit::TmpDir td;
+    eckit::PathName schema = td / "schema";
+    schema.touch();
+    (td / "schema.1").touch();
+
+    eckit::testing::SetEnv env("FDB_SCHEMA_VERSION", "1");
+
+    const std::string tooNew = std::to_string(fdb5::LibFdb5::maxSchemaVersion() + 1);
+    EXPECT_EQUAL(schemaConfig(schema, tooNew).schemaPath().asString(), schema.asString() + ".1");
+    EXPECT_EQUAL(schemaConfig(schema, "0").schemaPath().asString(), schema.asString() + ".1");
+}
+
+CASE("schemaVersion: FDB_SCHEMA_VERSION beyond maxSchemaVersion falls back like the config version") {
+    eckit::TmpDir td;
+    eckit::PathName schema = td / "schema";
+    schema.touch();
+
+    const std::string tooNew = std::to_string(fdb5::LibFdb5::maxSchemaVersion() + 1);
+    eckit::testing::SetEnv env("FDB_SCHEMA_VERSION", tooNew.c_str());
+
+    EXPECT_EQUAL(schemaConfig(schema).schemaPath().asString(), schema.asString());
+}
+
+CASE("schemaVersion: version 0 in the config selects the plain schema") {
+    eckit::TmpDir td;
+    eckit::PathName schema = td / "schema";
+    schema.touch();
+    (td / "schema.1").touch();
+
+    EXPECT_EQUAL(schemaConfig(schema, "0").schemaPath().asString(), schema.asString());
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+}  // namespace fdb::test
 
 int main(int argc, char** argv) {
     return run_tests(argc, argv);

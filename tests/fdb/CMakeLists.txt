@@ -72,7 +72,11 @@ add_subdirectory( type )
 add_subdirectory( rados )
 add_subdirectory( daos )
 add_subdirectory( fam )
-add_subdirectory( concurrent )
+add_subdirectory( parsing )
+
+if("${ECKIT_VERSION}" VERSION_GREATER_EQUAL 2.2)
+    add_subdirectory( concurrent )
+endif()
 
 if (HAVE_FDB_BUILD_TOOLS)
     add_subdirectory( timespan )

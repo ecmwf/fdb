@@ -1,19 +1,11 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /// @author Baudouin Raoult
 /// @author Tiago Quintino
 /// @date Sep 2012
 
-#ifndef fdb5_Index_H
-#define fdb5_Index_H
+#pragma once
 
 #include <ctime>
 #include <iosfwd>
@@ -84,7 +76,7 @@ public:  // methods
     virtual void put(const Key& key, const Field& field);
 
     virtual void encode(eckit::Stream& s, const int version) const;
-    virtual void entries(EntryVisitor& visitor) const = 0;
+    virtual void entries(EntryVisitor& visitor, EntryVisitor::IndexScope& scope) const = 0;
 
     /// @note default args on virtual methods is not best practice; no guarantee that overrides will have same defaults
     virtual void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const = 0;
@@ -173,7 +165,7 @@ public:  // methods
     void put(const Key& key, const Field& field) { content_->put(key, field); }
 
     void encode(eckit::Stream& s, const int version) const { content_->encode(s, version); }
-    void entries(EntryVisitor& v) const { content_->entries(v); }
+    void entries(EntryVisitor& v, EntryVisitor::IndexScope& scope) const { content_->entries(v, scope); }
     void dump(std::ostream& out, const char* indent, bool simple = false, bool dumpFields = false) const {
         content_->dump(out, indent, simple, dumpFields);
     }
@@ -216,5 +208,3 @@ private:  // members
 //----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace fdb5
-
-#endif

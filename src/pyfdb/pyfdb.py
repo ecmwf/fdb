@@ -1,12 +1,8 @@
-# (C) Copyright 2025- ECMWF.
-#
-# This software is licensed under the terms of the Apache Licence Version 2.0
-# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
-# In applying this licence, ECMWF does not waive the privileges and immunities
-# granted to it by virtue of its status as an intergovernmental organisation nor
-# does it submit to any jurisdiction.
+# SPDX-FileCopyrightText: 2025- European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
 
 import logging
+import warnings
 from collections.abc import Collection, Generator
 from pathlib import Path
 from typing import Any
@@ -16,7 +12,6 @@ from pyfdb._internal import (
     Config,
     ConfigMapper,
     FDBToolRequest,
-    init_bindings,
 )
 from pyfdb.pyfdb_iterator import (
     ControlElement,
@@ -28,6 +23,8 @@ from pyfdb.pyfdb_iterator import (
     WipeElement,
 )
 from pyfdb.pyfdb_type import (
+    AccessIdentifier,
+    AccessTime,
     ControlAction,
     ControlIdentifier,
     DataHandle,
@@ -41,6 +38,8 @@ class FDB:
     def __init__(
         self,
         config: str | dict | Path | None = None,
+        app_config: str | dict | Path | None = None,
+        *,
         user_config: str | dict | Path | None = None,
     ) -> None:
         """
@@ -50,8 +49,10 @@ class FDB:
         ----------
         `config`: `str` | `dict` | `Path` | `None`, *optional*
             Config object for setting up the FDB. See Notes.
+        `app_config`: `str` | `dict` | `Path` | `None`, *optional*
+            Config object for setting up application specific options, e.g., enabling sub-TOCs. See Notes.
         `user_config`: `str` | `dict` | `Path` | `None`, *optional*
-            Config object for setting up user specific options, e.g., enabling sub-TOCs. See Notes.
+            Deprecated alias of `app_config`. Use `app_config` instead.
 
         Returns
         -------
@@ -59,11 +60,16 @@ class FDB:
 
         Note
         ----
-        Every config parameter but is converted accordingly depending on its type:
+        Every config parameter is converted accordingly depending on its type:
             - `str` is used as a yaml representation to parse the config
             - `dict` is interpreted as hierarchical format to represent a config, see example
             - `Path` is interpreted as a location of the config and read as a YAML file
             - `None` is the fallback. The default config in `$FDB_HOME` is loaded
+
+        `config` describes the FDB itself (type, schema, spaces, ...). `app_config` holds options that
+        tune the behaviour of the calling application, independently of the FDB installation:
+        `useSubToc`, `preloadTocBTree`, `readIndexThreads`, `apiQueueSize` and `apiMaxQueues`. Environment
+        variables (e.g. `FDB_READ_INDEX_THREADS`) take precedence over the values given in `app_config`.
 
         Using a single PyFDB instance per individual threads is safe. Sharing the instances across threads isn't supported.
         However, the underlying FDB and its methods are thread-safe; the caller needs to be aware that flush acts on all archive calls,
@@ -97,15 +103,24 @@ class FDB:
         ...     pass
         """
 
-        init_bindings()
         self.logger = logging.getLogger(__name__ + ".FDB")
+
+        if user_config is not None:
+            if app_config is not None:
+                raise ValueError("Specify only one of `app_config` and `user_config`")
+            warnings.warn(
+                "`user_config` is deprecated, use `app_config` instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            app_config = user_config
 
         # Convert to JSON if set
         config = ConfigMapper.to_json(config)
-        user_config = ConfigMapper.to_json(user_config)
+        app_config = ConfigMapper.to_json(app_config)
 
-        if config is not None and user_config is not None:
-            internal_config = Config(config, user_config)
+        if config is not None and app_config is not None:
+            internal_config = Config(config, app_config)
             self.FDB = _FDB(internal_config)
         elif config is not None:
             internal_config = Config(config, None)
@@ -357,7 +372,7 @@ class FDB:
     def status(self, mars_selection: MarsSelection) -> Generator[StatusElement, None, None]:
         """
         List the status of all FDB entries with their control identifiers, e.g., whether a certain
-        database was locked for retrieval.
+        database was locked for retrieval, and their last recorded read and write access timestamps.
 
         Parameters
         ----------
@@ -392,12 +407,67 @@ class FDB:
                 'stream': ['oper'],
                 'time': ['2100']
                 },
-            location=/<path_to_root>/ea:0001:oper:20200104:2100:g
+            location=/<path_to_root>/ea:0001:oper:20200104:2100:g,
+            last_read=1762537447,
+            last_write=1762537447
         )
         """
         internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_internal_mars_selection(internal_mars_selection)
         iterator = self.FDB.status(fdb_tool_request.tool_request)
+        while True:
+            try:
+                yield StatusElement(next(iterator), _internal=True)
+            except StopIteration:
+                return
+
+    def touch(
+        self,
+        mars_selection: MarsSelection,
+        access_identifiers: Collection[AccessIdentifier],
+        when: AccessTime | None = None,
+    ) -> Generator[StatusElement, None, None]:
+        """
+        Explicitly set the read and/or write access timestamp for each database matching a selection.
+
+        Parameters
+        ----------
+        `mars_selection` : `MarsSelection`
+            A MARS selection which specifies the affected databases. See Note.
+        `access_identifiers` : `Collection[AccessIdentifier]`
+            Which timestamps to update, e.g., AccessIdentifier.READ or AccessIdentifier.WRITE
+        `when` : `AccessTime` | `None`, *optional*
+            The time value to record. `None` records the current time.
+
+        Returns
+        -------
+        Generator[StatusElement, None, None]
+            A generator for `StatusElement`, with one element per database touched
+
+        Examples
+        --------
+        >>> fdb = pyfdb.FDB(fdb_config_path)
+        >>> selection = {
+        >>>         "class": "ea",
+        >>>         "domain": "g",
+        >>>         "expver": "0001",
+        >>>         "stream": "oper",
+        >>>         "date": "20200101",
+        >>>         "time": "1800",
+        >>> }
+        >>> touch_iterator = fdb.touch(
+        >>>     selection,
+        >>>     [AccessIdentifier.READ, AccessIdentifier.WRITE],
+        >>>     AccessTime.catalogue(),
+        >>> )
+        >>> elements = list(touch_iterator)
+        """
+        internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
+        fdb_tool_request = FDBToolRequest.from_internal_mars_selection(internal_mars_selection)
+        raw_access_identifiers = [access_identifier._to_raw() for access_identifier in access_identifiers]
+        if when is None:
+            when = AccessTime.now()
+        iterator = self.FDB.touch(fdb_tool_request.tool_request, raw_access_identifiers, when._to_raw())
         while True:
             try:
                 yield StatusElement(next(iterator), _internal=True)
@@ -634,7 +704,9 @@ class FDB:
         """
         internal_mars_selection = UserInputMapper.map_selection_to_internal(mars_selection)
         fdb_tool_request = FDBToolRequest.from_internal_mars_selection(internal_mars_selection)
-        raw_control_identifiers = [control_identifier._to_raw() for control_identifier in control_identifiers]
+        raw_control_identifiers = [
+            control_identifier._to_raw() for control_identifier in control_identifiers
+        ]
         iterator = self.FDB.control(
             fdb_tool_request.tool_request,
             control_action._to_raw(),
@@ -754,7 +826,7 @@ class FDB:
 
     def config(self) -> tuple[dict[str, Any], dict[str, Any]]:
         """
-        Return the system and user configuration of the underlying FDB.
+        Return the system and application configuration of the underlying FDB.
 
         Parameters
         ----------
@@ -763,21 +835,21 @@ class FDB:
         Returns
         -------
         `tuple[dict[str, Any], dict[str, Any]]`
-            Python dictionaries describing the system and user configuration
+            Python dictionaries describing the system and application configuration
 
 
         Examples
         --------
         >>> fdb = FDB(config_file)
-        >>> system_config, user_config = fdb.config()
+        >>> system_config, app_config = fdb.config()
         >>> print(system_config)
-        >>> print(user_config)
+        >>> print(app_config)
 
         """
         system_config = ConfigMapper.from_json(self.FDB.config().json())
-        user_config = ConfigMapper.from_json(self.FDB.config().userConfig().json())
+        app_config = ConfigMapper.from_json(self.FDB.config().appConfig().json())
 
-        return system_config, user_config
+        return system_config, app_config
 
     def __repr__(self) -> str:
         return repr(self.FDB)

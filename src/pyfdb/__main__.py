@@ -1,10 +1,5 @@
-# (C) Copyright 2025- ECMWF.
-#
-# This software is licensed under the terms of the Apache Licence Version 2.0
-# which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
-# In applying this licence, ECMWF does not waive the privileges and immunities
-# granted to it by virtue of its status as an intergovernmental organisation nor
-# does it submit to any jurisdiction.
+# SPDX-FileCopyrightText: 2025- European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
 
 import argparse
 import logging
@@ -13,7 +8,7 @@ import sys
 
 import findlibs
 
-import pyfdb._internal as _internal
+from pyfdb import _internal
 
 # INFO: This is in place because we currently can't (at runtime)
 # tell which order the dependencies are in. This needs to be available in findlibs
@@ -53,11 +48,7 @@ def main():
 
     def _lib_home(lib_path):
         lib_dir = os.path.dirname(os.path.realpath(lib_path))
-        return (
-            os.path.dirname(lib_dir)
-            if os.path.basename(lib_dir) in ("lib", "lib64")
-            else lib_dir
-        )
+        return os.path.dirname(lib_dir) if os.path.basename(lib_dir) in ("lib", "lib64") else lib_dir
 
     def _print_dep_path(lib, dependency_path, optional):
         missing = []
@@ -76,7 +67,7 @@ def main():
 
         return missing
 
-    library_info_tuple = _internal.version_info()
+    library_info_tuple = _internal._version_info()
 
     if args.print_home:
         dependency_path = findlibs.find("fdb5")
@@ -98,9 +89,7 @@ def main():
         missing = []
         for lib in DEPENDENCY_ORDER:
             dependency_path = findlibs.find(lib)
-            missing += _print_dep_path(
-                lib, dependency_path, lib in OPTIONAL_DEPENDENCIES
-            )
+            missing += _print_dep_path(lib, dependency_path, lib in OPTIONAL_DEPENDENCIES)
 
         logging.info("Dependency Versions:")
 

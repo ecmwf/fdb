@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 #include "fdb5/toc/TocIndex.h"
 #include "fdb5/LibFdb5.h"
@@ -169,28 +162,24 @@ void TocIndex::funlock() const {
 class TocIndexVisitor : public BTreeIndexVisitor {
     const UriStore& uris_;
     EntryVisitor& visitor_;
+    EntryVisitor::IndexScope& scope_;
 
 public:
 
-    TocIndexVisitor(const UriStore& uris, EntryVisitor& visitor) : uris_(uris), visitor_(visitor) {}
+    TocIndexVisitor(const UriStore& uris, EntryVisitor& visitor, EntryVisitor::IndexScope& scope) :
+        uris_(uris), visitor_(visitor), scope_(scope) {}
 
     void visit(const std::string& keyFingerprint, const FieldRef& ref) {
 
-        Field field(TocFieldLocation(uris_, ref), visitor_.indexTimestamp(), ref.details());
-        visitor_.visitDatum(field, keyFingerprint);
+        Field field(TocFieldLocation(uris_, ref), scope_.index().timestamp(), ref.details());
+        visitor_.visitDatum(scope_, field, keyFingerprint);
     }
 };
 
-void TocIndex::entries(EntryVisitor& visitor) const {
-
-    Index instantIndex(const_cast<TocIndex*>(this));
-
-    // Allow the visitor to selectively decline to visit the entries in this index
-    if (visitor.visitIndex(instantIndex)) {
-        TocIndexCloser closer(*this);
-        TocIndexVisitor v(uris_, visitor);
-        btree_->visit(v);
-    }
+void TocIndex::entries(EntryVisitor& visitor, EntryVisitor::IndexScope& scope) const {
+    TocIndexCloser closer(*this);
+    TocIndexVisitor v(uris_, visitor, scope);
+    btree_->visit(v);
 }
 
 void TocIndex::print(std::ostream& out) const {

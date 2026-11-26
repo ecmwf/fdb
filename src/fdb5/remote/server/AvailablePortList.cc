@@ -1,12 +1,5 @@
-/*
- * (C) Copyright 1996- ECMWF.
- *
- * This software is licensed under the terms of the Apache Licence Version 2.0
- * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
- * In applying this licence, ECMWF does not waive the privileges and immunities
- * granted to it by virtue of its status as an intergovernmental organisation nor
- * does it submit to any jurisdiction.
- */
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
 
 /*
  * This software was developed as part of the EC H2020 funded project NextGenIO
@@ -31,8 +24,7 @@
 using namespace eckit;
 using namespace eckit::literals;
 
-namespace fdb5 {
-namespace remote {
+namespace fdb5::remote {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -199,9 +191,14 @@ void AvailablePortList::reap(int deadTime) {
 
         if (it->deadTime != 0) {
 
-            ASSERT(it->pid != 0);
-            ASSERT(it->deadTime <= now);
-            ASSERT(!ProcessControler::isRunning(it->pid));
+            // The owner was seen dead at deadTime. n.b. its pid may have been reused since by another process, which
+            // does not own the port: it is not checked again.
+            if (it->deadTime > now) {
+                // the clock went backwards: restart the grace period
+                eckit::Log::warning() << "AvailablePortList: port " << it->port << " died in the future (clock change?)"
+                                      << std::endl;
+                it->deadTime = now;
+            }
             if ((now - it->deadTime) >= deadTime) {
                 it->pid = 0;
                 it->deadTime = 0;
@@ -209,7 +206,6 @@ void AvailablePortList::reap(int deadTime) {
         }
         else if (it->pid != 0) {
 
-            ASSERT(it->deadTime == 0);
             if (!ProcessControler::isRunning(it->pid)) {
                 it->deadTime = now;
             }
@@ -221,5 +217,4 @@ void AvailablePortList::reap(int deadTime) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-}  // namespace remote
-}  // namespace fdb5
+}  // namespace fdb5::remote
