@@ -47,11 +47,11 @@ namespace fdb5 {
 
 static StoreBuilder<RadosStore> builder("rados");
 
-RadosStore::RadosStore(const Key& key, const Config& config) : RadosCommon(config, "store", key) {}
+RadosStore::RadosStore(const Key& key, const Config& config) : RadosCommon(config, key) {}
 
 RadosStore::RadosStore(const Schema& /*schema*/, const Key& key, const Config& config) : RadosStore(key, config) {}
 
-RadosStore::RadosStore(const eckit::URI& uri, const Config& config) : RadosCommon(config, "store", uri) {}
+RadosStore::RadosStore(const eckit::URI& uri, const Config& config) : RadosCommon(config, uri) {}
 
 eckit::URI RadosStore::uri() const {
     return eckit::RadosNamespace(pool_, db_namespace_).uri();

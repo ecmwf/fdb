@@ -48,11 +48,11 @@ namespace fdb5 {
 //----------------------------------------------------------------------------------------------------------------------
 
 RadosCatalogue::RadosCatalogue(const Key& key, const fdb5::Config& config) :
-    CatalogueImpl(key, ControlIdentifiers{}, config), RadosCommon(config, "catalogue", key) {}
+    CatalogueImpl(key, ControlIdentifiers{}, config), RadosCommon(config, key) {}
 
 RadosCatalogue::RadosCatalogue(const eckit::URI& uri, const ControlIdentifiers& controlIdentifiers,
                                const fdb5::Config& config) :
-    CatalogueImpl(Key(), controlIdentifiers, config), RadosCommon(config, "catalogue", uri) {
+    CatalogueImpl(Key(), controlIdentifiers, config), RadosCommon(config, uri) {
     try {
         dbKey_ = read_db_key(*db_kv_);
     }

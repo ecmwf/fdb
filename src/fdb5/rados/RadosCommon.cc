@@ -22,7 +22,6 @@
 #include "eckit/utils/Regex.h"
 #include "eckit/utils/Tokenizer.h"
 
-#include <algorithm>
 #include <cctype>
 #include <string>
 #include <vector>
@@ -115,21 +114,18 @@ RadosSpace rados_space(const Config& config, const eckit::URI& uri) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-RadosCommon::RadosCommon(const Config& config, const std::string& component, const Key& key) {
-
-    std::vector<std::string> valid{"catalogue", "store"};
-    ASSERT(std::find(valid.begin(), valid.end(), component) != valid.end());
+RadosCommon::RadosCommon(const Config& config, const Key& key) {
 
     const RadosSpace space = rados_space(config, key);
     pool_ = space.pool;
     db_namespace_ = space.databaseNamespace(key);
-    readConfig(config, component);
+    readConfig(config);
 
     root_kv_.emplace(pool_, space.rootNamespace, "main_kv");
     db_kv_.emplace(pool_, db_namespace_, "catalogue_kv");
 }
 
-RadosCommon::RadosCommon(const Config& config, const std::string& component, const eckit::URI& uri) {
+RadosCommon::RadosCommon(const Config& config, const eckit::URI& uri) {
 
     const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
     ASSERT(parts.size() == 2 || parts.size() == 3);
@@ -137,21 +133,25 @@ RadosCommon::RadosCommon(const Config& config, const std::string& component, con
     const RadosSpace space = rados_space(config, uri);
     pool_ = parts[0];
     db_namespace_ = parts[1];
-    readConfig(config, component);
+    readConfig(config);
 
     root_kv_.emplace(pool_, space.rootNamespace, "main_kv");
     db_kv_.emplace(pool_, db_namespace_, "catalogue_kv");
 }
 
-void RadosCommon::readConfig(const Config& config, const std::string& component) {
+void RadosCommon::readConfig(const Config& config) {
 
-    eckit::LocalConfiguration c{};
+    long maxPartSize = 0;
 
     if (config.has("rados")) {
-        c = config.getSubConfiguration("rados");
+        maxPartSize = config.getSubConfiguration("rados").getLong("maxPartSize", 0);
     }
 
-    maxPartSize_ = c.getInt("maxPartSize", 0);
+    if (maxPartSize < 0) {
+        throw eckit::UserError("rados.maxPartSize must not be negative", Here());
+    }
+
+    maxPartSize_ = maxPartSize;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

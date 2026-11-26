@@ -60,12 +60,12 @@ class RadosCommon {
 
 public:  // methods
 
-    RadosCommon(const Config&, const std::string& component, const Key&);
-    RadosCommon(const Config&, const std::string& component, const eckit::URI&);
+    RadosCommon(const Config&, const Key&);
+    RadosCommon(const Config&, const eckit::URI&);
 
 private:  // methods
 
-    void readConfig(const Config& config, const std::string& component);
+    void readConfig(const Config& config);
 
 protected:  // members
 
