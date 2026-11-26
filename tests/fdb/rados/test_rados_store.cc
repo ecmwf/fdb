@@ -208,16 +208,7 @@ CASE("RadosStore tests") {
             test_id +
             "\n"
             "rados:\n"
-            "  maxPartSize: 16\n"
-            "  store:\n"
-            "    pool: " +
-            pool +
-            "\n"
-            "    root_namespace: " +
-            test_id +
-            "_root\n"
-            "    namespace_prefix: " +
-            test_id + "\n"};
+            "  maxPartSize: 16\n"};
 
         fdb5::Config config{YAMLConfiguration(config_str)};
 
@@ -333,18 +324,7 @@ CASE("RadosStore tests") {
             test_id +
             "\n"
             "schema : " +
-            schema_file().path() +
-            "\n"
-            "rados:\n"
-            "  store:\n"
-            "    pool: " +
-            pool +
-            "\n"
-            "    root_namespace: " +
-            test_id +
-            "_root\n"
-            "    namespace_prefix: " +
-            test_id + "\n"};
+            schema_file().path() + "\n"};
 
         fdb5::Config config{YAMLConfiguration(config_str)};
 
@@ -462,16 +442,6 @@ CASE("RadosStore tests") {
             "rados:\n"};
 
         config_str += "  maxPartSize: 16\n";
-
-        config_str += "  store:\n";
-
-        config_str += "    pool: " + pool +
-                      "\n"
-                      "    root_namespace: " +
-                      test_id +
-                      "_root\n"
-                      "    namespace_prefix: " +
-                      test_id + "\n";
 
         fdb5::Config config{YAMLConfiguration(config_str)};
 
@@ -626,16 +596,6 @@ CASE("RadosStore tests") {
             "rados:\n"};
 
         config_str += "  maxPartSize: 16\n";
-
-        config_str += "  store:\n";
-
-        config_str += "    pool: " + pool +
-                      "\n"
-                      "    root_namespace: " +
-                      test_id +
-                      "_root\n"
-                      "    namespace_prefix: " +
-                      test_id + "\n";
 
         fdb5::Config config{YAMLConfiguration(config_str)};
 

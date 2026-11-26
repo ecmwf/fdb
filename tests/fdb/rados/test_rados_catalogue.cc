@@ -215,18 +215,7 @@ CASE("RadosCatalogue tests") {
             test_id +
             "\n"
             "schema : " +
-            schema_file().path() +
-            "\n"
-            "rados:\n"
-            "  catalogue:\n"
-            "    pool: " +
-            pool +
-            "\n"
-            "    root_namespace: " +
-            test_id +
-            "_root\n"
-            "    namespace_prefix: " +
-            test_id + "\n"};
+            schema_file().path() + "\n"};
 
         fdb5::Config config{YAMLConfiguration(config_str)};
         fdb5::Schema schema{schema_file()};
@@ -307,17 +296,7 @@ CASE("RadosCatalogue tests") {
             test_id +
             "\n"
             "schema : " +
-            schema_file().path() +
-            "\n"
-            "rados:\n"
-            "  pool: " +
-            pool +
-            "\n"
-            "  root_namespace: " +
-            test_id +
-            "_root\n"
-            "  namespace_prefix: " +
-            test_id + "\n"};
+            schema_file().path() + "\n"};
 
         fdb5::Config config{YAMLConfiguration(config_str)};
 
@@ -397,18 +376,7 @@ CASE("RadosCatalogue tests") {
             test_id +
             "\n"
             "schema : " +
-            schema_file().path() +
-            "\n"
-            "rados:\n"
-            "  catalogue:\n"
-            "    pool: " +
-            pool +
-            "\n"
-            "    root_namespace: " +
-            test_id +
-            "_root\n"
-            "    namespace_prefix: " +
-            test_id + "\n"};
+            schema_file().path() + "\n"};
 
         fdb5::Config config{YAMLConfiguration(config_str)};
 
@@ -449,18 +417,7 @@ CASE("RadosCatalogue tests") {
             test_id +
             "\n"
             "schema : " +
-            schema_file().path() +
-            "\n"
-            "rados:\n"
-            "  catalogue:\n"
-            "    pool: " +
-            pool +
-            "\n"
-            "    root_namespace: " +
-            test_id +
-            "_root\n"
-            "    namespace_prefix: " +
-            test_id + "\n"};
+            schema_file().path() + "\n"};
 
         fdb5::Config config{YAMLConfiguration(config_str)};
 
@@ -515,18 +472,7 @@ CASE("RadosCatalogue tests") {
             test_id +
             "\n"
             "schema : " +
-            schema_file().path() +
-            "\n"
-            "rados:\n"
-            "  catalogue:\n"
-            "    pool: " +
-            pool +
-            "\n"
-            "    root_namespace: " +
-            test_id +
-            "_root\n"
-            "    namespace_prefix: " +
-            test_id + "\n"};
+            schema_file().path() + "\n"};
 
         fdb5::Config config{YAMLConfiguration(config_str)};
 
@@ -602,18 +548,7 @@ CASE("RadosCatalogue tests") {
             test_id +
             "\n"
             "schema : " +
-            schema_file().path() +
-            "\n"
-            "rados:\n"
-            "  catalogue:\n"
-            "    pool: " +
-            pool +
-            "\n"
-            "    root_namespace: " +
-            test_id +
-            "_root\n"
-            "    namespace_prefix: " +
-            test_id + "\n"};
+            schema_file().path() + "\n"};
 
         fdb5::Config config{YAMLConfiguration(config_str)};
 
@@ -750,17 +685,7 @@ CASE("RadosCatalogue tests") {
             test_id +
             "\n"
             "schema : " +
-            schema_file().path() +
-            "\n"
-            "rados:\n"
-            "  pool: " +
-            pool +
-            "\n"
-            "  root_namespace: " +
-            test_id +
-            "_root\n"
-            "  namespace_prefix: " +
-            test_id + "\n"};
+            schema_file().path() + "\n"};
 
         fdb5::Config config{YAMLConfiguration(config_str)};
         fdb5::Key db_key({{"a", "large"}, {"b", "large"}});
@@ -820,16 +745,7 @@ CASE("RadosCatalogue tests") {
             schema_file().path() +
             "\n"
             "engine: rados\n"
-            "store: rados\n"
-            "rados:\n"};
-
-        config_str += "  pool: " + pool +
-                      "\n"
-                      "  root_namespace: " +
-                      test_id +
-                      "_root\n"
-                      "  namespace_prefix: " +
-                      test_id + "\n";
+            "store: rados\n"};
 
         fdb5::Config config{YAMLConfiguration(config_str)};
 
