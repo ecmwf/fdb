@@ -63,7 +63,7 @@ public:  // methods
     void checkUID() const override { /* nothing to do */ }
     bool exists() const override;
     void dump(std::ostream& out, bool simple, const eckit::Configuration& conf) const override {
-        out << "RadosCatalogue(" << type() << ":" << dbKey_ << ")";
+        out << "RadosCatalogue(" << type() << ":" << dbKey_ << ")" << std::endl;
     }
     const Schema& schema() const override;
 
