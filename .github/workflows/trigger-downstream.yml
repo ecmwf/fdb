@@ -64,6 +64,7 @@ jobs:
     outputs:
       run: ${{ steps.gate.outputs.run }}
       depth: ${{ steps.gate.outputs.depth }}
+      quarantined: ${{ steps.gate.outputs.quarantined }}
     steps:
       - name: Check the downstream-CI label
         id: gate
@@ -223,7 +224,7 @@ jobs:
   gribjump:
     name: gribjump
     needs: [ci-approval, context, label-gate, validate, resolve, rebuild-producers]
-    if: ${{ (!cancelled() && !failure() && needs['validate'].result == 'success' && needs['resolve'].result == 'success') && needs['label-gate'].outputs.run == 'true' && (needs['label-gate'].outputs.depth == 'all' || needs['label-gate'].outputs.depth >= 1) }}
+    if: ${{ (!cancelled() && !failure() && needs['validate'].result == 'success' && needs['resolve'].result == 'success') && needs['label-gate'].outputs.run == 'true' && (needs['label-gate'].outputs.depth == 'all' || needs['label-gate'].outputs.depth >= 1) && !contains(needs['label-gate'].outputs.quarantined, ',gribjump,') }}
     uses: ecmwf/gribjump/.github/workflows/cross-repo-trigger.yml@develop
     with:
       from-repo: ${{ github.repository }}
@@ -262,7 +263,7 @@ jobs:
           token: ${{ steps.mint.outputs.token }}
           artifact-names: ''
           wait-for-run-conclusion: 'true'
-    if: ${{ needs['label-gate'].outputs.run == 'true' && (needs['label-gate'].outputs.depth == 'all' || needs['label-gate'].outputs.depth >= 2) }}
+    if: ${{ needs['label-gate'].outputs.run == 'true' && (needs['label-gate'].outputs.depth == 'all' || needs['label-gate'].outputs.depth >= 2) && !contains(needs['label-gate'].outputs.quarantined, ',zfdb,') }}
 
   report-result:
     needs: [ci-approval, context, label-gate, validate, gribjump, zfdb]
