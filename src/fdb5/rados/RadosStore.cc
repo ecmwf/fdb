@@ -64,11 +64,14 @@ eckit::URI RadosStore::uri(const eckit::URI& dataURI) {
 
 bool RadosStore::uriBelongs(const eckit::URI& uri) const {
 
+    if (uri.scheme() != type()) {
+        return false;
+    }
+
     const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
     const auto n = parts.size();
 
-    ASSERT(n == 2 || n == 3);
-    return ((uri.scheme() == type()) && (parts[0] == pool_) && (parts[1] == db_namespace_));
+    return (n == 2 || n == 3) && (parts[0] == pool_) && (parts[1] == db_namespace_);
 }
 
 bool RadosStore::uriExists(const eckit::URI& uri) const {
