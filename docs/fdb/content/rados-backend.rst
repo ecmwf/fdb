@@ -180,13 +180,18 @@ Creation and reopening
 When a ``RadosCatalogueWriter`` is created from an FDB key:
 
 #. The matching RADOS space is selected.
-#. The root namespace and database namespace are opened.
-#. ``main_kv`` is created if necessary.
-#. A new ``catalogue_kv`` is created when the database does not yet exist.
-#. The configured schema and serialized database key are stored in the
-   catalogue KV.
+#. If the database exists, its schema is read from ``catalogue_kv``.
+#. Otherwise the configured schema is used and nothing is written yet.
+
+A new database is created by the first flush that has something to write:
+
+#. The configured schema and the serialized database key are stored in a new
+   ``catalogue_kv``.
 #. The catalogue URI is registered in ``main_kv`` under the database
    namespace.
+#. The flushed indexes are written and registered in ``catalogue_kv``.
+
+A writer that never flushes therefore leaves no objects behind.
 
 When opened from a ``rados:`` URI, the database key and schema are read from
 the catalogue KV. A missing ``key`` entry is reported as a database-not-found
