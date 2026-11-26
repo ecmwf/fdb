@@ -97,17 +97,14 @@ std::unique_ptr<const FieldLocation> RadosStore::archive(const Key& key, const v
 
     archivedFields_++;
 
-    const eckit::RadosObject& o = getDataObject(key);
+    DataUnit& unit = dataUnit(key);
 
-    eckit::DataHandle& h = getDataHandle(key, o);
+    const eckit::Offset offset{unit.handle->position()};
 
-    eckit::Offset offset{h.position()};
-
-    long len = h.write(data, length);
-
+    const long len = unit.handle->write(data, length);
     ASSERT(len == length);
 
-    return std::make_unique<RadosFieldLocation>(o.uri(), offset, length);
+    return std::make_unique<RadosFieldLocation>(unit.object.uri(), offset, length);
 }
 
 RadosStore::~RadosStore() {
@@ -274,57 +271,33 @@ eckit::RadosObject RadosStore::generateDataObject(const Key& key) const {
                               rados_names::dataPrefix + key.valuesToString() + "." + md5.digest()};
 }
 
-const eckit::RadosObject& RadosStore::getDataObject(const Key& key) const {
+RadosStore::DataUnit& RadosStore::dataUnit(const Key& key) {
 
-    auto it = dataObjects_.find(key);
-    if (it == dataObjects_.end()) {
-        it = dataObjects_.emplace(key, generateDataObject(key)).first;
-    }
-    return it->second;
-}
-
-eckit::DataHandle& RadosStore::getDataHandle(const Key& key, const eckit::RadosObject& name) {
-
-    auto iter = handles_.find(key);
-    if (iter != handles_.end()) {
-        return *(iter->second);
+    auto it = units_.find(key);
+    if (it != units_.end()) {
+        return it->second;
     }
 
-    auto handle = std::unique_ptr<eckit::DataHandle>{name.multipartWriteHandle(maxPartSize_)};
+    eckit::RadosObject object = generateDataObject(key);
+
+    auto handle = std::unique_ptr<eckit::DataHandle>{object.multipartWriteHandle(maxPartSize_)};
     ASSERT(handle);
-
     handle->openForWrite(0);
-    auto [inserted, success] = handles_.emplace(key, std::move(handle));
-    ASSERT(success);
 
-    return *inserted->second;
+    return units_.emplace(key, DataUnit{std::move(object), std::move(handle)}).first->second;
 }
 
 void RadosStore::closeDataHandles() {
 
     // Detach the map first so partial failures never leave the destructor retrying the same handle.
-    HandleStore handles;
-    handles.swap(handles_);
-    dataObjects_.clear();
+    DataUnits units;
+    units.swap(units_);
 
-    std::exception_ptr first;
-    for (auto& [key, handle] : handles) {
-        best_effort(first, "RadosStore::closeDataHandles", [&] { handle->close(); });
-    }
-    if (first) {
-        std::rethrow_exception(first);
-    }
+    for_each_best_effort(units, "RadosStore::closeDataHandles", [](auto& unit) { unit.second.handle->close(); });
 }
 
 void RadosStore::flushDataHandles() {
-
-    std::exception_ptr first;
-    for (auto& [key, handle] : handles_) {
-        best_effort(first, "RadosStore::flushDataHandles", [&] { handle->flush(); });
-    }
-    if (first) {
-        std::rethrow_exception(first);
-    }
+    for_each_best_effort(units_, "RadosStore::flushDataHandles", [](auto& unit) { unit.second.handle->flush(); });
 }
 
 //----------------------------------------------------------------------------------------------------------------------

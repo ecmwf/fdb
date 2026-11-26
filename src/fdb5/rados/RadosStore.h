@@ -83,24 +83,31 @@ protected:  // methods
 
     void print(std::ostream& out) const override;
 
-    eckit::RadosObject generateDataObject(const Key& key) const;
-
-    const eckit::RadosObject& getDataObject(const Key& key) const;
-    eckit::DataHandle& getDataHandle(const Key& key, const eckit::RadosObject& name);
     void closeDataHandles();
     void flushDataHandles();
 
 private:  // types
 
-    using HandleStore = std::map<Key, std::unique_ptr<eckit::DataHandle>>;
-    using ObjectStore = std::map<Key, eckit::RadosObject>;
+    // The data object fields of one index key are appended to, and the handle writing to it.
+    struct DataUnit {
+        eckit::RadosObject object;
+        std::unique_ptr<eckit::DataHandle> handle;
+    };
+
+    using DataUnits = std::map<Key, DataUnit>;
+
+private:  // methods
+
+    eckit::RadosObject generateDataObject(const Key& key) const;
+
+    // The unit for `key`, created with a new object and an open handle on first use.
+    DataUnit& dataUnit(const Key& key);
 
 private:  // members
 
     size_t archivedFields_{0};
 
-    HandleStore handles_;
-    mutable ObjectStore dataObjects_;
+    DataUnits units_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

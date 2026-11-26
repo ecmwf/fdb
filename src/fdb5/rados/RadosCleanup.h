@@ -37,4 +37,16 @@ void best_effort(std::exception_ptr& first, const char* context, Op&& op) {
     }
 }
 
+// Runs `op` on every element of `range`, also when it fails for some of them, and rethrows the first failure.
+template <typename Range, typename Op>
+void for_each_best_effort(Range& range, const char* context, Op&& op) {
+    std::exception_ptr first;
+    for (auto& element : range) {
+        best_effort(first, context, [&] { op(element); });
+    }
+    if (first) {
+        std::rethrow_exception(first);
+    }
+}
+
 }  // namespace fdb5
