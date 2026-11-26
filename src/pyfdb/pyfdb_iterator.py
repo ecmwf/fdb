@@ -316,8 +316,33 @@ class StatusElement:
     def key(self) -> MarsSelection:
         return self.element.key()
 
+    def last_read(self) -> Optional[int]:
+        """
+        Last recorded read access for the database.
+
+        Returns
+        -------
+        `Optional[int]`
+            Unix epoch time. `None` signifies unknown (not recorded).
+        """
+        return self.element.last_read()
+
+    def last_write(self) -> Optional[int]:
+        """
+        Last recorded write access for the database.
+
+        Returns
+        -------
+        `Optional[int]`
+            Unix epoch time. `None` signifies unknown (not recorded).
+        """
+        return self.element.last_write()
+
     def __repr__(self) -> str:
-        return f"StatusElement(control_identifiers={self.controlIdentifiers()}, key={self.key()}, location={self.location()})"
+        return (
+            f"StatusElement(control_identifiers={self.controlIdentifiers()}, key={self.key()}, "
+            f"location={self.location()}, last_read={self.last_read()}, last_write={self.last_write()})"
+        )
 
 
 class PurgeElement:

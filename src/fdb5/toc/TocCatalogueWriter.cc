@@ -45,16 +45,22 @@ namespace fdb5 {
 
 TocCatalogueWriter::TocCatalogueWriter(const Key& dbKey, const fdb5::Config& config) :
     TocCatalogue(dbKey, config), umask_(config.umask()), archivedLocations_(0) {
-    writeInitRecord(dbKey);
+    const bool databaseCreated = writeInitRecord(dbKey);
     TocCatalogue::loadSchema();
     TocCatalogue::checkUID();
+    if (databaseCreated) {
+        createAccessTimestamps();
+    }
 }
 
 TocCatalogueWriter::TocCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config) :
     TocCatalogue(uri.path(), ControlIdentifiers{}, config), umask_(config.umask()), archivedLocations_(0) {
-    writeInitRecord(TocCatalogue::key());
+    const bool databaseCreated = writeInitRecord(TocCatalogue::key());
     TocCatalogue::loadSchema();
     TocCatalogue::checkUID();
+    if (databaseCreated) {
+        createAccessTimestamps();
+    }
 }
 
 TocCatalogueWriter::~TocCatalogueWriter() {
@@ -387,6 +393,15 @@ void TocCatalogueWriter::archive(const Key& idxKey, const Key& datumKey,
     }
 }
 
+// The records belong to the writer, not to the base: a reader may be a different user and could
+// not create them. They are made exactly once, when the database is - not on every writer that
+// opens it, which would put a create and a chmod in front of every archival session to establish
+// something already true. A database that predates the records, or has lost them, gets them back
+// from markWritten() when an update fails, which is the only time it is worth looking.
+void TocCatalogueWriter::createAccessTimestamps() const {
+    createTimestamps(timestampMode(config_.umask()));
+}
+
 void TocCatalogueWriter::flush(size_t archivedFields) {
     std::lock_guard lock(mutex_);
     ASSERT(archivedFields == archivedLocations_);
@@ -396,6 +411,11 @@ void TocCatalogueWriter::flush(size_t archivedFields) {
     }
 
     flushIndexes();
+
+    // Archiving is a meaningful access. markWritten() also restores the records if it finds them
+    // missing, so a database that predates them acquires them here rather than from a check made
+    // before every update.
+    markWritten();
 
     archivedLocations_ = 0;
     current_ = Index();
