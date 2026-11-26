@@ -18,9 +18,8 @@ CI_SOURCE_DIR="$CI_SOURCE_DIR/.ci/packages/pyfdb"
 {% block build %}
 {{ super() }}
 # The base's `test` block runs before its `install`, so the wheel is installed
-# here, from the build tree cmake/pyfdb.cmake built it into: this lane has no
-# $CI_INSTALL_PREFIX/wheels/ like the python lane does, and `cmake --install`
-# only copies the wheel out to the prefix for publishing.
+# here, from the build tree cmake/pyfdb.cmake built it into; `cmake --install`
+# copies it to $CI_INSTALL_PREFIX/wheels/ only afterwards, for publishing.
 wheels="$build"
 dep_wheels=()
 for prefix in ${dep_prefixes[@]+"${dep_prefixes[@]}"}; do
