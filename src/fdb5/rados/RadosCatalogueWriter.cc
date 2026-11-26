@@ -71,9 +71,9 @@ RadosCatalogueWriter::RadosCatalogueWriter(const Key& key, const fdb5::Config& c
         {
             eckit::AutoClose ac{in};
             in.openForRead();
-            in.read(&data[0], in.size());
+            ASSERT(in.read(data.data(), data.size()) == static_cast<long>(data.size()));
         }
-        db_kv_->put("schema", &data[0], data.size());
+        db_kv_->put("schema", data.data(), data.size());
 
         eckit::MemoryHandle h{(size_t)PATH_MAX};
         eckit::HandleStream hs{h};
