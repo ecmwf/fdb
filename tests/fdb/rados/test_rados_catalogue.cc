@@ -1111,6 +1111,32 @@ CASE("RadosCatalogue regressions") {
         EXPECT(mh.size() == eckit::Length(sizeof(data)));
     }
 
+    SECTION("One FDB retrieves from several indexes with different axis values") {
+
+        fdb5::Config config{YAMLConfiguration(api_config(pool, test_id, "rados"))};
+
+        const std::vector<fdb5::Key> keys{
+            fdb5::Key({{"a", "38"}, {"b", "38"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}}),
+            fdb5::Key({{"a", "38"}, {"b", "38"}, {"c", "7"}, {"d", "8"}, {"e", "9"}, {"f", "10"}}),
+        };
+
+        {
+            fdb5::FDB fdb(config);
+            for (const auto& key : keys) {
+                fdb.archive(key, data, sizeof(data));
+            }
+            fdb.flush();
+        }
+
+        fdb5::FDB fdb(config);
+        for (const auto& key : keys) {
+            std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(key.request("retrieve")));
+            eckit::MemoryHandle mh;
+            dh->copyTo(mh);
+            EXPECT(mh.size() == eckit::Length(sizeof(data)));
+        }
+    }
+
     SECTION("Roots do not need a filesystem path") {
 
         fdb5::Config config{YAMLConfiguration(api_config(pool, test_id, "rados", false))};

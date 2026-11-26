@@ -60,6 +60,9 @@ bool RadosCatalogueReader::selectIndex(const Key& key) {
         }
     }
 
+    // The axis cache of CatalogueReader holds the axes of the previously selected index.
+    invalidateAxis();
+
     currentIndexKey_ = key;
     current_ = indexes_[key];
 
@@ -67,6 +70,7 @@ bool RadosCatalogueReader::selectIndex(const Key& key) {
 }
 
 void RadosCatalogueReader::deselectIndex() {
+    invalidateAxis();
     current_ = Index();
     currentIndexKey_ = Key();
 }
