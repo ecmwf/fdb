@@ -639,6 +639,10 @@ void FDB::flush(const tracing::TraceContext& trace) {
         }
         throw;
     }
+    // n.b. a successful flush means that the archives it took are durable: a failure which concerns their data (e.g.
+    // of a concurrent archive in the backend) must fail the flush, as the backends do (archive and flush are
+    // serialised locally, and an evicted database whose flush failed stays open; remote archive failures are rethrown
+    // by the flush). Their traces are thus not retained because of a later failure of another archive.
     archives.flushed();
     dirty_ = false;
 

@@ -177,7 +177,9 @@ Notes:
 * If a flush fails, the traces of the archive spans which it closes are exported with it, whichever trace they
   belong to. The archive spans keep their own status. So, if an archive call fails for any reason
   (the backend may have failed to flush earlier data, e.g. when it evicts a database, or the request
-  is invalid), are the traces of the archives not yet flushed.
+  is invalid), are the traces of the archives not yet flushed. A successful flush makes its
+  archives durable: a later failure does not export their traces (a failure that concerns their
+  data fails the flush).
 * Each process decides for its own spans: a server exports its part of a request if it fails on
   the server, or if the request is sampled. A request that fails on the client only (e.g. a lost
   connection) is exported by the client, while the server exports its part only if it is sampled.
