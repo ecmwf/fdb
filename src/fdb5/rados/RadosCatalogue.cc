@@ -119,7 +119,8 @@ std::vector<Index> RadosCatalogue::indexes(bool) const {
             continue;
         }
 
-        res.push_back(Index(new fdb5::RadosIndex(index_key.value(), index_kv, false)));
+        // Axes are loaded so that visitors relying on Index::axes() (e.g. fdb.axes()) see the datum axes.
+        res.push_back(Index(new fdb5::RadosIndex(index_key.value(), index_kv, true)));
     }
 
     return res;

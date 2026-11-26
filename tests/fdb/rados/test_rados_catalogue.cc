@@ -19,6 +19,7 @@
 #include "fdb5/database/Engine.h"
 #include "fdb5/database/Field.h"
 #include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/IndexAxis.h"
 #include "fdb5/rados/RadosCatalogueReader.h"
 #include "fdb5/rados/RadosCatalogueWriter.h"
 #include "fdb5/rados/RadosFieldLocation.h"
@@ -1069,6 +1070,22 @@ CASE("RadosCatalogue regressions") {
             std::cout << "remaining object: " << obj.name() << std::endl;
             EXPECT(obj.name().rfind("3:4", 0) != 0);
         }
+    }
+
+    SECTION("FDB::axes reports datum axes") {
+
+        fdb5::Config config{YAMLConfiguration(api_config(pool, test_id, "rados"))};
+        fdb5::Key key({{"a", "36"}, {"b", "36"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+        fdb5::Key db_key({{"a", "36"}, {"b", "36"}});
+
+        fdb5::FDB fdb(config);
+        fdb.archive(key, data, sizeof(data));
+        fdb.flush();
+
+        const fdb5::IndexAxis axes = fdb.axes(tool_request(db_key));
+        EXPECT(axes.has("c") && axes.values("c").contains("3"));
+        EXPECT(axes.has("e") && axes.values("e").contains("5"));
+        EXPECT(axes.has("f") && axes.values("f").contains("6"));
     }
 
     SECTION("Roots do not need a filesystem path") {
