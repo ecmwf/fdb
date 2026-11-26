@@ -27,6 +27,7 @@
 
 #include <map>
 #include <ostream>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -49,6 +50,12 @@ public:  // methods
 
     // Exposed so RadosCatalogueWriter can persist axis metadata into idx_kv_ / axis_kvs_.
     void putAxisValue(const std::string& axis, const std::string& value);
+
+    // Names of the axes recorded in an index KV. Throws eckit::RadosEntityNotFoundException if the KV is missing.
+    static std::set<std::string> axisNames(const eckit::RadosKeyValue& idx_kv);
+    // The KV holding the values of `axis` for the index stored in `idx_kv`.
+    static eckit::RadosKeyValue axisKeyValue(const eckit::RadosKeyValue& idx_kv, const Key& key,
+                                             const std::string& axis);
 
     // Exposed so RadosCatalogueReader can enumerate field entries directly for stats.
     const eckit::RadosKeyValue& idx_kv() const { return idx_kv_; }

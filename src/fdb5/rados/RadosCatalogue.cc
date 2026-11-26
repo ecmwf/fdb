@@ -165,16 +165,8 @@ bool RadosCatalogue::markIndexForWipe(const Index& index, bool include, Catalogu
 
     std::vector<eckit::URI> axis_uris;
     try {
-        std::vector<char> axes_data;
-        index_kv.getMemoryStream(axes_data, "axes", "index kv");
-        std::vector<std::string> axis_names;
-        eckit::Tokenizer parse(",");
-        parse(std::string(axes_data.begin(), axes_data.end()), axis_names);
-        const std::string idx_key = index.key().valuesToString();
-        for (const auto& axis : axis_names) {
-            axis_uris.push_back(
-                eckit::RadosKeyValue{index_kv.nspace().pool().name(), index_kv.nspace().name(), idx_key + "." + axis}
-                    .uri());
+        for (const auto& axis : RadosIndex::axisNames(index_kv)) {
+            axis_uris.push_back(RadosIndex::axisKeyValue(index_kv, index.key(), axis).uri());
         }
     }
     catch (const eckit::RadosEntityNotFoundException& e) {

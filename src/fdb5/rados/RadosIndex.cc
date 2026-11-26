@@ -69,6 +69,33 @@ RadosIndex::RadosIndex(const Key& key, const eckit::RadosKeyValue& name, bool re
     }
 }
 
+std::set<std::string> RadosIndex::axisNames(const eckit::RadosKeyValue& idx_kv) {
+
+    std::set<std::string> axis_names;
+    for (const auto& key : idx_kv.keys()) {
+        if (key.rfind("axis.", 0) == 0) {
+            axis_names.insert(key.substr(5));
+        }
+    }
+
+    // Compatibility with catalogues written before per-axis markers were introduced.
+    if (axis_names.empty() && idx_kv.has("axes")) {
+        std::vector<char> axes_data;
+        idx_kv.getMemoryStream(axes_data, "axes", "index kv");
+        std::vector<std::string> legacy_axis_names;
+        eckit::Tokenizer parse(",");
+        parse(std::string(axes_data.begin(), axes_data.end()), legacy_axis_names);
+        axis_names.insert(legacy_axis_names.begin(), legacy_axis_names.end());
+    }
+
+    return axis_names;
+}
+
+eckit::RadosKeyValue RadosIndex::axisKeyValue(const eckit::RadosKeyValue& idx_kv, const Key& key,
+                                              const std::string& axis) {
+    return {idx_kv.nspace().pool().name(), idx_kv.nspace().name(), key.valuesToString() + "." + axis};
+}
+
 void RadosIndex::putAxisValue(const std::string& axis, const std::string& value) {
 
     const std::string axis_marker = "axis." + axis;
@@ -78,12 +105,7 @@ void RadosIndex::putAxisValue(const std::string& axis, const std::string& value)
     auto axis_kv = axis_kvs_.find(axis);
 
     if (axis_kv == axis_kvs_.end()) {
-        std::string kv_name = key().valuesToString() + std::string{"."} + axis;
-        axis_kvs_.emplace(std::piecewise_construct, std::forward_as_tuple(axis),
-                          std::forward_as_tuple(location_.radosName().nspace().pool().name(),
-                                                location_.radosName().nspace().name(), kv_name));
-
-        axis_kv = axis_kvs_.find(axis);
+        axis_kv = axis_kvs_.emplace(axis, axisKeyValue(idx_kv_, key(), axis)).first;
     }
 
     std::string v{"1"};
@@ -92,29 +114,8 @@ void RadosIndex::putAxisValue(const std::string& axis, const std::string& value)
 
 void RadosIndex::updateAxes() {
 
-    std::set<std::string> axis_names;
-    for (const auto& key : idx_kv_.keys()) {
-        if (key.rfind("axis.", 0) == 0) {
-            axis_names.insert(key.substr(5));
-        }
-    }
-
-    // Compatibility with catalogues written before per-axis markers were introduced.
-    if (axis_names.empty() && idx_kv_.has("axes")) {
-        std::vector<char> axes_data;
-        idx_kv_.getMemoryStream(axes_data, "axes", "index kv");
-        std::vector<std::string> legacy_axis_names;
-        eckit::Tokenizer parse(",");
-        parse(std::string(axes_data.begin(), axes_data.end()), legacy_axis_names);
-        axis_names.insert(legacy_axis_names.begin(), legacy_axis_names.end());
-    }
-
-    std::string indexKey{key_.valuesToString()};
-    for (const auto& name : axis_names) {
-        eckit::RadosKeyValue axis_kv{idx_kv_.nspace().pool().name(), idx_kv_.nspace().name(),
-                                     indexKey + std::string{"."} + name};
-
-        axes_.insert(name, axis_kv.keys());
+    for (const auto& name : axisNames(idx_kv_)) {
+        axes_.insert(name, axisKeyValue(idx_kv_, key_, name).keys());
     }
 
     axes_.sort();

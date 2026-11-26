@@ -986,6 +986,141 @@ CASE("RadosCatalogue tests") {
 #endif
 }
 
+namespace {
+
+std::string regression_pool() {
+#ifdef fdb5_HAVE_RADOS_TESTS_MANAGE_POOLS
+    return "test-catalogue";
+#else
+    return eckit::Resource<std::string>("fdbRadosTestPool;$FDB_RADOS_TEST_POOL", "");
+#endif
+}
+
+std::string api_config(const std::string& pool, const std::string& test_id, const std::string& store,
+                       bool with_path = true) {
+    std::string config_str{"spaces:\n- roots:\n  - "};
+    if (with_path) {
+        config_str += "path: " + catalogue_tests_tmp_root().asString() + "\n    ";
+    }
+    config_str += "pool: " + pool + "\n    root_namespace: " + test_id + "_root\n    namespace_prefix: " + test_id +
+                  "\ntype: local\nschema : " + schema_file().path() + "\nengine: rados\nstore: " + store + "\n";
+    return config_str;
+}
+
+size_t countListed(fdb5::FDB& fdb, const fdb5::FDBToolRequest& request) {
+    size_t count = 0;
+    fdb5::ListElement info;
+    auto listObject = fdb.list(request);
+    while (listObject.next(info)) {
+        ++count;
+    }
+    return count;
+}
+
+fdb5::FDBToolRequest tool_request(const fdb5::Key& key) {
+    return {key.request("retrieve"), false, std::vector<std::string>{"a", "b"}};
+}
+
+}  // namespace
+
+CASE("RadosCatalogue regressions") {
+
+    const std::string test_id = "test-catalogue";
+    const std::string pool = regression_pool();
+    EXPECT(pool.length() > 0);
+#ifdef fdb5_HAVE_RADOS_TESTS_MANAGE_POOLS
+    eckit::RadosPool{pool}.ensureDestroyed();
+    eckit::RadosPool{pool}.ensureCreated();
+#else
+    ensureCleanNamespaces(pool, test_id);
+#endif
+
+    char data[] = "test";
+
+    SECTION("Wiping one index removes its axis KVs and leaves other indexes intact") {
+
+        fdb5::Config config{YAMLConfiguration(api_config(pool, test_id, "rados"))};
+
+        fdb5::Key wiped_key({{"a", "31"}, {"b", "31"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+        fdb5::Key kept_key({{"a", "31"}, {"b", "31"}, {"c", "7"}, {"d", "8"}, {"e", "5"}, {"f", "6"}});
+        fdb5::Key wiped_index({{"a", "31"}, {"b", "31"}, {"c", "3"}, {"d", "4"}});
+
+        {
+            fdb5::FDB fdb(config);
+            fdb.archive(wiped_key, data, sizeof(data));
+            fdb.archive(kept_key, data, sizeof(data));
+            fdb.flush();
+        }
+
+        fdb5::FDB fdb(config);
+        auto wipeObject = fdb.wipe(tool_request(wiped_index), true);
+        EXPECT(countWipeable(wipeObject, false) > 0);
+
+        EXPECT(countListed(fdb, tool_request(wiped_key)) == 0);
+        EXPECT(countListed(fdb, tool_request(kept_key)) == 1);
+
+        std::unique_ptr<eckit::DataHandle> dh(fdb.retrieve(kept_key.request("retrieve")));
+        eckit::MemoryHandle mh;
+        dh->copyTo(mh);
+        EXPECT(mh.size() == eckit::Length(sizeof(data)));
+
+        // Nothing belonging to the wiped index (index KV, axis KVs, data objects) may be left behind.
+        for (const auto& obj : eckit::RadosNamespace{pool, test_id + "_31:31"}.listObjects()) {
+            std::cout << "remaining object: " << obj.name() << std::endl;
+            EXPECT(obj.name().rfind("3:4", 0) != 0);
+        }
+    }
+
+    SECTION("Roots do not need a filesystem path") {
+
+        fdb5::Config config{YAMLConfiguration(api_config(pool, test_id, "rados", false))};
+        fdb5::Key key({{"a", "33"}, {"b", "33"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+
+        fdb5::FDB fdb(config);
+        fdb.archive(key, data, sizeof(data));
+        fdb.flush();
+        EXPECT(countListed(fdb, tool_request(key)) == 1);
+    }
+
+    SECTION("Full wipe with a POSIX store does not report catalogue KVs as unknown") {
+
+        fdb5::Config config{YAMLConfiguration(api_config(pool, test_id, "file"))};
+        fdb5::Key key({{"a", "34"}, {"b", "34"}, {"c", "3"}, {"d", "4"}, {"e", "5"}, {"f", "6"}});
+        fdb5::Key db_key({{"a", "34"}, {"b", "34"}});
+
+        {
+            fdb5::FDB fdb(config);
+            fdb.archive(key, data, sizeof(data));
+            fdb.flush();
+        }
+
+        fdb5::FDB fdb(config);
+        EXPECT(countListed(fdb, tool_request(key)) == 1);
+        auto wipeObject = fdb.wipe(tool_request(db_key), true);
+        EXPECT(countWipeable(wipeObject) > 0);
+        EXPECT(countListed(fdb, tool_request(key)) == 0);
+        EXPECT((eckit::RadosNamespace{pool, test_id + "_34:34"}.listObjects().empty()));
+    }
+
+    SECTION("RadosStore::uriBelongs rejects foreign URIs") {
+
+        fdb5::Config config{YAMLConfiguration(api_config(pool, test_id, "rados"))};
+        fdb5::Key db_key({{"a", "35"}, {"b", "35"}});
+        fdb5::RadosStore store{db_key, config};
+
+        EXPECT(store.uriBelongs(store.uri()));
+        EXPECT_NOT(store.uriBelongs(eckit::URI{"file", "/a/b/c/d"}));
+        EXPECT_NOT(store.uriBelongs(eckit::URI{"rados", pool}));
+        EXPECT_NOT(store.uriBelongs(eckit::URI{"rados", pool + "/other_35:35/object"}));
+    }
+
+#ifdef fdb5_HAVE_RADOS_TESTS_MANAGE_POOLS
+    eckit::RadosPool{pool}.ensureDestroyed();
+#else
+    ensureCleanNamespaces(pool, test_id);
+#endif
+}
+
 }  // namespace fdb::test
 
 //----------------------------------------------------------------------------------------------------------------------
