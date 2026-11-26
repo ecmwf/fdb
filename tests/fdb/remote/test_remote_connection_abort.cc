@@ -1212,7 +1212,15 @@ void testFailureWithBlockedListener(remote::Message last) {
         eckit::Log::info() << "waiting reader woken with: " << error << std::endl;
         EXPECT(error.find("synthetic connection failure") != std::string::npos);
 
-        // ...and the paused one gets the failure as soon as it reads again, instead of the remaining chunks
+        // ...and the paused one gets the failure as soon as it reads again, instead of the remaining chunks.
+        // n.b. the requests are failed one after the other (by requestID), so the waiting one may be woken up before
+        // the paused one is failed: until then, a read still returns the chunks queued before the failure
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+        while (!paused->closed() && std::chrono::steady_clock::now() < deadline) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        EXPECT(paused->closed());
+
         std::string pausedError;
         try {
             remote::RemoteStore::StoredMessage msg;
