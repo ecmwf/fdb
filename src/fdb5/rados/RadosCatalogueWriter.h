@@ -32,6 +32,8 @@ namespace fdb5 {
 
 /// DB writer that implements the FDB on Rados.
 /// Not thread-safe per instance; separate writer instances may archive to the same database.
+/// Nothing is written before flush(); entries still queued on destruction are dropped, as the data they refer
+/// to may not have been flushed either.
 
 class RadosCatalogueWriter : public RadosCatalogue, public CatalogueWriter {
 
@@ -39,7 +41,6 @@ public:  // methods
 
     RadosCatalogueWriter(const Key& key, const fdb5::Config& config);
     RadosCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config);
-    ~RadosCatalogueWriter() override;
 
     void index(const Key& key, const eckit::URI& uri, eckit::Offset offset, eckit::Length length) override { NOTIMP; };
 
@@ -69,8 +70,6 @@ protected:  // methods
     void print(std::ostream& out) const override { out << "RadosCatalogueWriter(" << uri() << ")"; }
 
 private:  // methods
-
-    void closeIndexes();
 
     // Writes the catalogue KV (schema, key) and registers the database in the root KV.
     void createDatabase();

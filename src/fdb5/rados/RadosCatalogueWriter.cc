@@ -13,7 +13,6 @@
 #include "fdb5/database/IndexAxis.h"
 #include "fdb5/database/Key.h"
 #include "fdb5/rados/RadosCatalogue.h"
-#include "fdb5/rados/RadosCleanup.h"
 #include "fdb5/rados/RadosCommon.h"
 #include "fdb5/rados/RadosIndex.h"
 
@@ -93,12 +92,6 @@ RadosCatalogueWriter::RadosCatalogueWriter(const eckit::URI& uri, const fdb5::Co
     RadosCatalogue::loadSchema();
 }
 
-RadosCatalogueWriter::~RadosCatalogueWriter() {
-    // Entries which were not flushed are dropped: the data they refer to may not have been flushed either.
-    std::exception_ptr ignored;
-    best_effort(ignored, "~RadosCatalogueWriter::close", [&] { close(); });
-}
-
 bool RadosCatalogueWriter::createIndex(const Key& /* idxKey */, size_t /* datumKeySize */) {
     return true;
 }
@@ -139,7 +132,8 @@ void RadosCatalogueWriter::clean() {
 }
 
 void RadosCatalogueWriter::close() {
-    closeIndexes();
+    indexes_.clear();
+    unregistered_.clear();
 }
 
 const Index& RadosCatalogueWriter::currentIndex() {
@@ -153,43 +147,20 @@ const Index& RadosCatalogueWriter::currentIndex() {
 void RadosCatalogueWriter::archive(const Key& /* idxKey */, const Key& datumKey,
                                    std::shared_ptr<const FieldLocation> fieldLocation) {
 
-    if (current_.null()) {
-        ASSERT(!currentIndexKey_.empty());
-        selectIndex(currentIndexKey_);
-    }
-
     Field field(std::move(fieldLocation), currentIndex().timestamp());
-
-    const_cast<fdb5::IndexAxis&>(current_.axes()).sort();
-
-    std::vector<std::string> axesToExpand;
-    std::vector<std::string> valuesToAdd;
-
-    for (const auto& [keyword, value] : datumKey) {
-
-        if (value.length() == 0) {
-            continue;
-        }
-
-        const auto& axis_set = current_.axes().values(keyword);
-
-        if (!axis_set.contains(value)) {
-
-            axesToExpand.push_back(keyword);
-            valuesToAdd.push_back(value);
-        }
-    }
-
-    current_.put(datumKey, field);
 
     auto* radosIndex = dynamic_cast<fdb5::RadosIndex*>(current_.content());
     ASSERT(radosIndex);
 
-    while (!axesToExpand.empty()) {
-        radosIndex->putAxisValue(axesToExpand.back(), valuesToAdd.back());
-        axesToExpand.pop_back();
-        valuesToAdd.pop_back();
+    // Only values which are new to this writer are queued. Index::put() below adds them to the axes.
+    const_cast<fdb5::IndexAxis&>(current_.axes()).sort();
+    for (const auto& [keyword, value] : datumKey) {
+        if (!value.empty() && !current_.axes().values(keyword).contains(value)) {
+            radosIndex->putAxisValue(keyword, value);
+        }
     }
+
+    current_.put(datumKey, field);
 }
 
 void RadosCatalogueWriter::flush(size_t /* archivedFields */) {
@@ -213,11 +184,6 @@ void RadosCatalogueWriter::flush(size_t /* archivedFields */) {
     }
 
     current_ = Index();
-}
-
-void RadosCatalogueWriter::closeIndexes() {
-    indexes_.clear();
-    unregistered_.clear();
 }
 
 static fdb5::CatalogueWriterBuilder<fdb5::RadosCatalogueWriter> builder("rados");
