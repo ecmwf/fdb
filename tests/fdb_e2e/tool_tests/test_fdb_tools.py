@@ -12,8 +12,11 @@ from tests.fdb_e2e.tool_tests.util import generate_test_files_key_value, run_scr
 
 
 def _date_offsets() -> tuple[str, str, str, str]:
-    """Return (today, yesterday, before_yesterday, before_before_yesterday) as YYYYMMDD."""
-    today = datetime.date.today()
+    """Return (today, yesterday, before_yesterday, before_before_yesterday) as YYYYMMDD.
+
+    In UTC, as the relative dates of MARS requests (e.g. date=-1): not the local date, which differs around midnight.
+    """
+    today = datetime.datetime.now(datetime.timezone.utc).date()
     return (
         today.strftime("%Y%m%d"),
         (today - datetime.timedelta(days=1)).strftime("%Y%m%d"),
@@ -182,7 +185,7 @@ def test_read(fdb_env, test_data_path, read_script):
     assert len(target_files) == 10
 
     for date_diff in [0, -3]:
-        d = (datetime.date.today() + datetime.timedelta(days=date_diff)).strftime("%Y%m%d")
+        d = (datetime.datetime.now(datetime.timezone.utc).date() + datetime.timedelta(days=date_diff)).strftime("%Y%m%d")
         mars_request = (
             "retrieve,class=rd,expver=xxxx,type=an,stream=oper,levtype=pl,levelist=1000/850/700/500/400/300,"
             f"domain=g,date={d},time=0000/1200,step=0,param=138/155"

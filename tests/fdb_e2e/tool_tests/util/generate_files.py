@@ -30,7 +30,7 @@ def modify_metadata_source_file(
         # This only supports messages without missing datapoints
         assert count_data_points == count_values
 
-        yesterday = (datetime.date.today() - datetime.timedelta(days=1)).strftime(
+        yesterday = (datetime.datetime.now(datetime.timezone.utc).date() - datetime.timedelta(days=1)).strftime(
             "%Y%m%d"
         )
         ec.codes_set(gid, "date", int(yesterday))

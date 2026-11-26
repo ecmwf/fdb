@@ -210,7 +210,7 @@ def build_grib_messages_relative_dates(data_path, session_tmp) -> pathlib.Path:
     ec.codes_set_string(gid, "levtype", "sfc")
     ec.codes_set_values(gid, list(range(0, count_values)))
 
-    today_date = datetime.date.today()
+    today_date = datetime.datetime.now(datetime.timezone.utc).date()
 
     today = int(today_date.strftime("%Y%m%d"))
     yesterday = int((today_date - datetime.timedelta(days=1)).strftime("%Y%m%d"))
