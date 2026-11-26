@@ -107,6 +107,11 @@ protected:  // methods
     // Loads the schema from its textual form rather than from the catalogue KV.
     void loadSchema(const std::string& text);
 
+private:  // methods
+
+    // Removes every object of the database namespace and its entry in the root KV.
+    void destroyDatabase() const;
+
 protected:  // members
 
     Key currentIndexKey_;

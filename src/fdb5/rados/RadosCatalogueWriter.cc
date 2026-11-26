@@ -44,13 +44,13 @@ namespace fdb5 {
 
 RadosCatalogueWriter::RadosCatalogueWriter(const Key& key, const fdb5::Config& config) : RadosCatalogue(key, config) {
 
-    ASSERT(root_kv_->nspace().pool().exists());
+    ASSERT(root_kv_.nspace().pool().exists());
 
-    const bool exists = db_kv_->has("key");
+    const bool exists = db_kv_.has("key");
 
     // A registry entry alone does not prove the database exists: a wipe interrupted after destroying the
     // namespace leaves the entry behind, and the database must then be created again.
-    created_ = exists && root_kv_->has(db_namespace_);
+    created_ = exists && root_kv_.has(db_namespace_);
 
     if (exists) {
         RadosCatalogue::loadSchema();
@@ -71,19 +71,19 @@ RadosCatalogueWriter::RadosCatalogueWriter(const Key& key, const fdb5::Config& c
 
 void RadosCatalogueWriter::createDatabase() {
 
-    if (!db_kv_->has("key")) {
+    if (!db_kv_.has("key")) {
 
-        eckit::Log::debug<LibFdb5>() << "Copy schema from " << config_.schemaPath() << " to "
-                                     << db_kv_->uri().asString() << " at key 'schema'." << std::endl;
+        eckit::Log::debug<LibFdb5>() << "Copy schema from " << config_.schemaPath() << " to " << db_kv_.uri().asString()
+                                     << " at key 'schema'." << std::endl;
 
-        write_text(*db_kv_, "schema", schemaText_);
+        write_text(db_kv_, "schema", schemaText_);
 
         // Written after the schema: readers treat a catalogue KV without "key" as a missing database.
         const auto key = serialise([this](eckit::Stream& s) { s << dbKey_; });
-        db_kv_->put("key", key.data(), key.size());
+        db_kv_.put("key", key.data(), key.size());
     }
 
-    write_text(*root_kv_, db_namespace_, db_kv_->uri().asString());
+    write_text(root_kv_, db_namespace_, db_kv_.uri().asString());
 
     created_ = true;
 }
@@ -118,7 +118,7 @@ bool RadosCatalogueWriter::selectIndex(const Key& key) {
         }
         else {
             // The index KV is written and registered in the catalogue KV by the first flush().
-            indexes_[key] = Index(new fdb5::RadosIndex(key, eckit::RadosNamespace{pool_, db_namespace_}));
+            indexes_[key] = Index(new fdb5::RadosIndex(key, dbNamespace()));
             unregistered_.insert(key);
         }
     }
@@ -208,7 +208,7 @@ void RadosCatalogueWriter::flush(size_t /* archivedFields */) {
 
         // Registered last, so readers only find an index whose KV is complete.
         if (unregistered_.erase(key) > 0) {
-            write_text(*db_kv_, rados_names::indexPrefix + key.valuesToString(), index.location().uri().asString());
+            write_text(db_kv_, rados_names::indexPrefix + key.valuesToString(), index.location().uri().asString());
         }
     }
 

@@ -33,22 +33,18 @@ std::string RadosEngine::name() const {
 
 eckit::URI RadosEngine::location(const Key& key, const Config& config) const {
     const RadosSpace space = rados_space(config, key);
-    return eckit::RadosKeyValue{space.pool, space.databaseNamespace(key), "catalogue_kv"}.uri();
+    return eckit::RadosKeyValue{space.pool, space.databaseNamespace(key), rados_names::catalogueKeyValue}.uri();
 }
 
 bool RadosEngine::canHandle(const eckit::URI& uri, const Config&) const {
 
-    if (uri.scheme() != typeName()) {
-        return false;
-    }
-
-    const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
-    if (parts.size() != 2 && parts.size() != 3) {
+    const auto location = rados_location(uri);
+    if (!location) {
         return false;
     }
 
     try {
-        return eckit::RadosKeyValue{parts[0], parts[1], "catalogue_kv"}.exists();
+        return eckit::RadosKeyValue{location->pool, location->nspace, rados_names::catalogueKeyValue}.exists();
     }
     catch (const eckit::Exception& e) {
         eckit::Log::debug<LibFdb5>() << "RadosEngine::canHandle: exception checking URI " << uri << ": " << e.what()
@@ -63,7 +59,7 @@ std::vector<eckit::URI> RadosEngine::visitableLocations(const std::function<bool
     std::vector<eckit::URI> res{};
 
     for (const auto& space : rados_spaces(config)) {
-        eckit::RadosKeyValue rootKv{space.pool, space.rootNamespace, "main_kv"};
+        eckit::RadosKeyValue rootKv{space.pool, space.rootNamespace, rados_names::rootKeyValue};
         if (!rootKv.exists()) {
             continue;
         }

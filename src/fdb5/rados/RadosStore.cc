@@ -54,7 +54,7 @@ RadosStore::RadosStore(const Schema& /*schema*/, const Key& key, const Config& c
 RadosStore::RadosStore(const eckit::URI& uri, const Config& config) : RadosCommon(config, uri) {}
 
 eckit::URI RadosStore::uri() const {
-    return eckit::RadosNamespace(pool_, db_namespace_).uri();
+    return dbNamespace().uri();
 }
 
 eckit::URI RadosStore::uri(const eckit::URI& dataURI) {
@@ -63,29 +63,14 @@ eckit::URI RadosStore::uri(const eckit::URI& dataURI) {
 }
 
 bool RadosStore::uriBelongs(const eckit::URI& uri) const {
-
-    if (uri.scheme() != type()) {
-        return false;
-    }
-
-    const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
-    const auto n = parts.size();
-
-    return (n == 2 || n == 3) && (parts[0] == pool_) && (parts[1] == db_namespace_);
+    return ownsURI(uri);
 }
 
 bool RadosStore::uriExists(const eckit::URI& uri) const {
 
-    const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
-    const auto n = parts.size();
+    ASSERT(ownsURI(uri));
 
-    ASSERT(uri.scheme() == type());
-
-    ASSERT(n == 2 || n == 3);
-    ASSERT(parts[0] == pool_);
-    ASSERT(parts[1] == db_namespace_);
-
-    if (n == 2) {
+    if (rados_location(uri)->object.empty()) {
         return eckit::RadosNamespace(uri).exists();
     }
 
@@ -93,35 +78,15 @@ bool RadosStore::uriExists(const eckit::URI& uri) const {
 }
 
 std::set<eckit::URI> RadosStore::collocatedDataURIs() const {
-
-    std::set<eckit::URI> store_unit_uris;
-
-    eckit::RadosNamespace n{pool_, db_namespace_};
-
-    if (!n.exists()) {
-        return store_unit_uris;
-    }
-
-    for (const auto& obj : n.listObjects()) {
-        if (obj.name().find(";part-") != std::string::npos) {
-            continue;
-        }
-        store_unit_uris.insert(obj.uri());
-    }
-
-    return store_unit_uris;
+    return objectURIs();
 }
 
 std::set<eckit::URI> RadosStore::asCollocatedDataURIs(const std::set<eckit::URI>& uris) const {
-    std::set<eckit::URI> res;
-    for (const auto& uri : uris) {
-        res.insert(uri);
-    }
-    return res;
+    return uris;
 }
 
 bool RadosStore::exists() const {
-    return eckit::RadosNamespace(pool_, db_namespace_).exists();
+    return dbNamespace().exists();
 }
 
 eckit::DataHandle* RadosStore::retrieve(Field& field) const {
@@ -169,17 +134,9 @@ void RadosStore::close() {
 
 void RadosStore::remove(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) const {
 
-    ASSERT(uri.scheme() == type());
+    ASSERT(ownsURI(uri));
 
-    const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
-    const auto n = parts.size();
-
-    ASSERT(n == 2 || n == 3);
-
-    ASSERT(parts[0] == pool_);
-    ASSERT(parts[1] == db_namespace_);
-
-    if (n == 2) {  // namespace
+    if (rados_location(uri)->object.empty()) {  // namespace
 
         eckit::RadosNamespace ns{uri};
 
@@ -237,20 +194,7 @@ void RadosStore::finaliseWipeState(StoreWipeState& storeState, bool doit, bool u
     }
 
     // Full wipe: scan the database namespace for any objects unaccounted for by the catalogue.
-    eckit::RadosNamespace db{pool_, db_namespace_};
-
-    if (!db.exists()) {
-        return;
-    }
-
-    for (const auto& obj : db.listObjects()) {
-
-        // Parts belong to a main object and are removed together with it.
-        if (obj.name().find(";part-") != std::string::npos) {
-            continue;
-        }
-
-        const eckit::URI uri = obj.uri();
+    for (const auto& uri : objectURIs()) {
         if (dataURIs.find(uri) == dataURIs.end() && safeURIs.find(uri) == safeURIs.end()) {
             storeState.insertUnrecognised(uri);
         }
@@ -286,24 +230,15 @@ void RadosStore::doWipeEmptyDatabase() const {
         return;
     }
 
-    eckit::RadosNamespace db{pool_, db_namespace_};
-
-    if (db.exists()) {
-        remove(db.uri(), std::cout, std::cout, true);
-    }
+    remove(uri(), std::cout, std::cout, true);
 }
 
 bool RadosStore::doUnsafeFullWipe() const {
 
     // If the database namespace also holds a catalogue, skip: the catalogue-driven wipe owns the
     // namespace. Presence of a "key" entry in the DB KV is used as the catalogue-exists signal.
-    if (db_kv_ && (!db_kv_->exists() || !db_kv_->has("key"))) {
-
-        eckit::RadosNamespace db{pool_, db_namespace_};
-
-        if (db.exists()) {
-            remove(db.uri(), std::cout, std::cout, true);
-        }
+    if (!db_kv_.has("key")) {
+        remove(uri(), std::cout, std::cout, true);
     }
 
     return true;

@@ -47,7 +47,7 @@ RadosCatalogue::RadosCatalogue(const eckit::URI& uri, const ControlIdentifiers& 
                                const fdb5::Config& config) :
     CatalogueImpl(Key(), controlIdentifiers, config), RadosCommon(config, uri) {
     try {
-        dbKey_ = read_key(*db_kv_);
+        dbKey_ = read_key(db_kv_);
     }
     catch (eckit::RadosEntityNotFoundException& e) {
         throw fdb5::DatabaseNotFoundException(std::string("RadosCatalogue database not found ") + "(pool: '" + pool_ +
@@ -56,11 +56,11 @@ RadosCatalogue::RadosCatalogue(const eckit::URI& uri, const ControlIdentifiers& 
 }
 
 bool RadosCatalogue::exists() const {
-    return db_kv_->exists();
+    return db_kv_.exists();
 }
 
 eckit::URI RadosCatalogue::uri() const {
-    return db_kv_->nspace().uri();
+    return db_kv_.nspace().uri();
 }
 
 const Schema& RadosCatalogue::schema() const {
@@ -76,7 +76,7 @@ void RadosCatalogue::loadSchema() {
 
     eckit::Timer timer("RadosCatalogue::loadSchema()", eckit::Log::debug<fdb5::LibFdb5>());
 
-    loadSchema(read_text(*db_kv_, "schema"));
+    loadSchema(read_text(db_kv_, "schema"));
 }
 
 void RadosCatalogue::loadSchema(const std::string& text) {
@@ -89,7 +89,7 @@ void RadosCatalogue::loadSchema(const std::string& text) {
 
 std::optional<eckit::RadosKeyValue> RadosCatalogue::registeredIndex(const Key& key) const {
     try {
-        return eckit::RadosKeyValue{eckit::URI{read_text(*db_kv_, rados_names::indexPrefix + key.valuesToString())}};
+        return eckit::RadosKeyValue{eckit::URI{read_text(db_kv_, rados_names::indexPrefix + key.valuesToString())}};
     }
     catch (eckit::RadosEntityNotFoundException& e) {
         return std::nullopt;
@@ -101,13 +101,13 @@ std::vector<Index> RadosCatalogue::indexes(bool) const {
     // `sorted` is intentionally ignored; the RADOS backend does not need ordered enumeration.
     std::vector<fdb5::Index> res;
 
-    for (const auto& key : db_kv_->keys()) {
+    for (const auto& key : db_kv_.keys()) {
 
         if (!rados_names::has_prefix(key, rados_names::indexPrefix)) {
             continue;
         }
 
-        const eckit::RadosKeyValue index_kv{eckit::URI{read_text(*db_kv_, key)}};
+        const eckit::RadosKeyValue index_kv{eckit::URI{read_text(db_kv_, key)}};
 
         try {
             // Axes are loaded so that visitors relying on Index::axes() (e.g. fdb.axes()) see the datum axes.
@@ -129,10 +129,7 @@ std::string RadosCatalogue::type() const {
 
 bool RadosCatalogue::uriBelongs(const eckit::URI& uri) const {
 
-    const auto parts = eckit::Tokenizer("/").tokenize(uri.name());
-    const auto n = parts.size();
-
-    return (uri.scheme() == type()) && (n >= 2) && (parts[0] == pool_) && (parts[1] == db_namespace_);
+    return ownsURI(uri);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -145,8 +142,8 @@ void RadosCatalogue::maskIndexEntries(const std::set<Index>& indexes) const {
 
     for (const auto& index : indexes) {
         const std::string key = rados_names::indexPrefix + index.key().valuesToString();
-        if (db_kv_->has(key)) {
-            db_kv_->remove(key);
+        if (db_kv_.has(key)) {
+            db_kv_.remove(key);
         }
     }
 }
@@ -156,7 +153,7 @@ bool RadosCatalogue::markIndexForWipe(const Index& index, bool include, Catalogu
     eckit::RadosKeyValue index_kv{index.location().uri()};
 
     // A cross fdb-mount must never delete another DB's index/axis KVs.
-    if (index_kv.nspace().pool().name() != pool_ || index_kv.nspace().name() != db_namespace_) {
+    if (!ownsURI(index_kv.uri())) {
         include = false;
     }
 
@@ -192,7 +189,7 @@ bool RadosCatalogue::markIndexForWipe(const Index& index, bool include, Catalogu
 
 void RadosCatalogue::finaliseWipeState(CatalogueWipeState& wipeState) const {
 
-    const eckit::URI db_kv_uri = db_kv_->uri();
+    const eckit::URI db_kv_uri = db_kv_.uri();
 
     const bool wipeAll = wipeState.safeURIs().empty();
     if (wipeAll) {
@@ -203,16 +200,7 @@ void RadosCatalogue::finaliseWipeState(CatalogueWipeState& wipeState) const {
         return;
     }
 
-    eckit::RadosNamespace db{pool_, db_namespace_};
-    if (!db.exists()) {
-        return;
-    }
-
-    for (const auto& obj : db.listObjects()) {
-        if (obj.name().find(";part-") != std::string::npos) {
-            continue;
-        }
-        const eckit::URI uri = obj.uri();
+    for (const auto& uri : objectURIs()) {
         if (!wipeState.isMarkedForDeletion(uri)) {
             wipeState.insertUnrecognised(uri);
         }
@@ -221,14 +209,10 @@ void RadosCatalogue::finaliseWipeState(CatalogueWipeState& wipeState) const {
 
 namespace {
 
-void remove_catalogue_uri(const eckit::URI& uri, std::ostream& logAlways, std::ostream& logVerbose, bool doit) {
-
+void destroy_object(const eckit::URI& uri) {
     eckit::RadosObject obj{uri};
-    logVerbose << "destroy Rados object: ";
-    logAlways << obj.str() << std::endl;
-    if (doit) {
-        obj.ensureAllDestroyed();
-    }
+    std::cout << "destroy Rados object: " << obj.str() << std::endl;
+    obj.ensureAllDestroyed();
 }
 
 }  // namespace
@@ -237,7 +221,7 @@ bool RadosCatalogue::doWipeUnknowns(const std::set<eckit::URI>& unknownURIs) con
 
     for (const auto& uri : unknownURIs) {
         if (eckit::RadosObject{uri}.exists()) {
-            remove_catalogue_uri(uri, std::cout, std::cout, true);
+            destroy_object(uri);
         }
     }
     return true;
@@ -249,7 +233,7 @@ bool RadosCatalogue::doWipeURIs(const CatalogueWipeState& wipeState) const {
 
     for (const auto& [type, uris] : wipeState.deleteMap()) {
         for (const auto& uri : uris) {
-            remove_catalogue_uri(uri, std::cout, std::cout, true);
+            destroy_object(uri);
         }
     }
 
@@ -266,30 +250,26 @@ void RadosCatalogue::doWipeEmptyDatabase() const {
         return;
     }
 
-    eckit::RadosNamespace db{pool_, db_namespace_};
-    if (db.exists()) {
-        db.destroy();
-    }
-
-    if (root_kv_ && root_kv_->exists() && root_kv_->has(db_namespace_)) {
-        root_kv_->remove(db_namespace_);
-    }
+    destroyDatabase();
 
     cleanupEmptyDatabase_ = false;
 }
 
 bool RadosCatalogue::doUnsafeFullWipe() const {
+    destroyDatabase();
+    return true;
+}
 
-    eckit::RadosNamespace db{pool_, db_namespace_};
+void RadosCatalogue::destroyDatabase() const {
+
+    const eckit::RadosNamespace db = dbNamespace();
     if (db.exists()) {
         db.destroy();
     }
 
-    if (root_kv_ && root_kv_->exists() && root_kv_->has(db_namespace_)) {
-        root_kv_->remove(db_namespace_);
+    if (root_kv_.has(db_namespace_)) {
+        root_kv_.remove(db_namespace_);
     }
-
-    return true;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -326,12 +306,12 @@ void RadosCatalogue::control(const ControlAction& action, const ControlIdentifie
         switch (action) {
             case ControlAction::Disable: {
                 const char flag = '1';
-                db_kv_->put(key, &flag, 1);
+                db_kv_.put(key, &flag, 1);
                 break;
             }
             case ControlAction::Enable:
-                if (db_kv_->has(key)) {
-                    db_kv_->remove(key);
+                if (db_kv_.has(key)) {
+                    db_kv_.remove(key);
                 }
                 break;
             default:
@@ -346,7 +326,7 @@ bool RadosCatalogue::enabled(const ControlIdentifier& controlIdentifier) const {
     if (key.empty()) {
         return true;
     }
-    return !db_kv_->has(key);
+    return !db_kv_.has(key);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

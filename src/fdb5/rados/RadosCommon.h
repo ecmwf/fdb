@@ -13,10 +13,12 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/rados/RadosKeyValue.h"
+#include "eckit/io/rados/RadosNamespace.h"
 #include "eckit/serialisation/Stream.h"
 
 #include <functional>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -39,6 +41,9 @@ constexpr const char* axisPrefix = "axis.";    // index KV marker axis.<axis>; a
 constexpr const char* fieldPrefix = "field.";  // index KV entry: field.<datum key>
 constexpr const char* dataPrefix = "data.";    // data object: data.<index key>.<unique digest>
 
+constexpr const char* rootKeyValue = "main_kv";            // registry of the databases of a space
+constexpr const char* catalogueKeyValue = "catalogue_kv";  // catalogue of a database
+
 bool has_prefix(const std::string& name, const std::string& prefix);
 
 }  // namespace rados_names
@@ -59,6 +64,17 @@ RadosSpace rados_space(const Config&, const Key&);
 RadosSpace rados_space(const Config&, const eckit::URI&);
 std::vector<RadosSpace> rados_spaces(const Config&);
 
+// Components of a `rados:<pool>/<namespace>[/<object>]` URI; `object` is empty for a namespace URI.
+struct RadosLocation {
+    std::string pool;
+    std::string nspace;
+    std::string object;
+};
+
+// Empty unless `uri` has the rados scheme and two or three components.
+std::optional<RadosLocation> rados_location(const eckit::URI& uri);
+
+// State shared by the RADOS store and catalogue of one database: its pool, namespace and KVs.
 class RadosCommon {
 
 public:  // methods
@@ -66,17 +82,29 @@ public:  // methods
     RadosCommon(const Config&, const Key&);
     RadosCommon(const Config&, const eckit::URI&);
 
+protected:  // methods
+
+    eckit::RadosNamespace dbNamespace() const { return {pool_, db_namespace_}; }
+
+    // True for a rados URI of the database namespace or of an object in it.
+    bool ownsURI(const eckit::URI& uri) const;
+
+    // URIs of the objects in the database namespace. The parts of a multipart object are not listed;
+    // they are handled together with its first object.
+    std::set<eckit::URI> objectURIs() const;
+
 private:  // methods
 
-    void readConfig(const Config& config);
+    RadosCommon(const Config&, const RadosSpace&, const Key&);
+    RadosCommon(const Config&, const RadosSpace&, const std::string& dbNamespace);
 
 protected:  // members
 
     std::string pool_;
     std::string db_namespace_;
 
-    std::optional<eckit::RadosKeyValue> root_kv_;
-    std::optional<eckit::RadosKeyValue> db_kv_;
+    eckit::RadosKeyValue root_kv_;
+    eckit::RadosKeyValue db_kv_;
 
     eckit::Length maxPartSize_;
 };
