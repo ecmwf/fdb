@@ -86,6 +86,9 @@ private:  // members
 
     IndexStore indexes_;
 
+    // Keys of new indexes which are not yet registered in the catalogue KV.
+    std::set<Key> unregistered_;
+
     Index current_;
 };
 

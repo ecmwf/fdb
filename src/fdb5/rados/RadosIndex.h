@@ -40,7 +40,7 @@ class RadosIndex : public IndexBase {
 
 public:  // methods
 
-    // Creates a new index KV under `name`.
+    // Describes a new index KV under `name`. Nothing is written to RADOS before the first flush().
     RadosIndex(const Key& key, const eckit::RadosNamespace& name);
     // Wraps an already-existing index KV.
     RadosIndex(const Key& key, const eckit::RadosKeyValue& name, bool readAxes = true);
@@ -99,6 +99,9 @@ private:  // members
 
     eckit::RadosKeyValue idx_kv_;
     std::map<std::string, eckit::RadosKeyValue> axis_kvs_;
+
+    // False for a new index until its KV has been written by flush().
+    bool created_{true};
 
     // Serialised entries and axis values archived since the last flush().
     std::map<std::string, std::vector<char>> pendingEntries_;

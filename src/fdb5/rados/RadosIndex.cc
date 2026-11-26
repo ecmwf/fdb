@@ -48,19 +48,8 @@ RadosIndex::RadosIndex(const Key& key, const eckit::RadosNamespace& name) :
     IndexBase(key, "radosKeyValue"),
     location_(eckit::RadosKeyValue{name.pool().name(), name.name(), rados_names::indexPrefix + key.valuesToString()},
               0),
-    idx_kv_(location_.radosName().uri()) {
-
-    // Persist indexKey under "key" so the index KV can later be identified when reopened.
-    eckit::MemoryHandle h{(size_t)PATH_MAX};
-    eckit::HandleStream hs{h};
-    h.openForWrite(eckit::Length(0));
-    {
-        eckit::AutoClose closer(h);
-        hs << key;
-    }
-
-    idx_kv_.put("key", h.data(), hs.bytesWritten());
-}
+    idx_kv_(location_.radosName().uri()),
+    created_(false) {}
 
 RadosIndex::RadosIndex(const Key& key, const eckit::RadosKeyValue& name, bool readAxes) :
     IndexBase(key, "radosKeyValue"), location_(name, 0), idx_kv_(name.uri()) {
@@ -95,6 +84,20 @@ void RadosIndex::putAxisValue(const std::string& axis, const std::string& value)
 }
 
 void RadosIndex::flush() {
+
+    if (!created_) {
+        // Persist the index key under "key" so the index KV can later be identified when reopened.
+        eckit::MemoryHandle h{(size_t)PATH_MAX};
+        eckit::HandleStream hs{h};
+        h.openForWrite(eckit::Length(0));
+        {
+            eckit::AutoClose closer(h);
+            hs << key_;
+        }
+
+        idx_kv_.put("key", h.data(), hs.bytesWritten());
+        created_ = true;
+    }
 
     // Axis values go first: a reader must never find an entry whose axis values are not yet recorded.
     const char marker = '1';

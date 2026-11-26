@@ -126,10 +126,9 @@ bool RadosCatalogueWriter::selectIndex(const Key& key) {
         }
         catch (eckit::RadosEntityNotFoundException& e) {
 
+            // The index KV is written and registered in the catalogue KV by the first flush().
             indexes_[key] = Index(new fdb5::RadosIndex(key, eckit::RadosNamespace{pool_, db_namespace_}));
-
-            std::string nstr{indexes_[key].location().uri().asString()};
-            db_kv_->put(rados_names::indexPrefix + key.valuesToString(), nstr.data(), nstr.length());
+            unregistered_.insert(key);
         }
     }
 
@@ -205,8 +204,17 @@ void RadosCatalogueWriter::archive(const Key& /* idxKey */, const Key& datumKey,
 void RadosCatalogueWriter::flush(size_t /* archivedFields */) {
 
     for (auto& [key, index] : indexes_) {
-        if (index.dirty()) {
-            index.flush();
+
+        if (!index.dirty()) {
+            continue;
+        }
+
+        index.flush();
+
+        // Registered last, so readers only find an index whose KV is complete.
+        if (unregistered_.erase(key) > 0) {
+            const std::string nstr{index.location().uri().asString()};
+            db_kv_->put(rados_names::indexPrefix + key.valuesToString(), nstr.data(), nstr.length());
         }
     }
 
@@ -215,6 +223,7 @@ void RadosCatalogueWriter::flush(size_t /* archivedFields */) {
 
 void RadosCatalogueWriter::closeIndexes() {
     indexes_.clear();
+    unregistered_.clear();
 }
 
 static fdb5::CatalogueWriterBuilder<fdb5::RadosCatalogueWriter> builder("rados");
