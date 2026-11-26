@@ -86,7 +86,12 @@ void RadosCatalogue::loadSchema() {
     std::vector<char> data;
     db_kv_->getMemoryStream(data, "schema", "DB Key-Value");
 
-    std::istringstream stream{std::string(data.begin(), data.end())};
+    loadSchema(std::string(data.begin(), data.end()));
+}
+
+void RadosCatalogue::loadSchema(const std::string& text) {
+
+    std::istringstream stream{text};
     schema_.load(stream);
 
     rule_ = &schema_.matchingRule(dbKey_);

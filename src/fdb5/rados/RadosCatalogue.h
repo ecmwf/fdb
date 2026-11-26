@@ -103,6 +103,11 @@ public:  // methods
     void doWipeEmptyDatabase() const override;
     bool doUnsafeFullWipe() const override;
 
+protected:  // methods
+
+    // Loads the schema from its textual form rather than from the catalogue KV.
+    void loadSchema(const std::string& text);
+
 protected:  // members
 
     Key currentIndexKey_;

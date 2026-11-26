@@ -653,6 +653,17 @@ CASE("RadosCatalogue tests") {
         fdb5::RadosCatalogueWriter alpha{alpha_key, config};
         fdb5::RadosCatalogueWriter beta{beta_key, config};
 
+        // A database is created and registered by its first flush.
+        for (fdb5::RadosCatalogueWriter* writer : {&alpha, &beta}) {
+            fdb5::Catalogue& catalogue = *writer;
+            catalogue.selectIndex(fdb5::Key({{"c", "3"}, {"d", "4"}}));
+            static_cast<fdb5::CatalogueWriter&>(*writer).archive(
+                fdb5::Key({{"c", "3"}, {"d", "4"}}), fdb5::Key({{"e", "5"}, {"f", "6"}}),
+                std::make_unique<fdb5::RadosFieldLocation>(eckit::URI{"rados", "unused"}, eckit::Offset(0),
+                                                           eckit::Length(1)));
+            catalogue.flush(0);
+        }
+
         const std::string alpha_namespace = pool + "/" + alpha_prefix + "_" + alpha_key.valuesToString();
         const std::string beta_namespace = pool + "/" + beta_prefix + "_" + beta_key.valuesToString();
         EXPECT(alpha.uri().name() == alpha_namespace);
@@ -1138,15 +1149,12 @@ CASE("RadosCatalogue regressions") {
             static_cast<fdb5::CatalogueWriter&>(writer).archive(index_key, field_key, std::move(loc));
         }
 
-        // Only the catalogue KV exists: no index KV, no axis KVs, no index registration.
-        const auto objects = eckit::RadosNamespace{pool, test_id + "_40:40"}.listObjects();
-        EXPECT(objects.size() == 1);
-        EXPECT(objects.front().name() == "catalogue_kv");
+        // No catalogue KV, index KV or axis KV, and no registration in the root KV.
+        EXPECT((eckit::RadosNamespace{pool, test_id + "_40:40"}.listObjects().empty()));
+        EXPECT(fdb5::Engine::backend("rados").visitableLocations(db_key, config).empty());
 
         fdb5::RadosCatalogueReader reader{db_key, config};
-        EXPECT(static_cast<fdb5::CatalogueReader&>(reader).open());
-        EXPECT(static_cast<fdb5::Catalogue&>(reader).indexes().empty());
-        EXPECT_NOT(static_cast<fdb5::Catalogue&>(reader).selectIndex(index_key));
+        EXPECT_NOT(static_cast<fdb5::CatalogueReader&>(reader).open());
     }
 
     SECTION("Roots do not need a filesystem path") {

@@ -51,29 +51,39 @@ namespace fdb5 {
 
 RadosCatalogueWriter::RadosCatalogueWriter(const Key& key, const fdb5::Config& config) : RadosCatalogue(key, config) {
 
-    std::string db_name = db_namespace_;
     ASSERT(root_kv_->nspace().pool().exists());
 
-    root_kv_->ensureCreated();
+    const bool exists = db_kv_->has("key");
 
     // A registry entry alone does not prove the database exists: a wipe interrupted after destroying the
     // namespace leaves the entry behind, and the database must then be created again.
-    if (!root_kv_->has(db_name) || !db_kv_->has("key")) {
+    created_ = exists && root_kv_->has(db_namespace_);
 
-        db_kv_->ensureCreated();
+    if (exists) {
+        RadosCatalogue::loadSchema();
+        return;
+    }
+
+    // A new database is only written to RADOS by the first flush(). Until then the configured schema is used.
+    eckit::FileHandle in(config_.schemaPath());
+    schemaText_.resize(in.size());
+    {
+        eckit::AutoClose ac{in};
+        in.openForRead();
+        ASSERT(in.read(schemaText_.data(), schemaText_.size()) == static_cast<long>(schemaText_.size()));
+    }
+
+    RadosCatalogue::loadSchema(schemaText_);
+}
+
+void RadosCatalogueWriter::createDatabase() {
+
+    if (!db_kv_->has("key")) {
 
         eckit::Log::debug<LibFdb5>() << "Copy schema from " << config_.schemaPath() << " to "
                                      << db_kv_->uri().asString() << " at key 'schema'." << std::endl;
 
-        eckit::FileHandle in(config_.schemaPath());
-        std::vector<char> data;
-        data.resize(in.size());
-        {
-            eckit::AutoClose ac{in};
-            in.openForRead();
-            ASSERT(in.read(data.data(), data.size()) == static_cast<long>(data.size()));
-        }
-        db_kv_->put("schema", data.data(), data.size());
+        db_kv_->put("schema", schemaText_.data(), schemaText_.size());
 
         eckit::MemoryHandle h{(size_t)PATH_MAX};
         eckit::HandleStream hs{h};
@@ -83,13 +93,14 @@ RadosCatalogueWriter::RadosCatalogueWriter(const Key& key, const fdb5::Config& c
             hs << dbKey_;
         }
 
+        // Written after the schema: readers treat a catalogue KV without "key" as a missing database.
         db_kv_->put("key", h.data(), hs.bytesWritten());
-
-        std::string nstr = db_kv_->uri().asString();
-        root_kv_->put(db_name, nstr.data(), nstr.length());
     }
 
-    RadosCatalogue::loadSchema();
+    const std::string nstr = db_kv_->uri().asString();
+    root_kv_->put(db_namespace_, nstr.data(), nstr.length());
+
+    created_ = true;
 }
 
 RadosCatalogueWriter::RadosCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config) :
@@ -207,6 +218,10 @@ void RadosCatalogueWriter::flush(size_t /* archivedFields */) {
 
         if (!index.dirty()) {
             continue;
+        }
+
+        if (!created_) {
+            createDatabase();
         }
 
         index.flush();
