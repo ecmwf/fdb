@@ -1,12 +1,17 @@
 // SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
 // SPDX-License-Identifier: Apache-2.0
 
+#include <cstdlib>
+
+#include "eckit/log/Log.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "fdb5/tools/FDBTool.h"
+#include "fdb5/tracing/TraceContext.h"
+#include "fdb5/tracing/Tracer.h"
 
 namespace fdb5 {
 
@@ -29,12 +34,45 @@ void FDBTool::run() {
         options_.push_back(new eckit::option::SimpleOption<std::string>("config", "FDB configuration filename"));
     }
 
+    options_.push_back(new eckit::option::SimpleOption<std::string>(
+        "traceparent",
+        "W3C trace context (OpenTelemetry) under which FDB calls are recorded. Default: $TRACEPARENT/$TRACESTATE"));
+
     eckit::option::CmdArgs args(&fdb5::usage, options_, numberOfPositionalArguments(), minimumPositionalArguments());
 
+    // the log channels carry the results of the tools: spans must not be mixed with them
+    tracing::LogSpanExporter::toStderr(true);
+
+    tracing::ScopedContext traceScope(traceContext(args));
+
+    // machine-readable output (n.b. fdb-list --json implies --porcelain): no span may be mixed with it
+    if (args.getBool("porcelain", false) || args.getBool("json", false)) {
+        tracing::Tracer::instance().suppressExport(true);
+    }
 
     init(args);
     execute(args);
     finish(args);
+}
+
+tracing::TraceContext FDBTool::traceContext(const eckit::option::CmdArgs& args) {
+    const char* tracestate = ::getenv("TRACESTATE");
+
+    std::string traceparent = args.getString("traceparent", "");
+    if (!traceparent.empty()) {
+        // explicitly requested: a malformed value is an error
+        return tracing::TraceContext::fromTraceparent(traceparent, tracestate ? tracestate : "");
+    }
+
+    // OpenTelemetry environment carrier: as for any propagated context, a malformed value is ignored
+    if (const char* env = ::getenv("TRACEPARENT"); env && *env) {
+        tracing::TraceContext ctx = tracing::TraceContext::parse(env, tracestate ? tracestate : "");
+        if (!ctx.valid()) {
+            eckit::Log::warning() << "Ignoring invalid TRACEPARENT '" << env << "'" << std::endl;
+        }
+        return ctx;
+    }
+    return {};
 }
 
 Config FDBTool::config(const eckit::option::CmdArgs& args, const eckit::Configuration& appConfig) {

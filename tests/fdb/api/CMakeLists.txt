@@ -23,6 +23,7 @@ list( APPEND api_tests
     select_exclude
     wipe
     access_timestamps
+    tracing_api
 )
 
 foreach( _test ${api_tests} )

@@ -27,6 +27,10 @@ class CmdArgs;
 
 namespace fdb5 {
 
+namespace tracing {
+class TraceContext;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 /// Base class for FDB tools
@@ -57,6 +61,9 @@ protected:  // members
 protected:  // methods
 
     virtual void init(const eckit::option::CmdArgs& args);
+
+    /// The trace context given with --traceparent, or by the TRACEPARENT/TRACESTATE environment variables
+    static tracing::TraceContext traceContext(const eckit::option::CmdArgs& args);
     virtual void finish(const eckit::option::CmdArgs& args);
     std::vector<Key> parse(const std::string& request, const Config& config);
 

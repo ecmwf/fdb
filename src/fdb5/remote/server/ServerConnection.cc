@@ -14,6 +14,8 @@
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/server/AvailablePortList.h"
+#include "fdb5/tracing/TraceContext.h"
+#include "fdb5/tracing/Tracer.h"
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/config/Resource.h"
@@ -63,12 +65,66 @@ constexpr const auto defaultArchiveQueueSize = 320;
 // Largest message accepted before the handshake has completed (the startup message is a few hundred bytes)
 constexpr uint32_t maxStartupPayloadSize = 64 * 1024;
 
+/// The trace context set by a Message::Trace frame for the frames received on one channel with the same clientID and
+/// requestID, until a frame with other ids (or another Trace frame) is received. A Trace frame without payload means
+/// no context. The client only writes a Trace frame when the context changes (e.g. not for each blob of an archive
+/// call), see Connection::write().
+///
+/// Tracing must never disrupt data flow: a Trace frame that was not negotiated or cannot be decoded is reported and
+/// ignored, without failing the request.
+class IncomingTrace {
+public:
+
+    void set(const MessageHeader& hdr, const eckit::Buffer& payload, int tracingVersion) {
+        pending_ = false;
+        if (tracingVersion == 0) {
+            eckit::Log::warning() << "Ignoring " << Message::Trace << " frame from clientID=" << hdr.clientID()
+                                  << ": trace-context propagation was not negotiated" << std::endl;
+            return;
+        }
+        if (hdr.payloadSize == 0) {
+            return;  // no context
+        }
+        try {
+            context_ = tracing::TraceContext::decode(payload.data(), hdr.payloadSize);
+        }
+        catch (const eckit::Exception& e) {
+            eckit::Log::warning() << "Ignoring malformed " << Message::Trace
+                                  << " frame from clientID=" << hdr.clientID() << ": " << e.what() << std::endl;
+            return;
+        }
+        clientID_ = hdr.clientID();
+        requestID_ = hdr.requestID;
+        pending_ = true;
+    }
+
+    /// The context of @p hdr (invalid if none was set). It stays in force for the next frames with the same ids.
+    tracing::TraceContext take(const MessageHeader& hdr) {
+        if (!pending_) {
+            return {};
+        }
+        if (hdr.clientID() != clientID_ || hdr.requestID != requestID_) {
+            pending_ = false;
+            return {};
+        }
+        return context_;
+    }
+
+private:
+
+    bool pending_{false};
+    uint32_t clientID_{0};
+    uint32_t requestID_{0};
+    tracing::TraceContext context_;
+};
+
 }  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
 ServerConnection::ServerConnection(eckit::net::TCPSocket& socket, const Config& config) :
     config_(config),
+    tracing_(tracing::Tracer::instance().enabled()),
     dataListenHostname_(config.getString("dataListenHostname", "")),
     readLocationQueue_(eckit::Resource<size_t>("fdbRetrieveQueueSize", defaultRetrieveQueueSize)),
     archiveQueue_(eckit::Resource<size_t>("fdbServerMaxQueueSize", defaultArchiveQueueSize)),
@@ -290,6 +346,7 @@ bool ServerConnection::initialiseConnections() {
     try {
         agreedConf_ = RemoteConfiguration::common(clientConf, serverConf);
         single_ = agreedConf_.singleConnection();
+        tracingVersion_ = agreedConf_.tracingVersion();
     }
     catch (const eckit::Exception& e) {
         error(true, e.what(), hdr.clientID(), hdr.requestID);
@@ -397,6 +454,9 @@ size_t ServerConnection::archiveThreadLoop() {
                 continue;
             }
 
+            // n.b. after the guard above: counted before a flush waiting for this element can end the span
+            tracing::SpanAggregator::Operation span(tracing_ ? &archiveSpans_ : nullptr, elem.trace_, elem.clientID_);
+
             try {
                 if (elem.multiblob_) {
                     // Handle MultiBlob
@@ -442,12 +502,14 @@ size_t ServerConnection::archiveThreadLoop() {
                         offset += MessageHeader::markerBytes;
 
                         archiveBlob(elem.clientID_, elem.requestID_, payloadData, hdr.payloadSize);
+                        span.add(1, hdr.payloadSize);
                         totalArchived += 1;
                     }
                 }
                 else {
                     // Handle single blob
                     archiveBlob(elem.clientID_, elem.requestID_, elem.payload_.data(), elem.payload_.size());
+                    span.add(1, elem.payload_.size());
                     totalArchived += 1;
                 }
             }
@@ -455,6 +517,14 @@ size_t ServerConnection::archiveThreadLoop() {
                 // Published before this element is counted as processed (when the guard above is destroyed): a flush
                 // that sees no pending work must also see the failure, not report missing locations
                 recordArchiveFailure(std::current_exception());
+                try {
+                    throw;
+                }
+                catch (const std::exception& e) {
+                    span.failed(e.what());
+                }
+                catch (...) {
+                }
                 throw;
             }
         }
@@ -505,6 +575,7 @@ void ServerConnection::listeningThreadLoopData() {
     } ended{dataEnded_};
 
     MessageHeader hdr{};
+    IncomingTrace incomingTrace;
 
     try {
 
@@ -513,6 +584,13 @@ void ServerConnection::listeningThreadLoopData() {
         // n.b. we also don't need to lock on read. We are the only thing that reads.
         while (true) {
             eckit::Buffer payload = readData(hdr);  // READ DATA
+
+            if (hdr.message == Message::Trace) {
+                incomingTrace.set(hdr, payload, tracingVersion_);
+                continue;
+            }
+            // Work queued while handling this frame (e.g. blobs for the archiver) captures this context
+            tracing::ScopedContext traceScope(incomingTrace.take(hdr));
 
             if (hdr.message == Message::Exit) {
                 ASSERT(hdr.clientID() == 0);
@@ -579,6 +657,7 @@ void ServerConnection::listenControl(std::thread& listeningThreadData) {
     maxPayloadSize(maxPayload);
 
     MessageHeader hdr{};
+    IncomingTrace incomingTrace;
 
     // listen loop
     while (true) {
@@ -587,9 +666,25 @@ void ServerConnection::listenControl(std::thread& listeningThreadData) {
                                << ",clientID=" << hdr.clientID() << ",requestID=" << hdr.requestID
                                << ",payload=" << hdr.payloadSize << "]" << std::endl;
 
+        if (hdr.message == Message::Trace) {
+            incomingTrace.set(hdr, payload, tracingVersion_);
+            continue;
+        }
+
+        // The client's context is current while handling the message, so that work handed to worker threads
+        // inherits it; synchronously handled requests are recorded as a server span
+        tracing::ScopedContext traceScope(incomingTrace.take(hdr));
+        std::optional<tracing::ScopedSpan> span;
+        if (tracing_ && hdr.control()) {
+            if (const char* name = serverSpanName(hdr.message)) {
+                span.emplace(name, tracing::SpanKind::Server, tracing::current());
+            }
+        }
+
         if (hdr.message == Message::Stop) {
             ASSERT(hdr.clientID());
             remove(hdr.clientID());
+            archiveSpans_.end(hdr.clientID());
         }
         else {
             if (hdr.message == Message::Exit) {
@@ -644,6 +739,9 @@ void ServerConnection::listenControl(std::thread& listeningThreadData) {
                     default:
                         std::ostringstream ss;
                         ss << "Unable to handle message " << hdr.message;
+                        if (span) {
+                            span->span().setStatus(tracing::StatusCode::Error, ss.str());
+                        }
                         error(true, ss.str(), hdr.clientID(), hdr.requestID);
                 }
             }
@@ -700,6 +798,35 @@ void ServerConnection::handle() {
 
     if (!failed) {
         teardown();
+    }
+}
+
+const char* ServerConnection::serverSpanName(Message message) const {
+    switch (message) {
+        case Message::Flush:
+            return "fdb.server.flush";
+        case Message::Exists:
+            return "fdb.server.exists";
+        case Message::Schema:
+            return "fdb.server.schema";
+        case Message::Stores:
+            return "fdb.server.stores";
+        case Message::Wipe:
+            return "fdb.server.wipe";
+        case Message::DoWipeURIs:
+            return "fdb.server.wipe.uris";
+        case Message::DoWipeUnknowns:
+            return "fdb.server.wipe.unknowns";
+        case Message::DoWipeFinish:
+            return "fdb.server.wipe.finish";
+        case Message::DoMaskIndexEntries:
+            return "fdb.server.wipe.mask_index_entries";
+        case Message::DoUnsafeFullWipe:
+            return "fdb.server.wipe.unsafe_full";
+        default:
+            // Archive/Store open a stream whose blobs are traced by the archiver thread; Read and the iterating
+            // API calls are traced by their worker threads
+            return nullptr;
     }
 }
 

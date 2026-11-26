@@ -45,7 +45,7 @@ def swh_grib_download(tmp_path_factory):
         "ecmwf.opendata", reason="pip install ecmwf-opendata to run online tests"
     )
 
-    date = datetime.date.today() - datetime.timedelta(days=2)
+    date = datetime.datetime.now(datetime.timezone.utc).date() - datetime.timedelta(days=2)
     tmp = tmp_path_factory.mktemp("swh_online")
     grib = tmp / "swh_opendata.grib2"
 

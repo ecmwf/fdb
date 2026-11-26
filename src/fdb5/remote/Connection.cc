@@ -2,6 +2,7 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/remote/Messages.h"
+#include "fdb5/tracing/Tracer.h"
 
 #include "eckit/io/Buffer.h"
 #include "eckit/log/Log.h"
@@ -169,11 +170,15 @@ void Connection::checkHeader(const MessageHeader& hdr, bool control) const {
            << (control ? "control" : "data") << " connection";
         throw RemoteProtocolException(ss.str(), Here());
     }
-    if (hdr.payloadSize > maxPayloadSize_) {
+    // n.b. a trace context has its own (small) bound, whatever the limit of the requests: checked before the payload
+    // is allocated, and a valid context is accepted even when the request limit is smaller
+    const size_t limit =
+        hdr.message == Message::Trace ? tracing::TraceContext::maxBinarySize : static_cast<size_t>(maxPayloadSize_);
+    if (hdr.payloadSize > limit) {
         isValid_ = false;
         std::ostringstream ss;
         ss << "message " << hdr.message << " with a payload of " << hdr.payloadSize << " bytes exceeds the limit of "
-           << maxPayloadSize_ << " bytes";
+           << limit << " bytes";
         throw RemoteProtocolException(ss.str(), Here());
     }
 }
@@ -270,9 +275,10 @@ eckit::Buffer Connection::read(bool control, MessageHeader& hdr) const {
     return eckit::Buffer{0};
 }
 
-void Connection::write(const Message msg, const bool control, const uint32_t clientID, const uint32_t requestID,
-                       const PayloadList payloads) const {
+namespace {
 
+/// The length of the payload of a frame, checked against the limit of the protocol before anything is written
+uint32_t framePayloadLength(const Message msg, const Connection::PayloadList& payloads) {
     size_t totalLength = 0;
     for (const auto& payload : payloads) {
         ASSERT(payload.data);
@@ -285,18 +291,23 @@ void Connection::write(const Message msg, const bool control, const uint32_t cli
            << " bytes exceeds the limit of the protocol (4 GiB)";
         throw eckit::UserError(ss.str(), Here());
     }
-    const auto payloadLength = static_cast<uint32_t>(totalLength);
+    return static_cast<uint32_t>(totalLength);
+}
+
+}  // namespace
+
+void Connection::writeFrameUnsafe(const eckit::net::TCPSocket& socket, const Message msg, const bool control,
+                                  const uint32_t clientID, const uint32_t requestID,
+                                  const PayloadList& payloads) const {
+
+    const uint32_t payloadLength = framePayloadLength(msg, payloads);
 
     MessageHeader message{msg, control, clientID, requestID, payloadLength};
-
-    const auto& socket = getSocket(control);
-    std::lock_guard<std::mutex> lock(getSocketMutex(control));
 
     LOG_DEBUG_LIB(LibFdb5) << "Connection::write [endpoint=" << socket.remoteHost() << ":" << socket.remotePort()
                            << ",message=" << msg << ",clientID=" << message.clientID() << ",control=" << control
                            << ",requestID=" << requestID << ",payloadsSize=" << payloads.size()
                            << ",payloadLength=" << payloadLength << "]" << std::endl;
-
 
     writeUnsafe(socket, &message, sizeof(message));
 
@@ -307,7 +318,71 @@ void Connection::write(const Message msg, const bool control, const uint32_t cli
     writeUnsafe(socket, &MessageHeader::EndMarker, MessageHeader::markerBytes);
 }
 
+void Connection::writeTraceFrameUnsafe(const eckit::net::TCPSocket& socket, const bool control,
+                                       const uint32_t clientID, const uint32_t requestID,
+                                       const std::string& encodedTrace) const {
+    SentTrace& sent = sentTrace_[(control || single_) ? 0 : 1];
+
+    // The peer drops the context as soon as it reads a frame for other ids
+    static const std::string none;
+    const bool sameRequest = sent.clientID == clientID && sent.requestID == requestID;
+    const std::string& held = sameRequest ? sent.context : none;
+
+    if (encodedTrace != held) {
+        if (encodedTrace.empty()) {
+            writeFrameUnsafe(socket, Message::Trace, control, clientID, requestID, {});
+        }
+        else {
+            writeFrameUnsafe(socket, Message::Trace, control, clientID, requestID,
+                             {{encodedTrace.size(), encodedTrace.data()}});
+        }
+    }
+    sent.clientID = clientID;
+    sent.requestID = requestID;
+    sent.context = encodedTrace;
+}
+
+void Connection::write(const Message msg, const bool control, const uint32_t clientID, const uint32_t requestID,
+                       const PayloadList payloads) const {
+
+    if (tracingVersion_ > 0) {
+        framePayloadLength(msg, payloads);  // fail before a Trace frame is written, see below
+    }
+
+    const auto& socket = getSocket(control);
+    std::lock_guard<std::mutex> lock(getSocketMutex(control));
+
+    if (tracingVersion_ > 0) {
+        // no context: the peer must not apply the one it holds for these ids
+        writeTraceFrameUnsafe(socket, control, clientID, requestID, {});
+    }
+    writeFrameUnsafe(socket, msg, control, clientID, requestID, payloads);
+}
+
+void Connection::write(const Message msg, const bool control, const uint32_t clientID, const uint32_t requestID,
+                       const PayloadList& payloads, const tracing::TraceContext& trace) const {
+
+    // Fail before the Trace frame is written: it must never be left without the frame it describes
+    framePayloadLength(msg, payloads);
+
+    // Never emit a Trace frame unless the peer agreed to it at startup: legacy peers would not understand it. Nor
+    // once tracing is disabled (e.g. by a configuration read after the connection was established). Unsampled
+    // contexts are sent too: the peer records its part of a failing request, whatever the sampling.
+    const bool sendTrace = tracingVersion_ > 0 && trace.valid() && tracing::Tracer::instance().enabled();
+    const std::string encodedTrace = sendTrace ? trace.encode() : std::string{};
+
+    const auto& socket = getSocket(control);
+    std::lock_guard<std::mutex> lock(getSocketMutex(control));
+
+    if (tracingVersion_ > 0) {
+        writeTraceFrameUnsafe(socket, control, clientID, requestID, encodedTrace);
+    }
+    writeFrameUnsafe(socket, msg, control, clientID, requestID, payloads);
+}
+
 void Connection::error(bool control, std::string_view msg, uint32_t clientID, uint32_t requestID) const {
+    // An error reply means that the request being handled has failed: so does its span, if any (see recordError())
+    tracing::recordError(msg);
     eckit::Log::error() << "[clientID=" << clientID << ",requestID=" << requestID << "]  " << msg << std::endl;
     write(Message::Error, control, clientID, requestID, msg.data(), msg.length());
 }
@@ -398,6 +473,7 @@ bool Connection::tryWriteBounded(Message message, bool control, uint32_t clientI
 bool Connection::tryErrorBounded(bool control, std::string_view msg, uint32_t clientID,
                                  uint32_t requestID) const noexcept {
     try {
+        tracing::recordError(msg);
         eckit::Log::error() << "[clientID=" << clientID << ",requestID=" << requestID << "]  " << msg << std::endl;
     }
     catch (...) {
@@ -421,6 +497,8 @@ void Connection::endConnection() noexcept {
 }
 
 void Connection::unauthorised(std::string_view msg, uint32_t clientID, uint32_t requestID) const {
+    // a denied request has failed, as for error()
+    tracing::recordError(msg);
     eckit::Log::warning() << "[clientID=" << clientID << ",requestID=" << requestID << "]  " << msg << std::endl;
     write(Message::Unauthorised, true, clientID, requestID, msg.data(), msg.length());
 }

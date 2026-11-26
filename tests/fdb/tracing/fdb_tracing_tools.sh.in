@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+
+# FDB tools record their FDB calls under the trace context given with --traceparent, or by the OpenTelemetry
+# environment carrier TRACEPARENT/TRACESTATE
+
+set -euxo pipefail
+
+export PATH=@CMAKE_BINARY_DIR@/bin:$PATH
+export FDB_HOME=@PROJECT_BINARY_DIR@
+
+wd=$(mktemp -d "@CMAKE_CURRENT_BINARY_DIR@/tracing_tools.XXXXXX")
+trap 'rm -rf "$wd"' EXIT
+
+mkdir -p "$wd/root"
+export FDB_ROOT_DIRECTORY="$wd/root"
+export FDB_TRACING_EXPORTER=log
+export FDB_TRACING_SAMPLER=parentbased_always_on
+unset TRACEPARENT TRACESTATE FDB_TRACING_ENABLED || true
+
+trace_id=0af7651916cd43dd8448eb211c80319c
+
+list_span() {
+    # the fdb.list span written to the log (the output of the tool)
+    grep '"name":"fdb.list"' "$1"
+}
+
+no_span() {
+    # no span written to the log
+    ! grep -q '"name":"fdb\.' "$1" || (echo "Spans recorded: $2" && exit 1)
+}
+
+# --- explicit option
+fdb-list --all --minimum-keys="" --ignore-no-data --traceparent="00-${trace_id}-b7ad6b7169203331-01" \
+    >"$wd/option.log" 2>&1
+list_span "$wd/option.log" | grep "\"trace_id\":\"${trace_id}\"" | grep -q '"parent_span_id":"b7ad6b7169203331"'
+
+# --- the log exporter is the default one
+env -u FDB_TRACING_EXPORTER \
+    fdb-list --all --minimum-keys="" --ignore-no-data --traceparent="00-${trace_id}-b7ad6b7169203331-01" \
+    >"$wd/default.log" 2>&1
+list_span "$wd/default.log" | grep -q "\"trace_id\":\"${trace_id}\""
+
+# --- environment carrier, with tracestate
+TRACEPARENT="00-${trace_id}-00f067aa0ba902b7-01" TRACESTATE="vendor=abc" \
+    fdb-list --all --minimum-keys="" --ignore-no-data >"$wd/env.log" 2>&1
+list_span "$wd/env.log" | grep "\"trace_id\":\"${trace_id}\"" | grep '"parent_span_id":"00f067aa0ba902b7"' \
+    | grep -q '"trace_state":"vendor=abc"'
+
+# --- a malformed explicit traceparent is an error
+if fdb-list --all --minimum-keys="" --ignore-no-data --traceparent=garbage 2>"$wd/err.txt"; then
+    echo "Malformed --traceparent accepted" && exit 1
+fi
+grep -q "Invalid W3C traceparent 'garbage'" "$wd/err.txt"
+
+# --- a malformed propagated traceparent is ignored: the call is a new root
+TRACEPARENT=garbage fdb-list --all --minimum-keys="" --ignore-no-data >"$wd/bad.log" 2>&1
+list_span "$wd/bad.log" | grep -q '"parent_span_id":""'
+
+# --- exporter none: nothing written
+FDB_TRACING_EXPORTER=none TRACEPARENT="00-${trace_id}-00f067aa0ba902b7-01" \
+    fdb-list --all --minimum-keys="" --ignore-no-data >"$wd/none.log" 2>&1
+no_span "$wd/none.log" "exporter none"
+
+# --- tracing disabled: nothing recorded
+FDB_TRACING_ENABLED=false TRACEPARENT="00-${trace_id}-00f067aa0ba902b7-01" \
+    fdb-list --all --minimum-keys="" --ignore-no-data >"$wd/off.log" 2>&1
+no_span "$wd/off.log" "tracing disabled"
+
+# --- tracing disabled by the configuration (for the whole process): nothing recorded
+for setting in "tracing: false" "tracing: {enabled: false}"; do
+    { cat "$FDB_HOME/etc/fdb/config.yaml"; echo "$setting"; } > "$wd/off.yaml"
+    FDB_CONFIG_FILE="$wd/off.yaml" TRACEPARENT="00-${trace_id}-00f067aa0ba902b7-01" \
+        fdb-list --all --minimum-keys="" --ignore-no-data >"$wd/off_config.log" 2>&1
+    no_span "$wd/off_config.log" "$setting"
+done

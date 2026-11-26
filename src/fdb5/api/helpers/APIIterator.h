@@ -14,6 +14,8 @@
 #include "eckit/container/Queue.h"
 
 #include "fdb5/api/helpers/QueueTraits.h"
+#include "fdb5/tracing/TraceContext.h"
+#include "fdb5/tracing/Tracer.h"
 
 #include <exception>
 #include <functional>
@@ -55,15 +57,49 @@ public:  // methods
 
     APIIterator(APIIteratorBase<ValueType>* impl) : impl_(impl) {}
 
+    APIIterator(APIIterator&&) noexcept = default;
+
+    /// n.b. as on destruction, the implementation of the iteration replaced is over (e.g. an asynchronous worker
+    /// cancelled and joined) before its span ends
+    APIIterator& operator=(APIIterator&& rhs) noexcept {
+        if (this != &rhs) {
+            impl_ = std::move(rhs.impl_);
+            span_ = std::move(rhs.span_);
+        }
+        return *this;
+    }
+
+    ~APIIterator() = default;
+
     /// Get the next element. Return false if at end
     bool next(ValueType& elem) {
-        if (!impl_) {
-            return false;
+        try {
+            if (impl_ && impl_->next(elem)) {
+                return true;
+            }
         }
-        return impl_->next(elem);
+        catch (const std::exception& e) {
+            span_.setStatus(tracing::StatusCode::Error, e.what());
+            span_.end();
+            throw;
+        }
+        span_.end();
+        return false;
+    }
+
+    /// Attach the tracing span of the API call that created this iterator. The span ends when the iteration is
+    /// exhausted, fails, or the iterator is destroyed.
+    void attachSpan(tracing::Span&& span) {
+        span_ = std::move(span);
+        // the iterator may be destroyed while the caller is unwinding for unrelated reasons: that is not a failure
+        span_.detectUnwinding(false);
     }
 
 private:  // members
+
+    /// n.b. declared before impl_, so destroyed after it: the span of an abandoned iteration ends once its
+    /// implementation is over (e.g. an asynchronous worker cancelled and joined), and its trace with it
+    tracing::Span span_;
 
     std::unique_ptr<APIIteratorBase<ValueType>> impl_;
 };
@@ -129,8 +165,10 @@ public:  // methods
     APIAsyncIterator(std::shared_ptr<FDBBase> fdb, std::function<void(QueueType&)> workerFn, const Config& config) :
         fdb_(fdb), queue_(QueueTraits<QueueType>::make(config)) {
 
+        // The worker runs on behalf of the caller: propagate the caller's trace context to the worker thread
         // Add a call to set_done() on the eckit::Queue.
-        auto fullWorker = [workerFn, this] {
+        auto fullWorker = [workerFn, this, traceContext = tracing::current()] {
+            tracing::ScopedContext traceScope(traceContext);
             try {
                 workerFn(queue_);
                 queue_.close();

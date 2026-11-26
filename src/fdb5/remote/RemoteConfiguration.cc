@@ -11,8 +11,28 @@
 
 #include "fdb5/LibFdb5.h"
 #include "fdb5/remote/Messages.h"
+#include "fdb5/tracing/Tracer.h"
 
 namespace {
+
+std::vector<int> intList(const eckit::Value& v, const char* key) {
+    std::vector<int> out;
+    if (v.isList()) {
+        out.reserve(v.size());
+        for (size_t i = 0; i < v.size(); ++i) {
+            out.push_back(v[i]);
+        }
+    }
+    else if (v.isNumber()) {
+        out.push_back(v);
+    }
+    else {
+        std::ostringstream ss;
+        ss << "Invalid " << key << " value: " << v;
+        throw eckit::SeriousBug(ss.str(), Here());
+    }
+    return out;
+}
 
 template <class T>
 std::vector<T> intersection(std::vector<T>& v1, std::vector<T>& v2) {
@@ -57,6 +77,10 @@ RemoteConfiguration::RemoteConfiguration(const eckit::Configuration& config) {
 
     if (config.getBool("wipe", true)) {
         enabledFeatures_ |= toMask(Message::Wipe);
+    }
+
+    if (tracing::Tracer::instance().enabled()) {
+        tracingVersions_ = {tracingProtocolVersion};
     }
 }
 
@@ -127,6 +151,11 @@ RemoteConfiguration::RemoteConfiguration(eckit::Stream& s) {
         // A peer predating feature negotiation.
         enabledFeatures_ = maskOfLegacyFeatures;
     }
+
+    // absent: the peer does not support (or has disabled) trace-context propagation
+    if (v.contains("Tracing")) {
+        tracingVersions_ = intList(v["Tracing"], "Tracing");
+    }
 }
 
 bool RemoteConfiguration::singleConnection() const {
@@ -141,6 +170,9 @@ eckit::Stream& operator<<(eckit::Stream& s, const RemoteConfiguration& r) {
         val["PreferSingleConnection"] = eckit::toValue(r.preferSingleConnection_.value());
     }
     val["EnabledFeatures"] = eckit::toValue(r.enabledFeatures_);
+    if (!r.tracingVersions_.empty()) {
+        val["Tracing"] = eckit::toValue(r.tracingVersions_);
+    }
     s << val;
     return s;
 }
@@ -149,7 +181,8 @@ std::ostream& operator<<(std::ostream& s, const RemoteConfiguration& r) {
     s << "RemoteConfiguration[remoteFieldLocationVersions=" << r.remoteFieldLocationVersions_
       << ", numberOfConnections=" << r.numberOfConnections_ << ", preferSingleConnection="
       << (r.preferSingleConnection_ ? std::to_string(*r.preferSingleConnection_) : "nullopt")
-      << ", singleConnection=" << r.singleConnection_ << ", enabledFeatures=" << r.enabledFeatures_ << "]";
+      << ", singleConnection=" << r.singleConnection_ << ", enabledFeatures=" << r.enabledFeatures_
+      << ", tracing=" << r.tracingVersions_ << "]";
     return s;
 }
 
@@ -206,9 +239,16 @@ RemoteConfiguration RemoteConfiguration::common(RemoteConfiguration& clientConf,
 
     agreedConf.enabledFeatures_ = clientConf.enabledFeatures_ & serverConf.enabledFeatures_;
 
+    // Trace-context propagation: highest common version, or none (no Message::Trace frames on this connection)
+    std::vector<int> tracingCommon = intersection(clientConf.tracingVersions_, serverConf.tracingVersions_);
+    if (!tracingCommon.empty()) {
+        agreedConf.tracingVersions_ = {tracingCommon.back()};
+    }
+
     LOG_DEBUG_LIB(LibFdb5) << "Protocol negotiation" << std::endl
                            << "  EnabledFeatures     " << messageMask2String(agreedConf.enabledFeatures_) << std::endl
-                           << "  NumberOfConnections " << ncSelected << std::endl;
+                           << "  NumberOfConnections " << ncSelected << std::endl
+                           << "  Tracing             " << agreedConf.tracingVersion() << std::endl;
     agreedConf.numberOfConnections_ = {ncSelected};
     agreedConf.singleConnection_ = (ncSelected == 1);
 

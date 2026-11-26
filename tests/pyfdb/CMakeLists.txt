@@ -46,6 +46,7 @@ set(test_files
     integration/test_stats.py
     integration/test_status.py
     integration/test_touch.py
+    integration/test_tracing.py
     integration/test_types.py
     integration/test_uri.py
     integration/test_version_compat.py

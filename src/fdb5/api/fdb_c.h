@@ -369,6 +369,25 @@ int fdb_delete_handle(fdb_handle_t* fdb);
 
 /** @} */
 
+/** \defgroup Tracing */
+/** @{ */
+
+/** Begin a trace scope on the calling thread. Until the matching fdb_trace_end(), FDB calls made by this thread are
+ * recorded as children of the given OpenTelemetry-compatible (W3C Trace Context) context, which is also propagated
+ * to remote FDB servers. Scopes nest.
+ * \param traceparent W3C traceparent value, e.g. "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+ * \param tracestate W3C tracestate value, or NULL
+ * \returns Return code (#FdbErrorValues); FDB_ERROR_GENERAL_EXCEPTION if the traceparent is malformed
+ */
+int fdb_trace_begin(const char* traceparent, const char* tracestate);
+
+/** End the innermost trace scope begun on the calling thread by fdb_trace_begin().
+ * \returns Return code (#FdbErrorValues); an error if there is no open scope on this thread
+ */
+int fdb_trace_end(void);
+
+/** @} */
+
 
 /** \defgroup Wipe */
 /** @{ */

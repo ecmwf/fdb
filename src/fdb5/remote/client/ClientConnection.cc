@@ -7,6 +7,7 @@
 #include "fdb5/remote/RemoteConfiguration.h"
 #include "fdb5/remote/client/Client.h"
 #include "fdb5/remote/client/ClientConnectionRouter.h"
+#include "fdb5/tracing/TraceContext.h"
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/config/Resource.h"
@@ -64,8 +65,8 @@ public:
 
     DataWriteRequest() = default;
 
-    DataWriteRequest(uint32_t clientID, Message msg, uint32_t id, Buffer&& data) :
-        clientID_(clientID), msg_(msg), id_(id), data_(std::move(data)) {}
+    DataWriteRequest(uint32_t clientID, Message msg, uint32_t id, Buffer&& data, tracing::TraceContext trace) :
+        clientID_(clientID), msg_(msg), id_(id), data_(std::move(data)), trace_(std::move(trace)) {}
 
     /// @param barrier: no payload, signals when all queued writes before this barrier have been processed
     explicit DataWriteRequest(std::shared_ptr<std::promise<void>> barrier) : barrier_{std::move(barrier)} {}
@@ -74,6 +75,8 @@ public:
     Message msg_{Message::None};
     uint32_t id_{0};
     Buffer data_{Buffer(0)};
+    /// Trace context of the caller, captured at enqueue time: the write happens on the data-write thread
+    tracing::TraceContext trace_;
     std::shared_ptr<std::promise<void>> barrier_;
 };
 
@@ -382,7 +385,7 @@ std::future<Buffer> ClientConnection::controlWrite(const Client& client, const M
     }
 
     try {
-        Connection::write(msg, true, client.clientId(), requestID, payloads);
+        Connection::write(msg, true, client.clientId(), requestID, payloads, tracing::current());
     }
     catch (...) {
         // not sent: nobody will answer it
@@ -398,7 +401,8 @@ void ClientConnection::dataWrite(DataWriteRequest& request) const {
 
     checkEnabled(request.msg_);
 
-    Connection::write(request.msg_, false, request.clientID_, request.id_, request.data_.data(), request.data_.size());
+    Connection::write(request.msg_, false, request.clientID_, request.id_,
+                      {{request.data_.size(), request.data_.data()}}, request.trace_);
 }
 
 void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t requestID, PayloadList payloads) {
@@ -448,7 +452,7 @@ void ClientConnection::dataWrite(Client& client, remote::Message msg, uint32_t r
     }
 
     // n.b. without the lock: this blocks while the queue is full
-    enqueueDataWrite(*queue, DataWriteRequest{client.clientId(), msg, requestID, std::move(buffer)});
+    enqueueDataWrite(*queue, DataWriteRequest{client.clientId(), msg, requestID, std::move(buffer), tracing::current()});
 }
 
 void ClientConnection::enqueueDataWrite(Queue<DataWriteRequest>& queue, DataWriteRequest&& request) const {
@@ -655,6 +659,7 @@ SessionID ClientConnection::verifyServerStartupResponse() {
     }
     single_ = agreedConf.singleConnection();
     agreedFeatures_ = agreedConf.enabledFeatures();
+    tracingVersion_ = agreedConf.tracingVersion();
 
     if (single_ && !(dataEndpoint_ == controlEndpoint_)) {
         Log::warning() << "Returned control interface does not match. " << dataEndpoint_ << " /= " << controlEndpoint_

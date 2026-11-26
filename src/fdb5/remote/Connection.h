@@ -4,6 +4,7 @@
 #pragma once
 
 #include "fdb5/remote/Messages.h"
+#include "fdb5/tracing/TraceContext.h"
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/net/TCPSocket.h"
@@ -17,6 +18,7 @@
 #include <iostream>
 #include <limits>
 #include <mutex>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -85,6 +87,23 @@ public:  // methods
         write(msg, control, clientID, requestID, {{length, data}});
     }
 
+    /// As write(), with the trace context @p trace if trace-context propagation was negotiated for this connection and
+    /// @p trace is valid.
+    ///
+    /// A Message::Trace frame sets the context of the frames which follow it with the same clientID and requestID,
+    /// until another frame with other ids (or another Trace frame) is received; an empty Trace frame means no context.
+    /// The frame is only written when the context differs from the one the peer holds, e.g. not for the successive
+    /// blobs of an archive call, which share one. It is written under the same socket lock as the frame it describes,
+    /// so it always immediately precedes it. A write() without a context counts as one with no context.
+    void write(Message msg, bool control, uint32_t clientID, uint32_t requestID, const PayloadList& payloads,
+               const tracing::TraceContext& trace) const;
+
+    /// Negotiated trace-context propagation version, 0 if not agreed
+    int tracingVersion() const { return tracingVersion_; }
+
+    /// Sends an error reply. The failure is also recorded in the innermost tracing::ScopedSpan of the calling thread
+    /// (the span of the request being handled), see tracing::recordError(). So do tryError(), tryErrorBounded() and
+    /// unauthorised().
     void error(bool control, std::string_view msg, uint32_t clientID, uint32_t requestID) const;
     void unauthorised(std::string_view msg, uint32_t clientID, uint32_t requestID) const;
 
@@ -137,6 +156,10 @@ private:  // methods
 
     void writeUnsafe(const eckit::net::TCPSocket& socket, const void* data, size_t length) const;
 
+    /// Write one frame (header, payloads, end marker). The caller must hold the socket mutex.
+    void writeFrameUnsafe(const eckit::net::TCPSocket& socket, Message msg, bool control, uint32_t clientID,
+                          uint32_t requestID, const PayloadList& payloads) const;
+
     bool readUnsafe(const eckit::net::TCPSocket& socket, void* data, size_t length) const;
 
     const eckit::net::TCPSocket& getSocket(bool control) const;
@@ -175,6 +198,9 @@ protected:  // members
 
     bool single_;
 
+    /// Set from the agreed RemoteConfiguration at startup; 0 means no Message::Trace frames on this connection
+    int tracingVersion_{0};
+
 private:  // members
 
     std::atomic<bool> closingSocket_{false};
@@ -183,6 +209,21 @@ private:  // members
 
     mutable std::mutex controlMutex_;
     mutable std::mutex dataMutex_;
+
+    /// The trace context that the peer holds for the frames it reads next from a socket, as a result of the frames
+    /// written to it (see write() with a context). Index 0: the control socket (also the data one if single_), 1: data.
+    /// Guarded by the mutex of the socket.
+    struct SentTrace {
+        uint32_t clientID{0};
+        uint32_t requestID{0};
+        std::string context;  // encoded, empty if none
+    };
+    mutable SentTrace sentTrace_[2];
+
+    /// Writes the Trace frame (if any) which makes the context of the frame about to be written, for these ids, the
+    /// one the peer holds. The caller must hold the socket mutex.
+    void writeTraceFrameUnsafe(const eckit::net::TCPSocket& socket, bool control, uint32_t clientID,
+                               uint32_t requestID, const std::string& encodedTrace) const;
 
     /// Indicates if this instance is in a usable state.
     /// Once this is marked as invalid it cannot be recovered.

@@ -8,6 +8,7 @@ import pyfdb.bindings as _bindings
 from pyfdb._internal.pyfdb_internal import (
     ConfigMapper,
     FDBToolRequest,
+    make_trace_context,
 )
 
 # Raw C++ wrapper types — internal only, not part of the public pyfdb API.

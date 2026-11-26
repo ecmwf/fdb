@@ -43,6 +43,7 @@ enum class Message : uint16_t {
     Stores,
     Schema,
     Stop,
+    Trace,  // trace context of the next frames with the same clientID/requestID. Only sent if negotiated ("Tracing")
 
     // API calls to forward
     Flush = 100,

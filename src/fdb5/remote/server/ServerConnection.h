@@ -30,6 +30,8 @@
 #include "fdb5/remote/Connection.h"
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteConfiguration.h"
+#include "fdb5/tracing/TraceContext.h"
+#include "fdb5/tracing/Tracer.h"
 
 namespace fdb5::remote {
 
@@ -62,11 +64,13 @@ struct readLocationElem {
     uint32_t clientID;
     uint32_t requestID;
     std::unique_ptr<eckit::DataHandle> readLocation;
+    tracing::TraceContext trace;  // context of the request, the read is served by a worker thread
 
     readLocationElem() : clientID(0), requestID(0), readLocation(nullptr) {}
 
-    readLocationElem(uint32_t clientID, uint32_t requestID, std::unique_ptr<eckit::DataHandle> readLocation) :
-        clientID(clientID), requestID(requestID), readLocation(std::move(readLocation)) {}
+    readLocationElem(uint32_t clientID, uint32_t requestID, std::unique_ptr<eckit::DataHandle> readLocation,
+                     tracing::TraceContext trace = tracing::current()) :
+        clientID(clientID), requestID(requestID), readLocation(std::move(readLocation)), trace(std::move(trace)) {}
 };
 
 struct ArchiveElem {
@@ -75,11 +79,17 @@ struct ArchiveElem {
     uint32_t requestID_;
     eckit::Buffer payload_;
     bool multiblob_;
+    tracing::TraceContext trace_;  // context of the blob(s), archived by the archiver thread
 
     ArchiveElem() : clientID_(0), requestID_(0), payload_(0), multiblob_(false) {}
 
-    ArchiveElem(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload, bool multiblob) :
-        clientID_(clientID), requestID_(requestID), payload_(std::move(payload)), multiblob_(multiblob) {}
+    ArchiveElem(uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload, bool multiblob,
+                tracing::TraceContext trace = tracing::current()) :
+        clientID_(clientID),
+        requestID_(requestID),
+        payload_(std::move(payload)),
+        multiblob_(multiblob),
+        trace_(std::move(trace)) {}
 };
 
 class ServerConnection : public Connection, public Handler {
@@ -160,6 +170,10 @@ protected:
     void archiver();
     void queue(Message message, uint32_t clientID, uint32_t requestID, eckit::Buffer&& payload);
 
+    /// Name of the server span recorded while handling a control message synchronously, or nullptr if the message
+    /// is not traced at dispatch (e.g. because its work, and span, happens on a worker thread)
+    virtual const char* serverSpanName(Message message) const;
+
 private:
 
     void listeningThreadLoopData();
@@ -181,6 +195,13 @@ protected:
 
     Config config_;
     Config innerConfig_;
+
+    /// Whether this server records spans (tracing enabled in the process, see FdbServerBase::doRun())
+    bool tracing_;
+
+    /// The archived messages are traced as one span per client and incoming trace context, ended by the flush of
+    /// the client, or when it is removed. n.b. declared before the archive worker, which uses it.
+    tracing::SpanAggregator archiveSpans_{"fdb.server.archive", tracing::SpanKind::Server};
 
     std::string dataListenHostname_;
 

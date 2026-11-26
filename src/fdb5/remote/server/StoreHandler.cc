@@ -11,6 +11,7 @@
 #include "fdb5/remote/Messages.h"
 #include "fdb5/remote/RemoteFieldLocation.h"
 #include "fdb5/remote/server/ServerConnection.h"
+#include "fdb5/tracing/Tracer.h"
 
 #include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
@@ -27,6 +28,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <utility>
 
 using namespace eckit;
@@ -171,7 +173,13 @@ void StoreHandler::readLocationThreadLoop() {
             // Get the next MarsRequest in sequence to work on, do the retrieve, and
             // send the data back to the client.
 
+            std::optional<tracing::ScopedSpan> span;
+            if (tracing_) {
+                span.emplace("fdb.server.read", tracing::SpanKind::Server, elem.trace);
+            }
+
             // Forward the API call
+            // n.b. a failure is reported to the client, and recorded in the span (see Connection::error())
             writeToParent(elem.clientID, elem.requestID, std::move(elem.readLocation));
         }
     }
@@ -262,6 +270,20 @@ void StoreHandler::archiveBlob(const uint32_t clientID, const uint32_t requestID
 }
 
 void StoreHandler::flush(uint32_t clientID, uint32_t requestID, const eckit::Buffer& payload) {
+
+    // The archive spans of the client end with the flush. If it fails, their traces are exported with it: they may be
+    // other traces than the flush, which would otherwise be complete, and not exported
+    struct EndArchiveSpans {
+        tracing::SpanAggregator& spans;
+        uint32_t clientID;
+        int uncaughtExceptions{std::uncaught_exceptions()};
+        ~EndArchiveSpans() {
+            auto archives = spans.detach(clientID);
+            if (std::uncaught_exceptions() > uncaughtExceptions) {
+                archives.retainTraces();
+            }
+        }
+    } endArchiveSpans{archiveSpans_, clientID};
 
     size_t numArchived = 0;
 

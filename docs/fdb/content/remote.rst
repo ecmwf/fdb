@@ -122,7 +122,8 @@ Every message is ``header | payload | "EFDB"``:
 
 * The lowest bit of the ``clientID`` field says whether the message belongs to the **control** (1) or **data** (0)
   channel. ``clientID == 0`` is reserved for connection-level messages (``Startup``, ``Exit``).
-* Message groups: server instructions (``Startup``, ``Error``, ``Stores``, ``Schema``, ``Stop``, ``Exit``), API calls
+* Message groups: server instructions (``Startup``, ``Error``, ``Stores``, ``Schema``, ``Stop``, ``Exit``, and
+  ``Trace``, which carries the trace context of the next message and is only sent if negotiated), API calls
   (``Flush``, ``Archive``, ``List``, ``Read``, ``Store``, ``Wipe``, ...), wipe steps (``DoWipe*``,
   ``DoMaskIndexEntries``), responses (``Received``, ``Complete``, ``Unauthorised``) and payloads (``Blob``,
   ``MultiBlob``).
@@ -162,6 +163,10 @@ Two modes, chosen by negotiation (``supportedConnections``, ``preferSingleConnec
 configuration (``wipe: false``), or, on the server, for the clients of some networks only (``networks``, see the
 configuration reference below; the server works out the network of the client from its address, and withdraws the
 feature from the mask it offers to that client).
+
+If both sides support it and have tracing enabled, ``agreedConf`` also carries the agreed ``Tracing`` version, which
+allows the client to send ``Trace`` messages (see :ref:`FDB_Tracing`). The key is absent otherwise, and is never sent
+to or expected from a peer that predates it.
 
 A message outside the agreed mask is refused by the client before it is sent: ``checkEnabled`` throws a
 ``UserError``, which says which side does not allow it, as the client remembers the mask it offered:

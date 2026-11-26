@@ -1,3 +1,10 @@
+# Protocol negotiation (no server needed)
+ecbuild_add_test(
+    TARGET    fdb_test_remote_negotiation
+    SOURCES   test_remote_negotiation.cc
+    LIBS      fdb5
+)
+
 # Client side of test
 ecbuild_add_executable(
     TARGET    fdb_test_remote_api_bin
@@ -120,6 +127,53 @@ if (HAVE_FDB_BUILD_TOOLS AND HAVE_GRIB)
         RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
         LABELS remotefdb
     )
+
+    # End-to-end trace-context propagation: client and servers with tracing enabled, or disabled on either side
+    ecbuild_add_executable(
+        TARGET    fdb_test_remote_tracing_bin
+        SOURCES   test_remote_tracing.cc
+        INCLUDES  ${ECKIT_INCLUDE_DIRS}
+        LIBS      fdb5
+        NOINSTALL
+    )
+
+    # An fdb-server whose store flush fails for the requests asking for it (in their trace state)
+    ecbuild_add_executable(
+        TARGET    fdb_test_remote_failing_store
+        SOURCES   fdb_test_remote_failing_store.cc
+        INCLUDES  ${ECKIT_INCLUDE_DIRS}
+        LIBS      fdb5
+        NOINSTALL
+    )
+
+    foreach( _variant enabled client_disabled server_disabled )
+        set( TRACING_CLIENT true )
+        set( TRACING_SERVER true )
+        if( _variant STREQUAL "client_disabled" )
+            set( TRACING_CLIENT false )
+        elseif( _variant STREQUAL "server_disabled" )
+            set( TRACING_SERVER false )
+        endif()
+
+        ecbuild_configure_file( tracing_client.yaml.in    tracing_${_variant}_client.yaml    @ONLY )
+        ecbuild_configure_file( tracing_catalogue.yaml.in tracing_${_variant}_catalogue.yaml @ONLY )
+        ecbuild_configure_file( tracing_store.yaml.in     tracing_${_variant}_store.yaml     @ONLY )
+
+        ecbuild_add_test(
+            TARGET         fdb_test_remote_tracing_${_variant}
+            TYPE           SCRIPT
+            COMMAND        ${FDB_TEST_SERVER_SCRIPT}
+            ARGS           ${CMAKE_CURRENT_BINARY_DIR} tracing_${_variant}_client.yaml tracing_${_variant}_catalogue.yaml
+                           tracing_${_variant}_store.yaml "$<TARGET_FILE:fdb_test_remote_tracing_bin>"
+                           "$<TARGET_FILE:fdb_test_remote_failing_store>"
+            TEST_DEPENDS   fdb_test_remote_tracing_bin fdb_test_remote_failing_store
+            ENVIRONMENT    "${test_environment}" "FDB_TRACING_TEST_VARIANT=${_variant}"
+            TEST_PROPERTIES
+            TIMEOUT 120
+            RESOURCE_LOCK fdb_remote_tests  # Prevent concurrent runs of remote tests
+            LABELS remotefdb
+        )
+    endforeach()
 
     # See, https://jira.ecmwf.int/browse/FDB-720
     # Regression test for the control/data connection message-ordering race in RemoteStore::handle()

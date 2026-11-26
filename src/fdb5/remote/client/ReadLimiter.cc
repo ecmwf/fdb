@@ -64,7 +64,8 @@ void ReadLimiter::add(RemoteStore* client, uint32_t id, const FieldLocation& fie
                << ". Field: " << fieldLocation.fullUri();
             throw eckit::SeriousBug(ss.str());
         }
-        requests_.emplace_back(RequestInfo{client, id, std::move(requestBuffer), requestSize, resultSize});
+        requests_.emplace_back(
+            RequestInfo{client, id, std::move(requestBuffer), requestSize, resultSize, tracing::current()});
     }
 
     tryNextRequests();
@@ -72,7 +73,7 @@ void ReadLimiter::add(RemoteStore* client, uint32_t id, const FieldLocation& fie
 
 void ReadLimiter::tryNextRequests() noexcept {
     while (true) {
-        RequestInfo request{nullptr, 0, eckit::Buffer{0}, 0, 0};
+        RequestInfo request{nullptr, 0, eckit::Buffer{0}, 0, 0, {}};
         {
             std::lock_guard<std::mutex> lock(mutex_);
             if (requests_.empty()) {
@@ -221,6 +222,7 @@ void ReadLimiter::print(std::ostream& out) const {
 }
 
 void ReadLimiter::sendRequest(const RequestInfo& request) const {
+    tracing::ScopedContext traceScope(request.traceContext);
     request.client->controlWriteCheckResponse(Message::Read, request.id, true, request.requestBuffer,
                                               request.requestSize);
 }

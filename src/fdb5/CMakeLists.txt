@@ -56,6 +56,11 @@ list( APPEND fdb5_srcs
     api/helpers/StatsIterator.h
     api/helpers/Callback.h
 
+    tracing/TraceContext.cc
+    tracing/TraceContext.h
+    tracing/Tracer.cc
+    tracing/Tracer.h
+
     api/local/QueryVisitor.h
     api/local/QueueStringLogTarget.h
     api/local/ListVisitor.h

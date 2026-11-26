@@ -20,6 +20,7 @@
 #include "fdb5/remote/server/AvailablePortList.h"
 #include "fdb5/remote/server/CatalogueHandler.h"
 #include "fdb5/remote/server/StoreHandler.h"
+#include "fdb5/tracing/Tracer.h"
 
 using namespace eckit;
 
@@ -116,6 +117,9 @@ void FdbServerBase::doRun() {
 
     Config config = LibFdb5::instance().defaultConfig();
     config.set("statistics", true);
+
+    // span sampling and export for this server process ('tracing' block of the server configuration)
+    tracing::Tracer::instance().configureFrom(config);
 
     // If we are using a specified range of ports, start a thread that
     // maintains the list of available ports.
