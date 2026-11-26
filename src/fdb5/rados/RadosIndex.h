@@ -9,6 +9,7 @@
 
 #include "fdb5/database/EntryVisitMechanism.h"
 #include "fdb5/database/Field.h"
+#include "fdb5/database/FieldLocation.h"
 #include "fdb5/database/Index.h"
 #include "fdb5/database/IndexStats.h"
 #include "fdb5/database/Key.h"
@@ -19,7 +20,9 @@
 #include "eckit/io/rados/RadosKeyValue.h"
 #include "eckit/io/rados/RadosNamespace.h"
 
+#include <ctime>
 #include <map>
+#include <memory>
 #include <ostream>
 #include <set>
 #include <string>
@@ -44,6 +47,16 @@ public:  // methods
 
     // Queues an axis value; it is persisted into idx_kv_ / axis_kvs_ by flush().
     void putAxisValue(const std::string& axis, const std::string& value);
+
+    // An entry of an index KV: the location of a field and the time it was archived.
+    struct Entry {
+        time_t timestamp{0};
+        std::shared_ptr<const FieldLocation> location;
+    };
+
+    // Reads the entry stored under `name` (including its prefix). Throws
+    // eckit::RadosEntityNotFoundException if it is missing.
+    static Entry readEntry(const eckit::RadosKeyValue& idx_kv, const std::string& name);
 
     // Names of the axes recorded in an index KV. Throws eckit::RadosEntityNotFoundException if the KV is missing.
     static std::set<std::string> axisNames(const eckit::RadosKeyValue& idx_kv);

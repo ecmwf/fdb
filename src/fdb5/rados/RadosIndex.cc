@@ -80,15 +80,8 @@ void RadosIndex::flush() {
 
     if (!created_) {
         // Persist the index key under "key" so the index KV can later be identified when reopened.
-        eckit::MemoryHandle h{(size_t)PATH_MAX};
-        eckit::HandleStream hs{h};
-        h.openForWrite(eckit::Length(0));
-        {
-            eckit::AutoClose closer(h);
-            hs << key_;
-        }
-
-        idx_kv_.put("key", h.data(), hs.bytesWritten());
+        const auto key = serialise([this](eckit::Stream& s) { s << key_; });
+        idx_kv_.put("key", key.data(), key.size());
         created_ = true;
     }
 
@@ -129,15 +122,8 @@ bool RadosIndex::get(const Key& key, const Key& remapKey, Field& field) const {
     const std::string query = rados_names::fieldPrefix + key.valuesToString();
 
     try {
-        std::vector<char> loc_data;
-        eckit::MemoryStream ms = idx_kv_.getMemoryStream(loc_data, query, "index kv");
-
-        // Timestamp is read for informational purposes only; see note in RadosIndex::add.
-        time_t ts;
-        ms >> ts;
-
-        std::shared_ptr<const fdb5::FieldLocation> loc(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms));
-        field = fdb5::Field(std::move(loc), ts, fdb5::FieldDetails());
+        Entry entry = readEntry(idx_kv_, query);
+        field = fdb5::Field(std::move(entry.location), entry.timestamp, fdb5::FieldDetails());
     }
     catch (eckit::RadosEntityNotFoundException& e) {
         return false;
@@ -148,20 +134,26 @@ bool RadosIndex::get(const Key& key, const Key& remapKey, Field& field) const {
 
 void RadosIndex::add(const Key& key, const Field& field) {
 
-    eckit::MemoryHandle h{(size_t)PATH_MAX};
-    eckit::HandleStream hs{h};
-    h.openForWrite(eckit::Length(0));
-    {
-        eckit::AutoClose closer(h);
-        // Timestamp kept per-entry for informational purposes; correctness does not depend on it because
-        // parallel writers targeting the same index key share this KV and last-write-wins.
-        takeTimestamp();
-        hs << timestamp();
-        hs << field.location();
-    }
+    // Timestamp kept per-entry for informational purposes; correctness does not depend on it because
+    // parallel writers targeting the same index key share this KV and last-write-wins.
+    takeTimestamp();
 
-    const char* serialised = static_cast<const char*>(h.data());
-    pendingEntries_[rados_names::fieldPrefix + key.valuesToString()].assign(serialised, serialised + hs.bytesWritten());
+    pendingEntries_[rados_names::fieldPrefix + key.valuesToString()] = serialise([&](eckit::Stream& s) {
+        s << timestamp();
+        s << field.location();
+    });
+}
+
+RadosIndex::Entry RadosIndex::readEntry(const eckit::RadosKeyValue& idx_kv, const std::string& name) {
+
+    std::vector<char> data;
+    eckit::MemoryStream ms = idx_kv.getMemoryStream(data, name, "index kv");
+
+    Entry entry;
+    ms >> entry.timestamp;
+    entry.location.reset(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms));
+
+    return entry;
 }
 
 void RadosIndex::entries(EntryVisitor& visitor, EntryVisitor::IndexScope& scope) const {
@@ -194,14 +186,7 @@ std::vector<eckit::URI> RadosIndex::dataURIs() const {
             continue;
         }
 
-        std::vector<char> data;
-        eckit::MemoryStream ms = idx_kv_.getMemoryStream(data, key, "index kv");
-
-        time_t ts;
-        ms >> ts;
-
-        std::unique_ptr<fdb5::FieldLocation> fl(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms));
-        res.insert(fl->uri());
+        res.insert(readEntry(idx_kv_, key).location->uri());
     }
 
     return {res.begin(), res.end()};

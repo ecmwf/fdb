@@ -47,7 +47,7 @@ RadosCatalogue::RadosCatalogue(const eckit::URI& uri, const ControlIdentifiers& 
                                const fdb5::Config& config) :
     CatalogueImpl(Key(), controlIdentifiers, config), RadosCommon(config, uri) {
     try {
-        dbKey_ = read_db_key(*db_kv_);
+        dbKey_ = read_key(*db_kv_);
     }
     catch (eckit::RadosEntityNotFoundException& e) {
         throw fdb5::DatabaseNotFoundException(std::string("RadosCatalogue database not found ") + "(pool: '" + pool_ +
@@ -76,10 +76,7 @@ void RadosCatalogue::loadSchema() {
 
     eckit::Timer timer("RadosCatalogue::loadSchema()", eckit::Log::debug<fdb5::LibFdb5>());
 
-    std::vector<char> data;
-    db_kv_->getMemoryStream(data, "schema", "DB Key-Value");
-
-    loadSchema(std::string(data.begin(), data.end()));
+    loadSchema(read_text(*db_kv_, "schema"));
 }
 
 void RadosCatalogue::loadSchema(const std::string& text) {
@@ -88,6 +85,15 @@ void RadosCatalogue::loadSchema(const std::string& text) {
     schema_.load(stream);
 
     rule_ = &schema_.matchingRule(dbKey_);
+}
+
+std::optional<eckit::RadosKeyValue> RadosCatalogue::registeredIndex(const Key& key) const {
+    try {
+        return eckit::RadosKeyValue{eckit::URI{read_text(*db_kv_, rados_names::indexPrefix + key.valuesToString())}};
+    }
+    catch (eckit::RadosEntityNotFoundException& e) {
+        return std::nullopt;
+    }
 }
 
 std::vector<Index> RadosCatalogue::indexes(bool) const {
@@ -101,24 +107,16 @@ std::vector<Index> RadosCatalogue::indexes(bool) const {
             continue;
         }
 
-        std::vector<char> v;
-        auto m = db_kv_->getMemoryStream(v, key, "DB kv");
+        const eckit::RadosKeyValue index_kv{eckit::URI{read_text(*db_kv_, key)}};
 
-        eckit::URI uri(std::string(v.begin(), v.end()));
-
-        eckit::RadosKeyValue index_kv{uri};
-        std::optional<fdb5::Key> index_key;
         try {
-            std::vector<char> data;
-            eckit::MemoryStream ms = index_kv.getMemoryStream(data, "key", "index KV");
-            index_key.emplace(ms);
+            // Axes are loaded so that visitors relying on Index::axes() (e.g. fdb.axes()) see the datum axes.
+            res.push_back(Index(new fdb5::RadosIndex(read_key(index_kv), index_kv, true)));
         }
         catch (eckit::RadosEntityNotFoundException& e) {
+            // The index KV was removed after the catalogue KV was listed.
             continue;
         }
-
-        // Axes are loaded so that visitors relying on Index::axes() (e.g. fdb.axes()) see the datum axes.
-        res.push_back(Index(new fdb5::RadosIndex(index_key.value(), index_kv, true)));
     }
 
     return res;

@@ -4,6 +4,7 @@
 #include "fdb5/rados/RadosLazyFieldLocation.h"
 
 #include "fdb5/database/FieldLocation.h"
+#include "fdb5/rados/RadosIndex.h"
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/rados/RadosKeyValue.h"
@@ -32,37 +33,29 @@ std::shared_ptr<const FieldLocation> RadosLazyFieldLocation::make_shared() const
 
 eckit::DataHandle* RadosLazyFieldLocation::dataHandle() const {
 
-    return realise()->dataHandle();
+    return realise().dataHandle();
 }
 
 void RadosLazyFieldLocation::print(std::ostream& out) const {
-    out << *realise();
+    out << realise();
 }
 
 void RadosLazyFieldLocation::visit(FieldLocationVisitor& visitor) const {
-    realise()->visit(visitor);
+    realise().visit(visitor);
 }
 
 std::shared_ptr<const FieldLocation> RadosLazyFieldLocation::stableLocation() const {
-    return realise()->make_shared();
+    realise();
+    return fl_;
 }
 
-std::unique_ptr<fdb5::FieldLocation>& RadosLazyFieldLocation::realise() const {
+const FieldLocation& RadosLazyFieldLocation::realise() const {
 
-    if (fl_) {
-        return fl_;
+    if (!fl_) {
+        fl_ = RadosIndex::readEntry(index_, key_).location;
     }
 
-    std::vector<char> data;
-    eckit::MemoryStream ms = index_.getMemoryStream(data, key_, "index kv");
-
-    // Timestamp is read for informational purposes only; see note in RadosIndex::add.
-    time_t ts;
-    ms >> ts;
-
-    fl_.reset(eckit::Reanimator<fdb5::FieldLocation>::reanimate(ms));
-
-    return fl_;
+    return *fl_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

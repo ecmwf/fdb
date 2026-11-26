@@ -23,7 +23,9 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/Offset.h"
+#include "eckit/io/rados/RadosKeyValue.h"
 
+#include <optional>
 #include <ostream>
 #include <set>
 #include <string>
@@ -98,6 +100,9 @@ public:  // methods
     bool doUnsafeFullWipe() const override;
 
 protected:  // methods
+
+    // The KV of the index registered under `key` in the catalogue KV, if there is one.
+    std::optional<eckit::RadosKeyValue> registeredIndex(const Key& key) const;
 
     // Loads the schema from its textual form rather than from the catalogue KV.
     void loadSchema(const std::string& text);

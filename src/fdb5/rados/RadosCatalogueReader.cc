@@ -42,16 +42,11 @@ bool RadosCatalogueReader::selectIndex(const Key& key) {
     }
 
     if (indexes_.find(key) == indexes_.end()) {
-        try {
-            std::vector<char> data;
-            db_kv_->getMemoryStream(data, rados_names::indexPrefix + key.valuesToString(), "DB kv");
-            eckit::URI uri{std::string{data.begin(), data.end()}};
-            eckit::RadosKeyValue index_kv{uri};
-            indexes_[key] = Index(new RadosIndex(key, index_kv, true));
-        }
-        catch (eckit::RadosEntityNotFoundException& e) {
+        const auto index_kv = registeredIndex(key);
+        if (!index_kv) {
             return false;
         }
+        indexes_[key] = Index(new RadosIndex(key, *index_kv, true));
     }
 
     // The axis cache of CatalogueReader holds the axes of the previously selected index.
@@ -98,18 +93,13 @@ DbStats RadosCatalogueReader::stats() const {
 
 std::optional<Axis> RadosCatalogueReader::computeAxis(const std::string& keyword) const {
 
+    if (!current_.axes().has(keyword)) {
+        return std::nullopt;
+    }
+
     Axis s;
-
-    bool found = false;
-    if (current_.axes().has(keyword)) {
-        found = true;
-        s.merge(current_.axes().values(keyword));
-    }
-
-    if (found) {
-        return s;
-    }
-    return std::nullopt;
+    s.merge(current_.axes().values(keyword));
+    return s;
 }
 
 bool RadosCatalogueReader::retrieve(const Key& key, Field& field) const {

@@ -9,13 +9,17 @@
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
+#include "eckit/io/Length.h"
+#include "eckit/io/MemoryHandle.h"
 #include "eckit/io/rados/RadosKeyValue.h"
 #include "eckit/log/CodeLocation.h"
+#include "eckit/serialisation/HandleStream.h"
 #include "eckit/serialisation/MemoryStream.h"
+#include "eckit/serialisation/Stream.h"
 #include "eckit/utils/Regex.h"
 #include "eckit/utils/Tokenizer.h"
 
-#include <cctype>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -42,9 +46,31 @@ bool rados_names::has_prefix(const std::string& name, const std::string& prefix)
     return name.compare(0, prefix.size(), prefix) == 0;
 }
 
-fdb5::Key read_db_key(const eckit::RadosKeyValue& db_kv) {
+std::string read_text(const eckit::RadosKeyValue& kv, const std::string& key) {
     std::vector<char> data;
-    eckit::MemoryStream ms = db_kv.getMemoryStream(data, "key", "DB kv");
+    kv.getMemoryStream(data, key, kv.name());
+    return {data.begin(), data.end()};
+}
+
+void write_text(const eckit::RadosKeyValue& kv, const std::string& key, const std::string& text) {
+    kv.put(key, text.data(), text.size());
+}
+
+std::vector<char> serialise(const std::function<void(eckit::Stream&)>& write) {
+    eckit::MemoryHandle h;
+    eckit::HandleStream hs{h};
+    h.openForWrite(eckit::Length(0));
+    {
+        eckit::AutoClose closer(h);
+        write(hs);
+    }
+    const char* bytes = static_cast<const char*>(h.data());
+    return {bytes, bytes + hs.bytesWritten()};
+}
+
+fdb5::Key read_key(const eckit::RadosKeyValue& kv) {
+    std::vector<char> data;
+    eckit::MemoryStream ms = kv.getMemoryStream(data, "key", kv.name());
     return fdb5::Key(ms);
 }
 

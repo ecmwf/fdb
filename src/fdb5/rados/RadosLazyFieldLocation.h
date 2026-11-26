@@ -38,7 +38,8 @@ public:
 
 private:  // methods
 
-    std::unique_ptr<fdb5::FieldLocation>& realise() const;
+    // Reads the location from the index KV on first use.
+    const FieldLocation& realise() const;
 
     void print(std::ostream& out) const override;
 
@@ -46,7 +47,7 @@ private:  // members
 
     eckit::RadosKeyValue index_;
     std::string key_;
-    mutable std::unique_ptr<fdb5::FieldLocation> fl_;
+    mutable std::shared_ptr<const FieldLocation> fl_;
 };
 
 

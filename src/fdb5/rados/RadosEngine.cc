@@ -70,14 +70,11 @@ std::vector<eckit::URI> RadosEngine::visitableLocations(const std::function<bool
         for (const auto& key : rootKv.keys()) {
             try {
 
-                std::vector<char> val;
-                rootKv.getMemoryStream(val, key, "root kv");
-
-                eckit::URI uri(std::string(val.begin(), val.end()));
+                const eckit::URI uri{read_text(rootKv, key)};
                 ASSERT(uri.scheme() == typeName());
 
                 eckit::RadosKeyValue db_kv{uri};
-                fdb5::Key db_key = read_db_key(db_kv);
+                fdb5::Key db_key = read_key(db_kv);
 
                 if (matches(db_key)) {
                     eckit::Log::debug<LibFdb5>()

@@ -76,22 +76,14 @@ void RadosCatalogueWriter::createDatabase() {
         eckit::Log::debug<LibFdb5>() << "Copy schema from " << config_.schemaPath() << " to "
                                      << db_kv_->uri().asString() << " at key 'schema'." << std::endl;
 
-        db_kv_->put("schema", schemaText_.data(), schemaText_.size());
-
-        eckit::MemoryHandle h{(size_t)PATH_MAX};
-        eckit::HandleStream hs{h};
-        h.openForWrite(eckit::Length(0));
-        {
-            eckit::AutoClose closer(h);
-            hs << dbKey_;
-        }
+        write_text(*db_kv_, "schema", schemaText_);
 
         // Written after the schema: readers treat a catalogue KV without "key" as a missing database.
-        db_kv_->put("key", h.data(), hs.bytesWritten());
+        const auto key = serialise([this](eckit::Stream& s) { s << dbKey_; });
+        db_kv_->put("key", key.data(), key.size());
     }
 
-    const std::string nstr = db_kv_->uri().asString();
-    root_kv_->put(db_namespace_, nstr.data(), nstr.length());
+    write_text(*root_kv_, db_namespace_, db_kv_->uri().asString());
 
     created_ = true;
 }
@@ -121,15 +113,10 @@ bool RadosCatalogueWriter::selectIndex(const Key& key) {
 
     if (indexes_.find(key) == indexes_.end()) {
 
-        try {
-            std::vector<char> data;
-            db_kv_->getMemoryStream(data, rados_names::indexPrefix + key.valuesToString(), "DB kv");
-
-            indexes_[key] = Index(new fdb5::RadosIndex(
-                key, eckit::RadosKeyValue{eckit::URI{std::string{data.begin(), data.end()}}}, false));
+        if (const auto index_kv = registeredIndex(key)) {
+            indexes_[key] = Index(new fdb5::RadosIndex(key, *index_kv, false));
         }
-        catch (eckit::RadosEntityNotFoundException& e) {
-
+        else {
             // The index KV is written and registered in the catalogue KV by the first flush().
             indexes_[key] = Index(new fdb5::RadosIndex(key, eckit::RadosNamespace{pool_, db_namespace_}));
             unregistered_.insert(key);
@@ -221,8 +208,7 @@ void RadosCatalogueWriter::flush(size_t /* archivedFields */) {
 
         // Registered last, so readers only find an index whose KV is complete.
         if (unregistered_.erase(key) > 0) {
-            const std::string nstr{index.location().uri().asString()};
-            db_kv_->put(rados_names::indexPrefix + key.valuesToString(), nstr.data(), nstr.length());
+            write_text(*db_kv_, rados_names::indexPrefix + key.valuesToString(), index.location().uri().asString());
         }
     }
 
