@@ -98,8 +98,8 @@ RadosCatalogueWriter::RadosCatalogueWriter(const eckit::URI& uri, const fdb5::Co
 }
 
 RadosCatalogueWriter::~RadosCatalogueWriter() {
+    // Entries which were not flushed are dropped: the data they refer to may not have been flushed either.
     std::exception_ptr ignored;
-    best_effort(ignored, "~RadosCatalogueWriter::clean", [&] { clean(); });
     best_effort(ignored, "~RadosCatalogueWriter::close", [&] { close(); });
 }
 

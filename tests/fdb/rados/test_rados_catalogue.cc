@@ -330,7 +330,8 @@ CASE("RadosCatalogue tests") {
             catw.archive(index_key, field_key, std::move(loc));
 
             /// flush store before flushing catalogue
-            rstore.flush();  // not necessary if using a RADOS store
+            rstore.flush();
+            cat.flush(0);
         }
 
         // find data
@@ -1119,6 +1120,33 @@ CASE("RadosCatalogue regressions") {
         fdb.archive(key, data, sizeof(data));
         fdb.flush();
         EXPECT(countListed(fdb, tool_request(key)) == 1);
+    }
+
+    SECTION("A writer destroyed without flush leaves nothing behind") {
+
+        fdb5::Config config{YAMLConfiguration(api_config(pool, test_id, "rados"))};
+        fdb5::Key db_key({{"a", "40"}, {"b", "40"}});
+        fdb5::Key index_key({{"c", "3"}, {"d", "4"}});
+        fdb5::Key field_key({{"e", "5"}, {"f", "6"}});
+
+        {
+            fdb5::RadosCatalogueWriter writer{db_key, config};
+            fdb5::Catalogue& cat = writer;
+            cat.selectIndex(index_key);
+            std::unique_ptr<fdb5::FieldLocation> loc(
+                new fdb5::RadosFieldLocation(eckit::URI{"rados", "unused"}, eckit::Offset(0), eckit::Length(1)));
+            static_cast<fdb5::CatalogueWriter&>(writer).archive(index_key, field_key, std::move(loc));
+        }
+
+        // Only the catalogue KV exists: no index KV, no axis KVs, no index registration.
+        const auto objects = eckit::RadosNamespace{pool, test_id + "_40:40"}.listObjects();
+        EXPECT(objects.size() == 1);
+        EXPECT(objects.front().name() == "catalogue_kv");
+
+        fdb5::RadosCatalogueReader reader{db_key, config};
+        EXPECT(static_cast<fdb5::CatalogueReader&>(reader).open());
+        EXPECT(static_cast<fdb5::Catalogue&>(reader).indexes().empty());
+        EXPECT_NOT(static_cast<fdb5::Catalogue&>(reader).selectIndex(index_key));
     }
 
     SECTION("Roots do not need a filesystem path") {
