@@ -196,8 +196,11 @@ Indexing and archiving metadata
 -------------------------------
 
 Selecting an index creates or reopens the corresponding index KV. Archiving a
-datum stores its serialized field location under the datum key and updates
-axis values for newly observed values. Index enumeration reads the index
+datum queues its serialized field location and any newly observed axis values
+in memory. ``flush()`` writes the queued axis values and then the queued
+entries, so a field becomes visible to readers only once it has been flushed.
+FDB flushes the store before the catalogue; an entry therefore never refers
+to data that is not yet readable. Index enumeration reads the index
 references from the catalogue KV and reconstructs the RADOS indexes.
 
 The backend intentionally does not require sorted index enumeration; the
@@ -212,7 +215,9 @@ Implemented catalogue behavior includes:
 * schema loading and persistence;
 * index creation, selection, lookup, and enumeration;
 * axis value persistence;
-* hiding contents through persisted control entries;
+* control state (``fdb-lock`` / ``fdb-unlock``, ``hideContents()``) persisted
+  as ``control.*`` entries. The ``fdb-hide`` tool itself only accepts TOC
+  databases;
 * URI ownership and existence checks;
 * catalogue-driven wipe and cleanup.
 
@@ -325,7 +330,18 @@ Limitations and operational requirements
 * Separate writer instances can archive concurrently, but concurrent writers
   targeting the same index entry use last-write-wins semantics for that entry.
 * Catalogue-side purge, move, mount, and overlay operations are not
-  implemented.
+  implemented. ``fdb-purge`` and ``fdb-stats`` terminate with
+  ``Not implemented``.
+* Archiving a field that already exists replaces its index entry. The data
+  written for the previous version stays in its object and is not reclaimed
+  until the index or database is wiped, because there is no purge.
+* The catalogue and the store of a database share one namespace and each
+  considers every object in it its own. A wipe therefore never reports
+  unknown objects for a RADOS catalogue with a RADOS store; objects that are
+  not referenced by the catalogue are removed with the database without
+  being listed by a dry run.
+* ``RadosStore::exists()`` reports whether the pool exists; RADOS namespaces
+  have no existence of their own.
 * The RADOS backend does not persist masking metadata; wipe removes entries
   directly.
 * The ``sorted`` index enumeration request is ignored.
