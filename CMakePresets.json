@@ -8,9 +8,26 @@
     {
       "cacheVariables": {
         "ENABLE_GRIB": "ON",
-        "ENABLE_TESTS": "ON"
+        "ENABLE_TESTS": "ON",
+        "ENABLE_MEMFS": "ON",
+        "ENABLE_DUMMY_DAOS": "ON",
+        "ENABLE_FAMFDB": "ON"
       },
       "name": "ci"
+    },
+    {
+      "cacheVariables": {
+        "ENABLE_GRIB": "ON",
+        "ENABLE_TESTS": "ON",
+        "ENABLE_LUSTRE": "OFF",
+        "ENABLE_DUMMY_DAOS": "ON",
+        "ENABLE_FAMFDB": "ON"
+      },
+      "environment": {
+        "ECCODES_SAMPLES_PATH": "$ECCODES_DIR/share/eccodes/samples",
+        "ECCODES_DEFINITION_PATH": "$ECCODES_DIR/share/eccodes/definitions"
+      },
+      "name": "hpc-ci"
     }
   ],
   "version": 3
