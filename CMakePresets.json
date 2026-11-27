@@ -8,7 +8,10 @@
     {
       "cacheVariables": {
         "ENABLE_GRIB": "ON",
-        "ENABLE_TESTS": "ON"
+        "ENABLE_TESTS": "ON",
+        "ENABLE_MEMFS": "ON",
+        "ENABLE_DUMMY_DAOS": "ON",
+        "ENABLE_FAMFDB": "ON"
       },
       "name": "ci"
     }
