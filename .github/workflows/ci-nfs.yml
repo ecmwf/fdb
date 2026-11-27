@@ -1,0 +1,185 @@
+name: ci-nfs
+
+on:
+  push:
+    branches:
+      - "master"
+      - "develop"
+    tags-ignore:
+      - "**"
+
+  # Trigger the workflow on pull request
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+  # Trigger the workflow manually
+  workflow_dispatch: ~
+
+# avoid duplicate runs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # A fork's pull request runs only once a maintainer has re-run it, as in ci.yml.
+  ci-approval:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: ecmwf/ci-infrastructure/actions/require-ci-approval@main
+
+  nfs:
+    name: Test NFS
+    needs: ci-approval
+    runs-on: ubuntu-latest
+
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+      # Branch used for eckit/metkit when the PR branch has no matching branch in that repo.
+      DEPS_FALLBACK_BRANCH: develop
+      # NFS harness: a local kernel NFS export, loopback-mounted, consumed by the test via FDB_TEST_NFS_MOUNT.
+      FDB_TEST_NFS_SERVER: 127.0.0.1
+      FDB_TEST_NFS_EXPORT: /srv/nfs/fdb
+      FDB_TEST_NFS_MOUNT: /mnt/fdb-nfs
+      APT_CACHE: ${{ github.workspace }}/.apt-cache
+
+    steps:
+      - name: Checkout fdb
+        uses: actions/checkout@v6
+        with:
+          path: bundle/fdb
+          persist-credentials: false
+
+      # ecbuild bootstraps the bundle; the bundle itself checks out eckit/metkit at configure time.
+      - name: Checkout ecbuild
+        uses: actions/checkout@v6
+        with:
+          repository: ecmwf/ecbuild
+          path: bundle/ecbuild
+          persist-credentials: false
+
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.apt-cache
+          # Bump the suffix to invalidate when the package list changes.
+          key: apt-nfs-${{ runner.os }}-v1
+
+      - name: Install build dependencies
+        run: |
+          mkdir -p "${APT_CACHE}/archives/partial"
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            -o Dir::Cache::archives="${APT_CACHE}/archives" \
+            -o APT::Keep-Downloaded-Packages=true \
+            build-essential \
+            cmake \
+            ninja-build \
+            libssl-dev \
+            uuid-dev \
+            libbz2-dev \
+            libcurl4-openssl-dev \
+            libaec-dev \
+            nfs-kernel-server \
+            nfs-common
+          # Make the cached .deb archives readable/writable by the runner user.
+          sudo chown -R "$(id -u):$(id -g)" "${APT_CACHE}"
+
+      - name: Set up local NFS export
+        run: |
+          set -eux
+          sudo mkdir -p "${FDB_TEST_NFS_EXPORT}" "${FDB_TEST_NFS_MOUNT}"
+          # World-writable so the unprivileged CI user can create TOC directories under the export.
+          sudo chmod 0777 "${FDB_TEST_NFS_EXPORT}"
+          echo "${FDB_TEST_NFS_EXPORT} ${FDB_TEST_NFS_SERVER}(rw,sync,no_subtree_check,no_root_squash)" \
+            | sudo tee /etc/exports
+          sudo exportfs -ra
+          sudo systemctl restart nfs-kernel-server
+          # NFSv4.1 avoids rpcbind/statd, which are not reliably available on the runner.
+          sudo mount -t nfs -o vers=4.1 "${FDB_TEST_NFS_SERVER}:${FDB_TEST_NFS_EXPORT}" "${FDB_TEST_NFS_MOUNT}"
+          # Sanity: the mount must be NFS and writable, otherwise the test would only self-skip.
+          findmnt -no FSTYPE "${FDB_TEST_NFS_MOUNT}" | grep -q '^nfs'
+          test -w "${FDB_TEST_NFS_MOUNT}"
+
+      - name: Build bundle
+        env:
+          # Not interpolated into the script: a branch name is chosen by the author of the pull request.
+          PR_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          resolve_ref() {
+            if git ls-remote --exit-code "https://github.com/ecmwf/$1.git" "refs/heads/${PR_BRANCH}" >/dev/null 2>&1; then
+              echo "${PR_BRANCH}"
+            else
+              echo "${DEPS_FALLBACK_BRANCH}"
+            fi
+          }
+          eckit_ref="$(resolve_ref eckit)"
+          metkit_ref="$(resolve_ref metkit)"
+          echo "Bundle deps: eckit@${eckit_ref} metkit@${metkit_ref}"
+
+          # Minimal ecbuild bundle. The bundle itself checks out eckit and metkit (UPDATE); only
+          # fdb is provided locally (MANUAL, the PR checkout). eccodes/odc are omitted, so GRIB is
+          # off. ecbuild is the checkout at bundle/ecbuild, found via HINTS below.
+          cat > bundle/CMakeLists.txt <<'CMAKE'
+          cmake_minimum_required( VERSION 3.15 FATAL_ERROR )
+          find_package( ecbuild 3.4 REQUIRED HINTS ${CMAKE_CURRENT_SOURCE_DIR} )
+          project( ecmwf_bundle VERSION 0.0.2 LANGUAGES CXX )
+          set( CMAKE_CXX_STANDARD 17 )
+          set( CMAKE_CXX_STANDARD_REQUIRED ON )
+          set( CMAKE_BUILD_RPATH_USE_ORIGIN TRUE )
+          ecbuild_bundle_initialize()
+          ecbuild_bundle( PROJECT eckit  GIT "https://github.com/ecmwf/eckit"  BRANCH ${ECKIT_BRANCH}  UPDATE )
+          ecbuild_bundle( PROJECT metkit GIT "https://github.com/ecmwf/metkit" BRANCH ${METKIT_BRANCH} UPDATE )
+          ecbuild_bundle( PROJECT fdb    GIT "https://github.com/ecmwf/fdb"    BRANCH develop MANUAL )
+          ecbuild_bundle_finalize()
+          CMAKE
+          cmake -S bundle -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DENABLE_MPI=OFF \
+            -DENABLE_TESTS=ON \
+            -DECKIT_BRANCH="${eckit_ref}" \
+            -DMETKIT_BRANCH="${metkit_ref}"
+          # Build only the NFS test binary (and its library deps), not the whole bundle test suite.
+          cmake --build build --parallel --target fdb_test_database_nfs
+
+      - name: Run NFS tests
+        timeout-minutes: 15
+        env:
+          FDB_TEST_NFS_REQUIRE_MOUNT: "1"
+        run: |
+          # Anchored: eckit has NFS tests too, which this job does not build. The second run reads TOCs uncached.
+          ctest --test-dir build -R '^fdb_test_database_nfs(_uncached)?$' --no-tests=error --output-on-failure
+
+      # The loopback mount above is a single NFS client, so it cannot lose a TOC record to another
+      # client. This runs the cross-client case from clients that do not share a cache.
+      - name: Run NFS tests from independent clients
+        timeout-minutes: 15
+        run: |
+          sudo env FDB_TEST_NFS_EXPORT="${FDB_TEST_NFS_EXPORT}" \
+            bash bundle/fdb/tests/fdb/database/test_nfs_clients.sh \
+              build/fdb/tests/fdb/database/fdb_test_database_nfs build/fdb
+
+      - name: Dump NFS diagnostics on failure
+        if: failure()
+        run: |
+          echo "=== /etc/exports ==="
+          cat /etc/exports || true
+          echo "=== exportfs -v ==="
+          sudo exportfs -v || true
+          echo "=== nfs mounts ==="
+          findmnt -t nfs,nfs4 || true
+          echo "=== export dir ==="
+          ls -la "${FDB_TEST_NFS_EXPORT}" || true
+          echo "=== mount point ==="
+          ls -la "${FDB_TEST_NFS_MOUNT}" || true
+          echo "=== network namespaces ==="
+          ip netns list || true
+          echo "=== nfs-kernel-server status ==="
+          sudo systemctl status nfs-kernel-server --no-pager || true
+          echo "=== CTest temporary files ==="
+          ls -la build/Testing/Temporary/ || true
+          cat build/Testing/Temporary/LastTest.log || true

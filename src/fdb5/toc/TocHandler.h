@@ -33,6 +33,8 @@ namespace fdb5 {
 
 class Key;
 class Index;
+class TocLock;
+class TocLocking;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -97,7 +99,10 @@ public:  // methods
     TocHandler(const eckit::PathName& dir, const Config& config);
 
     /// For initialising sub tocs or diagnostic interrogation.
-    TocHandler(const eckit::PathName& path, const Key& parentKey, eckit::MemoryHandle* cachedToc = nullptr);
+    /// `lockPolicyConfig` is the config of the database a sub toc is reached from: only its NFS lock policy is read,
+    /// the sub toc is otherwise configured as before.
+    TocHandler(const eckit::PathName& path, const Key& parentKey, eckit::MemoryHandle* cachedToc = nullptr,
+               const eckit::Configuration* lockPolicyConfig = nullptr);
 
     TocHandler(const TocHandler&) = delete;
     TocHandler& operator=(const TocHandler&) = delete;
@@ -259,6 +264,10 @@ private:  // methods
 
     void close() const;
 
+    /// The locking of the filesystem holding the TOC, validated once.
+    /// @throws eckit::UserError if the filesystem cannot be relied on.
+    const TocLocking& locking() const;
+
     void appendRaw(const void* data, size_t size);
     void appendRound(TocRecord& r, size_t payloadSize);
 
@@ -327,6 +336,10 @@ private:  // members
     mutable bool writeMode_;
 
     mutable bool dirty_;
+
+    const eckit::Configuration* lockPolicyConfig_;  ///< n.b. non-owning, where the NFS lock policy is read from
+    mutable const TocLocking* locking_{nullptr};    ///< n.b. non-owning, cached as it is expensive
+    mutable std::unique_ptr<TocLock> tocLock_;      ///< held with the lock of the open toc file, if any
 };
 
 

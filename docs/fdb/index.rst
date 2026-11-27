@@ -22,6 +22,7 @@ the MARS Archive.
    content/mars
    content/config-schema
    content/app-config
+   content/nfs
    content/remote
    content/environment-variables
    cli_tools/index

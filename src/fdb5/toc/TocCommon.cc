@@ -15,6 +15,7 @@
 #include "fdb5/LibFdb5.h"
 #include "fdb5/io/LustreSettings.h"
 #include "fdb5/toc/RootManager.h"
+#include "fdb5/toc/detail/TocLocking.h"
 
 namespace fdb5 {
 
@@ -27,6 +28,10 @@ eckit::LocalPathName TocCommon::findRealPath(const eckit::LocalPathName& path) {
     }
 
     return findRealPath(path.dirName()) / path.baseName();
+}
+
+eckit::PathName TocCommon::uniquePath(const eckit::PathName& path) {
+    return TocLocking::forDirectory(eckit::LocalPathName{path.dirName()}).uniquePath(path);
 }
 
 TocCommon::TocCommon(const eckit::PathName& directory) :
