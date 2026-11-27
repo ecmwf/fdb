@@ -1,0 +1,183 @@
+// SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+// SPDX-License-Identifier: Apache-2.0
+
+
+#include "fdb5/rados/RadosCatalogueWriter.h"
+
+#include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/ControlIterator.h"
+#include "fdb5/database/Catalogue.h"
+#include "fdb5/database/Field.h"
+#include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/Index.h"
+#include "fdb5/database/IndexAxis.h"
+#include "fdb5/database/Key.h"
+#include "fdb5/rados/RadosCatalogue.h"
+#include "fdb5/rados/RadosCommon.h"
+#include "fdb5/rados/RadosIndex.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/DataHandle.h"
+#include "eckit/io/FileHandle.h"
+#include "eckit/log/Log.h"
+
+#include <cstddef>
+#include <memory>
+#include <ostream>
+#include <utility>
+
+namespace fdb5 {
+
+//----------------------------------------------------------------------------------------------------------------------
+
+RadosCatalogueWriter::RadosCatalogueWriter(const Key& key, const fdb5::Config& config) : RadosCatalogue(key, config) {
+
+    ASSERT(root_kv_.nspace().pool().exists());
+
+    const bool exists = db_kv_.has("key");
+
+    // A registry entry alone does not prove the database exists: a wipe interrupted after destroying the
+    // namespace leaves the entry behind, and the database must then be created again.
+    created_ = exists && root_kv_.has(db_namespace_);
+
+    if (exists) {
+        RadosCatalogue::loadSchema();
+        return;
+    }
+
+    // A new database is only written to RADOS by the first flush(). Until then the configured schema is used.
+    eckit::FileHandle in(config_.schemaPath());
+    schemaText_.resize(in.size());
+    {
+        eckit::AutoClose ac{in};
+        in.openForRead();
+        ASSERT(in.read(schemaText_.data(), schemaText_.size()) == static_cast<long>(schemaText_.size()));
+    }
+
+    RadosCatalogue::loadSchema(schemaText_);
+}
+
+void RadosCatalogueWriter::createDatabase() {
+
+    if (!db_kv_.has("key")) {
+
+        eckit::Log::debug<LibFdb5>() << "Copy schema from " << config_.schemaPath() << " to " << db_kv_.uri().asString()
+                                     << " at key 'schema'." << std::endl;
+
+        write_text(db_kv_, "schema", schemaText_);
+
+        // Written after the schema: readers treat a catalogue KV without "key" as a missing database.
+        const auto key = serialise([this](eckit::Stream& s) { s << dbKey_; });
+        db_kv_.put("key", key.data(), key.size());
+    }
+
+    write_text(root_kv_, db_namespace_, db_kv_.uri().asString());
+
+    created_ = true;
+}
+
+RadosCatalogueWriter::RadosCatalogueWriter(const eckit::URI& uri, const fdb5::Config& config) :
+    RadosCatalogue(uri, config) {
+    RadosCatalogue::loadSchema();
+}
+
+bool RadosCatalogueWriter::createIndex(const Key& /* idxKey */, size_t /* datumKeySize */) {
+    return true;
+}
+
+void RadosCatalogueWriter::hideContents() {
+    control(ControlAction::Disable, ControlIdentifier::List | ControlIdentifier::Retrieve);
+}
+
+bool RadosCatalogueWriter::selectIndex(const Key& key) {
+
+    currentIndexKey_ = key;
+
+    if (indexes_.find(key) == indexes_.end()) {
+
+        if (const auto index_kv = registeredIndex(key)) {
+            indexes_[key] = Index(new fdb5::RadosIndex(key, *index_kv, false));
+        }
+        else {
+            // The index KV is written and registered in the catalogue KV by the first flush().
+            indexes_[key] = Index(new fdb5::RadosIndex(key, dbNamespace()));
+            unregistered_.insert(key);
+        }
+    }
+
+    current_ = indexes_[key];
+
+    return true;
+}
+
+void RadosCatalogueWriter::deselectIndex() {
+    current_ = Index();
+    currentIndexKey_ = Key();
+}
+
+void RadosCatalogueWriter::clean() {
+    flush(0);
+    deselectIndex();
+}
+
+void RadosCatalogueWriter::close() {
+    indexes_.clear();
+    unregistered_.clear();
+}
+
+const Index& RadosCatalogueWriter::currentIndex() {
+    if (current_.null()) {
+        ASSERT(!currentIndexKey_.empty());
+        selectIndex(currentIndexKey_);
+    }
+    return current_;
+}
+
+void RadosCatalogueWriter::archive(const Key& /* idxKey */, const Key& datumKey,
+                                   std::shared_ptr<const FieldLocation> fieldLocation) {
+
+    Field field(std::move(fieldLocation), currentIndex().timestamp());
+
+    auto* radosIndex = dynamic_cast<fdb5::RadosIndex*>(current_.content());
+    ASSERT(radosIndex);
+
+    // Only values which are new to this writer are queued. Index::put() below adds them to the axes.
+    const_cast<fdb5::IndexAxis&>(current_.axes()).sort();
+    for (const auto& [keyword, value] : datumKey) {
+        if (!value.empty() && !current_.axes().values(keyword).contains(value)) {
+            radosIndex->putAxisValue(keyword, value);
+        }
+    }
+
+    current_.put(datumKey, field);
+}
+
+void RadosCatalogueWriter::flush(size_t /* archivedFields */) {
+
+    for (auto& [key, index] : indexes_) {
+
+        if (!index.dirty()) {
+            continue;
+        }
+
+        if (!created_) {
+            createDatabase();
+        }
+
+        index.flush();
+
+        // Registered last, so readers only find an index whose KV is complete.
+        if (unregistered_.erase(key) > 0) {
+            write_text(db_kv_, rados_names::indexPrefix + key.valuesToString(), index.location().uri().asString());
+        }
+    }
+
+    current_ = Index();
+}
+
+static fdb5::CatalogueWriterBuilder<fdb5::RadosCatalogueWriter> builder("rados");
+
+//----------------------------------------------------------------------------------------------------------------------
+
+}  // namespace fdb5

@@ -24,6 +24,7 @@ the MARS Archive.
    content/app-config
    content/remote
    content/environment-variables
+   content/rados-backend
    cli_tools/index
    content/api
    content/license
