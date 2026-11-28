@@ -109,6 +109,8 @@ jobs:
     outputs:
       gribjump: ${{ steps.r-gribjump.outcome == 'success' && steps.r-gribjump.outputs.json || '' }}
       gribjump-ref: ${{ steps.r-gribjump.outcome == 'success' && steps.r-gribjump.outputs.own-sha || '' }}
+      polytope: ${{ steps.r-polytope.outcome == 'success' && steps.r-polytope.outputs.json || '' }}
+      polytope-ref: ${{ steps.r-polytope.outcome == 'success' && steps.r-polytope.outputs.own-sha || '' }}
       pins: ${{ steps.pins.outputs.pins }}
       dispatch-plans: ${{ steps.plans.outputs.dispatch-plans }}
     steps:
@@ -117,7 +119,7 @@ jobs:
         with:
           client-id: ${{ vars.CI_READER_APP_CLIENT_ID }}
           private-key: ${{ secrets.CI_READER_APP_PRIVATE_KEY }}
-          repositories: ecbuild,eccodes,eckit,fdb,gribjump,metkit,stack-dependencies
+          repositories: conflator,ecbuild,eccodes,eckit,fdb,gribjump,metkit,polytope,stack-dependencies
           permissions: contents:read actions:read
       - name: Pin the commits the upstream's CI resolved
         env:
@@ -163,12 +165,51 @@ jobs:
         run: 'echo "PINS=${R_PINS}" >> "$GITHUB_ENV"
 
           echo "EXPECTED=${EXPECTED} ${R_ARTIFACTS}" >> "$GITHUB_ENV"'
+      - id: pick-polytope
+        if: (needs['label-gate'].outputs.depth == 'all' || needs['label-gate'].outputs.depth >= 2)
+        uses: ecmwf/ci-infrastructure/actions/pick-ref@main
+        with:
+          repo: ecmwf/polytope
+          try-branch: ${{ needs.context.outputs.head-branch }}
+          fallback-ref: develop
+          token: ${{ steps.mint.outputs.token }}
+      - if: (needs['label-gate'].outputs.depth == 'all' || needs['label-gate'].outputs.depth >= 2)
+        uses: actions/checkout@v6
+        with:
+          repository: ecmwf/polytope
+          ref: ${{ steps.pick-polytope.outputs.ref }}
+          token: ${{ steps.mint.outputs.token }}
+          persist-credentials: false
+          path: .downstream/polytope
+          sparse-checkout: .ci
+      - name: Resolve polytope
+        id: r-polytope
+        if: (needs['label-gate'].outputs.depth == 'all' || needs['label-gate'].outputs.depth >= 2)
+        continue-on-error: true
+        uses: ecmwf/ci-infrastructure/actions/resolve-deps@main
+        with:
+          manifest: .downstream/polytope/.ci/manifest.toml
+          current-branch: ${{ steps.pick-polytope.outputs.ref }}
+          pin: ${{ env.PINS }}
+          expected-artifacts: ${{ env.EXPECTED }}
+          matrix: test
+          token: ${{ steps.mint.outputs.token }}
+          rebuild-missing: 'true'
+      - name: Carry polytope's commits to the next consumer
+        if: steps.r-polytope.outcome == 'success'
+        env:
+          R_PINS: ${{ steps.r-polytope.outputs.pins }}
+          R_ARTIFACTS: ${{ steps.r-polytope.outputs.artifacts }}
+        run: 'echo "PINS=${R_PINS}" >> "$GITHUB_ENV"
+
+          echo "EXPECTED=${EXPECTED} ${R_ARTIFACTS}" >> "$GITHUB_ENV"'
       - id: pins
         run: echo "pins=${PINS}" >> "$GITHUB_OUTPUT"
       - id: plans
         env:
           PLANS_0: ${{ steps.r-gribjump.outputs.dispatch-plans || '[]' }}
-        run: 'plans=$(printf ''%s\n'' "${PLANS_0}" | jq -cs ''add // []'')
+          PLANS_1: ${{ steps.r-polytope.outputs.dispatch-plans || '[]' }}
+        run: 'plans=$(printf ''%s\n'' "${PLANS_0}" "${PLANS_1}" | jq -cs ''add // []'')
 
           echo "dispatch-plans=${plans}" >> "$GITHUB_OUTPUT"'
 
@@ -180,7 +221,7 @@ jobs:
         uses: ecmwf/ci-infrastructure/actions/dispatch-producers@main
         with:
           dispatch-plans: ${{ needs.resolve.outputs.dispatch-plans }}
-          repositories: ecbuild,eccodes,eckit,fdb,gribjump,metkit,stack-dependencies
+          repositories: conflator,ecbuild,eccodes,eckit,fdb,gribjump,metkit,polytope,stack-dependencies
           client-id: ${{ vars.CI_DISPATCHER_APP_CLIENT_ID }}
           app-private-key: ${{ secrets.CI_DISPATCHER_APP_PRIVATE_KEY }}
     if: ${{ needs['label-gate'].outputs.run == 'true' }}
@@ -237,6 +278,22 @@ jobs:
       resolved-ref: ${{ needs.resolve.outputs.gribjump-ref }}
     secrets: inherit
 
+  polytope:
+    name: polytope
+    needs: [ci-approval, context, label-gate, validate, resolve, rebuild-producers, gribjump]
+    if: ${{ (!cancelled() && !failure() && needs['validate'].result == 'success' && needs['resolve'].result == 'success' && needs['gribjump'].result == 'success') && needs['label-gate'].outputs.run == 'true' && (needs['label-gate'].outputs.depth == 'all' || needs['label-gate'].outputs.depth >= 2) && !contains(needs['label-gate'].outputs.quarantined, ',polytope,') }}
+    uses: ecmwf/polytope/.github/workflows/cross-repo-trigger.yml@develop
+    with:
+      from-repo: ${{ github.repository }}
+      from-sha: ${{ needs.context.outputs.head-sha }}
+      from-jobs: '["fdb/build"]'
+      branch: ${{ needs.context.outputs.head-branch }}
+      fallback-ref: develop
+      pin: ${{ needs.resolve.outputs.pins }}
+      resolved: ${{ needs.resolve.outputs.polytope }}
+      resolved-ref: ${{ needs.resolve.outputs.polytope-ref }}
+    secrets: inherit
+
   zfdb:
     name: zfdb
     needs: [ci-approval, context, label-gate, validate, resolve, gribjump]
@@ -266,7 +323,7 @@ jobs:
     if: ${{ needs['label-gate'].outputs.run == 'true' && (needs['label-gate'].outputs.depth == 'all' || needs['label-gate'].outputs.depth >= 2) && !contains(needs['label-gate'].outputs.quarantined, ',zfdb,') }}
 
   report-result:
-    needs: [ci-approval, context, label-gate, validate, gribjump, zfdb]
+    needs: [ci-approval, context, label-gate, validate, gribjump, polytope, zfdb]
     if: ${{ (always() && needs.context.outputs.ci-conclusion == 'success') && needs['label-gate'].outputs.run == 'true' }}
     runs-on: ubuntu-latest
     permissions:
@@ -277,7 +334,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           state=success
-          for r in ${{ needs.validate.result }} ${{ needs.gribjump.result }} ${{ needs.zfdb.result }}; do
+          for r in ${{ needs.validate.result }} ${{ needs.gribjump.result }} ${{ needs.polytope.result }} ${{ needs.zfdb.result }}; do
             if [ "$r" = failure ] || [ "$r" = cancelled ]; then
               state=failure
             fi
